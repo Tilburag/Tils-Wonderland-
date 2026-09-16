@@ -3289,6 +3289,18 @@ async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
   return isVerbatimRepeat(retry) ? retry : retry;
 }
 
+// Reasoning models spend a large, unpredictable share of the budget on internal
+// thinking before writing anything, and when it runs out the reply comes back
+// empty. So the budget is the expected answer plus a fixed allowance for that
+// thinking - not a tight fit around the answer alone.
+const REASONING_HEADROOM = 2500;
+
+function replyTokenBudget() {
+  const shape = replyLength();
+  const words = shape.lines * shape.words;
+  return Math.min(9000, Math.round(words * 1.8) + REASONING_HEADROOM);
+}
+
 function creativeTemperature() {
   const v = parseFloat(localStorage.getItem('companion_temperature'));
   return isFinite(v) ? v : 0.8;
@@ -4009,6 +4021,10 @@ function renderArchiveSelect() {
 els.addFromArchiveBtn.onclick = () => {
   const figure = getFigure(els.archiveSelect.value);
   if (!figure) { addMsg('system', 'Keine Figur ausgewählt.'); return; }
+  if (characters.some(c => c.figureId === figure.id)) {
+    addMsg('system', `${latestVersion(figure).name} ist bereits in der Besetzung.`);
+    return;
+  }
   const copy = characterFromVersion(figure, latestVersion(figure).v, false);
   if (!copy) return;
   characters.push(copy);
@@ -4029,7 +4045,23 @@ function loadCharacters() {
   }
 }
 
+// The same figure twice in one cast produces two voices answering as one
+// person. Duplicates are dropped whenever the cast is written, which also
+// cleans up casts that already picked some up.
+function dedupeCast() {
+  const seen = new Set();
+  const before = characters.length;
+  characters = characters.filter(c => {
+    const key = c.figureId || ('name:' + (c.name || '').toLowerCase());
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return before - characters.length;
+}
+
 function saveCharacters() {
+  dedupeCast();
   localStorage.setItem('companion_characters', JSON.stringify(characters));
 }
 
@@ -4949,6 +4981,8 @@ if (!figureArchive.length) {
   saveArchive();
   saveCharacters();
 }
+const entfernt = dedupeCast();
+if (entfernt) saveCharacters();
 renderArchiveSelect();
 renderCharacters();
 speechSynthesis.addEventListener('voiceschanged', renderCharacters);
@@ -5100,7 +5134,8 @@ async function askEnsemble(userText, options) {
   try {
     const replyText = await generateWithoutRepeat(
       provider,
-      (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry)
+      (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry),
+      replyTokenBudget()
     );
     history.push({ role: 'assistant', content: replyText });
     sceneStep += 1;
@@ -5118,7 +5153,10 @@ async function askEnsemble(userText, options) {
           provider,
           buildMotionPromptForDevice(pieces, deviceNum),
           [{ role: 'user', content: 'Gib die Bewegungsdaten für die oben angegebenen Textabschnitte zurück.' }],
-          0.3
+          0.3,
+          // Short JSON, but a reasoning model still thinks first - and an empty
+          // answer here means the device silently keeps doing whatever it did.
+          Math.min(6000, pieces.length * 120 + REASONING_HEADROOM)
         );
         const parsed = extractJson(raw);
         return Array.isArray(parsed) ? addVariation(ensureMotionStarts(parsed), deviceNum) : null;
@@ -5399,7 +5437,7 @@ async function generateStoryText(provider, idea, minutes) {
   const wordsPerSection = Math.round((minutes * STORY_WORDS_PER_MINUTE) / sectionCount);
   // Roughly 1.6 tokens per German word, plus headroom so the last sentence
   // isn't cut off mid-word.
-  const maxTokens = Math.min(8000, Math.round(wordsPerSection * 2.2) + 400);
+  const maxTokens = Math.min(12000, Math.round(wordsPerSection * 2.2) + REASONING_HEADROOM);
 
   let full = '';
   for (let i = 0; i < sectionCount; i++) {
@@ -5485,7 +5523,7 @@ async function generateScript(provider, deviceNum) {
           buildScriptPrompt(batch, deviceNum, offset, chunks.length),
           [{ role: 'user', content: 'Gib das Skript für diese Abschnitte zurück.' }],
           0.4,
-          4000
+          Math.min(8000, batch.length * 260 + REASONING_HEADROOM)
         );
         const data = extractJson(raw);
         if (Array.isArray(data) && data.length) parsed = data;
