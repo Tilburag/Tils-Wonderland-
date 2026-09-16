@@ -614,6 +614,7 @@
     <button id="copyLogBtn" class="pill" style="cursor:pointer;">⧉ Protokoll kopieren</button>
   </div>
 
+  <div id="settingsPanel" style="display:none">
   <details class="panel" id="setupPanel">
     <summary style="font-family:var(--font-display); font-size:16px; color:var(--text); list-style:none; display:flex; align-items:center; justify-content:space-between;">
       ⚙ Einrichtung
@@ -669,6 +670,10 @@
         <select id="veniceModelSelect">
           <option value="">(noch nicht geladen)</option>
         </select>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input type="checkbox" id="onlySuitableModels" checked style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Nur passende Modelle zeigen</span>
+        </label>
         <label for="imageModel">Modell für Profilbilder</label>
         <div class="text-input-row">
           <input type="text" id="imageModel" placeholder="z.B. venice-sd35">
@@ -981,6 +986,32 @@
   </details>
 
 
+  </div>
+
+  <div id="livePanel" style="display:none">
+    <details class="panel" id="liveSetup" open>
+      <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Szene und Besetzung</summary>
+
+      <label for="liveScene">Kurz: wo seid ihr, was ist die Lage? (optional)</label>
+      <textarea id="liveScene" style="min-height:90px" placeholder="Ein paar Sätze genügen. Leer lassen, wenn es einfach losgehen soll."></textarea>
+
+      <label>Wer spricht mit</label>
+      <div id="liveCast"></div>
+      <div class="text-input-row">
+        <select id="liveAddFigure" style="flex:1;"></select>
+        <button class="btn-secondary" id="liveAddBtn" type="button">Hinzufügen</button>
+      </div>
+
+      <label for="liveNarrator">Erzähler</label>
+      <select id="liveNarrator"></select>
+      <p class="hint">Der Erzähler beschreibt, was geschieht. Ohne ihn wirkt es wie ein reines Telefonat.</p>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="liveStartBtn">Los geht's</button>
+      </div>
+    </details>
+  </div>
+
   <div id="changelogPanel" style="display:none">
     <div class="panel">
       <h2>Änderungsverlauf</h2>
@@ -997,6 +1028,10 @@
         Bearbeiten, ▶ für eine kurze Vorstellung mit ihrer Stimme. Wer in der laufenden
         Szene mitspielt, ist farbig umrandet.
       </p>
+      <div class="mode-switch" style="margin-bottom:12px;">
+        <button class="mode-btn active" id="figFilterChars" type="button">Figuren</button>
+        <button class="mode-btn" id="figFilterNarr" type="button">Erzähler</button>
+      </div>
       <div id="figureList"></div>
       <div class="btn-row">
         <button class="btn-secondary" id="newFigureBtn">Neue Figur</button>
@@ -1162,6 +1197,7 @@ const els = {
   modelVenice: document.getElementById('modelVenice'),
   loadVeniceModelsBtn: document.getElementById('loadVeniceModelsBtn'),
   veniceModelSelect: document.getElementById('veniceModelSelect'),
+  onlySuitableModels: document.getElementById('onlySuitableModels'),
   imageModel: document.getElementById('imageModel'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
@@ -1264,6 +1300,15 @@ const els = {
   deleteStoryBtn: document.getElementById('deleteStoryBtn'),
   charList: document.getElementById('charList'),
   figuresPanel: document.getElementById('figuresPanel'),
+  settingsPanel: document.getElementById('settingsPanel'),
+  livePanel: document.getElementById('livePanel'),
+  liveSetup: document.getElementById('liveSetup'),
+  liveScene: document.getElementById('liveScene'),
+  liveCast: document.getElementById('liveCast'),
+  liveAddFigure: document.getElementById('liveAddFigure'),
+  liveAddBtn: document.getElementById('liveAddBtn'),
+  liveNarrator: document.getElementById('liveNarrator'),
+  liveStartBtn: document.getElementById('liveStartBtn'),
   changelogPanel: document.getElementById('changelogPanel'),
   changelogList: document.getElementById('changelogList'),
   changelogNow: document.getElementById('changelogNow'),
@@ -1271,6 +1316,8 @@ const els = {
   navVersionLine: document.getElementById('navVersionLine'),
   figureList: document.getElementById('figureList'),
   figureEditor: document.getElementById('figureEditor'),
+  figFilterChars: document.getElementById('figFilterChars'),
+  figFilterNarr: document.getElementById('figFilterNarr'),
   newFigureBtn: document.getElementById('newFigureBtn'),
   draftFigureBtn: document.getElementById('draftFigureBtn'),
   toFiguresBtn: document.getElementById('toFiguresBtn'),
@@ -1500,6 +1547,70 @@ els.previewNarratorVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelect
 // Model identifiers change as Venice adds and retires models, so the list is
 // fetched rather than written into the app. Anything that looks like an image
 // or audio model is filtered out - only text models can answer a chat call.
+// Over a hundred models in one list is not a choice, it is a wall. Rather than
+// hard-coding names - which go stale as models come and go - each entry is
+// scored on what it is actually for. Everything stays reachable behind the
+// checkbox; this only decides what is worth looking at first.
+let veniceModelCache = [];
+
+function modelSuitability(model) {
+  const id = (model.id || '').toLowerCase();
+  const spec = model.model_spec || {};
+  const traits = (Array.isArray(spec.traits) ? spec.traits : []).join(' ').toLowerCase();
+  const text = id + ' ' + traits + ' ' + (spec.name || '').toLowerCase();
+  let score = 0;
+
+  // Built for exactly this: unrestricted, character-driven prose.
+  if (/uncensored|unfiltered|heretic|abliterated/.test(text)) score += 40;
+  if (/roleplay|rp\b|character|companion/.test(text)) score += 35;
+  if (/creative|writing|story/.test(text)) score += 20;
+
+  // A model the provider itself marks as its default is usually a safe choice.
+  if (/\bdefault\b/.test(traits)) score += 15;
+
+  // Long context keeps a scene coherent over many exchanges.
+  const context = spec.availableContextTokens || spec.contextLength || 0;
+  if (context >= 200000) score += 15;
+  else if (context >= 100000) score += 10;
+  else if (context >= 32000) score += 5;
+
+  // Built for something else entirely.
+  if (/code|coder|devstral|embed|rerank|guard|moderation|vision|ocr|whisper|tts/.test(text)) score -= 60;
+  // Small and fast variants: fine for a quick answer, thin for German prose.
+  if (/lite|mini|nano|tiny|small|1b|3b|4b/.test(text)) score -= 25;
+  if (/flash|turbo/.test(text)) score -= 12;
+
+  return score;
+}
+
+function renderVeniceModels() {
+  const list = els.onlySuitableModels.checked
+    ? veniceModelCache.slice().sort((a, b) => modelSuitability(b) - modelSuitability(a)).slice(0, 10)
+    : veniceModelCache;
+
+  els.veniceModelSelect.innerHTML = '';
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = els.onlySuitableModels.checked
+    ? `(${list.length} von ${veniceModelCache.length} - die passendsten)`
+    : `(${list.length} Modelle - bitte wählen)`;
+  els.veniceModelSelect.appendChild(none);
+
+  list.forEach(m => {
+    const spec = m.model_spec || {};
+    const traits = Array.isArray(spec.traits) ? spec.traits.join(', ') : '';
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.id + (traits ? ' - ' + traits : (spec.name ? ' - ' + spec.name : ''));
+    els.veniceModelSelect.appendChild(opt);
+  });
+
+  const current = els.modelVenice.value.trim();
+  if (current && list.some(m => m.id === current)) els.veniceModelSelect.value = current;
+}
+
+els.onlySuitableModels.onchange = renderVeniceModels;
+
 async function loadVeniceModels(quiet) {
   const key = apiKeyFor('companion_apiKey_venice');
   try {
@@ -1511,24 +1622,9 @@ async function loadVeniceModels(quiet) {
     const list = (Array.isArray(body.data) ? body.data : [])
       .filter(m => !m.type || m.type === 'text');
 
-    els.veniceModelSelect.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = `(${list.length} Modelle - bitte wählen)`;
-    els.veniceModelSelect.appendChild(none);
-
-    list.forEach(m => {
-      const spec = m.model_spec || {};
-      const traits = Array.isArray(spec.traits) ? spec.traits.join(', ') : '';
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.id + (traits ? ' - ' + traits : (spec.name ? ' - ' + spec.name : ''));
-      els.veniceModelSelect.appendChild(opt);
-    });
-
-    const current = els.modelVenice.value.trim();
-    if (current && list.some(m => m.id === current)) els.veniceModelSelect.value = current;
-    if (!quiet) addMsg('system', `${list.length} Venice-Modelle geladen.`);
+    veniceModelCache = list;
+    renderVeniceModels();
+    if (!quiet) addMsg('system', `${list.length} Venice-Modelle geladen, die passendsten stehen oben.`);
   } catch (err) {
     addMsg('system', 'Modellliste konnte nicht geladen werden: ' + err.message);
   }
@@ -1752,6 +1848,35 @@ els.saveSettingsBtn.onclick = () => {
   }
 };
 
+// ---------- Network with retries ----------
+// "Failed to fetch" is not an answer from a server - it means the request never
+// got there. On a phone that is usually a moment of no connection: a handover
+// between WLAN and mobile, a lift, a tunnel. Those pass in a second or two, so
+// the sensible response is to wait briefly and try again rather than to give up
+// and fall back to a worse voice for the rest of the scene.
+//
+// Deliberately narrow: only network-level failures are retried. A 401 or a 429
+// is a real answer and gets passed straight through - repeating it would only
+// waste time and quota.
+function isNetworkGlitch(err) {
+  return err instanceof TypeError && /fetch|network|load failed/i.test(err.message || '');
+}
+
+async function fetchWithRetry(url, options, attempts) {
+  const total = attempts || 3;
+  let lastError = null;
+  for (let attempt = 0; attempt < total; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      lastError = err;
+      if (!isNetworkGlitch(err) || attempt === total - 1) throw err;
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 // ---------- Version ----------
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
@@ -1796,12 +1921,7 @@ const CHANGELOG = [
 ];
 
 function showChangelog() {
-  figuresOpen = false;
-  els.figuresPanel.style.display = 'none';
-  els.storyPanel.style.display = 'none';
-  els.transcript.style.display = 'none';
-  els.bottomBar.style.display = 'none';
-  els.changelogPanel.style.display = 'block';
+  showOnly('changelog');
   els.topbarWhere.textContent = ' · Was ist neu';
 
   els.changelogNow.textContent = `Du benutzt Version ${APP_VERSION}.`;
@@ -2238,12 +2358,27 @@ function updateTrackVisibility() {
   document.body.classList.toggle('two-devices', hasTwo);
 }
 
+// Five identical error lines say nothing more than one does, and they push the
+// conversation off the screen. A repeat is counted on the existing line instead.
+let lastMsg = null;
+
 function addMsg(role, text) {
   logEvent('msg', { role, text });
+
+  if (lastMsg && lastMsg.role === role && lastMsg.text === text
+      && Date.now() - lastMsg.at < 60000 && lastMsg.node.isConnected) {
+    lastMsg.count += 1;
+    lastMsg.at = Date.now();
+    lastMsg.node.textContent = text + ' (' + lastMsg.count + '\u00d7)';
+    els.transcript.scrollTop = els.transcript.scrollHeight;
+    return;
+  }
+
   const div = document.createElement('div');
   div.className = 'msg ' + role;
   div.textContent = text;
   els.transcript.appendChild(div);
+  lastMsg = { role, text, node: div, count: 1, at: Date.now() };
   els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
@@ -2996,6 +3131,22 @@ function resolveVoice(role) {
     };
   }
   const narrator = role === 'narrator' && localStorage.getItem('companion_narratorEnabled') === 'true';
+
+  // A narrator chosen from the archive brings its own voice; the older
+  // narrator settings stay as the fallback for anyone who never picked one.
+  if (narrator) {
+    const chosen = getFigure(localStorage.getItem('companion_narratorFigure') || '');
+    const version = chosen ? latestVersion(chosen) : null;
+    if (version) {
+      return {
+        voice: version.voice || localStorage.getItem('companion_voice') || '',
+        eleven: version.elevenVoice || localStorage.getItem('companion_elevenVoiceId') || '',
+        pitch: typeof version.pitch === 'number' ? version.pitch : 0.9,
+        rate: typeof version.rate === 'number' ? version.rate : 0.9,
+      };
+    }
+  }
+
   return {
     voice: (narrator && localStorage.getItem('companion_voiceNarrator')) || localStorage.getItem('companion_voice') || '',
     eleven: (narrator && localStorage.getItem('companion_elevenVoiceIdNarrator')) || localStorage.getItem('companion_elevenVoiceId') || '',
@@ -3061,7 +3212,7 @@ function fetchElevenAudio(text, role) {
       }
     }
 
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text, model_id: modelId, voice_settings: voiceSettings })
@@ -3293,12 +3444,15 @@ async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
 // thinking before writing anything, and when it runs out the reply comes back
 // empty. So the budget is the expected answer plus a fixed allowance for that
 // thinking - not a tight fit around the answer alone.
-const REASONING_HEADROOM = 2500;
+// Back to a lean default. The escalation below catches a model that needs more,
+// and it costs nothing while it isn't needed - whereas a permanently oversized
+// budget slows every single call.
+const REASONING_HEADROOM = 1200;
 
 function replyTokenBudget() {
   const shape = replyLength();
   const words = shape.lines * shape.words;
-  return Math.min(9000, Math.round(words * 1.8) + REASONING_HEADROOM);
+  return Math.min(12000, Math.round(words * 1.5) + REASONING_HEADROOM);
 }
 
 function creativeTemperature() {
@@ -3599,7 +3753,7 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
   const apiKey = apiKeyFor('companion_apiKey_anthropic');
   if (!apiKey) throw new Error('Kein Anthropic-Schlüssel eingetragen.');
   const model = modelFor('companion_model_anthropic') || 'claude-sonnet-4-6';
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -3612,7 +3766,11 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   const content = (data.content || []).map(c => c.text || '').join('').trim();
-  if (!content) throw new Error('Das Modell hat eine leere Antwort geliefert.');
+  if (!content) {
+    const err = new Error('Das Modell hat eine leere Antwort geliefert.');
+    err.code = 'budget';
+    throw err;
+  }
   return content;
 }
 
@@ -3620,7 +3778,7 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
   const apiKey = apiKeyFor(apiKeyStorageKey);
   if (!apiKey) throw new Error('Kein API-Schlüssel eingetragen.');
   const model = modelFor(modelStorageKey) || defaultModel;
-  const res = await fetch(endpoint, {
+  const res = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -3650,9 +3808,13 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
     // empty and perfectly valid - which is why this used to surface as a
     // confusing "empty prompt" error somewhere far away from the cause.
     const reason = choice && choice.finish_reason;
-    throw new Error(reason === 'length'
+    const err = new Error(reason === 'length'
       ? 'Das Modell hat die Token-Grenze erreicht, bevor es antworten konnte.'
       : 'Das Modell hat eine leere Antwort geliefert.');
+    // Marked so the layer above can simply try again with more room instead of
+    // surfacing a failure the user can do nothing about.
+    err.code = 'budget';
+    throw err;
   }
   return content;
 }
@@ -3663,7 +3825,26 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
 // `opts.persona` marks the calls that produce prose. The motion step must never
 // carry a character: it has to return bare JSON, and a persona would have it
 // answer in character instead.
+// How much of the budget a reasoning model spends on thinking before it writes
+// a word is not knowable in advance - it varies by model and by prompt. Rather
+// than guessing a number that is too small for one model and wasteful for
+// another, the call simply retries with more room when that is what went wrong.
+const BUDGET_CEILING = 16000;
+
 async function callProvider(provider, systemPrompt, messages, temperature, maxTokens, opts) {
+  let budget = maxTokens || 800;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await callProviderOnce(provider, systemPrompt, messages, temperature, budget, opts);
+    } catch (err) {
+      const canGrow = err && err.code === 'budget' && budget < BUDGET_CEILING && attempt < 2;
+      if (!canGrow) throw err;
+      budget = Math.min(BUDGET_CEILING, Math.round(budget * 2.2));
+    }
+  }
+}
+
+async function callProviderOnce(provider, systemPrompt, messages, temperature, maxTokens, opts) {
   if (provider === 'anthropic') {
     return callAnthropic(systemPrompt, messages, temperature, maxTokens);
   } else if (provider === 'openai') {
@@ -3883,6 +4064,7 @@ function versionFromCharacter(c, versionNumber) {
     notes: c.notes || '',
     pitch: c.pitch, rate: c.rate,
     gender: c.gender || 'offen',
+    isNarrator: !!c.isNarrator,
     voice: c.voice || '', elevenVoice: c.elevenVoice || '',
     image: c.image || '', imageKey: c.imageKey || '',
     created: new Date().toISOString(),
@@ -3908,6 +4090,7 @@ function characterFromVersion(figure, versionNumber, isUser) {
   const version = findVersion(figure, versionNumber);
   if (!version) return null;
   return Object.assign(JSON.parse(JSON.stringify(version)), {
+    isNarrator: !!version.isNarrator,
     id: figure.id + '_v' + version.v,
     figureId: figure.id,
     version: version.v,
@@ -4435,6 +4618,17 @@ function renderCharacters() {
       card.appendChild(wrap);
     });
 
+    const narratorLabel = document.createElement('label');
+    narratorLabel.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:12px;';
+    const narratorBox = document.createElement('input');
+    narratorBox.type = 'checkbox';
+    narratorBox.style.width = 'auto';
+    narratorBox.checked = !!c.isNarrator;
+    narratorBox.onchange = () => { c.isNarrator = narratorBox.checked; };
+    narratorLabel.appendChild(narratorBox);
+    narratorLabel.appendChild(document.createTextNode('Ist eine Erzählerstimme'));
+    card.appendChild(narratorLabel);
+
     const genderLabel = document.createElement('label');
     genderLabel.textContent = 'Geschlecht';
     card.appendChild(genderLabel);
@@ -4868,8 +5062,12 @@ async function introduceFigure(version) {
   });
 }
 
+let figureFilterNarrators = false;
+
 function renderFigureList() {
   els.figureList.innerHTML = '';
+  els.figFilterChars.classList.toggle('active', !figureFilterNarrators);
+  els.figFilterNarr.classList.toggle('active', figureFilterNarrators);
   if (!figureArchive.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
@@ -4878,7 +5076,18 @@ function renderFigureList() {
     return;
   }
 
-  figureArchive.forEach(figure => {
+  const shown = figureArchive.filter(f => !!latestVersion(f).isNarrator === figureFilterNarrators);
+  if (!shown.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = figureFilterNarrators
+      ? 'Noch keine Erzählerstimme angelegt. Leg eine neue Figur an und setz den Haken „Ist eine Erzählerstimme".'
+      : 'Noch keine Figuren angelegt.';
+    els.figureList.appendChild(empty);
+    return;
+  }
+
+  shown.forEach(figure => {
     const version = latestVersion(figure);
     const inCast = characters.some(c => c.figureId === figure.id);
 
@@ -4930,8 +5139,11 @@ function openFigureEditor(figure) {
   setTimeout(() => els.figureEditor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 
+els.figFilterChars.onclick = () => { figureFilterNarrators = false; renderFigureList(); };
+els.figFilterNarr.onclick = () => { figureFilterNarrators = true; renderFigureList(); };
+
 els.newFigureBtn.onclick = () => { els.addCharBtn.click(); renderFigureList(); openFigureEditor(getFigure(characters[characters.length - 1].figureId)); };
-els.draftFigureBtn.onclick = () => { switchMode(currentMode); openSetup(false); els.sceneIdea.focus(); };
+els.draftFigureBtn.onclick = () => { openSetup(); els.sceneIdea.focus(); };
 els.toFiguresBtn.onclick = () => { setDrawer(false); showFigures(); };
 
 els.addCharBtn.onclick = () => {
@@ -5156,7 +5368,7 @@ async function askEnsemble(userText, options) {
           0.3,
           // Short JSON, but a reasoning model still thinks first - and an empty
           // answer here means the device silently keeps doing whatever it did.
-          Math.min(6000, pieces.length * 120 + REASONING_HEADROOM)
+          Math.min(6000, pieces.length * 110 + REASONING_HEADROOM)
         );
         const parsed = extractJson(raw);
         return Array.isArray(parsed) ? addVariation(ensureMotionStarts(parsed), deviceNum) : null;
@@ -5165,9 +5377,15 @@ async function askEnsemble(userText, options) {
         return null;
       }
     }
-    const [motions1, motions2] = await Promise.all([
-      getMotions(1),
-      hasDevice2 ? getMotions(2) : Promise.resolve(null),
+    // Deriving the motion is a second model call and takes about as long as the
+    // first one. Waiting for it before a single word is spoken doubled the
+    // silence after every message - the reply was ready and just sat there.
+    // Playback starts right away instead, and the motion is applied from
+    // whichever piece it arrives at, usually the first or second.
+    let motions1 = null, motions2 = null;
+    const motionReady = Promise.all([
+      getMotions(1).then(m => { motions1 = m; }),
+      hasDevice2 ? getMotions(2).then(m => { motions2 = m; }) : Promise.resolve(),
     ]);
 
     const generation = playbackGeneration;
@@ -5178,16 +5396,21 @@ async function askEnsemble(userText, options) {
       const current = upcoming;
       upcoming = (i + 1 < pieces.length) ? prepareSpeech(pieces[i + 1].text, pieces[i + 1].role) : null;
 
-      const m1 = (motions1 && motions1[i]) || (motions1 ? motions1[motions1.length - 1] : device1.getState());
-      device1.setMotion(m1);
-      logMotionChoice(1, m1);
-      if (hasDevice2) {
-        const m2 = (motions2 && motions2[i]) || (motions2 ? motions2[motions2.length - 1] : device2.getState());
+      // Not there yet means the derivation is still running: leave the device
+      // doing what it was doing rather than forcing it to a guessed value.
+      if (motions1) {
+        const m1 = motions1[i] || motions1[motions1.length - 1];
+        device1.setMotion(m1);
+        logMotionChoice(1, m1);
+      }
+      if (hasDevice2 && motions2) {
+        const m2 = motions2[i] || motions2[motions2.length - 1];
         device2.setMotion(m2);
         logMotionChoice(2, m2);
       }
       await current.play();
     }
+    await motionReady; // keep a late failure from surfacing as an unhandled rejection
     return true;
   } catch (err) {
     addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
@@ -5248,40 +5471,56 @@ function setStoryProgress(fraction) {
 // touching which mode a scene is in, so leaving it puts you back where you were.
 let figuresOpen = false;
 
-function showFigures() {
-  figuresOpen = true;
-  els.changelogPanel.style.display = 'none';
-  els.figuresPanel.style.display = 'block';
-  els.storyPanel.style.display = 'none';
-  els.transcript.style.display = 'none';
-  els.bottomBar.style.display = 'none';
-  els.topbarWhere.textContent = ' · Figuren';
-  renderFigureList();
-  renderCharacters();
+// One place decides what is on screen. Before this, panels were shown and
+// hidden from half a dozen spots, which is how the settings ended up sitting
+// above the conversation in every mode.
+function showOnly(which) {
+  const parts = {
+    live: els.livePanel,
+    story: els.storyPanel,
+    figures: els.figuresPanel,
+    settings: els.settingsPanel,
+    changelog: els.changelogPanel,
+  };
+  Object.entries(parts).forEach(([name, node]) => {
+    if (node) node.style.display = (name === which ? 'block' : 'none');
+  });
+  const conversational = which === 'live';
+  els.transcript.style.display = conversational ? 'flex' : 'none';
+  els.bottomBar.style.display = conversational ? 'block' : 'none';
+  figuresOpen = which === 'figures';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function showFigures() {
+  showOnly('figures');
+  els.topbarWhere.textContent = ' · Figuren';
+  renderFigureList();
+  renderCharacters();
+}
+
+function showSettings() {
+  showOnly('settings');
+  els.setupPanel.open = true;
+  els.topbarWhere.textContent = ' · Einstellungen';
+}
+
 function switchMode(mode, sub) {
-  figuresOpen = false;
-  els.figuresPanel.style.display = 'none';
-  els.changelogPanel.style.display = 'none';
   const previous = currentMode;
   currentMode = mode;
   if (sub) ensembleSub = sub;
 
-  const showsStoryPanel = mode === 'story';
   els.ensembleBar.style.display = 'none';
-
-  els.storyPanel.style.display = showsStoryPanel ? 'block' : 'none';
-  els.transcript.style.display = showsStoryPanel ? 'none' : 'flex';
-  els.bottomBar.style.display = showsStoryPanel ? 'none' : 'block';
+  try { localStorage.setItem('companion_mode', mode); } catch (e) {}
+  showOnly(mode === 'story' ? 'story' : 'live');
+  if (mode === 'live') renderLivePanel();
 
   els.topbarWhere.textContent = ' · ' + (MODE_LABELS[modeKey()] || '');
   if (els.drawer.classList.contains('open')) refreshDrawer();
 
   // A story that is still playing has no business continuing under a different
   // mode, and the auto-loop belongs to the conversational modes only.
-  if (showsStoryPanel) {
+  if (mode === 'story') {
     autoPlaying = false;
     setAutoStatus(false);
     if (typeof callActive !== 'undefined' && callActive) endCall();
@@ -5372,19 +5611,141 @@ els.navNewChat.onclick = () => {
 // Both open the setup panel; the figures entry additionally unfolds its own
 // section, because hunting for it inside a long settings page is the kind of
 // small friction that makes a feature go unused.
-function openSetup(openFigures) {
-  els.setupPanel.open = true;
+function openSetup() {
   setDrawer(false);
-  const target = openFigures
-    ? Array.from(els.setupPanel.querySelectorAll('summary')).find(x => x.textContent.includes('Figuren'))
-    : null;
-  if (target && target.parentElement) target.parentElement.open = true;
-  setTimeout(() => {
-    (target || els.setupPanel).scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 60);
+  showSettings();
 }
-els.setupBtn.onclick = () => openSetup(false);
-els.navSetup.onclick = () => openSetup(false);
+els.setupBtn.onclick = () => openSetup();
+els.navSetup.onclick = () => openSetup();
+// ---------- Live panel ----------
+// Everything needed to start talking, and nothing else: who is here, roughly
+// where, and whether someone narrates. The settings moved out entirely - they
+// belong to the app, not to this scene.
+function narratorFigures() { return figureArchive.filter(f => latestVersion(f).isNarrator); }
+function playableFigures() { return figureArchive.filter(f => !latestVersion(f).isNarrator); }
+
+function renderLiveCast() {
+  els.liveCast.innerHTML = '';
+  characters.forEach((c, index) => {
+    const row = document.createElement('div');
+    row.className = 'figure-row';
+
+    const thumb = document.createElement(c.image ? 'img' : 'div');
+    thumb.className = 'thumb';
+    if (c.image) thumb.src = c.image;
+    else thumb.textContent = (c.name || '?').trim().charAt(0).toUpperCase() || '?';
+    row.appendChild(thumb);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = c.name + (c.isUser ? '  (das bin ich)' : '');
+    const gist = document.createElement('div');
+    gist.className = 'gist';
+    gist.textContent = figureGist(c);
+    meta.appendChild(who);
+    meta.appendChild(gist);
+    row.appendChild(meta);
+
+    const play = document.createElement('button');
+    play.className = 'act';
+    play.textContent = '▶';
+    play.title = 'Kurz vorstellen';
+    play.onclick = () => introduceFigure(c);
+    row.appendChild(play);
+
+    if (!c.isUser) {
+      const remove = document.createElement('button');
+      remove.className = 'act';
+      remove.textContent = '✕';
+      remove.title = 'Aus der Besetzung nehmen';
+      remove.onclick = () => {
+        characters.splice(index, 1);
+        saveCharacters();
+        renderLivePanel();
+      };
+      row.appendChild(remove);
+    }
+
+    els.liveCast.appendChild(row);
+  });
+}
+
+function renderLiveAddOptions() {
+  els.liveAddFigure.innerHTML = '';
+  const available = playableFigures().filter(f => !characters.some(c => c.figureId === f.id));
+  if (!available.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '(alle Figuren sind schon dabei)';
+    els.liveAddFigure.appendChild(opt);
+    return;
+  }
+  available.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = latestVersion(f).name;
+    els.liveAddFigure.appendChild(opt);
+  });
+}
+
+function renderLiveNarrator() {
+  els.liveNarrator.innerHTML = '';
+  const off = document.createElement('option');
+  off.value = '';
+  off.textContent = 'Kein Erzähler - wie ein Telefonat';
+  els.liveNarrator.appendChild(off);
+
+  narratorFigures().forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = latestVersion(f).name;
+    els.liveNarrator.appendChild(opt);
+  });
+
+  const active = localStorage.getItem('companion_narratorEnabled') === 'true'
+    ? (localStorage.getItem('companion_narratorFigure') || '')
+    : '';
+  els.liveNarrator.value = narratorFigures().some(f => f.id === active) ? active : '';
+}
+
+function renderLivePanel() {
+  els.liveScene.value = localStorage.getItem('companion_sceneDesc') || '';
+  renderLiveCast();
+  renderLiveAddOptions();
+  renderLiveNarrator();
+}
+
+els.liveAddBtn.onclick = () => {
+  const figure = getFigure(els.liveAddFigure.value);
+  if (!figure) return;
+  const copy = characterFromVersion(figure, latestVersion(figure).v, false);
+  if (!copy) return;
+  characters.push(copy);
+  saveCharacters();
+  renderLivePanel();
+};
+
+els.liveNarrator.onchange = () => {
+  const id = els.liveNarrator.value;
+  safeSet('companion_narratorFigure', id);
+  safeSet('companion_narratorEnabled', id ? 'true' : 'false');
+  if (els.narratorEnabled) els.narratorEnabled.checked = !!id;
+};
+
+els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.value.trim()); };
+
+els.liveStartBtn.onclick = () => {
+  safeSet('companion_sceneDesc', els.liveScene.value.trim());
+  saveCharacters();
+  // Folded away once things are under way: from here on the conversation
+  // should have the screen to itself.
+  els.liveSetup.open = false;
+  if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
+  els.textInput.focus();
+};
+
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
 els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
 els.navVersionLine.textContent = 'Version ' + APP_VERSION;
@@ -5900,6 +6261,11 @@ els.stopStoryBtn.onclick = () => {
 };
 
 // Manually talking or hitting stop should always interrupt auto-continue
+// Nothing was choosing a view on load, which left the live panel hidden until
+// the first mode switch. The saved mode is restored, falling back to live.
+const savedMode = localStorage.getItem('companion_mode');
+switchMode(savedMode === 'story' ? 'story' : 'live');
+
 els.stopBtn.addEventListener('click', () => {
   autoPlaying = false;
   setAutoStatus(false);
