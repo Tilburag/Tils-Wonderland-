@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Begleiter</title>
+<title>Notizen</title>
+<meta name="app-version" content="0.42">
 <style>
   :root {
     --bg: #14141f;
@@ -310,6 +311,36 @@
     background: var(--bg-panel-raised);
   }
   .char-card.is-user { border-color: var(--accent-dim); }
+  .figure-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 10px;
+  }
+  .figure-row .thumb {
+    width: 54px; height: 54px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    background: var(--bg-panel-raised); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; color: var(--text-dim);
+  }
+  .figure-row .meta { flex: 1; min-width: 0; }
+  .figure-row .who { font-size: 15.5px; }
+  .figure-row .gist {
+    font-size: 12.5px; color: var(--text-dim); margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .figure-row .act {
+    flex-shrink: 0; background: none; border: 1px solid var(--line);
+    color: var(--text); border-radius: 50%; width: 38px; height: 38px;
+    font-size: 14px; padding: 0;
+  }
+  .figure-row.in-cast { border-color: var(--accent-dim); }
+
   .char-avatar {
     width: 52px;
     height: 52px;
@@ -367,6 +398,16 @@
     font-weight: normal;
   }
   .trait-grid input { width: auto; }
+  .version-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .version-row select { flex: 1; }
+  .version-row button { flex-shrink: 0; font-size: 12.5px; padding: 9px 11px; }
   .char-badge {
     font-size: 11.5px;
     padding: 3px 9px;
@@ -383,6 +424,105 @@
     padding: 2px 0 0 4px;
     max-width: 100%;
   }
+  /* The bar stays put while the transcript scrolls under it, so the menu is
+     reachable without scrolling back to the top - on a phone that matters more
+     than the few pixels it costs. */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -24px -20px 14px -20px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .icon-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    padding: 6px 8px;
+    line-height: 1;
+  }
+  .topbar .title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 400;
+  }
+  .topbar .where {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .drawer-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 8, 14, 0.6);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease-out;
+  }
+  .drawer-scrim.open { opacity: 1; pointer-events: auto; }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 82%;
+    max-width: 320px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--line);
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 180ms ease-out;
+    display: flex;
+    flex-direction: column;
+    padding: calc(18px + env(safe-area-inset-top)) 0 calc(14px + env(safe-area-inset-bottom)) 0;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 19px;
+    margin: 0 18px 14px 18px;
+  }
+  .drawer-scroll { flex: 1; overflow-y: auto; }
+  .drawer-group {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    margin: 16px 18px 6px 18px;
+  }
+  .drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--text);
+    font-size: 15px;
+    text-align: left;
+    padding: 12px 18px;
+  }
+  .drawer-item:active { background: var(--bg-panel-raised); }
+  .drawer-item.active { background: var(--bg-panel-raised); color: var(--accent); }
+  .drawer-item .sub {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .drawer-item .glyph { width: 22px; text-align: center; flex-shrink: 0; }
+
   .mode-switch {
     display: flex;
     gap: 6px;
@@ -442,10 +582,15 @@
 <body>
 <div class="app">
 
-  <h1>Begleiter</h1>
-  <div class="subtitle">Sprachgesteuerte, kontextbezogene Ansteuerung deines Geräts</div>
+  <div id="contextWarn" style="display:none; border:1px solid var(--stop); color:var(--stop); border-radius:12px; padding:11px 14px; font-size:13px; line-height:1.45; margin-bottom:12px;"></div>
 
-  <div class="mode-switch">
+  <div class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menü">☰</button>
+    <div class="title">Notizen<span class="where" id="topbarWhere"></span></div>
+    <button class="icon-btn" id="setupBtn" aria-label="Einrichtung">⚙</button>
+  </div>
+
+  <div class="mode-switch" style="display:none;">
     <button class="mode-btn active" id="modeChatBtn">Gespräch</button>
     <button class="mode-btn" id="modeStoryBtn">Geschichte</button>
     <button class="mode-btn" id="modeEnsembleBtn">Ensemble</button>
@@ -469,12 +614,12 @@
     <button id="copyLogBtn" class="pill" style="cursor:pointer;">⧉ Protokoll kopieren</button>
   </div>
 
-  <details class="panel" id="setupPanel" open>
+  <details class="panel" id="setupPanel">
     <summary style="font-family:var(--font-display); font-size:16px; color:var(--text); list-style:none; display:flex; align-items:center; justify-content:space-between;">
       ⚙ Einrichtung
     </summary>
 
-    <details class="subsection" open>
+    <details class="subsection">
       <summary>KI-Anbieter &amp; Charakter</summary>
       <label for="llmProvider">KI-Anbieter</label>
       <select id="llmProvider">
@@ -574,16 +719,6 @@
         Leer lassen, wenn du das nicht steuern willst.
       </p>
 
-      <label for="systemPrompt">Charakterbeschreibung</label>
-      <textarea id="systemPrompt" style="min-height:160px">Name: Mia.
-
-Wesen: warmherzig und aufmerksam, mit einem verspielten Zug. Sie merkt schnell, wie es mir geht, und richtet sich danach - wird leiser, wenn ich still werde, und deutlicher, wenn ich es bin.
-
-Sprechstil: kurze Sätze, gesprochene Sprache, keine Monologe. Sie sagt eher wenig und meint es. Statt anzukündigen, was sie gleich tut, tut sie es einfach.
-
-Verhalten: bleibt im Moment und in der Situation. Fragt gelegentlich nach, statt durchgehend zu reden. Lässt Pausen entstehen, statt jede Stille zu füllen. Nimmt wahr, worauf ich reagiere, und bleibt eine Weile dabei, statt ständig etwas Neues zu probieren.
-
-Grenzen: nichts, was ich vorher abgelehnt habe. Im Zweifel fragt sie kurz nach, ohne die Stimmung zu zerreden.</textarea>
     </details>
 
     <details class="subsection">
@@ -706,6 +841,17 @@ Grenzen: nichts, was ich vorher abgelehnt habe. Im Zweifel fragt sie kurz nach, 
         von Hand ändern - der Entwurf ist ein Startpunkt, keine fertige Sache.
       </p>
 
+      <label for="archiveSelect">Figur aus dem Archiv holen</label>
+      <div class="text-input-row">
+        <select id="archiveSelect" style="flex:1;"></select>
+        <button class="btn-secondary" id="addFromArchiveBtn" type="button">Holen</button>
+      </div>
+      <p class="hint">
+        Im Archiv liegen alle Figuren, die du je angelegt oder entwerfen lassen hast - jede
+        mit ihren Versionen. Was du hier in die Besetzung holst, ist eine Arbeitskopie:
+        Änderungen wirken erst im Archiv, wenn du sie sicherst.
+      </p>
+
       <label for="castSelect">Gespeicherte Besetzung</label>
       <select id="castSelect"></select>
       <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
@@ -723,9 +869,9 @@ Grenzen: nichts, was ich vorher abgelehnt habe. Im Zweifel fragt sie kurz nach, 
         Namen wird sie überschrieben.
       </p>
 
-      <div id="charList"></div>
       <div class="btn-row">
         <button class="btn-secondary" id="addCharBtn">Figur hinzufügen</button>
+        <button class="btn-secondary" id="toFiguresBtn">Figuren bearbeiten</button>
       </div>
     </details>
 
@@ -835,6 +981,35 @@ Grenzen: nichts, was ich vorher abgelehnt habe. Im Zweifel fragt sie kurz nach, 
   </details>
 
 
+  <div id="changelogPanel" style="display:none">
+    <div class="panel">
+      <h2>Änderungsverlauf</h2>
+      <p class="hint" style="margin-top:0;" id="changelogNow"></p>
+      <div id="changelogList"></div>
+    </div>
+  </div>
+
+  <div id="figuresPanel" style="display:none">
+    <div class="panel">
+      <h2>Figuren</h2>
+      <p class="hint" style="margin-top:0;">
+        Alle Figuren, die du je angelegt oder entwerfen lassen hast. Antippen zum
+        Bearbeiten, ▶ für eine kurze Vorstellung mit ihrer Stimme. Wer in der laufenden
+        Szene mitspielt, ist farbig umrandet.
+      </p>
+      <div id="figureList"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="newFigureBtn">Neue Figur</button>
+        <button class="btn-secondary" id="draftFigureBtn">Entwerfen lassen</button>
+      </div>
+    </div>
+
+    <details class="panel" id="figureEditor" style="display:none">
+      <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Bearbeiten</summary>
+      <div id="charList"></div>
+    </details>
+  </div>
+
   <div id="storyPanel" style="display:none">
     <div class="panel">
       <h2>Geschichte erzeugen</h2>
@@ -900,6 +1075,26 @@ Grenzen: nichts, was ich vorher abgelehnt habe. Im Zweifel fragt sie kurz nach, 
     <button class="estop side-btn" id="stopBtn">Stopp</button>
   </div>
 </div>
+
+<div class="drawer-scrim" id="drawerScrim"></div>
+<nav class="drawer" id="drawer">
+  <h2>Notizen</h2>
+  <div class="drawer-scroll">
+    <button class="drawer-item" id="navNewChat"><span class="glyph">＋</span><span>Neues Gespräch<span class="sub">Verlauf leeren, von vorn beginnen</span></span></button>
+
+    <div class="drawer-group">Arbeitsweise</div>
+    <button class="drawer-item" data-mode="live"><span class="glyph">💬</span><span>Live<span class="sub">Mitreden, Zug um Zug</span></span></button>
+    <button class="drawer-item" data-mode="story"><span class="glyph">📖</span><span>Geschichte<span class="sub">Vorab schreiben, dann anhören</span></span></button>
+
+    <div class="drawer-group">Aufbewahrte Geschichten</div>
+    <div id="navStories"></div>
+
+    <div class="drawer-group">Einstellungen</div>
+    <button class="drawer-item" id="navChangelog"><span class="glyph">🕘</span><span>Was ist neu<span class="sub" id="navVersionLine"></span></span></button>
+    <button class="drawer-item" id="navFigures"><span class="glyph">🎭</span><span>Figuren und Archiv</span></button>
+    <button class="drawer-item" id="navSetup"><span class="glyph">⚙</span><span>Einrichtung</span></button>
+  </div>
+</nav>
 
 <div class="motion-track" id="motionTrack">
   <div class="motion-track-limit" id="d1LimitMin"></div>
@@ -975,7 +1170,6 @@ const els = {
   deepseekPanel: document.getElementById('deepseekPanel'),
   openrouterPanel: document.getElementById('openrouterPanel'),
   venicePanel: document.getElementById('venicePanel'),
-  systemPrompt: document.getElementById('systemPrompt'),
   replyLength: document.getElementById('replyLength'),
   tempRange: document.getElementById('tempRange'),
   tempVal: document.getElementById('tempVal'),
@@ -1069,6 +1263,17 @@ const els = {
   saveStoryBtn: document.getElementById('saveStoryBtn'),
   deleteStoryBtn: document.getElementById('deleteStoryBtn'),
   charList: document.getElementById('charList'),
+  figuresPanel: document.getElementById('figuresPanel'),
+  changelogPanel: document.getElementById('changelogPanel'),
+  changelogList: document.getElementById('changelogList'),
+  changelogNow: document.getElementById('changelogNow'),
+  navChangelog: document.getElementById('navChangelog'),
+  navVersionLine: document.getElementById('navVersionLine'),
+  figureList: document.getElementById('figureList'),
+  figureEditor: document.getElementById('figureEditor'),
+  newFigureBtn: document.getElementById('newFigureBtn'),
+  draftFigureBtn: document.getElementById('draftFigureBtn'),
+  toFiguresBtn: document.getElementById('toFiguresBtn'),
   modeEnsembleBtn: document.getElementById('modeEnsembleBtn'),
   ensembleBar: document.getElementById('ensembleBar'),
   ensLiveBtn: document.getElementById('ensLiveBtn'),
@@ -1077,12 +1282,24 @@ const els = {
   addCharBtn: document.getElementById('addCharBtn'),
   sceneIdea: document.getElementById('sceneIdea'),
   generateSceneBtn: document.getElementById('generateSceneBtn'),
+  archiveSelect: document.getElementById('archiveSelect'),
+  addFromArchiveBtn: document.getElementById('addFromArchiveBtn'),
   castSelect: document.getElementById('castSelect'),
   castWithScene: document.getElementById('castWithScene'),
   loadCastBtn: document.getElementById('loadCastBtn'),
   saveCastBtn: document.getElementById('saveCastBtn'),
   deleteCastBtn: document.getElementById('deleteCastBtn'),
   bottomBar: document.getElementById('bottomBar'),
+  contextWarn: document.getElementById('contextWarn'),
+  menuBtn: document.getElementById('menuBtn'),
+  setupBtn: document.getElementById('setupBtn'),
+  topbarWhere: document.getElementById('topbarWhere'),
+  drawer: document.getElementById('drawer'),
+  drawerScrim: document.getElementById('drawerScrim'),
+  navNewChat: document.getElementById('navNewChat'),
+  navStories: document.getElementById('navStories'),
+  navFigures: document.getElementById('navFigures'),
+  navSetup: document.getElementById('navSetup'),
   d1LimitMin: document.getElementById('d1LimitMin'),
   d1LimitMax: document.getElementById('d1LimitMax'),
   d2LimitMin: document.getElementById('d2LimitMin'),
@@ -1188,7 +1405,6 @@ els.apiKeyVenice.value = localStorage.getItem('companion_apiKey_venice') || '';
 els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venice-uncensored';
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
-els.systemPrompt.value = localStorage.getItem('companion_systemPrompt') || els.systemPrompt.value;
 els.sceneDesc.value = localStorage.getItem('companion_sceneDesc') || DEFAULT_SCENE;
 els.styleExamples.value = localStorage.getItem('companion_styleExamples') || '';
 els.replyLength.value = localStorage.getItem('companion_replyLength') || 'mittel';
@@ -1240,9 +1456,9 @@ updateVoicePanels();
 els.ttsSource.onchange = updateVoicePanels;
 els.narratorEnabled.onchange = updateVoicePanels;
 
-async function loadElevenVoices() {
-  const key = els.elevenKey.value.trim();
-  if (!key) { addMsg('system', 'Bitte zuerst einen ElevenLabs-Schlüssel eintragen.'); return; }
+async function loadElevenVoices(quiet) {
+  const key = apiKeyFor('companion_elevenKey');
+  if (!key) { if (!quiet) addMsg('system', 'Bitte zuerst einen ElevenLabs-Schlüssel eintragen.'); return; }
   try {
     const res = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': key }
@@ -1264,12 +1480,12 @@ async function loadElevenVoices() {
     if (saved && data.voices.some(v => v.voice_id === saved)) els.elevenVoiceSelect.value = saved;
     const savedNarr = localStorage.getItem('companion_elevenVoiceIdNarrator');
     if (savedNarr && data.voices.some(v => v.voice_id === savedNarr)) els.elevenVoiceSelectNarrator.value = savedNarr;
-    addMsg('system', `${data.voices.length} ElevenLabs-Stimmen geladen.`);
+    if (!quiet) addMsg('system', `${data.voices.length} ElevenLabs-Stimmen geladen.`);
   } catch (err) {
     addMsg('system', 'ElevenLabs-Stimmen konnten nicht geladen werden: ' + err.message);
   }
 }
-els.loadElevenVoicesBtn.onclick = loadElevenVoices;
+els.loadElevenVoicesBtn.onclick = () => loadElevenVoices(false);
 // Free clip when one exists, synthesis only as a fallback.
 function playAnyPreview(voiceId) {
   const ready = voicePreviewUrl(voiceId);
@@ -1284,8 +1500,8 @@ els.previewNarratorVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelect
 // Model identifiers change as Venice adds and retires models, so the list is
 // fetched rather than written into the app. Anything that looks like an image
 // or audio model is filtered out - only text models can answer a chat call.
-async function loadVeniceModels() {
-  const key = (localStorage.getItem('companion_apiKey_venice') || els.apiKeyVenice.value || '').trim();
+async function loadVeniceModels(quiet) {
+  const key = apiKeyFor('companion_apiKey_venice');
   try {
     const res = await fetch('https://api.venice.ai/api/v1/models?type=text', {
       headers: key ? { Authorization: 'Bearer ' + key } : {}
@@ -1312,17 +1528,45 @@ async function loadVeniceModels() {
 
     const current = els.modelVenice.value.trim();
     if (current && list.some(m => m.id === current)) els.veniceModelSelect.value = current;
-    addMsg('system', `${list.length} Venice-Modelle geladen. Achte auf Kennungen mit "roleplay" oder auf die großen Modelle.`);
+    if (!quiet) addMsg('system', `${list.length} Venice-Modelle geladen.`);
   } catch (err) {
     addMsg('system', 'Modellliste konnte nicht geladen werden: ' + err.message);
   }
 }
-els.loadVeniceModelsBtn.onclick = loadVeniceModels;
+els.loadVeniceModelsBtn.onclick = () => loadVeniceModels(false);
+
+// Lists that the app can fetch by itself shouldn't need a button press every
+// session. They load quietly on start whenever a key is present, and again the
+// moment a key is entered - a key typed into the field is plainly meant to be
+// used.
+function refreshProviderData(quiet) {
+  if (apiKeyFor('companion_apiKey_venice')) {
+    loadVeniceModels(quiet);
+    loadImageModels(quiet);
+  }
+  if (apiKeyFor('companion_elevenKey')) loadElevenVoices(quiet);
+}
+
+[['apiKeyVenice', 'companion_apiKey_venice'], ['elevenKey', 'companion_elevenKey']].forEach(([field, storageKey]) => {
+  const input = els[field];
+  if (!input) return;
+  const accept = () => {
+    const value = input.value.trim();
+    if (!value) return;
+    safeSet(storageKey, value);
+    refreshProviderData(false);
+  };
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); accept(); } });
+  input.addEventListener('blur', accept);
+});
+
+// A moment after start, so it doesn't compete with rendering.
+setTimeout(() => refreshProviderData(true), 800);
 
 // Picking from the list only fills the text field; nothing is saved until the
 // usual save button, so a mis-click is undone by simply not saving.
-async function loadImageModels() {
-  const key = (localStorage.getItem('companion_apiKey_venice') || els.apiKeyVenice.value || '').trim();
+async function loadImageModels(quiet) {
+  const key = apiKeyFor('companion_apiKey_venice');
   try {
     const res = await fetch('https://api.venice.ai/api/v1/models?type=image', {
       headers: key ? { Authorization: 'Bearer ' + key } : {}
@@ -1341,12 +1585,21 @@ async function loadImageModels() {
       opt.textContent = m.id;
       els.imageModelSelect.appendChild(opt);
     });
-    addMsg('system', `${list.length} Bildmodelle geladen.`);
+    // Nothing is selected on a fresh install, and leaving it empty means the
+    // first attempt at a portrait fails on a missing model. Pick something
+    // plausible from what the account actually offers.
+    if (!els.imageModel.value.trim() && list.length) {
+      const preferred = list.find(m => /sd35|flux|hidream/i.test(m.id)) || list[0];
+      els.imageModel.value = preferred.id;
+      els.imageModelSelect.value = preferred.id;
+      safeSet('companion_imageModel', preferred.id);
+    }
+    if (!quiet) addMsg('system', `${list.length} Bildmodelle geladen.`);
   } catch (err) {
     addMsg('system', 'Bildmodelle konnten nicht geladen werden: ' + err.message);
   }
 }
-els.loadImageModelsBtn.onclick = loadImageModels;
+els.loadImageModelsBtn.onclick = () => loadImageModels(false);
 els.imageModelSelect.onchange = () => {
   if (els.imageModelSelect.value) els.imageModel.value = els.imageModelSelect.value;
 };
@@ -1393,7 +1646,7 @@ els.loadDefaultsBtn.onclick = () => {
 
 els.exportSettingsBtn.onclick = async () => {
   const password = els.bkPass.value;
-  if (!password || password.length < 8) { els.bkInfo.textContent = 'Bitte ein Kennwort mit mindestens 8 Zeichen.'; return; }
+  if (!password || password.length < 8) { setBackupInfo('Bitte ein Kennwort mit mindestens 8 Zeichen.', true); return; }
 
   els.exportSettingsBtn.disabled = true;
   try {
@@ -1414,9 +1667,9 @@ els.exportSettingsBtn.onclick = async () => {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-    els.bkInfo.textContent = `Fertig: ${(bytes.length / 1048576).toFixed(1)} MB. Kennwort gut aufbewahren.`;
+    setBackupInfo(`Sicherung fertig: ${(bytes.length / 1048576).toFixed(1)} MB. Kennwort gut aufbewahren.`, true);
   } catch (err) {
-    els.bkInfo.textContent = 'Sicherung fehlgeschlagen: ' + err.message;
+    setBackupInfo('Sicherung fehlgeschlagen: ' + err.message, true);
   }
   els.exportSettingsBtn.disabled = false;
 };
@@ -1424,8 +1677,8 @@ els.exportSettingsBtn.onclick = async () => {
 els.importSettingsBtn.onclick = async () => {
   const file = els.bkFile.files && els.bkFile.files[0];
   const password = els.bkPass.value;
-  if (!file) { els.bkInfo.textContent = 'Bitte zuerst die Sicherungsdatei auswählen.'; return; }
-  if (!password) { els.bkInfo.textContent = 'Bitte das Kennwort der Sicherung eintragen.'; return; }
+  if (!file) { setBackupInfo('Bitte zuerst die Sicherungsdatei auswählen.', true); return; }
+  if (!password) { setBackupInfo('Bitte das Kennwort der Sicherung eintragen.', true); return; }
   if (!confirm('Die Sicherung überschreibt vorhandene Einstellungen und Figuren. Fortfahren?')) return;
 
   els.importSettingsBtn.disabled = true;
@@ -1437,64 +1690,207 @@ els.importSettingsBtn.onclick = async () => {
     els.bkInfo.textContent = `Wiederhergestellt: ${summary}. Die Seite wird neu geladen.`;
     setTimeout(() => location.reload(), 1200);
   } catch (err) {
-    els.bkInfo.textContent = err.message;
+    setBackupInfo(err.message, true);
   }
   els.importSettingsBtn.disabled = false;
 };
 
 els.saveSettingsBtn.onclick = () => {
-  localStorage.setItem('companion_llmProvider', els.llmProvider.value);
-  localStorage.setItem('companion_apiKey_anthropic', els.apiKeyAnthropic.value.trim());
-  localStorage.setItem('companion_model_anthropic', els.modelAnthropic.value.trim());
-  localStorage.setItem('companion_apiKey_openai', els.apiKeyOpenai.value.trim());
-  localStorage.setItem('companion_model_openai', els.modelOpenai.value.trim());
-  localStorage.setItem('companion_apiKey_deepseek', els.apiKeyDeepseek.value.trim());
-  localStorage.setItem('companion_model_deepseek', els.modelDeepseek.value.trim());
-  localStorage.setItem('companion_apiKey_openrouter', els.apiKeyOpenrouter.value.trim());
-  localStorage.setItem('companion_model_openrouter', els.modelOpenrouter.value.trim());
-  localStorage.setItem('companion_apiKey_venice', els.apiKeyVenice.value.trim());
-  localStorage.setItem('companion_model_venice', els.modelVenice.value.trim());
-  localStorage.setItem('companion_imageModel', els.imageModel.value.trim());
-  localStorage.setItem('companion_device1Desc', els.device1Desc.value.trim());
-  localStorage.setItem('companion_device2Desc', els.device2Desc.value.trim());
-  localStorage.setItem('companion_d1_ip', els.d1Ip.value.trim());
-  localStorage.setItem('companion_d2_ip', els.d2Ip.value.trim());
-  localStorage.setItem('companion_d1_minPos', els.d1MinPos.value);
-  localStorage.setItem('companion_d1_maxPos', els.d1MaxPos.value);
-  localStorage.setItem('companion_d1_speedCap', els.d1SpeedCap.value);
-  localStorage.setItem('companion_d2_minPos', els.d2MinPos.value);
-  localStorage.setItem('companion_d2_maxPos', els.d2MaxPos.value);
-  localStorage.setItem('companion_d2_speedCap', els.d2SpeedCap.value);
-  PATTERN_IDS.forEach(p => {
-    localStorage.setItem(`companion_d1_pat_${p}`, els[`d1pat_${p}`].checked ? 'true' : 'false');
-    localStorage.setItem(`companion_d2_pat_${p}`, els[`d2pat_${p}`].checked ? 'true' : 'false');
-  });
-  localStorage.setItem('companion_systemPrompt', els.systemPrompt.value.trim());
-  localStorage.setItem('companion_sceneDesc', els.sceneDesc.value.trim());
-  localStorage.setItem('companion_styleExamples', els.styleExamples.value.trim());
-  localStorage.setItem('companion_temperature', els.tempRange.value);
-  localStorage.setItem('companion_replyLength', els.replyLength.value);
-  saveCharacters();
-  localStorage.setItem('companion_voice', els.voiceSelect.value);
-  localStorage.setItem('companion_pitch', els.pitchRange.value);
-  localStorage.setItem('companion_rate', els.rateRange.value);
-  localStorage.setItem('companion_ttsSource', els.ttsSource.value);
-  localStorage.setItem('companion_elevenKey', els.elevenKey.value.trim());
-  localStorage.setItem('companion_elevenVoiceId', els.elevenVoiceSelect.value || '');
-  localStorage.setItem('companion_emotionalVoice', els.emotionalVoice.checked ? 'true' : 'false');
-  localStorage.setItem('companion_audioCache', els.audioCacheEnabled.checked ? 'true' : 'false');
-  localStorage.setItem('companion_callMode', els.callMode.value);
-  localStorage.setItem('companion_micSense', els.micSenseEnabled.checked ? 'true' : 'false');
-  localStorage.setItem('companion_narratorEnabled', els.narratorEnabled.checked ? 'true' : 'false');
-  localStorage.setItem('companion_voiceNarrator', els.voiceSelectNarrator.value || '');
-  localStorage.setItem('companion_pitchNarrator', els.pitchRangeNarrator.value);
-  localStorage.setItem('companion_rateNarrator', els.rateRangeNarrator.value);
-  localStorage.setItem('companion_elevenVoiceIdNarrator', els.elevenVoiceSelectNarrator.value || '');
-  localStorage.setItem('companion_veniceOwnPromptOnly', els.veniceOwnPromptOnly.checked ? 'true' : 'false');
-  updateTrackVisibility();
-  addMsg('system', 'Einstellungen gespeichert.');
-  els.setupPanel.open = false; // tuck the settings away so the chat is front and center again
+  try {
+    safeSet('companion_llmProvider', els.llmProvider.value);
+    safeSet('companion_apiKey_anthropic', els.apiKeyAnthropic.value.trim());
+    safeSet('companion_model_anthropic', els.modelAnthropic.value.trim());
+    safeSet('companion_apiKey_openai', els.apiKeyOpenai.value.trim());
+    safeSet('companion_model_openai', els.modelOpenai.value.trim());
+    safeSet('companion_apiKey_deepseek', els.apiKeyDeepseek.value.trim());
+    safeSet('companion_model_deepseek', els.modelDeepseek.value.trim());
+    safeSet('companion_apiKey_openrouter', els.apiKeyOpenrouter.value.trim());
+    safeSet('companion_model_openrouter', els.modelOpenrouter.value.trim());
+    safeSet('companion_apiKey_venice', els.apiKeyVenice.value.trim());
+    safeSet('companion_model_venice', els.modelVenice.value.trim());
+    safeSet('companion_imageModel', els.imageModel.value.trim());
+    safeSet('companion_device1Desc', els.device1Desc.value.trim());
+    safeSet('companion_device2Desc', els.device2Desc.value.trim());
+    safeSet('companion_d1_ip', els.d1Ip.value.trim());
+    safeSet('companion_d2_ip', els.d2Ip.value.trim());
+    safeSet('companion_d1_minPos', els.d1MinPos.value);
+    safeSet('companion_d1_maxPos', els.d1MaxPos.value);
+    safeSet('companion_d1_speedCap', els.d1SpeedCap.value);
+    safeSet('companion_d2_minPos', els.d2MinPos.value);
+    safeSet('companion_d2_maxPos', els.d2MaxPos.value);
+    safeSet('companion_d2_speedCap', els.d2SpeedCap.value);
+    PATTERN_IDS.forEach(p => {
+    safeSet(`companion_d1_pat_${p}`, els[`d1pat_${p}`].checked ? 'true' : 'false');
+    safeSet(`companion_d2_pat_${p}`, els[`d2pat_${p}`].checked ? 'true' : 'false');
+    });
+    safeSet('companion_sceneDesc', els.sceneDesc.value.trim());
+    safeSet('companion_styleExamples', els.styleExamples.value.trim());
+    safeSet('companion_temperature', els.tempRange.value);
+    safeSet('companion_replyLength', els.replyLength.value);
+    saveCharacters();
+    safeSet('companion_voice', els.voiceSelect.value);
+    safeSet('companion_pitch', els.pitchRange.value);
+    safeSet('companion_rate', els.rateRange.value);
+    safeSet('companion_ttsSource', els.ttsSource.value);
+    safeSet('companion_elevenKey', els.elevenKey.value.trim());
+    safeSet('companion_elevenVoiceId', els.elevenVoiceSelect.value || '');
+    safeSet('companion_emotionalVoice', els.emotionalVoice.checked ? 'true' : 'false');
+    safeSet('companion_audioCache', els.audioCacheEnabled.checked ? 'true' : 'false');
+    safeSet('companion_callMode', els.callMode.value);
+    safeSet('companion_micSense', els.micSenseEnabled.checked ? 'true' : 'false');
+    safeSet('companion_narratorEnabled', els.narratorEnabled.checked ? 'true' : 'false');
+    safeSet('companion_voiceNarrator', els.voiceSelectNarrator.value || '');
+    safeSet('companion_pitchNarrator', els.pitchRangeNarrator.value);
+    safeSet('companion_rateNarrator', els.rateRangeNarrator.value);
+    safeSet('companion_elevenVoiceIdNarrator', els.elevenVoiceSelectNarrator.value || '');
+    safeSet('companion_veniceOwnPromptOnly', els.veniceOwnPromptOnly.checked ? 'true' : 'false');
+    updateTrackVisibility();
+    addMsg('system', `Einstellungen gespeichert (${(localStorageBytes() / 1024).toFixed(0)} KB belegt).`);
+    els.setupPanel.open = false; // tuck the settings away so the chat is front and center again
+  } catch (err) {
+    addMsg('system', 'Speichern fehlgeschlagen: ' + err.message);
+  }
 };
+
+// ---------- Version ----------
+// Shown in the app because "which build am I actually running?" came up often
+// enough to be worth answering in one glance - especially when a fix is
+// delivered but the old file is still uploaded.
+const APP_VERSION = '0.42';
+const CHANGELOG = [
+  { v: '0.42', date: '2026-09-16', items: [
+    'Gesprächs- und Ensemble-Modus zusammengeführt: nur noch Live und Geschichte, beide nutzen dieselben Figuren.',
+    'Die separate Charakterbeschreibung ist entfallen; ihr Inhalt wandert beim ersten Start als Figur ins Archiv.',
+    'Versionsverlauf in der App.',
+  ]},
+  { v: '0.41', date: '2026-09-16', items: [
+    'Figuren haben eine eigene Seite mit Liste, Bild, Kurzbeschreibung und Vorstellung per Stimme.',
+    'Geschlecht als Figureneigenschaft, wirkt auf Wortwahl, Stimmwahl und Porträt.',
+    'Modelle, Bildmodelle und Stimmen laden beim Start von selbst, sobald ein Schlüssel vorliegt.',
+    'Warnung, wenn die Seite nicht in einem sicheren Kontext läuft.',
+    'Alle Bereiche starten zugeklappt.',
+  ]},
+  { v: '0.40', date: '2026-09-15', items: [
+    'Figurenarchiv mit Versionen: überschreiben oder als neue Version sichern.',
+    'Navigation von links mit Modi, Geschichten und Einstellungen.',
+    'Schlüssel und Modellnamen werden überall einheitlich gelesen.',
+  ]},
+  { v: '0.39', date: '2026-09-15', items: [
+    'Verschlüsselte Sicherung als unauffällige Datei, mit Kennwort.',
+    'Vertonung wird aufbewahrt - erneutes Anhören kostet nichts.',
+    'Geschichten lassen sich sichern und wieder laden.',
+    'Profilbilder, auch von der KI erzeugt, in voller Auflösung in der Datenbank.',
+  ]},
+  { v: '0.38', date: '2026-09-11', items: [
+    'Geschichtenmodus mit vorab erzeugtem, audiosynchronem Bewegungsskript.',
+    'Ensemble mit mehreren Figuren und getrennten Stimmen.',
+    'Sprachanruf mit freihändigem Betrieb; Kopfhörermodus erlaubt Dazwischenreden.',
+    'Bogen-Regler gegen Dauervollgas, Wiederholungserkennung, Sitzungsprotokoll.',
+  ]},
+  { v: '0.30', date: '2026-09-10', items: [
+    'Geräteverbindung über WebSocket gelöst, BLE und USB verworfen.',
+    'Bewegung wird in konkreten Werten beschrieben statt in abstrakten Mustern.',
+    'Geschwindigkeitsbegrenzung wirkt auf die tatsächliche Fahrgeschwindigkeit.',
+    'Erzählerstimme und getrennte Stimmen je Rolle.',
+  ]},
+];
+
+function showChangelog() {
+  figuresOpen = false;
+  els.figuresPanel.style.display = 'none';
+  els.storyPanel.style.display = 'none';
+  els.transcript.style.display = 'none';
+  els.bottomBar.style.display = 'none';
+  els.changelogPanel.style.display = 'block';
+  els.topbarWhere.textContent = ' · Was ist neu';
+
+  els.changelogNow.textContent = `Du benutzt Version ${APP_VERSION}.`;
+  els.changelogList.innerHTML = '';
+  CHANGELOG.forEach((entry, i) => {
+    const block = document.createElement('div');
+    block.style.cssText = 'margin-top:16px; padding-top:14px; border-top:1px solid var(--line);';
+    if (i === 0) block.style.borderTop = 'none';
+
+    const head = document.createElement('div');
+    head.style.cssText = 'font-family:var(--font-display); font-size:15px; margin-bottom:6px;';
+    head.textContent = `Version ${entry.v}`;
+    if (entry.v === APP_VERSION) head.style.color = 'var(--accent)';
+    const when = document.createElement('span');
+    when.style.cssText = 'font-family:var(--font-body); font-size:12px; color:var(--text-dim); margin-left:8px;';
+    when.textContent = new Date(entry.date).toLocaleDateString('de-DE');
+    head.appendChild(when);
+    block.appendChild(head);
+
+    const list = document.createElement('ul');
+    list.style.cssText = 'margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; color:var(--text-dim);';
+    entry.items.forEach(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      list.appendChild(item);
+    });
+    block.appendChild(list);
+    els.changelogList.appendChild(block);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---------- Reading keys and model names ----------
+// Settings only reach storage when the save button is pressed, but a key typed
+// into a field is plainly meant to be used right away. Half the app already
+// fell back to the field and half did not, which showed up as "no key" errors
+// while other features using the very same key worked fine. One place now
+// decides, and it always prefers what is saved over what is merely typed.
+const KEY_FIELDS = {
+  companion_apiKey_anthropic: 'apiKeyAnthropic',
+  companion_apiKey_openai: 'apiKeyOpenai',
+  companion_apiKey_deepseek: 'apiKeyDeepseek',
+  companion_apiKey_openrouter: 'apiKeyOpenrouter',
+  companion_apiKey_venice: 'apiKeyVenice',
+  companion_elevenKey: 'elevenKey',
+};
+const MODEL_FIELDS = {
+  companion_model_anthropic: 'modelAnthropic',
+  companion_model_openai: 'modelOpenai',
+  companion_model_deepseek: 'modelDeepseek',
+  companion_model_openrouter: 'modelOpenrouter',
+  companion_model_venice: 'modelVenice',
+  companion_imageModel: 'imageModel',
+};
+
+// localStorage has a hard ceiling of a few megabytes and throws when it is
+// reached. A throw in the middle of the save routine means every setting after
+// that line is silently skipped - which looks exactly like "the button does
+// nothing". So writes go through here, and a failure is reported rather than
+// swallowed.
+function localStorageBytes() {
+  let total = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    total += key.length + (localStorage.getItem(key) || '').length;
+  }
+  return total;
+}
+
+function safeSet(storageKey, value) {
+  try {
+    localStorage.setItem(storageKey, value);
+    return true;
+  } catch (err) {
+    throw new Error(`Speicher voll beim Schreiben von "${storageKey}" `
+      + `(${(localStorageBytes() / 1024).toFixed(0)} KB belegt). `
+      + `Meist liegt es an Bildern im Figurenarchiv.`);
+  }
+}
+
+function settingValue(storageKey, fieldMap) {
+  const stored = (localStorage.getItem(storageKey) || '').trim();
+  if (stored) return stored;
+  const field = els[fieldMap[storageKey]];
+  return field ? (field.value || '').trim() : '';
+}
+
+const apiKeyFor = (storageKey) => settingValue(storageKey, KEY_FIELDS);
+const modelFor = (storageKey) => settingValue(storageKey, MODEL_FIELDS);
 
 // ---------- Local database (audio cache and saved stories) ----------
 // Synthesised audio is the one thing in this app that costs real money per use,
@@ -1611,7 +2007,9 @@ function formatOffset(ms) {
 
 function buildSessionExport() {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  const model = localStorage.getItem('companion_model_' + provider) || '(Standard)';
+  // Same fallback as everywhere else: a model typed but not yet saved is still
+  // the one in use, and the protocol has to name it or it misleads diagnosis.
+  const model = modelFor('companion_model_' + provider) || '(Standard)';
   const tts = localStorage.getItem('companion_ttsSource') || 'browser';
   const emotional = localStorage.getItem('companion_emotionalVoice') === 'true';
   const narrator = localStorage.getItem('companion_narratorEnabled') === 'true';
@@ -1629,9 +2027,10 @@ function buildSessionExport() {
 
   const head = [
     '# Sitzungsprotokoll ' + new Date().toLocaleString('de-DE'),
+    'App-Version: ' + APP_VERSION,
     '',
     '## Einstellungen',
-    `Modus: ${currentMode}${currentMode === 'ensemble' ? ' / ' + ensembleSub : ''}`,
+    `Modus: ${MODE_LABELS[currentMode] || currentMode}`,
     `KI-Anbieter: ${provider}`,
     `Modell: ${model}`,
     `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? (emotional ? ' (v3, emotionale Tags an)' : ' (multilingual v2)') : ''}`,
@@ -1639,9 +2038,6 @@ function buildSessionExport() {
     `Figuren: ${characters.map(c => c.name + (c.isUser ? ' [ich]' : '')).join(', ')}`,
     deviceInfo(1),
     deviceInfo(2),
-    '',
-    '## Charakterbeschreibung',
-    (localStorage.getItem('companion_systemPrompt') || '(leer)').slice(0, 1500),
     '',
     '## Szene',
     (localStorage.getItem('companion_sceneDesc') || '(leer)').slice(0, 1500),
@@ -1832,6 +2228,14 @@ async function restoreBackup(bundle) {
     report.push(`${bundle.audio.length} Tonstücke`);
   }
   return report.join(', ') || 'nichts';
+}
+
+// Went missing when a later rewrite replaced the block it lived in - which is
+// exactly why the save button appeared to do nothing: the call threw, and every
+// setting after it was skipped without a word.
+function updateTrackVisibility() {
+  const hasTwo = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
+  document.body.classList.toggle('two-devices', hasTwo);
 }
 
 function addMsg(role, text) {
@@ -2624,7 +3028,7 @@ function speakBrowser(text, role) {
 // moment this is called - awaiting the returned object only waits for whatever
 // is left.
 function fetchElevenAudio(text, role) {
-  const key = localStorage.getItem('companion_elevenKey');
+  const key = apiKeyFor('companion_elevenKey');
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
 
@@ -2703,7 +3107,7 @@ function playPreviewUrl(url) {
 // to hear how a voice handles laughing, sighing and breathing, which is exactly
 // what the ready-made clip never shows.
 async function previewVoiceEmotional(voiceId) {
-  const key = localStorage.getItem('companion_elevenKey') || els.elevenKey.value.trim();
+  const key = apiKeyFor('companion_elevenKey');
   if (!key) { addMsg('system', 'Bitte zuerst einen ElevenLabs-Schlüssel eintragen.'); return; }
   if (!voiceId) { addMsg('system', 'Für diese Figur ist noch keine ElevenLabs-Stimme gewählt.'); return; }
   const sample = '[lacht leise] Da bist du ja. [seufzt] Ich hab gewartet. '
@@ -2712,7 +3116,7 @@ async function previewVoiceEmotional(voiceId) {
 }
 
 async function previewVoice(voiceId, customText) {
-  const key = localStorage.getItem('companion_elevenKey') || els.elevenKey.value.trim();
+  const key = apiKeyFor('companion_elevenKey');
   if (!key) { addMsg('system', 'Bitte zuerst einen ElevenLabs-Schlüssel eintragen.'); return; }
   if (!voiceId) { addMsg('system', 'Für diese Figur ist noch keine ElevenLabs-Stimme gewählt.'); return; }
 
@@ -2941,84 +3345,6 @@ function getDeviceContext() {
   return { deviceStatus, stateNote, hasDevice2 };
 }
 
-// Prompt for the MAIN conversational reply - no JSON, no formatting constraints,
-// just the character talking naturally. Splitting into pacing pieces and deriving
-// motion happens afterward in a separate, narrower step (see buildMotionPrompt).
-function buildConversationalPrompt(autoStep, isRetry) {
-  const { deviceStatus } = getDeviceContext();
-
-  const emotional = localStorage.getItem('companion_emotionalVoice') === 'true'
-    && (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs';
-  // The tags are read by the ElevenLabs v3 model and turned into actual
-  // vocalisation; everywhere else they're stripped out before display and
-  // before the Android voice, which would otherwise read the brackets aloud.
-  const narratorForTags = localStorage.getItem('companion_narratorEnabled') === 'true';
-  const emotionalInstruction = emotional
-    ? `\n\nBaue Audio-Tags in eckigen Klammern ein, damit die Stimme nicht nur spricht, sondern auch klingt. Verfügbar sind unter anderem: [lacht], [seufzt], [flüstert], [zögert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [stöhnt lustvoll], [schnappt nach Luft], [wimmert], [beißt sich auf die Lippe], [lacht atemlos].
-
-Wie du sie einsetzt: Lass die Laute dem folgen, was gerade geschieht, statt sie gleichmäßig zu verteilen. In ruhigen Momenten reicht ein [seufzt] oder gar nichts; wird es intensiver, dürfen sie häufiger und deutlicher werden. Ein Tag kann auch allein für sich stehen, ohne Worte drumherum. Nicht mehr als ein bis zwei pro Satz, sonst zerfällt der Klang.${narratorForTags ? ' Die Laute gehören zur Figur selbst, also in die gesprochenen Teile - nicht in die Handlungsbeschreibung in Sternchen.' : ''}`
-    : '';
-
-  const autoInstruction = autoStep
-    ? `\n\nDu befindest dich im automatischen Erzähl-Modus, Schritt ${autoStep} einer fortlaufenden Geschichte. Ich melde mich bewusst nicht, damit du die Handlung eigenständig vorantreibst. WICHTIG: Wiederhole nicht die Stimmung, die Sätze oder die Situation des letzten Schritts - lass tatsächlich etwas Neues in der Handlung passieren, das erkennbar vorangeht. Denk an einen echten Spannungsbogen über mehrere Schritte hinweg: langsamer Aufbau, dann spürbare Steigerung, irgendwann ein Höhepunkt und ein Ausklang - nicht einfach denselben Moment in anderen Worten wiederholen. Beziehe mich als aktiven Teil der Geschichte mit ein und beschreibe auch, wie ich das, was gerade passiert, über das Gerät spüre.`
-    : '';
-
-  // Give the model its own last reply as a concrete "don't repeat this" reference -
-  // far more effective than a generic "be varied" instruction, especially over
-  // several turns where the same phrases (e.g. stock sentences) tend to creep back in.
-  // Quoting the previous reply in full turned out to *cause* the repetition it
-  // was meant to prevent: the model treats the quoted text as material to
-  // continue from and copies it back almost verbatim. Listing only the opening
-  // words gives it enough to recognise and avoid, without handing it a
-  // ready-made passage to reproduce.
-  const recentOpenings = history
-    .filter(m => m.role === 'assistant')
-    .slice(-3)
-    .map(m => m.content.replace(/[*"]/g, ' ').trim().split(/\s+/).slice(0, 7).join(' '))
-    .filter(Boolean);
-  const antiRepeatInstruction = recentOpenings.length
-    ? `\n\nSo hast du deine letzten Antworten begonnen: ${recentOpenings.map(o => `"${o} ..."`).join(' / ')}. Fang diesmal anders an - andere Handlung, anderer Satzbau. Übernimm außerdem keinen Satz wörtlich aus einer früheren Antwort, auch nicht leicht abgewandelt.`
-    : '';
-
-  // With the narrator voice on, the reply is written on two levels: what is
-  // happening (in *asterisks*, third person) and what the character says out
-  // loud. That split does double duty - it gives the second voice something to
-  // read, and it hands the motion step a clean, explicitly action-describing
-  // text instead of making it infer physical action out of dialogue.
-  const narratorOn = localStorage.getItem('companion_narratorEnabled') === 'true';
-  const formatInstruction = narratorOn
-    ? `Schreibe auf zwei klar getrennten Ebenen:
-- HANDLUNG: Was gerade tatsächlich geschieht, in *Sternchen* gesetzt und aus der Beobachterperspektive beschrieben. Nenne dabei die handelnde Figur beim Namen statt nur "sie". Schreib körperlich und sinnlich aus, was sie tut - womit, wo, wie und in welchem Tempo -, nicht als nüchterne Feststellung. Handlungszeilen dürfen ausführlicher sein als Redezeilen. Richtung, Tempo und Ort müssen erkennbar bleiben, denn genau daraus wird die Gerätesteuerung abgeleitet; vage Stimmungsbilder helfen dabei nicht.
-- GESPROCHEN: Was der Charakter selbst sagt, ganz normal und ohne Sternchen.
-Wechsle beide Ebenen natürlich ab, statt erst einen Block Handlung und dann einen Block Rede zu schreiben. Kein JSON, keine Überschriften, keine sonstige Formatierung.`
-    : `Antworte ganz normal als Fließtext, ohne JSON, ohne Formatierung, ohne Kennzeichnung von Abschnitten - schreib einfach wie in einem echten Gespräch.`;
-
-  const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
-  const sceneBlock = scene ? `\n\nDie Szene, in der ihr euch befindet:\n${scene}` : '';
-
-  // Without this the model treats an open request like "tell me something" as a
-  // request for any story at all, and wanders off into an unrelated anecdote.
-  // The rule that fixes it is not "be interesting" but "stay here": everything
-  // happens between the two of you, now, in this room.
-  const stayInSceneInstruction = `\n\nGrundregeln:
-- Du bist als Figur anwesend und handelst im Hier und Jetzt. Bleib in der Ich-Form und in der Gegenwart.
-- Bleib an dem Ort, der oben beschrieben ist. Kein Ortswechsel, keine neuen Nebenfiguren, keine neue Rahmenhandlung, keine Gegenstände oder Berufe, die vorher nicht da waren.
-- Der Fokus liegt durchgehend auf dem, was körperlich zwischen uns geschieht - nicht auf Plänen, Vorgeschichten oder Erklärungen. Wenn du nicht weiterweißt, beschreibe genauer, was gerade passiert, statt etwas Neues zu erfinden.
-- Erzähle keine unabhängigen Geschichten aus einer anderen Zeit oder mit anderen Personen, auch nicht, wenn ich um "eine Geschichte" bitte - gestalte stattdessen weiter, was gerade zwischen uns geschieht.
-- Bleib bei klarem, einfachem Deutsch. Keine Fremdwörter, keine anderen Sprachen, keine erfundenen Wörter.`;
-
-  const retryNote = isRetry
-    ? `\n\nACHTUNG: Dein letzter Versuch war wortgleich mit der vorherigen Antwort. Schreib etwas deutlich anderes.`
-    : '';
-
-  return localStorage.getItem('companion_systemPrompt') + `${sceneBlock}${retryNote}
-
-${deviceStatus}${micSenseHint()}${emotionalInstruction}${stayInSceneInstruction}${autoInstruction}${antiRepeatInstruction}
-
-${formatInstruction}${styleBlock()}
-
-Umfang: etwa ${replyLength().sentences} Sätze pro Antwort (Handlung und Rede zusammengezählt), gern etwas darunter, aber nicht deutlich darüber. Die Sätze dürfen unterschiedlich lang sein - ein kurzer nach einem längeren wirkt stärker als lauter gleich kurze. Schreib zusammenhängend, statt jeden Gedanken abzuhacken. Die konkreten Bewegungswerte des Geräts werden separat aus deinem Text abgeleitet, darum musst du dich um Zahlen oder Muster hier nicht kümmern.`;
-}
 
 // The existing per-device checkboxes still decide what's permitted; they're just
 // mapped onto the new texture names so the user's settings keep their meaning
@@ -3243,7 +3569,8 @@ function addVariation(motions, deviceNum) {
 }
 
 function extractJson(raw) {
-  let clean = raw.replace(/```json|```/g, '').trim();
+  if (!raw || !String(raw).trim()) throw new Error('Das Modell hat nichts zurückgegeben.');
+  let clean = String(raw).replace(/```json|```/g, '').trim();
   // The model sometimes wraps the JSON in a sentence or two despite instructions
   // not to. Pull out just the array/object portion instead of failing outright.
   const arrayMatch = clean.match(/\[[\s\S]*\]/);
@@ -3257,9 +3584,9 @@ function extractJson(raw) {
 }
 
 async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
-  const apiKey = localStorage.getItem('companion_apiKey_anthropic');
+  const apiKey = apiKeyFor('companion_apiKey_anthropic');
   if (!apiKey) throw new Error('Kein Anthropic-Schlüssel eingetragen.');
-  const model = localStorage.getItem('companion_model_anthropic') || 'claude-sonnet-4-6';
+  const model = modelFor('companion_model_anthropic') || 'claude-sonnet-4-6';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -3272,13 +3599,15 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
-  return data.content.map(c => c.text || '').join('');
+  const content = (data.content || []).map(c => c.text || '').join('').trim();
+  if (!content) throw new Error('Das Modell hat eine leere Antwort geliefert.');
+  return content;
 }
 
 async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, modelStorageKey, defaultModel, extraBody, messages, temperature, maxTokens) {
-  const apiKey = localStorage.getItem(apiKeyStorageKey);
+  const apiKey = apiKeyFor(apiKeyStorageKey);
   if (!apiKey) throw new Error('Kein API-Schlüssel eingetragen.');
-  const model = localStorage.getItem(modelStorageKey) || defaultModel;
+  const model = modelFor(modelStorageKey) || defaultModel;
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -3295,7 +3624,25 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.choices[0].message.content;
+
+  const choice = data.choices && data.choices[0];
+  const message = choice && choice.message;
+  let content = message ? message.content : '';
+  // Some providers return the content as an array of parts rather than a string.
+  if (Array.isArray(content)) content = content.map(c => (c && c.text) || '').join('');
+  content = (content || '').trim();
+
+  if (!content) {
+    // Reasoning models spend part of the budget on internal thinking before
+    // they write anything. When the budget runs out first, the reply comes back
+    // empty and perfectly valid - which is why this used to surface as a
+    // confusing "empty prompt" error somewhere far away from the cause.
+    const reason = choice && choice.finish_reason;
+    throw new Error(reason === 'length'
+      ? 'Das Modell hat die Token-Grenze erreicht, bevor es antworten konnte.'
+      : 'Das Modell hat eine leere Antwort geliefert.');
+  }
+  return content;
 }
 
 // Routes to whichever provider is currently selected. Used both for the main
@@ -3371,97 +3718,6 @@ function splitSegmentsIntoPieces(segments, maxChars) {
   return pieces;
 }
 
-async function askCharacter(userText, options) {
-  const silent = options && options.silent; // true for auto-continue turns: don't show a user bubble
-  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  history.push({ role: 'user', content: userText });
-  // A very long history makes the model drift toward whatever it has already
-  // written, which shows up as ever more repetition. Keeping a moving window
-  // preserves the thread of the scene without that pull.
-  if (history.length > 24) history = history.slice(-24);
-
-  try {
-    // Step 1: get a natural, unconstrained conversational reply.
-    const autoStep = options && options.autoStep;
-    const replyText = await generateWithoutRepeat(
-      provider,
-      (isRetry) => buildConversationalPrompt(autoStep, isRetry)
-    );
-    history.push({ role: 'assistant', content: replyText });
-
-    const segments = splitIntoSegments(replyText);
-    segments.forEach(seg => {
-      if (isTagOnly(seg.text)) return; // a wordless sound has nothing to show
-      addMsg(seg.role === 'narrator' ? 'narrator' : 'char', stripAudioTags(seg.text));
-    });
-
-    // Step 2: split it into pacing-sized pieces, then derive motion for each
-    // piece with SEPARATE, per-device calls - each one only has to reason about
-    // one body area and produce a small single-device JSON array, which is both
-    // more reliable to parse and lets each call explicitly judge whether a given
-    // piece is even about *its* device at all, instead of blending both together.
-    const pieces = splitSegmentsIntoPieces(segments, 200);
-    const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
-
-    async function getMotions(deviceNum) {
-      try {
-        const raw = await callProvider(
-          provider,
-          buildMotionPromptForDevice(pieces, deviceNum),
-          [{ role: 'user', content: 'Gib die Bewegungsdaten für die oben angegebenen Textabschnitte zurück.' }],
-          0.3
-        );
-        const parsed = extractJson(raw);
-        return Array.isArray(parsed) ? addVariation(ensureMotionStarts(parsed), deviceNum) : null;
-      } catch (err) {
-        addMsg('system', `Bewegungssteuerung Gerät ${deviceNum} konnte diese Antwort nicht auswerten, Text läuft trotzdem weiter: ` + err.message);
-        return null; // signals "keep whatever this device was already doing"
-      }
-    }
-
-    const [motions1, motions2] = await Promise.all([
-      getMotions(1),
-      hasDevice2 ? getMotions(2) : Promise.resolve(null),
-    ]);
-
-    // The next piece's audio is requested while the current one is still being
-    // spoken. Without this, every sentence boundary contained a full network
-    // round trip of silence, which is what made the delivery feel chopped up.
-    const generation = playbackGeneration;
-    let upcoming = pieces.length ? prepareSpeech(pieces[0].text, pieces[0].role) : null;
-
-    for (let i = 0; i < pieces.length; i++) {
-      if (playbackGeneration !== generation) break; // user pressed stop
-      if (!autoPlaying && silent) break; // auto-mode was stopped mid-reply, cut it short
-
-      const current = upcoming;
-      upcoming = (i + 1 < pieces.length)
-        ? prepareSpeech(pieces[i + 1].text, pieces[i + 1].role)
-        : null;
-
-      // If a device's call failed entirely, or returned fewer objects than pieces,
-      // fall back to its last known choice instead of snapping to a stop - a
-      // temporary formatting hiccup shouldn't jar the motion to a halt.
-      const m1 = (motions1 && motions1[i]) || (motions1 ? motions1[motions1.length - 1] : device1.getState());
-      device1.setMotion(m1);
-      logMotionChoice(1, m1);
-
-      if (hasDevice2) {
-        const m2 = (motions2 && motions2[i]) || (motions2 ? motions2[motions2.length - 1] : device2.getState());
-        device2.setMotion(m2);
-        logMotionChoice(2, m2);
-      }
-
-      await current.play();
-    }
-    return true;
-
-  } catch (err) {
-    addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message +
-      (provider !== 'anthropic' ? ' (Hinweis: manche Anbieter blockieren direkte Anfragen aus dem Browser - Anthropic ist am zuverlässigsten.)' : ''));
-    return false;
-  }
-}
 
 // ---------- Auto-continue mode ----------
 // Lets the character keep talking / advance the scene on its own,
@@ -3539,6 +3795,18 @@ const TRAIT_GROUPS = [
     ['rivalitaet', 'kleine Rivalität, will die Aufmerksamkeit'],
   ]},
 ];
+// Kept apart from the traits on purpose: the trait groups describe temperament,
+// and this is not one. It matters for the voice, for the wording the model uses
+// and for the portrait, so it gets its own field rather than being hidden in a
+// checkbox list.
+const GENDERS = [
+  ['weiblich', 'weiblich'],
+  ['maennlich', 'männlich'],
+  ['divers', 'divers'],
+  ['offen', 'offen gelassen'],
+];
+const GENDER_TEXT = Object.fromEntries(GENDERS);
+
 const TRAIT_TEXT = {};
 TRAIT_GROUPS.forEach(g => g.traits.forEach(([id, text]) => { TRAIT_TEXT[id] = text; }));
 
@@ -3547,27 +3815,207 @@ TRAIT_GROUPS.forEach(g => g.traits.forEach(([id, text]) => { TRAIT_TEXT[id] = te
 // dialogue that reads as one voice split in half.
 const DEFAULT_CHARACTERS = [
   {
-    id: 'c1', name: 'Mia', isUser: false,
+    id: 'c1', name: 'Mia', isUser: false, gender: 'weiblich',
     traits: ['warm', 'verspielt', 'leise', 'fuehrt', 'vertraut'],
     notes: 'Ist körperlich nah und bleibt es. Merkt sofort, wie es mir geht, und richtet sich danach. Kündigt nicht an, was sie tun wird, sondern tut es. Spricht leise und kurz, oft nur halbe Sätze, und lässt Pausen stehen. Wenn sie merkt, dass etwas ankommt, bleibt sie eine Weile dabei, statt gleich etwas Neues zu probieren.',
     pitch: 1.1, rate: 0.95, voice: '', elevenVoice: '',
   },
   {
-    id: 'c2', name: 'Lena', isUser: false,
+    id: 'c2', name: 'Lena', isUser: false, gender: 'weiblich',
     traits: ['selbstbewusst', 'direkt', 'humorvoll', 'beobachtet', 'spannung'],
     notes: 'Sitzt erst mit etwas Abstand und schaut zu. Sagt offen, was sie sieht, und stichelt dabei freundlich - gegen Mia genauso wie gegen mich. Nimmt sich Zeit, bevor sie selbst näher kommt, und macht das dann ohne Zögern und ohne zu fragen. Ihre Sätze sind länger und trockener als Mias.',
     pitch: 0.9, rate: 1.0, voice: '', elevenVoice: '',
   },
   {
-    id: 'c3', name: 'Ich', isUser: true,
+    id: 'c3', name: 'Ich', isUser: true, gender: 'maennlich',
     traits: ['folgt', 'knapp', 'vertraut'],
     notes: 'Redet wenig, meist ein halber Satz oder nur ein Laut. Lässt sich auf Vorschläge ein, statt selbst zu bestimmen, sagt aber deutlich, wenn etwas besonders ankommt oder wenn es zu viel wird. Kein ausschweifendes Beschreiben der eigenen Empfindungen.',
     pitch: 0.9, rate: 1.0, voice: '', elevenVoice: '',
   },
 ];
 
-let characters = [];
+// ---------- Figure archive ----------
+// A figure has a permanent identity and a series of versions. Scenes and saved
+// chats point at a specific version, which is what lets a figure be reworked
+// without silently rewriting every scene it ever appeared in - the old ones
+// keep the figure as it was when they were made.
+let figureArchive = [];   // [{ id, versions: [ {v, name, traits, notes, pitch, rate, voice, elevenVoice, image, imageKey, created} ] }]
+let characters = [];      // working copies in the current cast, each carrying figureId + version
 let elevenVoiceCache = []; // filled by loadElevenVoices so character cards can offer the same list
+
+function loadArchive() {
+  try {
+    const raw = localStorage.getItem('companion_figureArchive');
+    figureArchive = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    figureArchive = [];
+  }
+  if (!Array.isArray(figureArchive)) figureArchive = [];
+}
+
+function saveArchive() {
+  localStorage.setItem('companion_figureArchive', JSON.stringify(figureArchive));
+}
+
+function newFigureId() {
+  return 'fig_' + Date.now().toString(36) + '_' + Math.floor(Math.random() * 1000);
+}
+
+// Strips the working-copy fields back out, so what lands in the archive is the
+// figure itself and not the place it happened to be used.
+function versionFromCharacter(c, versionNumber) {
+  return {
+    v: versionNumber,
+    name: c.name,
+    traits: Array.isArray(c.traits) ? c.traits.slice() : [],
+    notes: c.notes || '',
+    pitch: c.pitch, rate: c.rate,
+    gender: c.gender || 'offen',
+    voice: c.voice || '', elevenVoice: c.elevenVoice || '',
+    image: c.image || '', imageKey: c.imageKey || '',
+    created: new Date().toISOString(),
+  };
+}
+
+function getFigure(id) {
+  return figureArchive.find(f => f.id === id) || null;
+}
+
+function latestVersion(figure) {
+  return figure && figure.versions.length ? figure.versions[figure.versions.length - 1] : null;
+}
+
+function findVersion(figure, versionNumber) {
+  if (!figure) return null;
+  return figure.versions.find(x => x.v === versionNumber) || latestVersion(figure);
+}
+
+// Turns an archived version into a working copy for the current cast. The copy
+// is deliberately deep: editing a card must never reach back into the archive.
+function characterFromVersion(figure, versionNumber, isUser) {
+  const version = findVersion(figure, versionNumber);
+  if (!version) return null;
+  return Object.assign(JSON.parse(JSON.stringify(version)), {
+    id: figure.id + '_v' + version.v,
+    figureId: figure.id,
+    version: version.v,
+    isUser: !!isUser,
+  });
+}
+
+function addFigureToArchive(c) {
+  const figure = { id: newFigureId(), versions: [versionFromCharacter(c, 1)] };
+  figureArchive.push(figure);
+  return figure;
+}
+
+// Writes the working copy back. Either the current version is replaced, or a
+// new one is appended - the choice is the user's, made at the moment they save
+// rather than being asked on every keystroke.
+function storeCharacterVersion(c, asNewVersion) {
+  let figure = getFigure(c.figureId);
+  if (!figure) {
+    figure = addFigureToArchive(c);
+    c.figureId = figure.id;
+    c.version = 1;
+    saveArchive();
+    return figure.versions[0];
+  }
+  if (asNewVersion) {
+    const next = Math.max(...figure.versions.map(x => x.v)) + 1;
+    const version = versionFromCharacter(c, next);
+    figure.versions.push(version);
+    c.version = next;
+    saveArchive();
+    return version;
+  }
+  const index = figure.versions.findIndex(x => x.v === c.version);
+  const version = versionFromCharacter(c, c.version || 1);
+  if (index >= 0) figure.versions[index] = version;
+  else figure.versions.push(version);
+  saveArchive();
+  return version;
+}
+
+// Everything that existed before the archive - the current cast and every saved
+// cast - becomes version 1 of a figure. Matching is by name, so the same figure
+// appearing in two casts doesn't end up duplicated.
+// The old single-character field is folded into the archive as a figure of its
+// own rather than discarded. Nothing the user wrote is lost, and it shows up
+// where every other figure lives.
+function migrateSystemPrompt() {
+  if (localStorage.getItem('companion_promptMigrated') === 'true') return;
+  const text = (localStorage.getItem('companion_systemPrompt') || '').trim();
+  localStorage.setItem('companion_promptMigrated', 'true');
+  if (!text) return;
+
+  const named = text.match(/Name:\s*([^\n.]{1,24})/);
+  const name = named ? named[1].trim() : 'Charakter';
+  if (figureArchive.some(f => (latestVersion(f).name || '').toLowerCase() === name.toLowerCase())) return;
+
+  addFigureToArchive({
+    name, traits: [], notes: text.slice(0, 1200),
+    gender: 'offen', pitch: 1.0, rate: 1.0,
+    voice: localStorage.getItem('companion_voice') || '',
+    elevenVoice: localStorage.getItem('companion_elevenVoiceId') || '',
+  });
+  saveArchive();
+}
+
+function migrateToArchive() {
+  if (localStorage.getItem('companion_archiveMigrated') === 'true') return;
+
+  const byName = new Map();
+  const absorb = (c) => {
+    if (!c || !c.name) return;
+    const key = c.name.trim().toLowerCase();
+    if (byName.has(key)) return;
+    const figure = addFigureToArchive(c);
+    byName.set(key, figure);
+  };
+
+  characters.forEach(absorb);
+  (castLibrary || []).forEach(cast => (cast.characters || []).forEach(absorb));
+
+  // Link the current cast to what was just created.
+  characters.forEach(c => {
+    const figure = byName.get((c.name || '').trim().toLowerCase());
+    if (figure) { c.figureId = figure.id; c.version = 1; }
+  });
+
+  saveArchive();
+  saveCharacters();
+  localStorage.setItem('companion_archiveMigrated', 'true');
+}
+
+function renderArchiveSelect() {
+  els.archiveSelect.innerHTML = '';
+  if (!figureArchive.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '(Archiv ist leer)';
+    els.archiveSelect.appendChild(opt);
+    return;
+  }
+  figureArchive.forEach(figure => {
+    const version = latestVersion(figure);
+    const opt = document.createElement('option');
+    opt.value = figure.id;
+    opt.textContent = `${version.name} (${figure.versions.length} Version${figure.versions.length > 1 ? 'en' : ''})`;
+    els.archiveSelect.appendChild(opt);
+  });
+}
+
+els.addFromArchiveBtn.onclick = () => {
+  const figure = getFigure(els.archiveSelect.value);
+  if (!figure) { addMsg('system', 'Keine Figur ausgewählt.'); return; }
+  const copy = characterFromVersion(figure, latestVersion(figure).v, false);
+  if (!copy) return;
+  characters.push(copy);
+  saveCharacters();
+  renderCharacters();
+  addMsg('system', `${copy.name} zur Besetzung hinzugefügt.`);
+};
 
 function loadCharacters() {
   try {
@@ -3593,6 +4041,7 @@ function userCharacter() { return characters.find(c => c.isUser) || null; }
 // across every character.
 function describeCharacter(c) {
   const parts = [];
+  if (c.gender && c.gender !== 'offen') parts.push(`Geschlecht: ${GENDER_TEXT[c.gender] || c.gender}`);
   TRAIT_GROUPS.forEach(group => {
     const picked = group.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text);
     if (picked.length) parts.push(`${group.label}: ${picked.join(', ')}`);
@@ -3678,6 +4127,7 @@ function buildPortraitRequest(c) {
   return `Schreibe einen Bild-Prompt für ein Porträt dieser Figur. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
 
 Figur: ${c.name}
+${c.gender && c.gender !== 'offen' ? `Geschlecht: ${GENDER_TEXT[c.gender]}` : ''}
 Wesenszüge: ${traits || 'keine angegeben'}
 Beschreibung: ${(c.notes || '').slice(0, 600)}
 ${scene ? `Umgebung der Szene: ${scene}` : ''}
@@ -3689,22 +4139,40 @@ Vorgaben: Brustbild einer erwachsenen Person, bekleidet, Blick zur Kamera. Keine
 Antworte NUR mit dem englischen Prompt, ein bis drei Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
 
+// If the text step fails, the picture shouldn't. This builds a usable prompt
+// straight from the trait list - plainer than the written one, but it works.
+function fallbackPortraitPrompt(c) {
+  const traits = TRAIT_GROUPS
+    .map(g => g.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text).join(', '))
+    .filter(Boolean).join('; ');
+  return `Portrait photograph of an adult person named ${c.name}, upper body, clothed, `
+    + `looking at the camera, soft natural light, shallow depth of field. `
+    + `Character impression: ${traits || 'calm and approachable'}. `
+    + `An original person, not a real individual and not a known fictional character. No text in the image.`;
+}
+
 async function generateCharacterImage(c, button) {
-  const key = (localStorage.getItem('companion_apiKey_venice') || '').trim();
+  const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Profilbilder wird ein Venice-Schlüssel gebraucht.'); return; }
-  const model = (localStorage.getItem('companion_imageModel') || 'venice-sd35').trim();
+  const model = modelFor('companion_imageModel') || 'venice-sd35';
 
   const previous = button.textContent;
   button.disabled = true;
   button.textContent = 'Erzeuge...';
   try {
-    const imagePrompt = (await callProvider(
+    let imagePrompt = '';
+    try {
+      imagePrompt = (await callProvider(
       'venice',
       buildPortraitRequest(c),
       [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
       0.8,
-      300
-    )).trim().replace(/^["'`]+|["'`]+$/g, '');
+      2000
+      )).trim().replace(/^["'`]+|["'`]+$/g, '');
+    } catch (err) {
+      addMsg('system', `Bildbeschreibung für ${c.name} misslungen (${err.message}) - nutze eine einfache Beschreibung.`);
+    }
+    if (!imagePrompt) imagePrompt = fallbackPortraitPrompt(c);
 
     const res = await fetch('https://api.venice.ai/api/v1/image/generate', {
       method: 'POST',
@@ -3935,6 +4403,20 @@ function renderCharacters() {
       card.appendChild(wrap);
     });
 
+    const genderLabel = document.createElement('label');
+    genderLabel.textContent = 'Geschlecht';
+    card.appendChild(genderLabel);
+    const genderSelect = document.createElement('select');
+    GENDERS.forEach(([value, text]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = text;
+      genderSelect.appendChild(opt);
+    });
+    genderSelect.value = c.gender || 'offen';
+    genderSelect.onchange = () => { c.gender = genderSelect.value; };
+    card.appendChild(genderSelect);
+
     const notesLabel = document.createElement('label');
     notesLabel.textContent = 'Ergänzung in eigenen Worten';
     card.appendChild(notesLabel);
@@ -3993,6 +4475,68 @@ function renderCharacters() {
     rate.oninput = () => { c.rate = parseFloat(rate.value); rateVal.textContent = rate.value; };
     card.appendChild(rate);
 
+    // Version handling sits at the bottom of the card, separated by a line: it
+    // is about the figure's history rather than about how it behaves, and
+    // mixing the two invites saving by accident.
+    const figure = getFigure(c.figureId);
+    const versionRow = document.createElement('div');
+    versionRow.className = 'version-row';
+
+    if (figure && figure.versions.length) {
+      const versionSelect = document.createElement('select');
+      figure.versions.forEach(version => {
+        const opt = document.createElement('option');
+        opt.value = version.v;
+        const date = version.created ? new Date(version.created).toLocaleDateString('de-DE') : '';
+        opt.textContent = `Version ${version.v}${date ? ' - ' + date : ''}`;
+        versionSelect.appendChild(opt);
+      });
+      versionSelect.value = c.version || latestVersion(figure).v;
+      versionSelect.onchange = () => {
+        const replacement = characterFromVersion(figure, parseInt(versionSelect.value, 10), c.isUser);
+        if (!replacement) return;
+        characters[index] = replacement;
+        saveCharacters();
+        renderCharacters();
+      };
+      versionRow.appendChild(versionSelect);
+    } else {
+      const note = document.createElement('span');
+      note.style.cssText = 'flex:1; font-size:12.5px; color:var(--text-dim);';
+      note.textContent = 'Noch nicht im Archiv';
+      versionRow.appendChild(note);
+    }
+
+    const saveVersion = document.createElement('button');
+    saveVersion.className = 'btn-secondary';
+    saveVersion.textContent = 'Sichern';
+    saveVersion.title = 'Die aktuelle Version im Archiv überschreiben';
+    saveVersion.onclick = () => {
+      storeCharacterVersion(c, false);
+      saveCharacters();
+      renderArchiveSelect();
+      renderCharacters();
+      if (figuresOpen) renderFigureList();
+      addMsg('system', `${c.name}: Version ${c.version} überschrieben.`);
+    };
+    versionRow.appendChild(saveVersion);
+
+    const newVersion = document.createElement('button');
+    newVersion.className = 'btn-secondary';
+    newVersion.textContent = '+ Version';
+    newVersion.title = 'Als neue Version sichern, die alte bleibt erhalten';
+    newVersion.onclick = () => {
+      const version = storeCharacterVersion(c, true);
+      saveCharacters();
+      renderArchiveSelect();
+      renderCharacters();
+      if (figuresOpen) renderFigureList();
+      addMsg('system', `${c.name}: als Version ${version.v} gesichert, die vorherige bleibt erhalten.`);
+    };
+    versionRow.appendChild(newVersion);
+
+    card.appendChild(versionRow);
+
     els.charList.appendChild(card);
   });
 }
@@ -4024,19 +4568,19 @@ Richtung: erst Vorsicht und Neugier auf beiden Seiten, dann führen sie mich St�
 Der Ort bleibt die Lichtung. Kein Wechsel an einen anderen Schauplatz.`,
     characters: [
       {
-        id: 'e1', name: 'Aelira', isUser: false,
+        id: 'e1', name: 'Aelira', isUser: false, gender: 'weiblich',
         traits: ['ruhig', 'selbstbewusst', 'fuersorglich', 'leise', 'bildhaft', 'fuehrt', 'neu'],
         notes: 'Sie hat lange gewartet und lässt sich das nicht anmerken. Spricht langsam, mit Pausen zwischen den Sätzen, als hätte Zeit für sie ein anderes Maß. Sie fragt selten und kündigt nie an - sie berührt einfach und schaut dabei, wie ich reagiere. Zucke ich zusammen, wird sie langsamer statt aufzuhören. Gegenüber Nyrieth ist sie nachsichtig wie gegenüber einer Jüngeren, bremst sie aber, wenn es ihr zu schnell geht.',
         pitch: 0.85, rate: 0.85, voice: '', elevenVoice: '',
       },
       {
-        id: 'e2', name: 'Nyrieth', isUser: false,
+        id: 'e2', name: 'Nyrieth', isUser: false, gender: 'weiblich',
         traits: ['verspielt', 'ungeduldig', 'direkt', 'deutlich', 'humorvoll', 'fragend', 'wechselt', 'spannung', 'rivalitaet'],
         notes: 'Sie kann nicht stillsitzen und will alles sofort. Redet schnell, unterbricht sich selbst, lacht mitten im Satz. Sie fragt mich direkt, was ich mag, und probiert es aus, bevor ich antworten kann. Zwischen ihr und Aelira liegt ein leiser Wettstreit darum, wem ich mehr Aufmerksamkeit gebe - das spricht sie auch aus. Bremst Aelira sie, fügt sie sich, aber nur kurz.',
         pitch: 1.15, rate: 1.05, voice: '', elevenVoice: '',
       },
       {
-        id: 'e3', name: 'Ich', isUser: true,
+        id: 'e3', name: 'Ich', isUser: true, gender: 'maennlich',
         traits: ['zurueckhaltend', 'knapp', 'folgt', 'neu'],
         notes: 'Ich bin überrascht und überwältigt, gehe aber mit. Sage wenig, meist nur ein halber Satz oder ein Laut. Ich frage nicht nach und schlage nichts vor - ich reagiere. Wenn mir etwas besonders gefällt, sage ich es kurz.',
         pitch: 0.9, rate: 1.0, voice: '', elevenVoice: '',
@@ -4116,10 +4660,12 @@ Für jede Figur wählst du Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
 ${voiceBlock}
 
+Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
+
 Dazu je ein Feld "notes" mit drei bis fünf Sätzen: wie die Figur spricht, wie sie sich verhält, wie sie zu den anderen steht. Und "pitch" und "rate" als Zahlen zwischen 0.8 und 1.2 - setz die Werte der beiden Figuren spürbar auseinander, damit man sie beim Zuhören unterscheidet.
 
 Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown, beginnend mit "{" und endend mit "}":
-{"scene": "...", "characters": [{"name": "...", "isUser": false, "traits": ["..."], "notes": "...", "pitch": 1.0, "rate": 1.0, "voiceName": "..."}]}`;
+{"scene": "...", "characters": [{"name": "...", "isUser": false, "gender": "...", "traits": ["..."], "notes": "...", "pitch": 1.0, "rate": 1.0, "voiceName": "..."}]}`;
 }
 
 // A generated draft goes straight into the app's own data structures, so it has
@@ -4138,6 +4684,7 @@ function sanitizeDraftCharacters(list) {
     isUser: !!c.isUser,
     traits: (Array.isArray(c.traits) ? c.traits : []).filter(t => valid.has(t)),
     notes: String(c.notes || '').slice(0, 1200),
+    gender: GENDER_TEXT[c.gender] ? c.gender : 'offen',
     pitch: clamp(c.pitch, 0.5, 2, 1.0),
     rate: clamp(c.rate, 0.5, 1.5, 1.0),
     voice: '',
@@ -4176,14 +4723,25 @@ els.generateSceneBtn.onclick = async () => {
       buildSceneDraftPrompt(idea),
       [{ role: 'user', content: 'Gib den Entwurf als JSON zurück.' }],
       0.7,
-      2500,
+      // Generous on purpose: a reasoning model spends a good part of this on
+      // thinking, and what is left has to carry a scene plus three characters.
+      8000,
       { persona: true }
     );
     const draft = extractJson(raw);
     if (!draft || typeof draft !== 'object') throw new Error('Die Antwort war kein verwertbarer Entwurf.');
 
     characters = sanitizeDraftCharacters(draft.characters);
+    // Generated figures are archived too - that is the point of the archive:
+    // a draft you liked should still be there next week.
+    characters.forEach(c => {
+      const figure = addFigureToArchive(c);
+      c.figureId = figure.id;
+      c.version = 1;
+    });
+    saveArchive();
     saveCharacters();
+    renderArchiveSelect();
     renderCharacters();
     if (draft.scene) els.sceneDesc.value = String(draft.scene).slice(0, 4000);
 
@@ -4238,23 +4796,160 @@ els.deleteCastBtn.onclick = () => {
   addMsg('system', `Besetzung "${cast.name}" gelöscht.`);
 };
 
-loadCastLibrary();
 renderCastSelect();
 
+// ---------- Figures page ----------
+// The archive is a list first and an editor second. Seeing every figure as a
+// row with a face and one line of description is how you actually recognise
+// them; the full set of checkboxes only matters once you have picked one.
+function figureGist(version) {
+  const traits = TRAIT_GROUPS
+    .flatMap(g => g.traits.filter(([id]) => (version.traits || []).includes(id)).map(([, text]) => text))
+    .slice(0, 3).join(', ');
+  const gender = version.gender && version.gender !== 'offen' ? GENDER_TEXT[version.gender] + ' · ' : '';
+  return gender + (traits || 'keine Eigenschaften gewählt');
+}
+
+// A short spoken line in the figure's own voice - far quicker for telling two
+// similar-sounding voices apart than reading their settings.
+async function introduceFigure(version) {
+  const line = `Hallo, ich bin ${version.name}.`;
+  const source = localStorage.getItem('companion_ttsSource') || 'browser';
+  if (source === 'elevenlabs' && version.elevenVoice) {
+    const ready = voicePreviewUrl(version.elevenVoice);
+    if (ready) { playPreviewUrl(ready); return; }
+    return previewVoice(version.elevenVoice, line);
+  }
+  // Browser voice: speak with this figure's own pitch and rate.
+  return new Promise((resolve) => {
+    const utter = new SpeechSynthesisUtterance(line);
+    utter.lang = 'de-DE';
+    utter.pitch = typeof version.pitch === 'number' ? version.pitch : 1;
+    utter.rate = typeof version.rate === 'number' ? version.rate : 1;
+    if (version.voice) {
+      const match = speechSynthesis.getVoices().find(v => v.name === version.voice);
+      if (match) utter.voice = match;
+    }
+    utter.onend = resolve;
+    utter.onerror = resolve;
+    speechSynthesis.speak(utter);
+  });
+}
+
+function renderFigureList() {
+  els.figureList.innerHTML = '';
+  if (!figureArchive.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Noch keine Figuren angelegt.';
+    els.figureList.appendChild(empty);
+    return;
+  }
+
+  figureArchive.forEach(figure => {
+    const version = latestVersion(figure);
+    const inCast = characters.some(c => c.figureId === figure.id);
+
+    const row = document.createElement('div');
+    row.className = 'figure-row' + (inCast ? ' in-cast' : '');
+
+    const thumb = document.createElement(version.image ? 'img' : 'div');
+    thumb.className = 'thumb';
+    if (version.image) thumb.src = version.image;
+    else thumb.textContent = (version.name || '?').trim().charAt(0).toUpperCase() || '?';
+    row.appendChild(thumb);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = version.name + (figure.versions.length > 1 ? `  ·  v${version.v}` : '');
+    const gist = document.createElement('div');
+    gist.className = 'gist';
+    gist.textContent = figureGist(version);
+    meta.appendChild(who);
+    meta.appendChild(gist);
+    meta.style.cursor = 'pointer';
+    meta.onclick = () => openFigureEditor(figure);
+    row.appendChild(meta);
+
+    const play = document.createElement('button');
+    play.className = 'act';
+    play.textContent = '▶';
+    play.title = 'Kurz vorstellen';
+    play.onclick = (e) => { e.stopPropagation(); introduceFigure(version); };
+    row.appendChild(play);
+
+    els.figureList.appendChild(row);
+  });
+}
+
+// Editing works on the cast: a figure has to be in it to be edited, so tapping
+// a row pulls it in if it isn't already. That keeps one editing path instead of
+// two that could drift apart.
+function openFigureEditor(figure) {
+  if (!characters.some(c => c.figureId === figure.id)) {
+    const copy = characterFromVersion(figure, latestVersion(figure).v, false);
+    if (copy) { characters.push(copy); saveCharacters(); }
+  }
+  renderCharacters();
+  els.figureEditor.style.display = 'block';
+  els.figureEditor.open = true;
+  setTimeout(() => els.figureEditor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+
+els.newFigureBtn.onclick = () => { els.addCharBtn.click(); renderFigureList(); openFigureEditor(getFigure(characters[characters.length - 1].figureId)); };
+els.draftFigureBtn.onclick = () => { switchMode(currentMode); openSetup(false); els.sceneIdea.focus(); };
+els.toFiguresBtn.onclick = () => { setDrawer(false); showFigures(); };
+
 els.addCharBtn.onclick = () => {
-  characters.push({
+  const fresh = {
     id: 'c' + Date.now(),
     name: 'Neue Figur',
     isUser: false,
     traits: ['warm'],
     notes: '',
+    gender: 'offen',
     pitch: 1.0, rate: 1.0, voice: '', elevenVoice: '',
-  });
+  };
+  // Straight into the archive as version 1, so a figure never exists only
+  // inside one cast and vanish with it.
+  const figure = addFigureToArchive(fresh);
+  fresh.figureId = figure.id;
+  fresh.version = 1;
+  characters.push(fresh);
+  saveArchive();
   saveCharacters();
+  renderArchiveSelect();
   renderCharacters();
 };
 
+// Microphone, clipboard and local network access all hang on the same
+// criterion, and when it isn't met the browser refuses silently - no prompt, no
+// error. Saying so up front saves the same half hour of confusion every time.
+(function checkSecureContext() {
+  if (window.isSecureContext) return;
+  els.contextWarn.style.display = 'block';
+  els.contextWarn.textContent = 'Diese Seite läuft nicht in einem sicheren Kontext ('
+    + location.protocol + '). Mikrofon, Zwischenablage und der Zugriff auf das Gerät im WLAN '
+    + 'werden dabei ohne Nachfrage blockiert. Bitte über die gehostete https-Adresse aufrufen, '
+    + 'nicht als heruntergeladene Datei.';
+})();
+
+updateTrackVisibility();
+
 loadCharacters();
+loadArchive();
+loadCastLibrary();
+migrateToArchive();
+migrateSystemPrompt();
+if (!figureArchive.length) {
+  // A fresh install has no archive yet - seed it from the cast that shipped.
+  characters.forEach(c => { const f = addFigureToArchive(c); c.figureId = f.id; c.version = 1; });
+  saveArchive();
+  saveCharacters();
+}
+renderArchiveSelect();
 renderCharacters();
 speechSynthesis.addEventListener('voiceschanged', renderCharacters);
 
@@ -4264,8 +4959,12 @@ speechSynthesis.addEventListener('voiceschanged', renderCharacters);
 // back produces exactly the same {role, text} pieces the rest of the app
 // already works with, so speech, motion and pacing need no special casing:
 // 'role' simply carries a character's name instead of the word 'character'.
-let currentMode = 'chat';  // 'chat' | 'story' | 'ensemble'
-let ensembleSub = 'live';  // within ensemble: 'live' or 'story'
+// One mode axis instead of two. Who takes part follows from the cast, so it
+// needs no switch of its own - the old split between a single-character mode
+// and an ensemble mode was the reason the same figure had to be described
+// twice, in two places that could disagree.
+let currentMode = 'live';  // 'live' | 'story'
+let ensembleSub = 'live';  // kept so older saved state still resolves
 
 function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
@@ -4461,7 +5160,7 @@ async function askEnsemble(userText, options) {
 // Routes whatever the user types or says to whichever mode is active, so the
 // input controls at the bottom don't need to know which one that is.
 function askActive(text, options) {
-  return currentMode === 'ensemble' ? askEnsemble(text, options) : askCharacter(text, options);
+  return askEnsemble(text, options);
 }
 
 // ---------- Story mode ----------
@@ -4491,6 +5190,14 @@ const story = {
 if (!els.storyIdea.value) els.storyIdea.value = DEFAULT_STORY_IDEA;
 
 function setStoryStatus(text) { els.storyStatus.textContent = text; }
+
+// The backup hint sits far down in the settings, where a message is easy to
+// miss - especially a failure. It goes into the transcript as well, which is
+// also what puts it into the exported protocol.
+function setBackupInfo(text, alsoNotify) {
+  els.bkInfo.textContent = text;
+  if (alsoNotify) addMsg('system', text);
+}
 function setStoryProgress(fraction) {
   els.storyProgress.style.width = Math.max(0, Math.min(1, fraction)) * 100 + '%';
 }
@@ -4499,28 +5206,40 @@ function setStoryProgress(fraction) {
 // plus the input bar, anything pre-written uses the story panel. The ensemble
 // mode can be either, which is why the layout is decided from the effective
 // view rather than from the mode name.
+// The figures page is a place, not a mode - it replaces the view without
+// touching which mode a scene is in, so leaving it puts you back where you were.
+let figuresOpen = false;
+
+function showFigures() {
+  figuresOpen = true;
+  els.changelogPanel.style.display = 'none';
+  els.figuresPanel.style.display = 'block';
+  els.storyPanel.style.display = 'none';
+  els.transcript.style.display = 'none';
+  els.bottomBar.style.display = 'none';
+  els.topbarWhere.textContent = ' · Figuren';
+  renderFigureList();
+  renderCharacters();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function switchMode(mode, sub) {
+  figuresOpen = false;
+  els.figuresPanel.style.display = 'none';
+  els.changelogPanel.style.display = 'none';
   const previous = currentMode;
   currentMode = mode;
   if (sub) ensembleSub = sub;
 
-  const isEnsemble = mode === 'ensemble';
-  const showsStoryPanel = mode === 'story' || (isEnsemble && ensembleSub === 'story');
-
-  els.modeChatBtn.classList.toggle('active', mode === 'chat');
-  els.modeStoryBtn.classList.toggle('active', mode === 'story');
-  els.modeEnsembleBtn.classList.toggle('active', isEnsemble);
-  els.ensembleBar.style.display = isEnsemble ? 'block' : 'none';
-  els.ensLiveBtn.classList.toggle('active', ensembleSub === 'live');
-  els.ensStoryBtn.classList.toggle('active', ensembleSub === 'story');
+  const showsStoryPanel = mode === 'story';
+  els.ensembleBar.style.display = 'none';
 
   els.storyPanel.style.display = showsStoryPanel ? 'block' : 'none';
   els.transcript.style.display = showsStoryPanel ? 'none' : 'flex';
   els.bottomBar.style.display = showsStoryPanel ? 'none' : 'block';
 
-  els.ensembleHint.textContent = ensembleSub === 'live'
-    ? 'Die Figuren sprechen miteinander und mit dir. Schreib oder sprich dazwischen - deine Figur wird von einer eigenen Stimme gelesen.'
-    : 'Die ganze Szene wird vorab geschrieben und das Bewegungsskript darübergelegt. Deine Figur kommt darin vor und wird mitgesprochen.';
+  els.topbarWhere.textContent = ' · ' + (MODE_LABELS[modeKey()] || '');
+  if (els.drawer.classList.contains('open')) refreshDrawer();
 
   // A story that is still playing has no business continuing under a different
   // mode, and the auto-loop belongs to the conversational modes only.
@@ -4533,20 +5252,106 @@ function switchMode(mode, sub) {
 
   // Switching between chat and ensemble mid-scene would mix two incompatible
   // reply formats in one history, so the thread starts fresh.
-  if ((previous === 'ensemble') !== (mode === 'ensemble')) {
-    history = [];
-    sceneStep = 0;
-    els.transcript.innerHTML = '';
-    addMsg('system', mode === 'ensemble'
-      ? 'Ensemble-Modus: ' + characters.map(c => c.name).join(', ') + '.'
-      : 'Gesprächsmodus.');
+  if (previous !== mode && mode === 'live' && !history.length) {
+    addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
   }
 }
-els.modeChatBtn.onclick = () => switchMode('chat');
+// ---------- Navigation drawer ----------
+const MODE_LABELS = { live: 'Live', story: 'Geschichte' };
+
+function modeKey() {
+  return currentMode;
+}
+
+function setDrawer(open) {
+  els.drawer.classList.toggle('open', open);
+  els.drawerScrim.classList.toggle('open', open);
+  if (open) refreshDrawer();
+}
+
+function refreshDrawer() {
+  const key = modeKey();
+  document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
+    const itemKey = item.dataset.sub ? item.dataset.mode + ':' + item.dataset.sub : item.dataset.mode;
+    item.classList.toggle('active', itemKey === key);
+  });
+  refreshNavStories();
+}
+
+// The saved stories are listed here as well as in the story panel. It is the
+// same data, but this is where you look when you want to pick up something from
+// before rather than manage the list.
+async function refreshNavStories() {
+  try {
+    const saved = await dbAll(STORE_STORIES);
+    const keys = await dbKeys(STORE_STORIES);
+    els.navStories.innerHTML = '';
+    if (!saved.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:8px 18px; font-size:12.5px; color:var(--text-dim);';
+      empty.textContent = 'Noch keine aufbewahrt.';
+      els.navStories.appendChild(empty);
+      return;
+    }
+    saved.slice(-8).reverse().forEach((entry, i) => {
+      const key = keys[keys.length - 1 - i];
+      const item = document.createElement('button');
+      item.className = 'drawer-item';
+      const date = entry.saved ? new Date(entry.saved).toLocaleDateString('de-DE') : '';
+      item.innerHTML = `<span class="glyph">📄</span><span>${entry.name}<span class="sub">${entry.chunks.length} Abschnitte${date ? ' · ' + date : ''}</span></span>`;
+      item.onclick = async () => {
+        setDrawer(false);
+        switchMode('story');
+        els.savedStorySelect.value = key;
+        els.loadStoryBtn.click();
+      };
+      els.navStories.appendChild(item);
+    });
+  } catch (err) {
+    els.navStories.innerHTML = '';
+  }
+}
+
+els.menuBtn.onclick = () => setDrawer(true);
+els.drawerScrim.onclick = () => setDrawer(false);
+
+document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
+  item.onclick = () => {
+    switchMode(item.dataset.mode, item.dataset.sub);
+    setDrawer(false);
+  };
+});
+
+els.navNewChat.onclick = () => {
+  if (history.length && !confirm('Den bisherigen Verlauf verwerfen und neu beginnen?')) return;
+  history = [];
+  sceneStep = 0;
+  els.transcript.innerHTML = '';
+  addMsg('system', 'Neues Gespräch.');
+  setDrawer(false);
+};
+
+// Both open the setup panel; the figures entry additionally unfolds its own
+// section, because hunting for it inside a long settings page is the kind of
+// small friction that makes a feature go unused.
+function openSetup(openFigures) {
+  els.setupPanel.open = true;
+  setDrawer(false);
+  const target = openFigures
+    ? Array.from(els.setupPanel.querySelectorAll('summary')).find(x => x.textContent.includes('Figuren'))
+    : null;
+  if (target && target.parentElement) target.parentElement.open = true;
+  setTimeout(() => {
+    (target || els.setupPanel).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
+}
+els.setupBtn.onclick = () => openSetup(false);
+els.navSetup.onclick = () => openSetup(false);
+els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
+els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
+els.navVersionLine.textContent = 'Version ' + APP_VERSION;
+
 els.modeStoryBtn.onclick = () => switchMode('story');
-els.modeEnsembleBtn.onclick = () => switchMode('ensemble');
-els.ensLiveBtn.onclick = () => switchMode('ensemble', 'live');
-els.ensStoryBtn.onclick = () => switchMode('ensemble', 'story');
 
 // ---- generating the text ----
 function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, previousTail) {
@@ -4563,7 +5368,7 @@ function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, pre
 
   // In ensemble mode the story is a screenplay with several named voices; the
   // rest of the pipeline is identical, only the format instruction differs.
-  const ensemble = currentMode === 'ensemble';
+  const ensemble = true; // every mode is cast-based now
   const formatInstruction = ensemble
     ? ensembleFormatBlock() + `\n\nLass die Figuren wirklich miteinander reden - aufeinander eingehen, unterbrechen, unterschiedlich reagieren. Nicht abwechselnd Monologe.`
     : narratorOn
@@ -4574,7 +5379,7 @@ function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, pre
     ? `\n\nSo endet der bisherige Text - setze nahtlos dort an, ohne ihn zu wiederholen oder zusammenzufassen:\n"...${previousTail}"`
     : '';
 
-  return (ensemble ? buildCastBlock() : localStorage.getItem('companion_systemPrompt'))
+  return buildCastBlock()
     + (scene ? `\n\nDie Szene:\n${scene}` : '')
     + `\n\nDu schreibst jetzt eine zusammenhängende Geschichte am Stück, nicht im Wechselgespräch. Ich höre sie mir an, während mein Gerät die beschriebene Bewegung mitmacht.
 
@@ -4757,7 +5562,7 @@ els.genStoryBtn.onclick = async () => {
   els.storyText.innerHTML = '';
   try {
     const text = await generateStoryText(provider, idea, minutes);
-    const segments = currentMode === 'ensemble' ? parseEnsembleText(text) : splitIntoSegments(text);
+    const segments = parseEnsembleText(text);
     story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {} }));
     story.index = 0;
     renderStory();
