@@ -829,58 +829,6 @@
     </details>
 
     <details class="subsection">
-      <summary>Figuren (für den Ensemble-Modus)</summary>
-      <p class="hint" style="margin-top:0;">
-        Mehrere Figuren, die miteinander sprechen - eine davon bist du. Die Eigenschaften
-        unten formen den Charakter; das Textfeld darunter ergänzt, was die Haken nicht
-        abdecken. Jede Figur bekommt ihre eigene Stimme.
-      </p>
-      <label for="sceneIdea">Neue Szene entwerfen lassen</label>
-      <textarea id="sceneIdea" style="min-height:80px" placeholder="Ein, zwei Sätze genügen: wo, wer, was passiert. Zum Beispiel: Nach einer Feier verlaufe ich mich nachts im Wald und treffe auf zwei Fremde."></textarea>
-      <div class="btn-row">
-        <button class="btn-secondary" id="generateSceneBtn">Figuren und Szene entwerfen</button>
-      </div>
-      <p class="hint">
-        Die KI schreibt daraus Szene und Figuren aus, abgestimmt auf dein Gerät und den
-        vorgesehenen Verlauf. Alles landet in den Feldern unten und lässt sich danach
-        von Hand ändern - der Entwurf ist ein Startpunkt, keine fertige Sache.
-      </p>
-
-      <label for="archiveSelect">Figur aus dem Archiv holen</label>
-      <div class="text-input-row">
-        <select id="archiveSelect" style="flex:1;"></select>
-        <button class="btn-secondary" id="addFromArchiveBtn" type="button">Holen</button>
-      </div>
-      <p class="hint">
-        Im Archiv liegen alle Figuren, die du je angelegt oder entwerfen lassen hast - jede
-        mit ihren Versionen. Was du hier in die Besetzung holst, ist eine Arbeitskopie:
-        Änderungen wirken erst im Archiv, wenn du sie sicherst.
-      </p>
-
-      <label for="castSelect">Gespeicherte Besetzung</label>
-      <select id="castSelect"></select>
-      <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-        <input type="checkbox" id="castWithScene" checked style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Szene der Besetzung mitladen</span>
-      </label>
-      <div class="btn-row">
-        <button class="btn-secondary" id="loadCastBtn">Laden</button>
-        <button class="btn-secondary" id="saveCastBtn">Sichern unter...</button>
-        <button class="btn-secondary" id="deleteCastBtn">Löschen</button>
-      </div>
-      <p class="hint">
-        „Laden" ersetzt die Figuren unten durch die gespeicherte Besetzung. „Sichern unter..."
-        legt die aktuellen Figuren samt Szene als neue Besetzung ab - unter einem vorhandenen
-        Namen wird sie überschrieben.
-      </p>
-
-      <div class="btn-row">
-        <button class="btn-secondary" id="addCharBtn">Figur hinzufügen</button>
-        <button class="btn-secondary" id="toFiguresBtn">Figuren bearbeiten</button>
-      </div>
-    </details>
-
-    <details class="subsection">
       <summary>Gerät 1</summary>
       <label for="device1Desc">Einsatz &amp; Vorlieben</label>
       <textarea id="device1Desc" placeholder="z.B. Position/Einsatzort des Geräts, welche Bewegungen es gut kann, was dir gefällt, worauf es besonders reagieren soll..."></textarea>
@@ -933,7 +881,7 @@
     <div class="btn-row" style="margin-top:4px;">
       <button class="btn-secondary" id="loadDefaultsBtn">Beispieltexte einsetzen</button>
     </div>
-    <p class="hint">Überschreibt Charakterbeschreibung, Szene, Gerätebeschreibung, Geschichten-Vorgabe und die Figuren mit ausgearbeiteten Vorlagen. Alles andere, auch deine Schlüssel, bleibt unberührt.</p>
+    <p class="hint">Setzt ausgearbeitete Vorlagen für Szene, Gerätebeschreibung und Geschichten-Vorgabe ein. Figuren und Schlüssel bleiben unberührt.</p>
 
     <details class="subsection">
       <summary>Sicherung</summary>
@@ -1034,9 +982,15 @@
       </div>
       <div id="figureList"></div>
       <div class="btn-row">
-        <button class="btn-secondary" id="newFigureBtn">Neue Figur</button>
-        <button class="btn-secondary" id="draftFigureBtn">Entwerfen lassen</button>
+        <button class="btn-secondary" id="newFigureBtn">＋ Leere Figur</button>
       </div>
+
+      <label for="figureIdea">Figur beschreiben und erzeugen lassen</label>
+      <textarea id="figureIdea" style="min-height:70px" placeholder="Ein Satz genügt: wer ist das, wie ist sie drauf? Zum Beispiel: eine ruhige Heilerin, die wenig sagt und genau hinschaut."></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" id="genFigureBtn">✨ Figur erzeugen</button>
+      </div>
+      <p class="hint" id="genFigureInfo">Eigenschaften, Geschlecht, Beschreibung und eine passende Stimme werden automatisch gewählt. Danach kannst du alles ändern.</p>
     </div>
 
     <details class="panel" id="figureEditor" style="display:none">
@@ -1319,23 +1273,14 @@ const els = {
   figFilterChars: document.getElementById('figFilterChars'),
   figFilterNarr: document.getElementById('figFilterNarr'),
   newFigureBtn: document.getElementById('newFigureBtn'),
-  draftFigureBtn: document.getElementById('draftFigureBtn'),
-  toFiguresBtn: document.getElementById('toFiguresBtn'),
+  figureIdea: document.getElementById('figureIdea'),
+  genFigureBtn: document.getElementById('genFigureBtn'),
+  genFigureInfo: document.getElementById('genFigureInfo'),
   modeEnsembleBtn: document.getElementById('modeEnsembleBtn'),
   ensembleBar: document.getElementById('ensembleBar'),
   ensLiveBtn: document.getElementById('ensLiveBtn'),
   ensStoryBtn: document.getElementById('ensStoryBtn'),
   ensembleHint: document.getElementById('ensembleHint'),
-  addCharBtn: document.getElementById('addCharBtn'),
-  sceneIdea: document.getElementById('sceneIdea'),
-  generateSceneBtn: document.getElementById('generateSceneBtn'),
-  archiveSelect: document.getElementById('archiveSelect'),
-  addFromArchiveBtn: document.getElementById('addFromArchiveBtn'),
-  castSelect: document.getElementById('castSelect'),
-  castWithScene: document.getElementById('castWithScene'),
-  loadCastBtn: document.getElementById('loadCastBtn'),
-  saveCastBtn: document.getElementById('saveCastBtn'),
-  deleteCastBtn: document.getElementById('deleteCastBtn'),
   bottomBar: document.getElementById('bottomBar'),
   contextWarn: document.getElementById('contextWarn'),
   menuBtn: document.getElementById('menuBtn'),
@@ -1728,15 +1673,15 @@ speechSynthesis.onvoiceschanged = populateVoices;
 // The prepared texts only ever filled *empty* fields, which meant anyone who
 // had already saved a short placeholder never saw them. This puts them one
 // button away instead.
+// The character-description field is gone, so setting it would have thrown and
+// taken the rest of this handler with it. What the templates still fill is the
+// scene, the device and the story prompt - figures come from the archive now.
 els.loadDefaultsBtn.onclick = () => {
-  if (!confirm('Charakterbeschreibung, Szene, Gerätebeschreibung, Geschichten-Vorgabe und Figuren werden durch die Vorlagen ersetzt. Fortfahren?')) return;
-  els.systemPrompt.value = DEFAULT_CHARACTER_PROMPT;
+  if (!confirm('Szene, Gerätebeschreibung und Geschichten-Vorgabe werden durch die Vorlagen ersetzt. Figuren und Schlüssel bleiben unberührt. Fortfahren?')) return;
   els.sceneDesc.value = DEFAULT_SCENE;
   els.device1Desc.value = DEFAULT_DEVICE1_DESC;
   els.storyIdea.value = DEFAULT_STORY_IDEA;
-  characters = JSON.parse(JSON.stringify(DEFAULT_CHARACTERS));
-  saveCharacters();
-  renderCharacters();
+  if (els.liveScene) els.liveScene.value = DEFAULT_SCENE;
   addMsg('system', 'Beispieltexte eingesetzt. Zum Übernehmen noch auf "Speichern & einklappen" tippen.');
 };
 
@@ -4184,6 +4129,7 @@ function migrateToArchive() {
 }
 
 function renderArchiveSelect() {
+  if (!els.archiveSelect) return; // Bedienelement gibt es nicht mehr
   els.archiveSelect.innerHTML = '';
   if (!figureArchive.length) {
     const opt = document.createElement('option');
@@ -4201,7 +4147,7 @@ function renderArchiveSelect() {
   });
 }
 
-els.addFromArchiveBtn.onclick = () => {
+if (els.addFromArchiveBtn) els.addFromArchiveBtn.onclick = () => {
   const figure = getFigure(els.archiveSelect.value);
   if (!figure) { addMsg('system', 'Keine Figur ausgewählt.'); return; }
   if (characters.some(c => c.figureId === figure.id)) {
@@ -4483,9 +4429,28 @@ function characterImage(name) {
   return found && found.image ? found.image : '';
 }
 
+// Editing used to work on the cast, so opening a figure quietly added it to the
+// scene - which is why half the list ended up outlined. A figure being edited
+// is now a copy of its own: looking at it changes nothing about who is playing.
+let editingChar = null;
+
+function editList() {
+  return editingChar ? [editingChar] : [];
+}
+
+// Writes the edit back to the archive and, if that figure happens to be in the
+// cast, refreshes the cast copy so the change takes effect immediately.
+function syncCastFromEdit(c) {
+  const index = characters.findIndex(x => x.figureId === c.figureId);
+  if (index < 0) return;
+  const keepUser = characters[index].isUser;
+  characters[index] = Object.assign(JSON.parse(JSON.stringify(c)), { isUser: keepUser });
+  saveCharacters();
+}
+
 function renderCharacters() {
   els.charList.innerHTML = '';
-  characters.forEach((c, index) => {
+  editList().forEach((c, index) => {
     const card = document.createElement('div');
     card.className = 'char-card' + (c.isUser ? ' is-user' : '');
 
@@ -4583,12 +4548,17 @@ function renderCharacters() {
     del.className = 'char-del';
     del.textContent = 'Entfernen';
     del.onclick = () => {
-      if (characters.length <= 2) { addMsg('system', 'Mindestens zwei Figuren werden gebraucht.'); return; }
+      if (!confirm(`${c.name} endgültig aus dem Archiv löschen? Alle Versionen gehen verloren.`)) return;
       dropFullImage(c.imageKey);
-      characters.splice(index, 1);
+      figureArchive = figureArchive.filter(f => f.id !== c.figureId);
+      characters = characters.filter(x => x.figureId !== c.figureId);
       if (!userCharacter() && characters.length) characters[characters.length - 1].isUser = true;
+      saveArchive();
       saveCharacters();
-      renderCharacters();
+      editingChar = null;
+      els.figureEditor.style.display = 'none';
+      renderArchiveSelect();
+      renderFigureList();
     };
     head.appendChild(del);
     card.appendChild(head);
@@ -4721,8 +4691,7 @@ function renderCharacters() {
       versionSelect.onchange = () => {
         const replacement = characterFromVersion(figure, parseInt(versionSelect.value, 10), c.isUser);
         if (!replacement) return;
-        characters[index] = replacement;
-        saveCharacters();
+        editingChar = replacement;
         renderCharacters();
       };
       versionRow.appendChild(versionSelect);
@@ -4739,7 +4708,7 @@ function renderCharacters() {
     saveVersion.title = 'Die aktuelle Version im Archiv überschreiben';
     saveVersion.onclick = () => {
       storeCharacterVersion(c, false);
-      saveCharacters();
+      syncCastFromEdit(c);
       renderArchiveSelect();
       renderCharacters();
       if (figuresOpen) renderFigureList();
@@ -4753,7 +4722,7 @@ function renderCharacters() {
     newVersion.title = 'Als neue Version sichern, die alte bleibt erhalten';
     newVersion.onclick = () => {
       const version = storeCharacterVersion(c, true);
-      saveCharacters();
+      syncCastFromEdit(c);
       renderArchiveSelect();
       renderCharacters();
       if (figuresOpen) renderFigureList();
@@ -4830,6 +4799,7 @@ function saveCastLibrary() {
 }
 
 function renderCastSelect() {
+  if (!els.castSelect) return; // Bedienelement gibt es nicht mehr
   els.castSelect.innerHTML = '';
   if (!castLibrary.length) {
     const opt = document.createElement('option');
@@ -4935,7 +4905,7 @@ function sanitizeDraftCharacters(list) {
   return out;
 }
 
-els.generateSceneBtn.onclick = async () => {
+if (els.generateSceneBtn) els.generateSceneBtn.onclick = async () => {
   const idea = els.sceneIdea.value.trim();
   if (!idea) { addMsg('system', 'Bitte zuerst kurz beschreiben, worum es gehen soll.'); return; }
   if (!confirm('Die vorhandenen Figuren und die Szene werden durch den Entwurf ersetzt. Fortfahren?')) return;
@@ -4979,7 +4949,7 @@ els.generateSceneBtn.onclick = async () => {
   els.generateSceneBtn.textContent = 'Figuren und Szene entwerfen';
 };
 
-els.loadCastBtn.onclick = () => {
+if (els.loadCastBtn) els.loadCastBtn.onclick = () => {
   const cast = castLibrary.find(c => c.id === els.castSelect.value);
   if (!cast) { addMsg('system', 'Keine Besetzung ausgewählt.'); return; }
   // Deep copy, otherwise editing the loaded figures would silently rewrite the
@@ -4992,7 +4962,7 @@ els.loadCastBtn.onclick = () => {
   addMsg('system', `Besetzung "${cast.name}" geladen${els.castWithScene.checked && cast.scene ? ' - samt Szene' : ''}. Zum Übernehmen noch speichern.`);
 };
 
-els.saveCastBtn.onclick = () => {
+if (els.saveCastBtn) els.saveCastBtn.onclick = () => {
   const current = castLibrary.find(c => c.id === els.castSelect.value);
   const name = prompt('Name der Besetzung:', current ? current.name : 'Neue Besetzung');
   if (!name || !name.trim()) return;
@@ -5012,7 +4982,7 @@ els.saveCastBtn.onclick = () => {
   addMsg('system', `Besetzung "${clean}" ${existing ? 'überschrieben' : 'gesichert'}.`);
 };
 
-els.deleteCastBtn.onclick = () => {
+if (els.deleteCastBtn) els.deleteCastBtn.onclick = () => {
   const cast = castLibrary.find(c => c.id === els.castSelect.value);
   if (!cast) return;
   if (!confirm(`Besetzung "${cast.name}" löschen?`)) return;
@@ -5098,6 +5068,9 @@ function renderFigureList() {
     thumb.className = 'thumb';
     if (version.image) thumb.src = version.image;
     else thumb.textContent = (version.name || '?').trim().charAt(0).toUpperCase() || '?';
+    thumb.style.cursor = 'pointer';
+    thumb.title = 'Bild groß ansehen';
+    thumb.onclick = (e) => { e.stopPropagation(); showFullImage(version); };
     row.appendChild(thumb);
 
     const meta = document.createElement('div');
@@ -5107,7 +5080,8 @@ function renderFigureList() {
     who.textContent = version.name + (figure.versions.length > 1 ? `  ·  v${version.v}` : '');
     const gist = document.createElement('div');
     gist.className = 'gist';
-    gist.textContent = figureGist(version);
+    gist.textContent = (inCast ? 'in der Szene · ' : '') + figureGist(version);
+    if (inCast) gist.style.color = 'var(--accent)';
     meta.appendChild(who);
     meta.appendChild(gist);
     meta.style.cursor = 'pointer';
@@ -5129,10 +5103,13 @@ function renderFigureList() {
 // a row pulls it in if it isn't already. That keeps one editing path instead of
 // two that could drift apart.
 function openFigureEditor(figure) {
-  if (!characters.some(c => c.figureId === figure.id)) {
-    const copy = characterFromVersion(figure, latestVersion(figure).v, false);
-    if (copy) { characters.push(copy); saveCharacters(); }
-  }
+  const inCast = characters.find(c => c.figureId === figure.id);
+  // Prefer the copy that is actually in play, so edits show up in the running
+  // scene rather than being made on a stale version.
+  editingChar = inCast
+    ? JSON.parse(JSON.stringify(inCast))
+    : characterFromVersion(figure, latestVersion(figure).v, false);
+  if (!editingChar) return;
   renderCharacters();
   els.figureEditor.style.display = 'block';
   els.figureEditor.open = true;
@@ -5142,11 +5119,81 @@ function openFigureEditor(figure) {
 els.figFilterChars.onclick = () => { figureFilterNarrators = false; renderFigureList(); };
 els.figFilterNarr.onclick = () => { figureFilterNarrators = true; renderFigureList(); };
 
-els.newFigureBtn.onclick = () => { els.addCharBtn.click(); renderFigureList(); openFigureEditor(getFigure(characters[characters.length - 1].figureId)); };
-els.draftFigureBtn.onclick = () => { openSetup(); els.sceneIdea.focus(); };
-els.toFiguresBtn.onclick = () => { setDrawer(false); showFigures(); };
+els.newFigureBtn.onclick = () => {
+  const fresh = {
+    id: 'c' + Date.now(), name: 'Neue Figur', isUser: false, isNarrator: figureFilterNarrators,
+    traits: ['warm'], notes: '', gender: 'offen',
+    pitch: 1.0, rate: 1.0, voice: '', elevenVoice: '',
+  };
+  const figure = addFigureToArchive(fresh);
+  saveArchive();
+  renderArchiveSelect();
+  renderFigureList();
+  openFigureEditor(figure);
+};
 
-els.addCharBtn.onclick = () => {
+// A single figure from one sentence. Separate from the scene draft on purpose:
+// that one replaces the whole cast and the scene, which is the last thing you
+// want when you just wanted to add somebody.
+function buildFigureDraftPrompt(idea) {
+  const traitList = TRAIT_GROUPS
+    .map(g => `${g.label}: ` + g.traits.map(([id, text]) => `"${id}" (${text})`).join(', '))
+    .join('\n');
+  const voices = elevenVoiceCache.slice(0, 40).map(v => {
+    const labels = v.labels && typeof v.labels === 'object'
+      ? Object.values(v.labels).filter(Boolean).join(', ') : '';
+    return `- "${v.name}"${labels ? ' [' + labels + ']' : ''}`;
+  }).join('\n');
+
+  return `Entwirf genau eine Figur für ein Rollenspiel zwischen Erwachsenen${figureFilterNarrators ? ' - und zwar eine Erzählerstimme, die beschreibt, was geschieht, statt selbst mitzuspielen' : ''}.
+
+Meine Vorgabe: ${idea}
+
+Wähle Eigenschaften NUR aus dieser Liste, als Kennungen:
+${traitList}
+
+"gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
+"notes" sind drei bis fünf Sätze: wie sie spricht, wie sie sich verhält, wie sie zu anderen steht.
+"pitch" und "rate" sind Zahlen zwischen 0.8 und 1.2.
+${voices ? `\nWähle eine passende Stimme und gib ihren Namen exakt so in "voiceName" an:\n${voices}\n` : ''}
+Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown:
+{"name": "...", "gender": "...", "traits": ["..."], "notes": "...", "pitch": 1.0, "rate": 1.0, "voiceName": "..."}`;
+}
+
+els.genFigureBtn.onclick = async () => {
+  const idea = els.figureIdea.value.trim();
+  if (!idea) { els.genFigureInfo.textContent = 'Bitte zuerst kurz beschreiben, wer das sein soll.'; return; }
+
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  els.genFigureBtn.disabled = true;
+  els.genFigureBtn.textContent = 'Erzeuge...';
+  try {
+    const raw = await callProvider(
+      provider, buildFigureDraftPrompt(idea),
+      [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
+      0.8, 3000, { persona: true }
+    );
+    const draft = extractJson(raw);
+    const [clean] = sanitizeDraftCharacters([draft]).concat(sanitizeDraftCharacters([draft]));
+    clean.isUser = false;
+    clean.isNarrator = figureFilterNarrators;
+
+    const figure = addFigureToArchive(clean);
+    saveArchive();
+    renderArchiveSelect();
+    renderFigureList();
+    openFigureEditor(figure);
+    els.figureIdea.value = '';
+    els.genFigureInfo.textContent = `${clean.name} erzeugt - schau sie dir an und ändere, was du magst.`;
+  } catch (err) {
+    els.genFigureInfo.textContent = 'Erzeugen fehlgeschlagen: ' + err.message;
+  }
+  els.genFigureBtn.disabled = false;
+  els.genFigureBtn.textContent = '✨ Figur erzeugen';
+};
+if (els.toFiguresBtn) els.toFiguresBtn.onclick = () => { setDrawer(false); showFigures(); };
+
+if (els.addCharBtn) els.addCharBtn.onclick = () => {
   const fresh = {
     id: 'c' + Date.now(),
     name: 'Neue Figur',
