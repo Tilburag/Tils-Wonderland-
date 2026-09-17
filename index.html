@@ -365,13 +365,16 @@
     vertical-align: middle;
     margin-right: 6px;
   }
+  /* Five controls in a row do not fit on a phone - the last ones were simply
+     off-screen. They wrap now, with the name keeping a full line of its own. */
   .char-head {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
-  .char-head input[type=text] { flex: 1; }
+  .char-head input[type=text] { flex: 1 1 140px; min-width: 120px; }
   .char-del {
     flex-shrink: 0;
     background: none;
@@ -4505,23 +4508,24 @@ function renderCharacters() {
     nameInput.oninput = () => { c.name = nameInput.value; };
     head.appendChild(nameInput);
 
-    if (c.isUser) {
-      const badge = document.createElement('span');
-      badge.className = 'char-badge';
-      badge.textContent = 'Das bin ich';
-      head.appendChild(badge);
-    } else {
-      const makeUser = document.createElement('button');
-      makeUser.className = 'char-del';
-      makeUser.textContent = 'Das bin ich';
-      makeUser.onclick = () => {
-        characters.forEach(other => { other.isUser = false; });
-        c.isUser = true;
-        saveCharacters();
-        renderCharacters();
-      };
-      head.appendChild(makeUser);
-    }
+    // A switch, not a one-way label: marking the wrong figure as yourself used
+    // to be impossible to undo.
+    const meToggle = document.createElement('button');
+    meToggle.className = 'char-del';
+    meToggle.textContent = c.isUser ? '✓ Das bin ich' : 'Das bin ich';
+    if (c.isUser) meToggle.style.cssText = 'border-color:var(--accent-dim); color:var(--accent);';
+    meToggle.onclick = () => {
+      c.isUser = !c.isUser;
+      if (c.isUser) {
+        // Only one figure can be me; the cast is corrected right away.
+        characters.forEach(other => {
+          if (other.figureId !== c.figureId) other.isUser = false;
+        });
+      }
+      syncCastFromEdit(c);
+      renderCharacters();
+    };
+    head.appendChild(meToggle);
 
     if (c.image) {
       const viewImg = document.createElement('button');
@@ -4867,6 +4871,37 @@ Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown, beginnend mit "{" und e
 // A generated draft goes straight into the app's own data structures, so it has
 // to be checked rather than trusted: unknown trait ids would silently vanish
 // from the checkboxes, and a missing user figure would break the ensemble mode.
+// The cast check insists on at least two figures and exactly one "me", which is
+// right for a whole cast and wrong for a single one. Reusing it for one figure
+// meant every generated figure was rejected before it was ever looked at.
+function sanitizeSingleCharacter(draft) {
+  const valid = new Set(Object.keys(TRAIT_TEXT));
+  const clamp = (v, lo, hi, fallback) => {
+    const n = Number(v);
+    return isFinite(n) ? Math.max(lo, Math.min(hi, n)) : fallback;
+  };
+  const d = draft && typeof draft === 'object' ? draft : {};
+
+  return {
+    id: 'gen' + Date.now(),
+    name: String(d.name || 'Neue Figur').slice(0, 24),
+    isUser: false,
+    isNarrator: false,
+    traits: (Array.isArray(d.traits) ? d.traits : []).filter(t => valid.has(t)),
+    notes: String(d.notes || '').slice(0, 1200),
+    gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
+    pitch: clamp(d.pitch, 0.5, 2, 1.0),
+    rate: clamp(d.rate, 0.5, 1.5, 1.0),
+    voice: '',
+    elevenVoice: (() => {
+      const wanted = String(d.voiceName || '').trim().toLowerCase();
+      if (!wanted) return '';
+      const hit = elevenVoiceCache.find(v => (v.name || '').toLowerCase() === wanted);
+      return hit ? hit.voice_id : '';
+    })(),
+  };
+}
+
 function sanitizeDraftCharacters(list) {
   const valid = new Set(Object.keys(TRAIT_TEXT));
   const clamp = (v, lo, hi, fallback) => {
@@ -5104,11 +5139,14 @@ function renderFigureList() {
 // two that could drift apart.
 function openFigureEditor(figure) {
   const inCast = characters.find(c => c.figureId === figure.id);
-  // Prefer the copy that is actually in play, so edits show up in the running
-  // scene rather than being made on a stale version.
-  editingChar = inCast
-    ? JSON.parse(JSON.stringify(inCast))
-    : characterFromVersion(figure, latestVersion(figure).v, false);
+  // Always built from the archive: a cast copy can predate a change - a picture
+  // added later, for instance - and editing that copy showed an empty avatar
+  // while the list right above it showed the photo.
+  editingChar = characterFromVersion(
+    figure,
+    inCast && inCast.version ? inCast.version : latestVersion(figure).v,
+    inCast ? inCast.isUser : false
+  );
   if (!editingChar) return;
   renderCharacters();
   els.figureEditor.style.display = 'block';
@@ -5174,8 +5212,7 @@ els.genFigureBtn.onclick = async () => {
       0.8, 3000, { persona: true }
     );
     const draft = extractJson(raw);
-    const [clean] = sanitizeDraftCharacters([draft]).concat(sanitizeDraftCharacters([draft]));
-    clean.isUser = false;
+    const clean = sanitizeSingleCharacter(draft);
     clean.isNarrator = figureFilterNarrators;
 
     const figure = addFigureToArchive(clean);
