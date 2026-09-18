@@ -44,11 +44,6 @@
     letter-spacing: 0.3px;
     margin: 4px 0 2px 0;
   }
-  .subtitle {
-    color: var(--text-dim);
-    font-size: 14px;
-    margin-bottom: 20px;
-  }
   .status-row {
     display: flex;
     gap: 8px;
@@ -172,13 +167,6 @@
     max-width: 92%;
   }
 
-  .talk-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0 4px 0;
-  }
   .talk-btn {
     width: 92px;
     height: 92px;
@@ -411,14 +399,6 @@
   }
   .version-row select { flex: 1; }
   .version-row button { flex-shrink: 0; font-size: 12.5px; padding: 9px 11px; }
-  .char-badge {
-    font-size: 11.5px;
-    padding: 3px 9px;
-    border-radius: 100px;
-    border: 1px solid var(--accent-dim);
-    color: var(--accent);
-    white-space: nowrap;
-  }
   .msg.speaker-label {
     font-size: 11.5px;
     color: var(--text-dim);
@@ -580,6 +560,43 @@
     background: var(--stop);
     z-index: 5;
   }
+  /* Systemmeldungen laufen normalerweise ins Transcript. Das ist aber überall
+     außer im Live-Modus ausgeblendet, sodass Rückmeldungen aus Einstellungen
+     und Figurenseite ins Leere liefen. Dieser Streifen fängt sie dort auf. */
+  .toast-host {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    z-index: 120;
+    pointer-events: none;
+  }
+  .toast {
+    max-width: 440px;
+    width: 100%;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 180ms ease, transform 180ms ease;
+    pointer-events: auto;
+  }
+  .toast.shown { opacity: 1; transform: translateY(0); }
+  .toast.warn { border-left-color: var(--stop); }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -591,20 +608,6 @@
     <button class="icon-btn" id="menuBtn" aria-label="Menü">☰</button>
     <div class="title">Notizen<span class="where" id="topbarWhere"></span></div>
     <button class="icon-btn" id="setupBtn" aria-label="Einrichtung">⚙</button>
-  </div>
-
-  <div class="mode-switch" style="display:none;">
-    <button class="mode-btn active" id="modeChatBtn">Gespräch</button>
-    <button class="mode-btn" id="modeStoryBtn">Geschichte</button>
-    <button class="mode-btn" id="modeEnsembleBtn">Ensemble</button>
-  </div>
-
-  <div id="ensembleBar" style="display:none; margin-bottom:16px;">
-    <div class="mode-switch" style="margin-bottom:8px;">
-      <button class="mode-btn active" id="ensLiveBtn">Live-Gespräch</button>
-      <button class="mode-btn" id="ensStoryBtn">Fertige Geschichte</button>
-    </div>
-    <p class="hint" id="ensembleHint">Die Figuren sprechen miteinander und mit dir. Schreib oder sprich dazwischen - deine Figur wird von einer eigenen Stimme gelesen.</p>
   </div>
 
   <div class="status-row">
@@ -1041,6 +1044,8 @@
   </div>
 </nav>
 
+<div class="toast-host" id="toastHost"></div>
+
 <div class="motion-track" id="motionTrack">
   <div class="motion-track-limit" id="d1LimitMin"></div>
   <div class="motion-track-limit" id="d1LimitMax"></div>
@@ -1168,8 +1173,6 @@ const els = {
   micSenseEnabled: document.getElementById('micSenseEnabled'),
   veniceOwnPromptOnly: document.getElementById('veniceOwnPromptOnly'),
   motionTrackFill: document.getElementById('motionTrackFill'),
-  modeChatBtn: document.getElementById('modeChatBtn'),
-  modeStoryBtn: document.getElementById('modeStoryBtn'),
   storyPanel: document.getElementById('storyPanel'),
   storyIdea: document.getElementById('storyIdea'),
   motionMode: document.getElementById('motionMode'),
@@ -1212,12 +1215,8 @@ const els = {
   figureIdea: document.getElementById('figureIdea'),
   genFigureBtn: document.getElementById('genFigureBtn'),
   genFigureInfo: document.getElementById('genFigureInfo'),
-  modeEnsembleBtn: document.getElementById('modeEnsembleBtn'),
-  ensembleBar: document.getElementById('ensembleBar'),
-  ensLiveBtn: document.getElementById('ensLiveBtn'),
-  ensStoryBtn: document.getElementById('ensStoryBtn'),
-  ensembleHint: document.getElementById('ensembleHint'),
   bottomBar: document.getElementById('bottomBar'),
+  toastHost: document.getElementById('toastHost'),
   contextWarn: document.getElementById('contextWarn'),
   menuBtn: document.getElementById('menuBtn'),
   setupBtn: document.getElementById('setupBtn'),
@@ -1333,8 +1332,6 @@ els.apiKeyVenice.value = localStorage.getItem('companion_apiKey_venice') || '';
 els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venice-uncensored';
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
-if (els.sceneDesc) els.sceneDesc.value = localStorage.getItem('companion_sceneDesc') || DEFAULT_SCENE;
-
 function updateProviderPanels() {
   els.anthropicPanel.style.display = els.llmProvider.value === 'anthropic' ? 'block' : 'none';
   els.openaiPanel.style.display = els.llmProvider.value === 'openai' ? 'block' : 'none';
@@ -1344,40 +1341,21 @@ function updateProviderPanels() {
 }
 updateProviderPanels();
 els.llmProvider.onchange = updateProviderPanels;
-if (els.pitchRange) els.pitchRange.value = localStorage.getItem('companion_pitch') || els.pitchRange.value;
-if (els.rateRange) els.rateRange.value = localStorage.getItem('companion_rate') || els.rateRange.value;
-if (els.pitchVal) els.pitchVal.textContent = els.pitchRange.value;
-if (els.rateVal) els.rateVal.textContent = els.rateRange.value;
-if (els.pitchRange) els.pitchRange.oninput = () => els.pitchVal.textContent = els.pitchRange.value;
-if (els.rateRange) els.rateRange.oninput = () => els.rateVal.textContent = els.rateRange.value;
-
 els.ttsSource.value = localStorage.getItem('companion_ttsSource') || 'browser';
 els.elevenKey.value = localStorage.getItem('companion_elevenKey') || '';
-if (els.emotionalVoice) els.emotionalVoice.checked = localStorage.getItem('companion_emotionalVoice') === 'true';
 els.audioCacheEnabled.checked = (localStorage.getItem('companion_audioCache') ?? 'true') === 'true';
 els.veniceOwnPromptOnly.checked = localStorage.getItem('companion_veniceOwnPromptOnly') === 'true';
 els.callMode.value = localStorage.getItem('companion_callMode') || 'lautsprecher';
 els.micSenseEnabled.checked = localStorage.getItem('companion_micSense') === 'true';
-if (els.narratorEnabled) els.narratorEnabled.checked = localStorage.getItem('companion_narratorEnabled') === 'true';
-if (els.pitchRangeNarrator) els.pitchRangeNarrator.value = localStorage.getItem('companion_pitchNarrator') || els.pitchRangeNarrator.value;
-if (els.rateRangeNarrator) els.rateRangeNarrator.value = localStorage.getItem('companion_rateNarrator') || els.rateRangeNarrator.value;
-if (els.pitchValNarrator) els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
-if (els.rateValNarrator) els.rateValNarrator.textContent = els.rateRangeNarrator.value;
-if (els.pitchRangeNarrator) els.pitchRangeNarrator.oninput = () => els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
-if (els.rateRangeNarrator) els.rateRangeNarrator.oninput = () => els.rateValNarrator.textContent = els.rateRangeNarrator.value;
 
-// The narrator settings are provider-agnostic on purpose: the Android block is
-// always shown when the narrator is on, the ElevenLabs voice picker only when
-// ElevenLabs is the selected output - same rule as for the character voice.
+// Stimme, Tonhöhe, Tempo und "spricht emotional" gehören zur Figur. Hier steht
+// nur noch, über welchen Dienst gesprochen wird - der ElevenLabs-Block hängt
+// allein daran.
 function updateVoicePanels() {
-  const eleven = els.ttsSource.value === 'elevenlabs';
-  els.elevenPanel.style.display = eleven ? 'block' : 'none';
-  if (els.narratorPanel) els.narratorPanel.style.display = els.narratorEnabled.checked ? 'block' : 'none';
-  if (els.elevenNarratorPanel) els.elevenNarratorPanel.style.display = (eleven && els.narratorEnabled.checked) ? 'block' : 'none';
+  els.elevenPanel.style.display = els.ttsSource.value === 'elevenlabs' ? 'block' : 'none';
 }
 updateVoicePanels();
 els.ttsSource.onchange = updateVoicePanels;
-if (els.narratorEnabled) els.narratorEnabled.onchange = updateVoicePanels;
 
 async function loadElevenVoices(quiet) {
   const key = apiKeyFor('companion_elevenKey');
@@ -1390,20 +1368,7 @@ async function loadElevenVoices(quiet) {
     if (!data.voices) throw new Error('Keine Stimmen erhalten - Schlüssel prüfen.');
     elevenVoiceCache = data.voices;
     if (typeof renderCharacters === 'function') renderCharacters();
-    // Both selects live with the figures now; whatever is still here gets filled.
-    [els.elevenVoiceSelect, els.elevenVoiceSelectNarrator].filter(Boolean).forEach(sel => {
-      sel.innerHTML = '';
-      data.voices.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v.voice_id;
-        opt.textContent = v.name;
-        sel.appendChild(opt);
-      });
-    });
-    const saved = localStorage.getItem('companion_elevenVoiceId');
-    if (els.elevenVoiceSelect) if (saved && data.voices.some(v => v.voice_id === saved)) els.elevenVoiceSelect.value = saved;
-    const savedNarr = localStorage.getItem('companion_elevenVoiceIdNarrator');
-    if (els.elevenVoiceSelectNarrator) if (savedNarr && data.voices.some(v => v.voice_id === savedNarr)) els.elevenVoiceSelectNarrator.value = savedNarr;
+    // Die Stimmenauswahl sitzt bei der Figur - hier wird nur der Katalog gefüllt.
     if (!quiet) addMsg('system', `${data.voices.length} ElevenLabs-Stimmen geladen.`);
   } catch (err) {
     addMsg('system', 'ElevenLabs-Stimmen konnten nicht geladen werden: ' + err.message);
@@ -1416,9 +1381,6 @@ function playAnyPreview(voiceId) {
   if (ready) playPreviewUrl(ready);
   else previewVoice(voiceId);
 }
-if (els.previewCharVoiceBtn) els.previewCharVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelect.value);
-if (els.previewCharEmotionBtn) els.previewCharEmotionBtn.onclick = () => previewVoiceEmotional(els.elevenVoiceSelect.value);
-if (els.previewNarratorVoiceBtn) els.previewNarratorVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelectNarrator.value || els.elevenVoiceSelect.value);
 
 
 // Model identifiers change as Venice adds and retires models, so the list is
@@ -1637,40 +1599,28 @@ els.veniceModelSelect.onchange = () => {
   safeSet('companion_model_venice', els.modelVenice.value);
 };
 
-// Populate voice list (Chrome loads this asynchronously)
-function populateVoices() {
-  const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('de'));
-  const allVoices = voices.length ? voices : speechSynthesis.getVoices();
-  [els.voiceSelect, els.voiceSelectNarrator].filter(Boolean).forEach(sel => {
-    sel.innerHTML = '';
-    allVoices.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = `${v.name} (${v.lang})`;
-      sel.appendChild(opt);
-    });
-  });
-  const saved = localStorage.getItem('companion_voice');
-  if (els.voiceSelect) if (saved && allVoices.some(v => v.name === saved)) els.voiceSelect.value = saved;
-  const savedNarr = localStorage.getItem('companion_voiceNarrator');
-  if (els.voiceSelectNarrator) if (savedNarr && allVoices.some(v => v.name === savedNarr)) els.voiceSelectNarrator.value = savedNarr;
-}
-populateVoices();
-speechSynthesis.onvoiceschanged = populateVoices;
+// Die Android-Stimmen werden je Figur ausgewählt; die Liste dort füllt sich aus
+// speechSynthesis.getVoices(). Chrome liefert sie verzögert nach, deshalb wird
+// bei "voiceschanged" die Figurenansicht neu gezeichnet (siehe unten).
 
 // The prepared texts only ever filled *empty* fields, which meant anyone who
 // had already saved a short placeholder never saw them. This puts them one
 // button away instead.
-// The character-description field is gone, so setting it would have thrown and
-// taken the rest of this handler with it. What the templates still fill is the
-// scene, the device and the story prompt - figures come from the archive now.
+// Die Szene lebt im Live-Bereich und wird sofort geschrieben: ein per Skript
+// gesetztes .value löst kein oninput aus, sodass die Vorlage sonst beim
+// nächsten Laden wieder verschwunden wäre.
 els.loadDefaultsBtn.onclick = () => {
   if (!confirm('Szene, Gerätebeschreibung und Geschichten-Vorgabe werden durch die Vorlagen ersetzt. Figuren und Schlüssel bleiben unberührt. Fortfahren?')) return;
-  if (els.sceneDesc) els.sceneDesc.value = DEFAULT_SCENE;
-  els.device1Desc.value = DEFAULT_DEVICE1_DESC;
-  els.storyIdea.value = DEFAULT_STORY_IDEA;
-  if (els.liveScene) els.liveScene.value = DEFAULT_SCENE;
-  addMsg('system', 'Beispieltexte eingesetzt. Zum Übernehmen noch auf "Speichern & einklappen" tippen.');
+  try {
+    els.device1Desc.value = DEFAULT_DEVICE1_DESC;
+    els.storyIdea.value = DEFAULT_STORY_IDEA;
+    els.liveScene.value = DEFAULT_SCENE;
+    safeSet('companion_sceneDesc', DEFAULT_SCENE);
+    safeSet('companion_device1Desc', DEFAULT_DEVICE1_DESC);
+    addMsg('system', 'Beispieltexte eingesetzt und gesichert.');
+  } catch (err) {
+    addMsg('system', 'Beispieltexte konnten nicht gesichert werden: ' + err.message);
+  }
 };
 
 els.exportSettingsBtn.onclick = async () => {
@@ -1752,23 +1702,12 @@ els.saveSettingsBtn.onclick = () => {
     safeSet(`companion_d1_pat_${p}`, els[`d1pat_${p}`].checked ? 'true' : 'false');
     safeSet(`companion_d2_pat_${p}`, els[`d2pat_${p}`].checked ? 'true' : 'false');
     });
-    if (els.sceneDesc) safeSet('companion_sceneDesc', els.sceneDesc.value.trim());
     saveCharacters();
-    if (els.voiceSelect) safeSet('companion_voice', els.voiceSelect.value);
-    if (els.pitchRange) safeSet('companion_pitch', els.pitchRange.value);
-    if (els.rateRange) safeSet('companion_rate', els.rateRange.value);
     safeSet('companion_ttsSource', els.ttsSource.value);
     safeSet('companion_elevenKey', els.elevenKey.value.trim());
-    if (els.elevenVoiceSelect) safeSet('companion_elevenVoiceId', els.elevenVoiceSelect.value || '');
-    if (els.emotionalVoice) safeSet('companion_emotionalVoice', els.emotionalVoice.checked ? 'true' : 'false');
     safeSet('companion_audioCache', els.audioCacheEnabled.checked ? 'true' : 'false');
     safeSet('companion_callMode', els.callMode.value);
     safeSet('companion_micSense', els.micSenseEnabled.checked ? 'true' : 'false');
-    if (els.narratorEnabled) safeSet('companion_narratorEnabled', els.narratorEnabled.checked ? 'true' : 'false');
-    if (els.voiceSelectNarrator) safeSet('companion_voiceNarrator', els.voiceSelectNarrator.value || '');
-    if (els.pitchRangeNarrator) safeSet('companion_pitchNarrator', els.pitchRangeNarrator.value);
-    if (els.rateRangeNarrator) safeSet('companion_rateNarrator', els.rateRangeNarrator.value);
-    if (els.elevenVoiceSelectNarrator) safeSet('companion_elevenVoiceIdNarrator', els.elevenVoiceSelectNarrator.value || '');
     safeSet('companion_veniceOwnPromptOnly', els.veniceOwnPromptOnly.checked ? 'true' : 'false');
     updateTrackVisibility();
     addMsg('system', `Einstellungen gespeichert (${(localStorageBytes() / 1024).toFixed(0)} KB belegt).`);
@@ -1811,8 +1750,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.42';
+const APP_VERSION = '0.43';
 const CHANGELOG = [
+  { v: '0.43', date: '2026-09-18', items: [
+    'Rückmeldungen erscheinen jetzt auch außerhalb des Gesprächs - vorher liefen Meldungen aus Einstellungen und Figurenseite ins Leere.',
+    '„Beispieltexte einsetzen" sichert die Szene sofort, statt sie beim nächsten Laden wieder zu verlieren.',
+    'Ein voller Speicher wird beim Sichern von Figuren und Archiv erklärt statt als nackter Fehler durchgereicht; eine zu große Sicherung bricht sauber ab.',
+    'Reste des alten Aufbaus entfernt: globale Stimm-Einstellungen, Besetzungsbibliothek, Ensemble-Umschalter und abgelaufene Datenumstellungen.',
+  ]},
   { v: '0.42', date: '2026-09-16', items: [
     'Gesprächs- und Ensemble-Modus zusammengeführt: nur noch Live und Geschichte, beide nutzen dieselben Figuren.',
     'Die separate Charakterbeschreibung ist entfallen; ihr Inhalt wandert beim ersten Start als Figur ins Archiv.',
@@ -2061,7 +2006,9 @@ function buildSessionExport() {
   // the one in use, and the protocol has to name it or it misleads diagnosis.
   const model = modelFor('companion_model_' + provider) || '(Standard)';
   const tts = localStorage.getItem('companion_ttsSource') || 'browser';
-  const emotional = localStorage.getItem('companion_emotionalVoice') === 'true';
+  // Steht bei der Figur, nicht mehr global: fürs Protokoll zählt, ob irgendeine
+  // mitspielende Figur emotional spricht - danach richtet sich das Sprachmodell.
+  const emotional = characters.some(c => !c.isUser && c.emotional);
   const narrator = localStorage.getItem('companion_narratorEnabled') === 'true';
 
   const deviceInfo = (num) => {
@@ -2257,13 +2204,18 @@ async function readEncryptedBackup(buffer, password) {
 async function restoreBackup(bundle) {
   const report = [];
   if (bundle.settings) {
-    let count = 0;
-    Object.keys(bundle.settings).forEach(k => {
-      if (!k.startsWith('companion_')) return;
-      localStorage.setItem(k, bundle.settings[k]);
-      count++;
-    });
-    report.push(`${count} Einstellungen`);
+    // Läuft der Speicher mitten in der Schleife voll, bliebe ein halb
+    // wiederhergestellter Zustand stehen - halb alt, halb neu, und nicht
+    // erkennbar welcher Teil welcher ist. Deshalb erst prüfen, dann schreiben.
+    const keys = Object.keys(bundle.settings).filter(k => k.startsWith('companion_'));
+    const incoming = keys.reduce((sum, k) => sum + k.length + String(bundle.settings[k]).length, 0);
+    const replaced = keys.reduce((sum, k) => sum + k.length + (localStorage.getItem(k) || '').length, 0);
+    if (localStorageBytes() - replaced + incoming > 4_500_000) {
+      throw new Error('Die Sicherung passt nicht in den Speicher des Browsers. '
+        + 'Bitte zuerst Figurenbilder oder aufbewahrte Vertonung löschen.');
+    }
+    keys.forEach(k => safeSet(k, bundle.settings[k]));
+    report.push(`${keys.length} Einstellungen`);
   }
   if (Array.isArray(bundle.stories)) {
     for (const e of bundle.stories) await dbPut(STORE_STORIES, e.k, e.v);
@@ -2292,8 +2244,35 @@ function updateTrackVisibility() {
 // conversation off the screen. A repeat is counted on the existing line instead.
 let lastMsg = null;
 
+// Das Transcript ist nur im Live-Modus sichtbar. Rückmeldungen aus den
+// Einstellungen oder der Figurenseite landeten dort trotzdem - und damit
+// nirgends. Sie gehen jetzt zusätzlich in einen Streifen am unteren Rand.
+function showToast(text, isWarning) {
+  if (!els.toastHost) return;
+  const node = document.createElement('div');
+  node.className = 'toast' + (isWarning ? ' warn' : '');
+  node.textContent = text;
+  els.toastHost.appendChild(node);
+  requestAnimationFrame(() => node.classList.add('shown'));
+  // Antippen blendet sofort aus; sonst nach ein paar Sekunden von selbst.
+  const dismiss = () => {
+    node.classList.remove('shown');
+    setTimeout(() => node.remove(), 220);
+  };
+  node.onclick = dismiss;
+  setTimeout(dismiss, Math.min(9000, 3200 + text.length * 35));
+  // Mehr als drei auf einmal verdecken die Bedienung.
+  while (els.toastHost.children.length > 3) els.toastHost.firstChild.remove();
+}
+
 function addMsg(role, text) {
   logEvent('msg', { role, text });
+
+  // Fehlgeschlagen/konnte nicht: als Warnung einfärben, damit ein Problem nicht
+  // wie eine Bestätigung aussieht.
+  if (role === 'system' && els.transcript.style.display === 'none') {
+    showToast(text, /fehlgeschlagen|konnte nicht|nicht geladen|Bitte |voll|fehler/i.test(text));
+  }
 
   if (lastMsg && lastMsg.role === role && lastMsg.text === text
       && Date.now() - lastMsg.at < 60000 && lastMsg.node.isConnected) {
@@ -3991,8 +3970,12 @@ function loadArchive() {
   if (!Array.isArray(figureArchive)) figureArchive = [];
 }
 
+// Das Archiv trägt die Vorschaubilder und ist damit der größte Posten im
+// localStorage - ausgerechnet hier lief der Schreibvorgang bisher an safeSet
+// vorbei, sodass ein voller Speicher als nackter Fehler durchschlug statt als
+// erklärte Meldung.
 function saveArchive() {
-  localStorage.setItem('companion_figureArchive', JSON.stringify(figureArchive));
+  safeSet('companion_figureArchive', JSON.stringify(figureArchive));
 }
 
 function newFigureId() {
@@ -4082,91 +4065,6 @@ function storeCharacterVersion(c, asNewVersion) {
   return version;
 }
 
-// Everything that existed before the archive - the current cast and every saved
-// cast - becomes version 1 of a figure. Matching is by name, so the same figure
-// appearing in two casts doesn't end up duplicated.
-// The old single-character field is folded into the archive as a figure of its
-// own rather than discarded. Nothing the user wrote is lost, and it shows up
-// where every other figure lives.
-function migrateSystemPrompt() {
-  if (localStorage.getItem('companion_promptMigrated') === 'true') return;
-  const text = (localStorage.getItem('companion_systemPrompt') || '').trim();
-  localStorage.setItem('companion_promptMigrated', 'true');
-  if (!text) return;
-
-  const named = text.match(/Name:\s*([^\n.]{1,24})/);
-  const name = named ? named[1].trim() : 'Charakter';
-  if (figureArchive.some(f => (latestVersion(f).name || '').toLowerCase() === name.toLowerCase())) return;
-
-  addFigureToArchive({
-    name, traits: [], notes: text.slice(0, 1200),
-    gender: 'offen', pitch: 1.0, rate: 1.0,
-    voice: localStorage.getItem('companion_voice') || '',
-    elevenVoice: localStorage.getItem('companion_elevenVoiceId') || '',
-  });
-  saveArchive();
-}
-
-function migrateToArchive() {
-  if (localStorage.getItem('companion_archiveMigrated') === 'true') return;
-
-  const byName = new Map();
-  const absorb = (c) => {
-    if (!c || !c.name) return;
-    const key = c.name.trim().toLowerCase();
-    if (byName.has(key)) return;
-    const figure = addFigureToArchive(c);
-    byName.set(key, figure);
-  };
-
-  characters.forEach(absorb);
-  (castLibrary || []).forEach(cast => (cast.characters || []).forEach(absorb));
-
-  // Link the current cast to what was just created.
-  characters.forEach(c => {
-    const figure = byName.get((c.name || '').trim().toLowerCase());
-    if (figure) { c.figureId = figure.id; c.version = 1; }
-  });
-
-  saveArchive();
-  saveCharacters();
-  localStorage.setItem('companion_archiveMigrated', 'true');
-}
-
-function renderArchiveSelect() {
-  if (!els.archiveSelect) return; // Bedienelement gibt es nicht mehr
-  els.archiveSelect.innerHTML = '';
-  if (!figureArchive.length) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = '(Archiv ist leer)';
-    els.archiveSelect.appendChild(opt);
-    return;
-  }
-  figureArchive.forEach(figure => {
-    const version = latestVersion(figure);
-    const opt = document.createElement('option');
-    opt.value = figure.id;
-    opt.textContent = `${version.name} (${figure.versions.length} Version${figure.versions.length > 1 ? 'en' : ''})`;
-    els.archiveSelect.appendChild(opt);
-  });
-}
-
-if (els.addFromArchiveBtn) els.addFromArchiveBtn.onclick = () => {
-  const figure = getFigure(els.archiveSelect.value);
-  if (!figure) { addMsg('system', 'Keine Figur ausgewählt.'); return; }
-  if (characters.some(c => c.figureId === figure.id)) {
-    addMsg('system', `${latestVersion(figure).name} ist bereits in der Besetzung.`);
-    return;
-  }
-  const copy = characterFromVersion(figure, latestVersion(figure).v, false);
-  if (!copy) return;
-  characters.push(copy);
-  saveCharacters();
-  renderCharacters();
-  addMsg('system', `${copy.name} zur Besetzung hinzugefügt.`);
-};
-
 function loadCharacters() {
   try {
     const raw = localStorage.getItem('companion_characters');
@@ -4196,7 +4094,7 @@ function dedupeCast() {
 
 function saveCharacters() {
   dedupeCast();
-  localStorage.setItem('companion_characters', JSON.stringify(characters));
+  safeSet('companion_characters', JSON.stringify(characters));
 }
 
 function aiCharacters() { return characters.filter(c => !c.isUser); }
@@ -4591,7 +4489,6 @@ function renderCharacters() {
       saveCharacters();
       editingChar = null;
       els.figureEditor.style.display = 'none';
-      renderArchiveSelect();
       renderFigureList();
     };
     head.appendChild(del);
@@ -4818,7 +4715,6 @@ function renderCharacters() {
     saveVersion.onclick = () => {
       storeCharacterVersion(c, false);
       syncCastFromEdit(c);
-      renderArchiveSelect();
       renderCharacters();
       if (figuresOpen) renderFigureList();
       addMsg('system', `${c.name}: Version ${c.version} überschrieben.`);
@@ -4832,7 +4728,6 @@ function renderCharacters() {
     newVersion.onclick = () => {
       const version = storeCharacterVersion(c, true);
       syncCastFromEdit(c);
-      renderArchiveSelect();
       renderCharacters();
       if (figuresOpen) renderFigureList();
       addMsg('system', `${c.name}: als Version ${version.v} gesichert, die vorherige bleibt erhalten.`);
@@ -4845,87 +4740,6 @@ function renderCharacters() {
   });
 }
 
-// ---------- Cast library ----------
-// A cast is a complete set of figures plus the scene they belong to. Keeping
-// the two together matters: figures written for a bedroom read oddly on a
-// forest clearing, and having to rebuild both by hand each time was the actual
-// friction. The built-in casts are seeded once and then behave like any other
-// entry - editable and deletable, so nothing is locked away.
-const BUILTIN_CASTS = [
-  {
-    id: 'cast_schlafzimmer',
-    name: 'Schlafzimmer - Mia & Lena',
-    scene: DEFAULT_SCENE,
-    characters: DEFAULT_CHARACTERS,
-  },
-  {
-    id: 'cast_elbenwald',
-    name: 'Elbenwald - Aelira & Nyrieth',
-    scene: `Dämmerung im Elbenwald, eine Lichtung im hohen Gras. Ich komme von einer Feier und habe mich verlaufen. Die Luft ist kühl und feucht, es riecht nach Moos und Harz, irgendwo tropft es von den Blättern. Die Welt ringsum schläft, kein Geräusch außer unserem.
-
-Zwischen uns: Wir sind einander fremd. Aelira und Nyrieth leben hier und haben seit langer Zeit keinen Menschen mehr auf dieser Lichtung gesehen. Diese Sehnsucht treibt sie an - sie lassen mich nicht wieder gehen, aber sie drängen auch nicht, sie locken.
-
-Ausgangslage: Ich stehe am Rand der Lichtung, überrascht und unsicher, ob ich träume. Die beiden treten aus dem Halbdunkel und kommen näher, ohne Eile.
-
-Richtung: erst Vorsicht und Neugier auf beiden Seiten, dann führen sie mich Stück für Stück tiefer hinein. Die Steigerung kommt in Wellen und darf zwischendurch wieder ruhiger werden. Am Ende ein deutlicher Höhepunkt und danach ein langsames Ausklingen im Gras, während es hell wird.
-
-Der Ort bleibt die Lichtung. Kein Wechsel an einen anderen Schauplatz.`,
-    characters: [
-      {
-        id: 'e1', name: 'Aelira', isUser: false, gender: 'weiblich',
-        traits: ['ruhig', 'selbstbewusst', 'fuersorglich', 'leise', 'bildhaft', 'fuehrt', 'neu'],
-        notes: 'Sie hat lange gewartet und lässt sich das nicht anmerken. Spricht langsam, mit Pausen zwischen den Sätzen, als hätte Zeit für sie ein anderes Maß. Sie fragt selten und kündigt nie an - sie berührt einfach und schaut dabei, wie ich reagiere. Zucke ich zusammen, wird sie langsamer statt aufzuhören. Gegenüber Nyrieth ist sie nachsichtig wie gegenüber einer Jüngeren, bremst sie aber, wenn es ihr zu schnell geht.',
-        pitch: 0.85, rate: 0.85, voice: '', elevenVoice: '',
-      },
-      {
-        id: 'e2', name: 'Nyrieth', isUser: false, gender: 'weiblich',
-        traits: ['verspielt', 'ungeduldig', 'direkt', 'deutlich', 'humorvoll', 'fragend', 'wechselt', 'spannung', 'rivalitaet'],
-        notes: 'Sie kann nicht stillsitzen und will alles sofort. Redet schnell, unterbricht sich selbst, lacht mitten im Satz. Sie fragt mich direkt, was ich mag, und probiert es aus, bevor ich antworten kann. Zwischen ihr und Aelira liegt ein leiser Wettstreit darum, wem ich mehr Aufmerksamkeit gebe - das spricht sie auch aus. Bremst Aelira sie, fügt sie sich, aber nur kurz.',
-        pitch: 1.15, rate: 1.05, voice: '', elevenVoice: '',
-      },
-      {
-        id: 'e3', name: 'Ich', isUser: true, gender: 'maennlich',
-        traits: ['zurueckhaltend', 'knapp', 'folgt', 'neu'],
-        notes: 'Ich bin überrascht und überwältigt, gehe aber mit. Sage wenig, meist nur ein halber Satz oder ein Laut. Ich frage nicht nach und schlage nichts vor - ich reagiere. Wenn mir etwas besonders gefällt, sage ich es kurz.',
-        pitch: 0.9, rate: 1.0, voice: '', elevenVoice: '',
-      },
-    ],
-  },
-];
-
-let castLibrary = [];
-
-function loadCastLibrary() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem('companion_castLibrary') || 'null'); } catch (e) {}
-  castLibrary = Array.isArray(stored) && stored.length
-    ? stored
-    : JSON.parse(JSON.stringify(BUILTIN_CASTS));
-}
-
-function saveCastLibrary() {
-  localStorage.setItem('companion_castLibrary', JSON.stringify(castLibrary));
-}
-
-function renderCastSelect() {
-  if (!els.castSelect) return; // Bedienelement gibt es nicht mehr
-  els.castSelect.innerHTML = '';
-  if (!castLibrary.length) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = '(keine gespeicherten Besetzungen)';
-    els.castSelect.appendChild(opt);
-    return;
-  }
-  castLibrary.forEach(cast => {
-    const opt = document.createElement('option');
-    opt.value = cast.id;
-    opt.textContent = cast.name + ' (' + cast.characters.map(c => c.name).join(', ') + ')';
-    els.castSelect.appendChild(opt);
-  });
-  const last = localStorage.getItem('companion_lastCast');
-  if (last && castLibrary.some(c => c.id === last)) els.castSelect.value = last;
-}
 
 // Writing a scene and two matching figures by hand is the slowest part of
 // trying out an idea. This turns a single sentence into a full draft - which is
@@ -5058,96 +4872,6 @@ function sanitizeDraftCharacters(list) {
   return out;
 }
 
-if (els.generateSceneBtn) els.generateSceneBtn.onclick = async () => {
-  const idea = els.sceneIdea.value.trim();
-  if (!idea) { addMsg('system', 'Bitte zuerst kurz beschreiben, worum es gehen soll.'); return; }
-  if (!confirm('Die vorhandenen Figuren und die Szene werden durch den Entwurf ersetzt. Fortfahren?')) return;
-
-  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  els.generateSceneBtn.disabled = true;
-  els.generateSceneBtn.textContent = 'Entwerfe...';
-  try {
-    const raw = await callProvider(
-      provider,
-      buildSceneDraftPrompt(idea),
-      [{ role: 'user', content: 'Gib den Entwurf als JSON zurück.' }],
-      0.7,
-      // Generous on purpose: a reasoning model spends a good part of this on
-      // thinking, and what is left has to carry a scene plus three characters.
-      8000,
-      { persona: true }
-    );
-    const draft = extractJson(raw);
-    if (!draft || typeof draft !== 'object') throw new Error('Die Antwort war kein verwertbarer Entwurf.');
-
-    characters = sanitizeDraftCharacters(draft.characters);
-    // Generated figures are archived too - that is the point of the archive:
-    // a draft you liked should still be there next week.
-    characters.forEach(c => {
-      const figure = addFigureToArchive(c);
-      c.figureId = figure.id;
-      c.version = 1;
-    });
-    saveArchive();
-    saveCharacters();
-    renderArchiveSelect();
-    renderCharacters();
-    if (els.sceneDesc) if (draft.scene) els.sceneDesc.value = String(draft.scene).slice(0, 4000);
-
-    addMsg('system', `Entwurf erstellt: ${characters.map(c => c.name).join(', ')}. Schau ihn dir an, ändere was du magst, und speichere dann.`);
-  } catch (err) {
-    addMsg('system', 'Entwurf fehlgeschlagen: ' + err.message);
-  }
-  els.generateSceneBtn.disabled = false;
-  els.generateSceneBtn.textContent = 'Figuren und Szene entwerfen';
-};
-
-if (els.loadCastBtn) els.loadCastBtn.onclick = () => {
-  const cast = castLibrary.find(c => c.id === els.castSelect.value);
-  if (!cast) { addMsg('system', 'Keine Besetzung ausgewählt.'); return; }
-  // Deep copy, otherwise editing the loaded figures would silently rewrite the
-  // stored cast as well.
-  characters = JSON.parse(JSON.stringify(cast.characters));
-  saveCharacters();
-  renderCharacters();
-  if (els.castWithScene.checked && cast.scene) els.sceneDesc.value = cast.scene;
-  localStorage.setItem('companion_lastCast', cast.id);
-  addMsg('system', `Besetzung "${cast.name}" geladen${els.castWithScene.checked && cast.scene ? ' - samt Szene' : ''}. Zum Übernehmen noch speichern.`);
-};
-
-if (els.saveCastBtn) els.saveCastBtn.onclick = () => {
-  const current = castLibrary.find(c => c.id === els.castSelect.value);
-  const name = prompt('Name der Besetzung:', current ? current.name : 'Neue Besetzung');
-  if (!name || !name.trim()) return;
-  const clean = name.trim();
-  const existing = castLibrary.find(c => c.name === clean);
-  const entry = {
-    id: existing ? existing.id : 'cast_' + Date.now(),
-    name: clean,
-    // The scene field moved to the live panel; the stored value is the source.
-    scene: (localStorage.getItem('companion_sceneDesc') || '').slice(0, 4000),
-    characters: JSON.parse(JSON.stringify(characters)),
-  };
-  if (existing) castLibrary[castLibrary.indexOf(existing)] = entry;
-  else castLibrary.push(entry);
-  saveCastLibrary();
-  renderCastSelect();
-  els.castSelect.value = entry.id;
-  addMsg('system', `Besetzung "${clean}" ${existing ? 'überschrieben' : 'gesichert'}.`);
-};
-
-if (els.deleteCastBtn) els.deleteCastBtn.onclick = () => {
-  const cast = castLibrary.find(c => c.id === els.castSelect.value);
-  if (!cast) return;
-  if (!confirm(`Besetzung "${cast.name}" löschen?`)) return;
-  castLibrary = castLibrary.filter(c => c.id !== cast.id);
-  saveCastLibrary();
-  renderCastSelect();
-  addMsg('system', `Besetzung "${cast.name}" gelöscht.`);
-};
-
-renderCastSelect();
-
 // ---------- Figures page ----------
 // The archive is a list first and an editor second. Seeing every figure as a
 // row with a face and one line of description is how you actually recognise
@@ -5253,9 +4977,9 @@ function renderFigureList() {
   });
 }
 
-// Editing works on the cast: a figure has to be in it to be edited, so tapping
-// a row pulls it in if it isn't already. That keeps one editing path instead of
-// two that could drift apart.
+// Bearbeitet wird eine Kopie, nicht die Besetzung: eine Figur anzusehen ändert
+// nichts daran, wer gerade mitspielt. Steht sie schon in der Besetzung, wird
+// deren Version geöffnet, sonst die neueste.
 function openFigureEditor(figure) {
   const inCast = characters.find(c => c.figureId === figure.id);
   // Always built from the archive: a cast copy can predate a change - a picture
@@ -5284,7 +5008,6 @@ els.newFigureBtn.onclick = () => {
   };
   const figure = addFigureToArchive(fresh);
   saveArchive();
-  renderArchiveSelect();
   renderFigureList();
   openFigureEditor(figure);
 };
@@ -5341,7 +5064,6 @@ els.genFigureBtn.onclick = async () => {
 
     const figure = addFigureToArchive(clean);
     saveArchive();
-    renderArchiveSelect();
     renderFigureList();
     openFigureEditor(figure);
     els.figureIdea.value = '';
@@ -5352,30 +5074,6 @@ els.genFigureBtn.onclick = async () => {
   els.genFigureBtn.disabled = false;
   els.genFigureBtn.textContent = '✨ Figur erzeugen';
 };
-if (els.toFiguresBtn) els.toFiguresBtn.onclick = () => { setDrawer(false); showFigures(); };
-
-if (els.addCharBtn) els.addCharBtn.onclick = () => {
-  const fresh = {
-    id: 'c' + Date.now(),
-    name: 'Neue Figur',
-    isUser: false,
-    traits: ['warm'],
-    notes: '',
-    gender: 'offen',
-    pitch: 1.0, rate: 1.0, voice: '', elevenVoice: '',
-  };
-  // Straight into the archive as version 1, so a figure never exists only
-  // inside one cast and vanish with it.
-  const figure = addFigureToArchive(fresh);
-  fresh.figureId = figure.id;
-  fresh.version = 1;
-  characters.push(fresh);
-  saveArchive();
-  saveCharacters();
-  renderArchiveSelect();
-  renderCharacters();
-};
-
 // Microphone, clipboard and local network access all hang on the same
 // criterion, and when it isn't met the browser refuses silently - no prompt, no
 // error. Saying so up front saves the same half hour of confusion every time.
@@ -5392,19 +5090,22 @@ updateTrackVisibility();
 
 loadCharacters();
 loadArchive();
-loadCastLibrary();
-migrateToArchive();
-migrateSystemPrompt();
-if (!figureArchive.length) {
-  // A fresh install has no archive yet - seed it from the cast that shipped.
-  characters.forEach(c => { const f = addFigureToArchive(c); c.figureId = f.id; c.version = 1; });
-  saveArchive();
-  saveCharacters();
+try {
+  if (!figureArchive.length) {
+    // Frische Installation: das Archiv wird aus der mitgelieferten Besetzung
+    // angelegt, damit von Anfang an Figuren zum Ansehen und Ändern da sind.
+    characters.forEach(c => { const f = addFigureToArchive(c); c.figureId = f.id; c.version = 1; });
+    saveArchive();
+    saveCharacters();
+  }
+  const entfernt = dedupeCast();
+  if (entfernt) saveCharacters();
+} catch (err) {
+  addMsg('system', 'Figuren konnten nicht gesichert werden: ' + err.message);
 }
-const entfernt = dedupeCast();
-if (entfernt) saveCharacters();
-renderArchiveSelect();
 renderCharacters();
+// Chrome liefert die Android-Stimmen verzögert nach; die Auswahl sitzt bei der
+// Figur, also wird deren Ansicht neu gezeichnet, sobald die Liste da ist.
 speechSynthesis.addEventListener('voiceschanged', renderCharacters);
 
 // ---------- Ensemble: several figures in one scene ----------
@@ -5418,7 +5119,6 @@ speechSynthesis.addEventListener('voiceschanged', renderCharacters);
 // and an ensemble mode was the reason the same figure had to be described
 // twice, in two places that could disagree.
 let currentMode = 'live';  // 'live' | 'story'
-let ensembleSub = 'live';  // kept so older saved state still resolves
 
 // Pulls the marker off a line and turns it into the same object shape the
 // separate call produces, so everything downstream stays unchanged.
@@ -5839,12 +5539,10 @@ function showSettings() {
   els.topbarWhere.textContent = ' · Einstellungen';
 }
 
-function switchMode(mode, sub) {
+function switchMode(mode) {
   const previous = currentMode;
   currentMode = mode;
-  if (sub) ensembleSub = sub;
 
-  els.ensembleBar.style.display = 'none';
   try { localStorage.setItem('companion_mode', mode); } catch (e) {}
   showOnly(mode === 'story' ? 'story' : 'live');
   if (mode === 'live') renderLivePanel();
@@ -5883,8 +5581,7 @@ function setDrawer(open) {
 function refreshDrawer() {
   const key = modeKey();
   document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
-    const itemKey = item.dataset.sub ? item.dataset.mode + ':' + item.dataset.sub : item.dataset.mode;
-    item.classList.toggle('active', itemKey === key);
+    item.classList.toggle('active', item.dataset.mode === key);
   });
   refreshNavStories();
 }
@@ -5928,7 +5625,7 @@ els.drawerScrim.onclick = () => setDrawer(false);
 
 document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
   item.onclick = () => {
-    switchMode(item.dataset.mode, item.dataset.sub);
+    switchMode(item.dataset.mode);
     setDrawer(false);
   };
 });
@@ -6065,7 +5762,6 @@ els.liveNarrator.onchange = () => {
   const id = els.liveNarrator.value;
   safeSet('companion_narratorFigure', id);
   safeSet('companion_narratorEnabled', id ? 'true' : 'false');
-  if (els.narratorEnabled) els.narratorEnabled.checked = !!id;
 };
 
 els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.value.trim()); };
@@ -6084,8 +5780,6 @@ els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
 els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
 els.navVersionLine.textContent = 'Version ' + APP_VERSION;
 
-els.modeStoryBtn.onclick = () => switchMode('story');
-
 // ---- generating the text ----
 function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, previousTail) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
@@ -6099,14 +5793,10 @@ function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, pre
         ? 'Das ist der SCHLUSS. Führe zum Höhepunkt und lass die Geschichte danach ruhig ausklingen.'
         : `Das ist Teil ${sectionIndex + 1} von ${sectionCount}, also die MITTE. Steigere spürbar weiter, aber erreiche den Höhepunkt noch nicht.`;
 
-  // In ensemble mode the story is a screenplay with several named voices; the
-  // rest of the pipeline is identical, only the format instruction differs.
-  const ensemble = true; // every mode is cast-based now
-  const formatInstruction = ensemble
-    ? ensembleFormatBlock() + `\n\nLass die Figuren wirklich miteinander reden - aufeinander eingehen, unterbrechen, unterschiedlich reagieren. Nicht abwechselnd Monologe.`
-    : narratorOn
-      ? `Schreibe auf zwei Ebenen: Handlung in *Sternchen* aus der Beobachterperspektive, mit konkreten Angaben zu Richtung, Tempo und Ort - daraus wird die Gerätebewegung abgeleitet. Gesprochenes ohne Sternchen.`
-      : `Schreibe durchgehenden Fließtext ohne Formatierung. Beschreibe die körperlichen Vorgänge konkret in Richtung, Tempo und Ort - daraus wird die Gerätebewegung abgeleitet.`;
+  // Jede Geschichte ist ein Drehbuch mit mehreren benannten Stimmen - es gibt
+  // keinen Einzelfigur-Modus mehr, der ein anderes Format bräuchte.
+  const formatInstruction = ensembleFormatBlock()
+    + `\n\nLass die Figuren wirklich miteinander reden - aufeinander eingehen, unterbrechen, unterschiedlich reagieren. Nicht abwechselnd Monologe.`;
 
   const continuation = previousTail
     ? `\n\nSo endet der bisherige Text - setze nahtlos dort an, ohne ihn zu wiederholen oder zusammenzufassen:\n"...${previousTail}"`
@@ -6304,7 +5994,6 @@ async function draftSceneAndCast(provider, idea) {
   });
   saveArchive();
   saveCharacters();
-  renderArchiveSelect();
   if (draft.scene) safeSet('companion_sceneDesc', String(draft.scene).slice(0, 4000));
   addStoryNote('Entworfen: ' + characters.map(c => c.name).join(', ') + '.');
 }
@@ -6358,9 +6047,12 @@ els.genStoryBtn.onclick = async () => {
 // Returns a handle that knows how long it will take *before* it starts, which
 // is what makes it possible to lay the phases onto a real timeline rather than
 // firing them off blindly and hoping the audio keeps up.
-function estimateSpeechMs(text) {
+function estimateSpeechMs(text, role) {
   const words = stripAudioTags(text).split(/\s+/).filter(Boolean).length;
-  const rate = parseFloat(localStorage.getItem('companion_rate') || '0.95') || 1;
+  // Das Tempo gehört zur Figur. Vorher stand hier ein globaler Wert, den es
+  // nicht mehr gibt - die Schätzung lief dadurch für jede Figur gleich, obwohl
+  // eine schnell sprechende Figur hörbar früher fertig ist.
+  const rate = resolveVoice(role).rate || 1;
   return Math.max(800, (words / (STORY_WORDS_PER_MINUTE * rate)) * 60000);
 }
 
@@ -6375,7 +6067,7 @@ async function prepareTimedSpeech(text, role) {
         const durationMs = await new Promise((resolve) => {
           const finish = () => resolve(isFinite(audio.duration) && audio.duration > 0
             ? audio.duration * 1000
-            : estimateSpeechMs(text));
+            : estimateSpeechMs(text, role));
           if (audio.readyState >= 1) finish();
           else { audio.onloadedmetadata = finish; audio.onerror = finish; }
         });
@@ -6398,7 +6090,7 @@ async function prepareTimedSpeech(text, role) {
   // Browser TTS gives no duration in advance, so the phases run on an estimate
   // here. It drifts a little over a long chunk; ElevenLabs is exact.
   return {
-    durationMs: estimateSpeechMs(text),
+    durationMs: estimateSpeechMs(text, role),
     play: () => speakBrowser(stripAudioTags(text), role)
   };
 }
