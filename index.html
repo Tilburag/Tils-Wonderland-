@@ -697,6 +697,10 @@
           <button class="btn-secondary" id="loadImageModelsBtn" type="button">Laden</button>
         </div>
         <select id="imageModelSelect"><option value="">(noch nicht geladen)</option></select>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input type="checkbox" id="onlySuitableImageModels" checked style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Nur passende Bildmodelle zeigen</span>
+        </label>
         <p class="hint">Wird nur für die Profilbilder der Figuren gebraucht. Die Modelle unterscheiden sich darin, was sie darstellen - wenn eines eine Anfrage ablehnt, hilft ein anderes.</p>
 
         <p class="hint">
@@ -1107,6 +1111,7 @@ const els = {
   imageModel: document.getElementById('imageModel'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
+  onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
   anthropicPanel: document.getElementById('anthropicPanel'),
   openaiPanel: document.getElementById('openaiPanel'),
   deepseekPanel: document.getElementById('deepseekPanel'),
@@ -1533,6 +1538,65 @@ setTimeout(() => refreshProviderData(true), 800);
 
 // Picking from the list only fills the text field; nothing is saved until the
 // usual save button, so a mis-click is undone by simply not saving.
+// Same idea as for the text models: score rather than hard-code, because the
+// catalogue changes. What matters here is photographic quality for a portrait
+// of a person, and not being refused for this kind of scene.
+let imageModelCache = [];
+
+function imageModelSuitability(model) {
+  const id = (model.id || '').toLowerCase();
+  const spec = model.model_spec || {};
+  const traits = (Array.isArray(spec.traits) ? spec.traits : []).join(' ').toLowerCase();
+  const text = id + ' ' + traits + ' ' + (spec.name || '').toLowerCase();
+  let score = 0;
+
+  // Built without content restrictions - the ones that will not refuse.
+  if (/lustify|uncensored|unfiltered|nsfw/.test(text)) score += 45;
+  // Strong photoreal families.
+  if (/flux|seedream|qwen-image|hunyuan|krea|imagineart|recraft|nano-banana|ideogram|sd35/.test(text)) score += 25;
+  // The provider's own default is usually a safe bet.
+  if (/\bdefault\b/.test(traits)) score += 12;
+  // Larger variants of the same family.
+  if (/pro|max|large|quality/.test(text)) score += 10;
+
+  // Not a generator at all, or a different job entirely.
+  if (/bg-remover|background|upscal|inpaint|edit|remove|caption|rerank/.test(text)) score -= 80;
+  // Anime and illustration styles: fine on purpose, wrong for a photo portrait.
+  if (/illustrious|anime|cartoon|pixel|sticker/.test(text)) score -= 20;
+  // Fast and small variants trade away the detail a face needs.
+  if (/turbo|lite|mini|flash|small/.test(text)) score -= 18;
+
+  return score;
+}
+
+function renderImageModels() {
+  const list = els.onlySuitableImageModels.checked
+    ? imageModelCache.slice().sort((a, b) => imageModelSuitability(b) - imageModelSuitability(a)).slice(0, 10)
+    : imageModelCache;
+
+  els.imageModelSelect.innerHTML = '';
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = els.onlySuitableImageModels.checked
+    ? `(${list.length} von ${imageModelCache.length} - die passendsten)`
+    : `(${list.length} Bildmodelle - bitte wählen)`;
+  els.imageModelSelect.appendChild(none);
+
+  list.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.id;
+    els.imageModelSelect.appendChild(opt);
+  });
+
+  // Show what is actually in use, so opening the settings does not look like
+  // nothing is selected.
+  const current = els.imageModel.value.trim();
+  if (current && list.some(m => m.id === current)) els.imageModelSelect.value = current;
+}
+
+els.onlySuitableImageModels.onchange = renderImageModels;
+
 async function loadImageModels(quiet) {
   const key = apiKeyFor('companion_apiKey_venice');
   try {
@@ -1542,26 +1606,16 @@ async function loadImageModels(quiet) {
     if (!res.ok) throw new Error('Antwort ' + res.status);
     const body = await res.json();
     const list = Array.isArray(body.data) ? body.data : [];
-    els.imageModelSelect.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = `(${list.length} Bildmodelle - bitte wählen)`;
-    els.imageModelSelect.appendChild(none);
-    list.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.id;
-      els.imageModelSelect.appendChild(opt);
-    });
+    imageModelCache = list;
     // Nothing is selected on a fresh install, and leaving it empty means the
     // first attempt at a portrait fails on a missing model. Pick something
     // plausible from what the account actually offers.
     if (!els.imageModel.value.trim() && list.length) {
-      const preferred = list.find(m => /sd35|flux|hidream/i.test(m.id)) || list[0];
+      const preferred = list.slice().sort((a, b) => imageModelSuitability(b) - imageModelSuitability(a))[0];
       els.imageModel.value = preferred.id;
-      els.imageModelSelect.value = preferred.id;
       safeSet('companion_imageModel', preferred.id);
     }
+    renderImageModels();
     if (!quiet) addMsg('system', `${list.length} Bildmodelle geladen.`);
   } catch (err) {
     addMsg('system', 'Bildmodelle konnten nicht geladen werden: ' + err.message);
@@ -1569,11 +1623,18 @@ async function loadImageModels(quiet) {
 }
 els.loadImageModelsBtn.onclick = () => loadImageModels(false);
 els.imageModelSelect.onchange = () => {
-  if (els.imageModelSelect.value) els.imageModel.value = els.imageModelSelect.value;
+  if (!els.imageModelSelect.value) return;
+  els.imageModel.value = els.imageModelSelect.value;
+  // Stored right away: having to press save after picking a model was a step
+  // that got forgotten, and the next start fell back to the old one.
+  safeSet('companion_imageModel', els.imageModel.value);
 };
+els.imageModel.oninput = () => safeSet('companion_imageModel', els.imageModel.value.trim());
 
 els.veniceModelSelect.onchange = () => {
-  if (els.veniceModelSelect.value) els.modelVenice.value = els.veniceModelSelect.value;
+  if (!els.veniceModelSelect.value) return;
+  els.modelVenice.value = els.veniceModelSelect.value;
+  safeSet('companion_model_venice', els.modelVenice.value);
 };
 
 // Populate voice list (Chrome loads this asynchronously)
@@ -4232,13 +4293,19 @@ function buildPortraitRequest(c) {
     .map(g => g.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text).join(', '))
     .filter(Boolean).join('; ');
 
+  const spoken = (c.styleExamples || '').trim();
+
   return `Schreibe einen Bild-Prompt für ein Porträt dieser Figur. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
+
+WICHTIG: Das Geschlecht muss im englischen Prompt unmissverständlich benannt sein - "a woman", "a man" oder "a non-binary person" gleich am Anfang. Ein Bildmodell rät sonst, und das Ergebnis passt dann nicht zur Figur.
 
 Figur: ${c.name}
 ${c.gender && c.gender !== 'offen' ? `Geschlecht: ${GENDER_TEXT[c.gender]}` : ''}
 ${(c.appearance || '').trim() ? `Aussehen - das ist verbindlich und muss genau so umgesetzt werden: ${c.appearance.trim().slice(0, 500)}` : ''}
 Wesenszüge: ${traits || 'keine angegeben'}
-Beschreibung: ${(c.notes || '').slice(0, 600)}
+Beschreibung: ${(c.notes || '').slice(0, 900)}
+${spoken ? `So spricht sie - das sagt etwas über ihre Ausstrahlung: ${spoken.slice(0, 300)}` : ''}
+${c.isNarrator ? 'Diese Figur ist eine Erzählerstimme, keine Mitspielerin.' : ''}
 ${scene ? `Umgebung der Szene: ${scene}` : ''}
 
 ${(c.appearance || '').trim()
@@ -4256,7 +4323,8 @@ function fallbackPortraitPrompt(c) {
   const traits = TRAIT_GROUPS
     .map(g => g.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text).join(', '))
     .filter(Boolean).join('; ');
-  return `Portrait photograph of an adult person named ${c.name}, upper body, clothed, `
+  const genderWord = { weiblich: 'woman', maennlich: 'man', divers: 'non-binary person' }[c.gender] || 'person';
+  return `Portrait photograph of an adult ${genderWord} named ${c.name}, upper body, clothed, `
     + `looking at the camera, soft natural light, shallow depth of field. `
     + ((c.appearance || '').trim() ? `Appearance: ${c.appearance.trim().slice(0, 400)}. ` : '')
     + `Character impression: ${traits || 'calm and approachable'}. `
@@ -4285,6 +4353,14 @@ async function generateCharacterImage(c, button) {
       addMsg('system', `Bildbeschreibung für ${c.name} misslungen (${err.message}) - nutze eine einfache Beschreibung.`);
     }
     if (!imagePrompt) imagePrompt = fallbackPortraitPrompt(c);
+
+    // Belt and braces: the text model translates the figure into English and can
+    // drop the gender on the way. Stating it in front of the prompt costs
+    // nothing and removes the most common way a portrait comes out wrong.
+    const genderWord = { weiblich: 'a woman', maennlich: 'a man', divers: 'a non-binary person' }[c.gender];
+    if (genderWord && !new RegExp(genderWord, 'i').test(imagePrompt)) {
+      imagePrompt = `Portrait of ${genderWord}. ` + imagePrompt;
+    }
 
     const res = await fetch('https://api.venice.ai/api/v1/image/generate', {
       method: 'POST',
