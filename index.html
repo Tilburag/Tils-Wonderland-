@@ -594,6 +594,41 @@
   }
   .toast.shown { opacity: 1; transform: translateY(0); }
   .toast.warn { border-left-color: var(--stop); }
+  /* Zwischen Absenden und erstem gesprochenen Wort vergehen bei einem
+     Reasoning-Modell leicht 30 bis 90 Sekunden. Ohne Anzeige ist das von
+     "kaputt" nicht zu unterscheiden. */
+  .thinking {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 4px 9px 4px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .thinking-dot {
+    width: 7px; height: 7px;
+    border-radius: 100px;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: thinking-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes thinking-pulse {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+  }
+  #thinkingText { flex: 1; }
+  .thinking-cancel {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    border-radius: 100px;
+    padding: 4px 11px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .thinking-dot { animation: none; opacity: 0.8; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .toast { transition: none; }
   }
@@ -717,6 +752,13 @@
           <span style="font-size:13.5px; color:var(--text);">Nur meine eigene Charakterbeschreibung nutzen (Venice-Zusatz-Prompt deaktivieren)</span>
         </label>
       </div>
+
+      <h3 style="font-size:14px; margin:20px 0 4px 0; font-weight:600;">Modelle je Aufgabe</h3>
+      <p class="hint">Die App macht dreierlei, und die drei Aufgaben stellen sehr verschiedene Ansprüche. Leer lassen heißt: das oben gewählte Modell des Anbieters. Budget leer heißt: die App rechnet es selbst aus.</p>
+
+      <div id="taskModels"></div>
+
+      <p class="hint">„Denkt vor" nur ankreuzen, wenn das Modell vor dem Antworten intern nachdenkt (Reasoning). Dann bekommt es zusätzlichen Spielraum, weil diese Token vom Budget abgehen - sie werden mitberechnet, ohne dass du sie zu sehen bekommst. Bei einem normalen Modell ist der Aufschlag reine Verschwendung.</p>
 
     </details>
 
@@ -1013,6 +1055,11 @@
 </div>
 
 <div class="bottom-bar" id="bottomBar">
+  <div class="thinking" id="thinkingRow" style="display:none;">
+    <span class="thinking-dot"></span>
+    <span id="thinkingText">Antwort wird geschrieben</span>
+    <button class="thinking-cancel" id="thinkingCancel">Abbrechen</button>
+  </div>
   <div class="text-input-row">
     <input type="text" id="textInput" placeholder="Nachricht schreiben...">
     <button class="btn-primary" id="sendTextBtn">Senden</button>
@@ -1110,6 +1157,7 @@ const els = {
   modelOpenrouter: document.getElementById('modelOpenrouter'),
   apiKeyVenice: document.getElementById('apiKeyVenice'),
   modelVenice: document.getElementById('modelVenice'),
+  taskModels: document.getElementById('taskModels'),
   loadVeniceModelsBtn: document.getElementById('loadVeniceModelsBtn'),
   veniceModelSelect: document.getElementById('veniceModelSelect'),
   onlySuitableModels: document.getElementById('onlySuitableModels'),
@@ -1216,6 +1264,9 @@ const els = {
   genFigureBtn: document.getElementById('genFigureBtn'),
   genFigureInfo: document.getElementById('genFigureInfo'),
   bottomBar: document.getElementById('bottomBar'),
+  thinkingRow: document.getElementById('thinkingRow'),
+  thinkingText: document.getElementById('thinkingText'),
+  thinkingCancel: document.getElementById('thinkingCancel'),
   toastHost: document.getElementById('toastHost'),
   contextWarn: document.getElementById('contextWarn'),
   menuBtn: document.getElementById('menuBtn'),
@@ -1332,6 +1383,62 @@ els.apiKeyVenice.value = localStorage.getItem('companion_apiKey_venice') || '';
 els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venice-uncensored';
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
+// Drei Zeilen, für jede Aufgabe eine. Alles leer zu lassen ist der bisherige
+// Zustand - ein Modell für alles, Budget automatisch.
+function renderTaskModels() {
+  if (!els.taskModels) return;
+  els.taskModels.innerHTML = '';
+  TASKS.forEach(task => {
+    const box = document.createElement('div');
+    box.style.cssText = 'border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:13.5px; font-weight:600; margin-bottom:2px;';
+    title.textContent = task.label;
+    box.appendChild(title);
+
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.style.marginTop = '0';
+    hint.textContent = task.hint;
+    box.appendChild(hint);
+
+    const model = document.createElement('input');
+    model.type = 'text';
+    model.placeholder = 'Modell (leer = wie oben eingestellt)';
+    model.value = localStorage.getItem('companion_taskModel_' + task.id) || '';
+    model.oninput = () => safeSet('companion_taskModel_' + task.id, model.value.trim());
+    box.appendChild(model);
+
+    const budget = document.createElement('input');
+    budget.type = 'number';
+    budget.min = '200';
+    budget.step = '100';
+    budget.placeholder = 'Token-Budget (leer = automatisch)';
+    budget.value = localStorage.getItem('companion_taskBudget_' + task.id) || '';
+    budget.oninput = () => safeSet('companion_taskBudget_' + task.id, budget.value.trim());
+    box.appendChild(budget);
+
+    const thinksLabel = document.createElement('label');
+    thinksLabel.style.cssText = 'display:flex; align-items:center; gap:8px; margin-top:10px;';
+    const thinks = document.createElement('input');
+    thinks.type = 'checkbox';
+    thinks.style.width = 'auto';
+    thinks.checked = taskThinks(task.id);
+    thinks.onchange = () => safeSet('companion_taskThinks_' + task.id, thinks.checked ? 'true' : 'false');
+    const thinksText = document.createElement('span');
+    thinksText.style.cssText = 'font-size:13.5px; color:var(--text);';
+    thinksText.textContent = 'Denkt vor (Reasoning-Modell)';
+    thinksLabel.appendChild(thinks);
+    thinksLabel.appendChild(thinksText);
+    box.appendChild(thinksLabel);
+
+    els.taskModels.appendChild(box);
+  });
+}
+// Aufgerufen wird das erst beim Start unten: TASKS und safeSet stehen weiter
+// hinten im Skript und wären hier noch nicht benutzbar.
+
 function updateProviderPanels() {
   els.anthropicPanel.style.display = els.llmProvider.value === 'anthropic' ? 'block' : 'none';
   els.openaiPanel.style.display = els.llmProvider.value === 'openai' ? 'block' : 'none';
@@ -1731,16 +1838,41 @@ function isNetworkGlitch(err) {
   return err instanceof TypeError && /fetch|network|load failed/i.test(err.message || '');
 }
 
+// Eine hängende Anfrage lief vorher unbegrenzt weiter - der Bildschirm blieb
+// dabei völlig stumm. Jede Anfrage bekommt jetzt eine Frist, und ein Abbruch
+// durch den Nutzer beendet alle laufenden auf einmal.
+const REQUEST_TIMEOUT_MS = 120000;
+let inFlight = new Set();
+
+function abortAllRequests() {
+  inFlight.forEach(c => { try { c.abort(); } catch (e) {} });
+  inFlight.clear();
+}
+
+function isAbort(err) {
+  return err && (err.name === 'AbortError' || /abort/i.test(err.message || ''));
+}
+
 async function fetchWithRetry(url, options, attempts) {
   const total = attempts || 3;
   let lastError = null;
   for (let attempt = 0; attempt < total; attempt++) {
+    const control = new AbortController();
+    inFlight.add(control);
+    const timer = setTimeout(() => control.abort(), REQUEST_TIMEOUT_MS);
     try {
-      return await fetch(url, options);
+      return await fetch(url, Object.assign({}, options, { signal: control.signal }));
     } catch (err) {
-      lastError = err;
-      if (!isNetworkGlitch(err) || attempt === total - 1) throw err;
+      lastError = isAbort(err)
+        ? new Error(`Keine Antwort innerhalb von ${Math.round(REQUEST_TIMEOUT_MS / 1000)} Sekunden - Anfrage abgebrochen.`)
+        : err;
+      // Ein Abbruch ist kein Netzwerkaussetzer: noch einmal fragen hieße, noch
+      // einmal genauso lange zu warten.
+      if (isAbort(err) || !isNetworkGlitch(err) || attempt === total - 1) throw lastError;
       await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    } finally {
+      clearTimeout(timer);
+      inFlight.delete(control);
     }
   }
   throw lastError;
@@ -1750,8 +1882,20 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.43';
+const APP_VERSION = '0.45';
 const CHANGELOG = [
+  { v: '0.45', date: '2026-09-18', items: [
+    'Bei einer leeren Antwort wird das Token-Budget nicht mehr selbsttätig verdoppelt und die Anfrage bis zu dreimal wiederholt. Jeder dieser Anläufe wurde voll berechnet - ein Fehlschlag kostete mehr als eine gelungene Antwort.',
+    'Stattdessen sagt die Meldung, welche Aufgabe mit welchem Budget und welchem Modell gescheitert ist und was dagegen hilft.',
+    'Gespräch, Bewegung und Entwurf lassen sich getrennt mit Modell und Budget belegen. Fürs Gespräch reicht ein Modell ohne Reasoning - dort entstehen fast alle Kosten.',
+    'Der Aufschlag für Reasoning-Modelle kommt nur noch dazu, wo er angehakt ist, statt bei jedem Aufruf.',
+  ]},
+  { v: '0.44', date: '2026-09-18', items: [
+    '„Das bin ich" gehört jetzt zur Figur und wirkt sofort - vorher wurde der Schalter beim Zurückschreiben und beim Hinzufügen zur Besetzung stillschweigend verworfen.',
+    'Die eigene Figur lässt sich aus der Besetzung nehmen und durch eine andere ersetzen. Ohne Ich-Figur schreibt das Modell einfach keine Zeilen für mich.',
+    'Im Live-Bereich zeigt eine Zeile mit Sekundenzähler, dass eine Antwort geschrieben wird - mit Abbruchknopf.',
+    'Jede Anfrage bricht nach 120 Sekunden mit einer Meldung ab, statt unbegrenzt zu hängen; Fehler beim Senden gehen nicht mehr lautlos verloren.',
+  ]},
   { v: '0.43', date: '2026-09-18', items: [
     'Rückmeldungen erscheinen jetzt auch außerhalb des Gesprächs - vorher liefen Meldungen aus Einstellungen und Figurenseite ins Leere.',
     '„Beispieltexte einsetzen" sichert die Szene sofort, statt sie beim nächsten Laden wieder zu verlieren.',
@@ -2854,6 +2998,10 @@ function headphoneMode() {
 // effect immediately instead of at the end of the current sentence.
 function interruptPlayback() {
   playbackGeneration += 1;
+  // Auch die laufenden Anfragen, sonst arbeitet im Hintergrund eine Antwort
+  // weiter, die niemand mehr hören will - und die Anzeige bliebe stehen.
+  if (typeof abortAllRequests === 'function') abortAllRequests();
+  if (typeof setThinking === 'function') setThinking('');
   speechSynthesis.cancel();
   if (currentElevenAudio) {
     try { currentElevenAudio.pause(); } catch (e) {}
@@ -2937,7 +3085,12 @@ function sendTypedMessage() {
   if (typeof callActive !== 'undefined' && callActive) stopListening();
   addMsg('user', text);
   els.textInput.value = '';
-  askActive(text);
+  // Ohne catch verschwand eine Ablehnung hier spurlos - kein Text, kein Fehler,
+  // nur Stille.
+  askActive(text).catch(err => {
+    setThinking('');
+    addMsg('system', 'Fehler beim Abrufen der Antwort: ' + (err && err.message ? err.message : err));
+  });
 }
 els.sendTextBtn.onclick = sendTypedMessage;
 els.textInput.addEventListener('keydown', (e) => {
@@ -3342,7 +3495,7 @@ function isVerbatimRepeat(text) {
 }
 
 async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
-  const first = (await callProvider(provider, buildPrompt(false), null, creativeTemperature(), maxTokens, { persona: true })).trim();
+  const first = (await callProvider(provider, buildPrompt(false), null, creativeTemperature(), maxTokens, { persona: true, task: 'chat' })).trim();
   if (!isVerbatimRepeat(first)) return first;
   // Second attempt gets a warmer temperature: at a low setting the model will
   // otherwise land on the very same wording again.
@@ -3352,24 +3505,15 @@ async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
     null,
     Math.min(1.2, creativeTemperature() + 0.35),
     maxTokens,
-    { persona: true }
+    { persona: true, task: 'chat' }
   )).trim();
   return isVerbatimRepeat(retry) ? retry : retry;
 }
 
-// Reasoning models spend a large, unpredictable share of the budget on internal
-// thinking before writing anything, and when it runs out the reply comes back
-// empty. So the budget is the expected answer plus a fixed allowance for that
-// thinking - not a tight fit around the answer alone.
-// Back to a lean default. The escalation below catches a model that needs more,
-// and it costs nothing while it isn't needed - whereas a permanently oversized
-// budget slows every single call.
-const REASONING_HEADROOM = 1200;
-
 function replyTokenBudget() {
   const shape = replyLength();
   const words = shape.lines * shape.words;
-  return Math.min(12000, Math.round(words * 1.5) + REASONING_HEADROOM);
+  return taskBudget('chat', Math.min(12000, Math.round(words * 1.5)));
 }
 
 function creativeTemperature() {
@@ -3670,10 +3814,10 @@ function extractJson(raw) {
   return JSON.parse(clean);
 }
 
-async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
+async function callAnthropic(systemPrompt, messages, temperature, maxTokens, modelOverride) {
   const apiKey = apiKeyFor('companion_apiKey_anthropic');
   if (!apiKey) throw new Error('Kein Anthropic-Schlüssel eingetragen.');
-  const model = modelFor('companion_model_anthropic') || 'claude-sonnet-4-6';
+  const model = modelOverride || modelFor('companion_model_anthropic') || 'claude-sonnet-4-6';
   const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -3695,10 +3839,10 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens) {
   return content;
 }
 
-async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, modelStorageKey, defaultModel, extraBody, messages, temperature, maxTokens) {
+async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, modelStorageKey, defaultModel, extraBody, messages, temperature, maxTokens, modelOverride) {
   const apiKey = apiKeyFor(apiKeyStorageKey);
   if (!apiKey) throw new Error('Kein API-Schlüssel eingetragen.');
-  const model = modelFor(modelStorageKey) || defaultModel;
+  const model = modelOverride || modelFor(modelStorageKey) || defaultModel;
   const res = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: {
@@ -3740,49 +3884,81 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
   return content;
 }
 
-// Routes to whichever provider is currently selected. Used both for the main
-// conversational reply (higher temperature - more variety) and the separate
-// motion-derivation call below (lower temperature - more consistent formatting).
-// `opts.persona` marks the calls that produce prose. The motion step must never
-// carry a character: it has to return bare JSON, and a persona would have it
-// answer in character instead.
-// How much of the budget a reasoning model spends on thinking before it writes
-// a word is not knowable in advance - it varies by model and by prompt. Rather
-// than guessing a number that is too small for one model and wasteful for
-// another, the call simply retries with more room when that is what went wrong.
-const BUDGET_CEILING = 16000;
+// Routes to whichever provider is currently selected. `opts.persona` marks the
+// calls that produce prose; the motion step must never carry a character,
+// because it has to return bare JSON. `opts.task` picks the model and the
+// budget - see TASKS above.
+// Die drei Aufgaben stellen verschiedene Ansprüche, und ein Modell, das für
+// eine davon richtig ist, ist für die anderen meist zu teuer oder zu schwach.
+// Deshalb darf jede ihr eigenes Modell und ihr eigenes Budget haben.
+const TASKS = [
+  { id: 'chat', label: 'Gespräch',
+    hint: 'Schreibt die Zeilen der Figuren. Braucht gutes Deutsch und Formattreue, kein Nachdenken - hier entstehen fast alle Kosten.' },
+  { id: 'motion', label: 'Bewegung',
+    hint: 'Übersetzt den Text in Bewegungswerte. Festes JSON-Schema, kein Nachdenken nötig - aber ein sehr kleines Modell bricht das Format.' },
+  { id: 'draft', label: 'Entwurf',
+    hint: 'Erfindet Figuren und Szenen. Läuft selten, darf also das stärkere Modell sein.' },
+];
 
+// Der Aufschlag deckt ab, was ein Reasoning-Modell vor dem ersten geschriebenen
+// Wort verbraucht. Er kommt nur dazu, wenn für die Aufgabe ein solches Modell
+// eingetragen ist - sonst zahlst du für Spielraum, den niemand nutzt.
+const REASONING_HEADROOM = 1200;
+
+function taskModelName(task) {
+  return (localStorage.getItem('companion_taskModel_' + task) || '').trim();
+}
+function taskThinks(task) {
+  return localStorage.getItem('companion_taskThinks_' + task) === 'true';
+}
+function taskBudget(task, automatic) {
+  const set = parseInt(localStorage.getItem('companion_taskBudget_' + task) || '', 10);
+  const base = (isFinite(set) && set > 0) ? set : automatic;
+  return Math.max(200, base) + (taskThinks(task) ? REASONING_HEADROOM : 0);
+}
+function taskLabel(task) {
+  const entry = TASKS.find(t => t.id === task);
+  return entry ? entry.label : task;
+}
+
+// Früher wurde das Budget bei einer leeren Antwort selbsttätig verdoppelt und
+// die Anfrage bis zu dreimal wiederholt. Jeder dieser Anläufe wird beim
+// Anbieter voll berechnet - ein Fehlschlag kostete damit mehr als eine
+// gelungene Antwort, und niemand bekam zu sehen, warum. Jetzt gibt es einen
+// Versuch und eine Meldung, die sagt, was zu tun ist.
 async function callProvider(provider, systemPrompt, messages, temperature, maxTokens, opts) {
-  let budget = maxTokens || 800;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await callProviderOnce(provider, systemPrompt, messages, temperature, budget, opts);
-    } catch (err) {
-      const canGrow = err && err.code === 'budget' && budget < BUDGET_CEILING && attempt < 2;
-      if (!canGrow) throw err;
-      budget = Math.min(BUDGET_CEILING, Math.round(budget * 2.2));
-    }
+  const task = (opts && opts.task) || 'chat';
+  try {
+    return await callProviderOnce(provider, systemPrompt, messages, temperature, maxTokens || 800, opts);
+  } catch (err) {
+    if (!err || err.code !== 'budget') throw err;
+    const advice = taskThinks(task)
+      ? 'Erhöhe das Budget für diese Aufgabe in den Einstellungen, oder trag dort ein Modell ohne Reasoning ein.'
+      : 'Erhöhe das Budget für diese Aufgabe in den Einstellungen. Denkt das Modell vor dem Antworten nach, setz zusätzlich den Haken „Denkt vor".';
+    throw new Error(`${taskLabel(task)}: ${err.message} (Budget ${maxTokens || 800} Token`
+      + `${taskModelName(task) ? ', Modell ' + taskModelName(task) : ''}) ${advice}`);
   }
 }
 
 async function callProviderOnce(provider, systemPrompt, messages, temperature, maxTokens, opts) {
+  const override = taskModelName((opts && opts.task) || 'chat');
   if (provider === 'anthropic') {
-    return callAnthropic(systemPrompt, messages, temperature, maxTokens);
+    return callAnthropic(systemPrompt, messages, temperature, maxTokens, override);
   } else if (provider === 'openai') {
     return callOpenAiCompatible(systemPrompt, 'https://api.openai.com/v1/chat/completions',
-      'companion_apiKey_openai', 'companion_model_openai', 'gpt-4o', null, messages, temperature, maxTokens);
+      'companion_apiKey_openai', 'companion_model_openai', 'gpt-4o', null, messages, temperature, maxTokens, override);
   } else if (provider === 'deepseek') {
     return callOpenAiCompatible(systemPrompt, 'https://api.deepseek.com/chat/completions',
-      'companion_apiKey_deepseek', 'companion_model_deepseek', 'deepseek-chat', null, messages, temperature, maxTokens);
+      'companion_apiKey_deepseek', 'companion_model_deepseek', 'deepseek-chat', null, messages, temperature, maxTokens, override);
   } else if (provider === 'openrouter') {
     return callOpenAiCompatible(systemPrompt, 'https://openrouter.ai/api/v1/chat/completions',
-      'companion_apiKey_openrouter', 'companion_model_openrouter', 'anthropic/claude-3.5-sonnet', null, messages, temperature, maxTokens);
+      'companion_apiKey_openrouter', 'companion_model_openrouter', 'anthropic/claude-3.5-sonnet', null, messages, temperature, maxTokens, override);
   } else if (provider === 'venice') {
     const veniceExtra = els.veniceOwnPromptOnly.checked
       ? { venice_parameters: { include_venice_system_prompt: false } }
       : {};
     return callOpenAiCompatible(systemPrompt, 'https://api.venice.ai/api/v1/chat/completions',
-      'companion_apiKey_venice', 'companion_model_venice', 'venice-uncensored', veniceExtra, messages, temperature, maxTokens);
+      'companion_apiKey_venice', 'companion_model_venice', 'venice-uncensored', veniceExtra, messages, temperature, maxTokens, override);
   }
   throw new Error('Unbekannter Anbieter: ' + provider);
 }
@@ -3994,6 +4170,9 @@ function versionFromCharacter(c, versionNumber) {
     gender: c.gender || 'offen',
     appearance: c.appearance || '',
     isNarrator: !!c.isNarrator,
+    // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
+    // dadurch, dass eine Figur gerade mitspielt oder nicht.
+    isUser: !!c.isUser,
     emotional: !!c.emotional,
     styleExamples: c.styleExamples || '',
     replyLength: c.replyLength || 'mittel',
@@ -4019,6 +4198,8 @@ function findVersion(figure, versionNumber) {
 
 // Turns an archived version into a working copy for the current cast. The copy
 // is deliberately deep: editing a card must never reach back into the archive.
+// isUser wird normalerweise der Figur entnommen. Nur wo eine Besetzungszeile
+// ausdrücklich etwas anderes sagt, wird der Wert übergeben.
 function characterFromVersion(figure, versionNumber, isUser) {
   const version = findVersion(figure, versionNumber);
   if (!version) return null;
@@ -4027,8 +4208,31 @@ function characterFromVersion(figure, versionNumber, isUser) {
     id: figure.id + '_v' + version.v,
     figureId: figure.id,
     version: version.v,
-    isUser: !!isUser,
+    isUser: isUser === undefined ? !!version.isUser : !!isUser,
   });
+}
+
+// Es kann nur eine Ich-Figur geben. Steht keine in der Besetzung, ist das in
+// Ordnung - dann schreibt das Modell keine Zeilen für mich.
+function keepSingleUser(keepFigureId) {
+  characters.forEach(c => {
+    if (c.figureId !== keepFigureId) c.isUser = false;
+  });
+}
+
+// Dasselbe im Archiv: markiert eine Figur sich als "ich", verlieren die anderen
+// das Merkmal in allen ihren Versionen - sonst stünden nach einem Wechsel zwei
+// Ich-Figuren zur Auswahl, und welche gilt, wäre Zufall.
+function demoteOtherUserFigures(keepFigureId) {
+  let changed = false;
+  figureArchive.forEach(f => {
+    if (f.id === keepFigureId) return;
+    f.versions.forEach(v => {
+      if (v.isUser) { v.isUser = false; changed = true; }
+    });
+  });
+  keepSingleUser(keepFigureId);
+  if (changed) saveArchive();
 }
 
 function addFigureToArchive(c) {
@@ -4245,7 +4449,8 @@ async function generateCharacterImage(c, button) {
       buildPortraitRequest(c),
       [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
       0.8,
-      2000
+      taskBudget('draft', 800),
+      { task: 'draft' }
       )).trim().replace(/^["'`]+|["'`]+$/g, '');
     } catch (err) {
       addMsg('system', `Bildbeschreibung für ${c.name} misslungen (${err.message}) - nutze eine einfache Beschreibung.`);
@@ -4367,11 +4572,13 @@ function editList() {
 
 // Writes the edit back to the archive and, if that figure happens to be in the
 // cast, refreshes the cast copy so the change takes effect immediately.
+// Der Ich-Schalter wurde hier früher ausdrücklich verworfen ("keepUser") - er
+// ließ sich dadurch für eine mitspielende Figur überhaupt nicht umstellen.
 function syncCastFromEdit(c) {
   const index = characters.findIndex(x => x.figureId === c.figureId);
   if (index < 0) return;
-  const keepUser = characters[index].isUser;
-  characters[index] = Object.assign(JSON.parse(JSON.stringify(c)), { isUser: keepUser });
+  characters[index] = JSON.parse(JSON.stringify(c));
+  if (c.isUser) keepSingleUser(c.figureId);
   saveCharacters();
 }
 
@@ -4444,13 +4651,13 @@ function renderCharacters() {
     if (c.isUser) meToggle.style.cssText = 'border-color:var(--accent-dim); color:var(--accent);';
     meToggle.onclick = () => {
       c.isUser = !c.isUser;
-      if (c.isUser) {
-        // Only one figure can be me; the cast is corrected right away.
-        characters.forEach(other => {
-          if (other.figureId !== c.figureId) other.isUser = false;
-        });
-      }
+      // Wer ich bin, gehört zur Figur - also sofort ins Archiv, nicht erst beim
+      // Sichern. Sonst ginge das Merkmal verloren, sobald die Figur woanders
+      // geöffnet wird.
+      storeCharacterVersion(c, false);
+      if (c.isUser) demoteOtherUserFigures(c.figureId);
       syncCastFromEdit(c);
+      if (figuresOpen) renderFigureList();
       renderCharacters();
     };
     head.appendChild(meToggle);
@@ -4484,7 +4691,6 @@ function renderCharacters() {
       dropFullImage(c.imageKey);
       figureArchive = figureArchive.filter(f => f.id !== c.figureId);
       characters = characters.filter(x => x.figureId !== c.figureId);
-      if (!userCharacter() && characters.length) characters[characters.length - 1].isUser = true;
       saveArchive();
       saveCharacters();
       editingChar = null;
@@ -4955,7 +5161,9 @@ function renderFigureList() {
     meta.className = 'meta';
     const who = document.createElement('div');
     who.className = 'who';
-    who.textContent = version.name + (figure.versions.length > 1 ? `  ·  v${version.v}` : '');
+    who.textContent = version.name
+      + (version.isUser ? '  (das bin ich)' : '')
+      + (figure.versions.length > 1 ? `  ·  v${version.v}` : '');
     const gist = document.createElement('div');
     gist.className = 'gist';
     gist.textContent = (inCast ? 'in der Szene · ' : '') + figureGist(version);
@@ -4988,7 +5196,7 @@ function openFigureEditor(figure) {
   editingChar = characterFromVersion(
     figure,
     inCast && inCast.version ? inCast.version : latestVersion(figure).v,
-    inCast ? inCast.isUser : false
+    inCast ? inCast.isUser : undefined
   );
   if (!editingChar) return;
   renderCharacters();
@@ -5056,7 +5264,7 @@ els.genFigureBtn.onclick = async () => {
     const raw = await callProvider(
       provider, buildFigureDraftPrompt(idea),
       [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
-      0.8, 3000, { persona: true }
+      0.8, taskBudget('draft', 3000), { persona: true, task: 'draft' }
     );
     const draft = extractJson(raw);
     const clean = sanitizeSingleCharacter(draft);
@@ -5087,6 +5295,7 @@ els.genFigureBtn.onclick = async () => {
 })();
 
 updateTrackVisibility();
+renderTaskModels();
 
 loadCharacters();
 loadArchive();
@@ -5097,6 +5306,21 @@ try {
     characters.forEach(c => { const f = addFigureToArchive(c); c.figureId = f.id; c.version = 1; });
     saveArchive();
     saveCharacters();
+  }
+  // Einmalig: bis 0.43 stand "das bin ich" nur an der Besetzung und nicht an der
+  // Figur. Ohne diesen Schritt stünde nach der Umstellung keine Ich-Figur mehr
+  // im Archiv, obwohl eine ausgewählt war.
+  if (localStorage.getItem('companion_userFlagOnFigure') !== 'true') {
+    const me = characters.find(c => c.isUser && c.figureId);
+    if (me) {
+      const figure = getFigure(me.figureId);
+      if (figure) {
+        figure.versions.forEach(v => { v.isUser = true; });
+        demoteOtherUserFigures(figure.id);
+        saveArchive();
+      }
+    }
+    safeSet('companion_userFlagOnFigure', 'true');
   }
   const entfernt = dedupeCast();
   if (entfernt) saveCharacters();
@@ -5331,6 +5555,39 @@ function addEnsembleMsg(role, text) {
   addMsg(isMe ? 'user' : 'char', text);
 }
 
+// Was zwischen Absenden und erstem Wort passiert, war bisher unsichtbar. Der
+// Zähler macht den Unterschied zwischen "dauert" und "hängt" sofort erkennbar.
+let thinkingTimer = null;
+let thinkingStart = 0;
+let thinkingLabel = '';
+
+function setThinking(label) {
+  if (!els.thinkingRow) return;
+  clearInterval(thinkingTimer);
+  if (!label) {
+    els.thinkingRow.style.display = 'none';
+    return;
+  }
+  thinkingLabel = label;
+  thinkingStart = Date.now();
+  els.thinkingRow.style.display = 'flex';
+  const tick = () => {
+    const seconds = Math.round((Date.now() - thinkingStart) / 1000);
+    els.thinkingText.textContent = `${thinkingLabel}… ${seconds} s`;
+  };
+  tick();
+  thinkingTimer = setInterval(tick, 1000);
+}
+
+if (els.thinkingCancel) {
+  els.thinkingCancel.onclick = () => {
+    abortAllRequests();
+    interruptPlayback();
+    setThinking('');
+    addMsg('system', 'Abgebrochen.');
+  };
+}
+
 async function askEnsemble(userText, options) {
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
@@ -5344,6 +5601,7 @@ async function askEnsemble(userText, options) {
   history.push({ role: 'user', content: userText });
   if (history.length > 24) history = history.slice(-24);
 
+  setThinking('Antwort wird geschrieben');
   try {
     const replyText = await generateWithoutRepeat(
       provider,
@@ -5352,7 +5610,8 @@ async function askEnsemble(userText, options) {
     );
     // Superseded while the model was thinking: drop this answer entirely rather
     // than adding it to a conversation that has already moved on.
-    if (playbackGeneration !== generation) return false;
+    if (playbackGeneration !== generation) { setThinking(''); return false; }
+    setThinking('');
 
     history.push({ role: 'assistant', content: replyText });
     sceneStep += 1;
@@ -5373,7 +5632,8 @@ async function askEnsemble(userText, options) {
           0.3,
           // Short JSON, but a reasoning model still thinks first - and an empty
           // answer here means the device silently keeps doing whatever it did.
-          Math.min(6000, pieces.length * 110 + REASONING_HEADROOM)
+          taskBudget('motion', Math.min(6000, pieces.length * 110)),
+          { task: 'motion' }
         );
         const parsed = extractJson(raw);
         return Array.isArray(parsed) ? addVariation(ensureMotionStarts(parsed), deviceNum) : null;
@@ -5432,6 +5692,8 @@ async function askEnsemble(userText, options) {
   } catch (err) {
     addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
     return false;
+  } finally {
+    setThinking('');
   }
 }
 
@@ -5686,18 +5948,18 @@ function renderLiveCast() {
     play.onclick = () => introduceFigure(c);
     row.appendChild(play);
 
-    if (!c.isUser) {
-      const remove = document.createElement('button');
-      remove.className = 'act';
-      remove.textContent = '✕';
-      remove.title = 'Aus der Besetzung nehmen';
-      remove.onclick = () => {
-        characters.splice(index, 1);
-        saveCharacters();
-        renderLivePanel();
-      };
-      row.appendChild(remove);
-    }
+    const remove = document.createElement('button');
+    remove.className = 'act';
+    remove.textContent = '✕';
+    // Auch die eigene Figur lässt sich herausnehmen. Ohne Ich-Figur schreibt das
+    // Modell schlicht keine Zeilen für mich - das ist erlaubt, nicht kaputt.
+    remove.title = 'Aus der Besetzung nehmen';
+    remove.onclick = () => {
+      characters.splice(index, 1);
+      saveCharacters();
+      renderLivePanel();
+    };
+    row.appendChild(remove);
 
     els.liveCast.appendChild(row);
   });
@@ -5751,9 +6013,12 @@ function renderLivePanel() {
 els.liveAddBtn.onclick = () => {
   const figure = getFigure(els.liveAddFigure.value);
   if (!figure) return;
-  const copy = characterFromVersion(figure, latestVersion(figure).v, false);
+  // Die Figur bringt ihr Ich-Merkmal selbst mit - vorher wurde hier fest "false"
+  // übergeben, weshalb "Das bin ich" beim Hinzufügen immer verlorenging.
+  const copy = characterFromVersion(figure, latestVersion(figure).v);
   if (!copy) return;
   characters.push(copy);
+  if (copy.isUser) keepSingleUser(copy.figureId);
   saveCharacters();
   renderLivePanel();
 };
@@ -5822,7 +6087,7 @@ async function generateStoryText(provider, idea, minutes) {
   const wordsPerSection = Math.round((minutes * STORY_WORDS_PER_MINUTE) / sectionCount);
   // Roughly 1.6 tokens per German word, plus headroom so the last sentence
   // isn't cut off mid-word.
-  const maxTokens = Math.min(12000, Math.round(wordsPerSection * 2.2) + REASONING_HEADROOM);
+  const maxTokens = taskBudget('chat', Math.min(12000, Math.round(wordsPerSection * 2.2)));
 
   let full = '';
   for (let i = 0; i < sectionCount; i++) {
@@ -5835,7 +6100,7 @@ async function generateStoryText(provider, idea, minutes) {
       [{ role: 'user', content: 'Schreib diesen Teil der Geschichte.' }],
       creativeTemperature(),
       maxTokens,
-      { persona: true }
+      { persona: true, task: 'chat' }
     );
     full += (full ? '\n\n' : '') + text.trim();
   }
@@ -5908,7 +6173,8 @@ async function generateScript(provider, deviceNum) {
           buildScriptPrompt(batch, deviceNum, offset, chunks.length),
           [{ role: 'user', content: 'Gib das Skript für diese Abschnitte zurück.' }],
           0.4,
-          Math.min(8000, batch.length * 260 + REASONING_HEADROOM)
+          taskBudget('motion', Math.min(8000, batch.length * 260)),
+          { task: 'motion' }
         );
         const data = extractJson(raw);
         if (Array.isArray(data) && data.length) parsed = data;
@@ -5981,7 +6247,7 @@ async function draftSceneAndCast(provider, idea) {
   const raw = await callProvider(
     provider, buildSceneDraftPrompt(idea),
     [{ role: 'user', content: 'Gib den Entwurf als JSON zurück.' }],
-    0.7, 8000, { persona: true }
+    0.7, taskBudget('draft', 8000), { persona: true, task: 'draft' }
   );
   const draft = extractJson(raw);
   if (!draft || typeof draft !== 'object') throw new Error('Der Entwurf war nicht verwertbar.');
