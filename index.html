@@ -697,10 +697,6 @@
         </label>
       </div>
 
-      <label for="sceneDesc">Szene &amp; Rahmen</label>
-      <textarea id="sceneDesc" style="min-height:90px" placeholder="Wo seid ihr, was ist die Situation, worum geht es gerade? Je konkreter, desto weniger erfindet die KI etwas Eigenes."></textarea>
-      <p class="hint">Ohne diesen Rahmen greift die KI bei offenen Bitten wie „erzähl mir etwas" auf irgendeine beliebige Geschichte zurück, statt in eurer Situation zu bleiben.</p>
-
       <label for="replyLength">Länge der Antworten</label>
       <select id="replyLength">
         <option value="kurz">Kurz - knappe Schlagabtausche</option>
@@ -708,14 +704,14 @@
         <option value="lang">Lang - ausgeschriebene Szenen</option>
         <option value="sehrlang">Sehr lang - wie in einem Buch</option>
       </select>
+      <p class="hint">Gilt für die Geschichte und für den Automatik-Modus. Im Wechselgespräch bleiben die Züge ohnehin kurz, damit du am Zug bleibst.</p>
 
       <label for="tempRange">Kreativität (Temperatur): <span id="tempVal">0.8</span></label>
       <input type="range" id="tempRange" min="0.1" max="1.3" step="0.05" value="0.8">
       <p class="hint">
         Niedrig heißt nüchtern und verlässlich, hoch heißt abwechslungsreich, aber
         fehleranfälliger. Kleinere Modelle kippen bei hohen Werten in Kauderwelsch -
-        beim Dolphin/Mistral-24B hinter „venice-uncensored" empfehlen die Entwickler
-        selbst etwa 0,15 bis 0,4. Große Modelle vertragen 0,8 bis 1,0.
+        dort sind 0,3 bis 0,5 sinnvoll. Große Modelle vertragen 0,8 bis 1,0.
       </p>
 
       <label for="styleExamples">Tonfall der Handlungsbeschreibung</label>
@@ -731,20 +727,17 @@
 
     <details class="subsection">
       <summary>Stimme &amp; Sprachausgabe</summary>
-      <label for="voiceSelect">Stimme des Charakters (Android)</label>
-      <select id="voiceSelect"><option>Stimmen werden geladen...</option></select>
-
-      <label for="pitchRange">Tonhöhe: <span id="pitchVal">1.0</span></label>
-      <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1.1">
-
-      <label for="rateRange">Sprechtempo: <span id="rateVal">1.0</span></label>
-      <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="0.95">
-
-      <label for="ttsSource">Sprachausgabe</label>
+      <label for="ttsSource">Womit gesprochen wird</label>
       <select id="ttsSource">
-        <option value="browser">Android-Stimme (kostenlos, oben eingestellt)</option>
+        <option value="browser">Android-Stimme (kostenlos)</option>
         <option value="elevenlabs">ElevenLabs (Cloud, natürlicher)</option>
       </select>
+      <p class="hint">
+        Welche Stimme eine Figur benutzt, mit welcher Tonhöhe und ob sie emotional spricht,
+        stellst du bei der Figur selbst ein - hier steht nur, über welchen Dienst gesprochen
+        wird. Das gilt auch für Erzählerstimmen: die sind Figuren mit dem Haken
+        „Ist eine Erzählerstimme".
+      </p>
 
       <div id="elevenPanel" style="display:none">
         <label for="elevenKey">ElevenLabs API-Schlüssel</label>
@@ -752,18 +745,7 @@
         <div class="btn-row">
           <button class="btn-secondary" id="loadElevenVoicesBtn" type="button">Stimmen laden</button>
         </div>
-        <label for="elevenVoiceSelect">ElevenLabs-Stimme</label>
-        <select id="elevenVoiceSelect"><option>Noch keine Stimmen geladen</option></select>
-        <div class="btn-row">
-          <button class="btn-secondary" id="previewCharVoiceBtn" type="button">▶ Hörprobe</button>
-          <button class="btn-secondary" id="previewCharEmotionBtn" type="button">▶ Mit Gefühl</button>
-        </div>
-        <p class="hint">Die Hörprobe ist die fertige Aufnahme von ElevenLabs und kostenlos. „Mit Gefühl" erzeugt eine längere Probe mit Lachen, Seufzen und Atmen - die kostet Zeichen, zeigt dafür die Bandbreite.</p>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
-          <input type="checkbox" id="emotionalVoice" style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Emotionale Ausdrucksweise (Lachen, Seufzen, Flüstern...)</span>
-        </label>
-        <p class="hint">Nutzt das ElevenLabs-Modell "v3" (Beta) - klingt lebendiger, kann aber etwas unvorhersehbarer sein.</p>
+        <p class="hint">Lädt deine Stimmenbibliothek, damit sie bei den Figuren zur Auswahl steht. Passiert beim Start automatisch, sobald ein Schlüssel vorliegt.</p>
 
         <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
           <input type="checkbox" id="audioCacheEnabled" style="width:auto;">
@@ -797,38 +779,10 @@
         <span style="font-size:13.5px; color:var(--text);">Atem und Laute mitauswerten</span>
       </label>
       <p class="hint">
-        Wertet während eines Anrufs aus, wie laut und wie oft es bei dir hörbar wird, und
-        gibt das als grobe Einschätzung weiter - etwa „ruhiger als vorher" oder „deutlich
-        lauter und schneller". Das ist kein Verstehen von Lauten, sondern nur ein Pegel
-        über die Zeit. Mit Kopfhörern zuverlässig; über Lautsprecher misst es die eigene
-        Ausgabe mit und ist wertlos.
+        Wertet während eines Anrufs aus, wie laut und wie oft es bei dir hörbar wird. Das ist
+        kein Verstehen von Lauten, sondern nur ein Pegel über die Zeit. Mit Kopfhörern
+        zuverlässig; über Lautsprecher misst es die eigene Ausgabe mit.
       </p>
-
-      <label style="display:flex; align-items:center; gap:8px; margin-top:16px;">
-        <input type="checkbox" id="narratorEnabled" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Erzählerstimme nutzen</span>
-      </label>
-      <p class="hint">Der Charakter spricht weiterhin selbst. Was gerade geschieht, beschreibt zusätzlich eine zweite Stimme - und genau aus dieser Beschreibung leitet die App die Gerätebewegung ab.</p>
-
-      <div id="narratorPanel" style="display:none">
-        <label for="voiceSelectNarrator">Stimme des Erzählers (Android)</label>
-        <select id="voiceSelectNarrator"><option>Stimmen werden geladen...</option></select>
-
-        <label for="pitchRangeNarrator">Tonhöhe: <span id="pitchValNarrator">0.9</span></label>
-        <input type="range" id="pitchRangeNarrator" min="0.5" max="2" step="0.1" value="0.9">
-
-        <label for="rateRangeNarrator">Sprechtempo: <span id="rateValNarrator">0.9</span></label>
-        <input type="range" id="rateRangeNarrator" min="0.5" max="1.5" step="0.1" value="0.9">
-
-        <div id="elevenNarratorPanel" style="display:none">
-          <label for="elevenVoiceSelectNarrator">ElevenLabs-Stimme des Erzählers</label>
-          <select id="elevenVoiceSelectNarrator"><option>Noch keine Stimmen geladen</option></select>
-          <div class="btn-row">
-            <button class="btn-secondary" id="previewNarratorVoiceBtn" type="button">▶ Hörprobe</button>
-          </div>
-          <p class="hint">Wird zusammen mit den Charakterstimmen über "Stimmen laden" befüllt.</p>
-        </div>
-      </div>
     </details>
 
     <details class="subsection">
@@ -1166,7 +1120,6 @@ const els = {
   replyLength: document.getElementById('replyLength'),
   tempRange: document.getElementById('tempRange'),
   tempVal: document.getElementById('tempVal'),
-  sceneDesc: document.getElementById('sceneDesc'),
   styleExamples: document.getElementById('styleExamples'),
   bleStatus: document.getElementById('bleStatus'),
   micStatus: document.getElementById('micStatus'),
@@ -1208,34 +1161,15 @@ const els = {
   bkPass: document.getElementById('bkPass'),
   bkFile: document.getElementById('bkFile'),
   bkInfo: document.getElementById('bkInfo'),
-  voiceSelect: document.getElementById('voiceSelect'),
-  pitchRange: document.getElementById('pitchRange'),
-  rateRange: document.getElementById('rateRange'),
-  pitchVal: document.getElementById('pitchVal'),
-  rateVal: document.getElementById('rateVal'),
   ttsSource: document.getElementById('ttsSource'),
   elevenPanel: document.getElementById('elevenPanel'),
   elevenKey: document.getElementById('elevenKey'),
-  elevenVoiceSelect: document.getElementById('elevenVoiceSelect'),
   loadElevenVoicesBtn: document.getElementById('loadElevenVoicesBtn'),
-  emotionalVoice: document.getElementById('emotionalVoice'),
   audioCacheEnabled: document.getElementById('audioCacheEnabled'),
   clearAudioCacheBtn: document.getElementById('clearAudioCacheBtn'),
   audioCacheInfo: document.getElementById('audioCacheInfo'),
   callMode: document.getElementById('callMode'),
   micSenseEnabled: document.getElementById('micSenseEnabled'),
-  narratorEnabled: document.getElementById('narratorEnabled'),
-  narratorPanel: document.getElementById('narratorPanel'),
-  elevenNarratorPanel: document.getElementById('elevenNarratorPanel'),
-  voiceSelectNarrator: document.getElementById('voiceSelectNarrator'),
-  pitchRangeNarrator: document.getElementById('pitchRangeNarrator'),
-  rateRangeNarrator: document.getElementById('rateRangeNarrator'),
-  pitchValNarrator: document.getElementById('pitchValNarrator'),
-  rateValNarrator: document.getElementById('rateValNarrator'),
-  elevenVoiceSelectNarrator: document.getElementById('elevenVoiceSelectNarrator'),
-  previewCharVoiceBtn: document.getElementById('previewCharVoiceBtn'),
-  previewCharEmotionBtn: document.getElementById('previewCharEmotionBtn'),
-  previewNarratorVoiceBtn: document.getElementById('previewNarratorVoiceBtn'),
   veniceOwnPromptOnly: document.getElementById('veniceOwnPromptOnly'),
   motionTrackFill: document.getElementById('motionTrackFill'),
   modeChatBtn: document.getElementById('modeChatBtn'),
@@ -1400,7 +1334,7 @@ els.apiKeyVenice.value = localStorage.getItem('companion_apiKey_venice') || '';
 els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venice-uncensored';
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
-els.sceneDesc.value = localStorage.getItem('companion_sceneDesc') || DEFAULT_SCENE;
+if (els.sceneDesc) els.sceneDesc.value = localStorage.getItem('companion_sceneDesc') || DEFAULT_SCENE;
 els.styleExamples.value = localStorage.getItem('companion_styleExamples') || '';
 els.replyLength.value = localStorage.getItem('companion_replyLength') || 'mittel';
 els.tempRange.value = localStorage.getItem('companion_temperature') || els.tempRange.value;
@@ -1416,27 +1350,27 @@ function updateProviderPanels() {
 }
 updateProviderPanels();
 els.llmProvider.onchange = updateProviderPanels;
-els.pitchRange.value = localStorage.getItem('companion_pitch') || els.pitchRange.value;
-els.rateRange.value = localStorage.getItem('companion_rate') || els.rateRange.value;
-els.pitchVal.textContent = els.pitchRange.value;
-els.rateVal.textContent = els.rateRange.value;
-els.pitchRange.oninput = () => els.pitchVal.textContent = els.pitchRange.value;
-els.rateRange.oninput = () => els.rateVal.textContent = els.rateRange.value;
+if (els.pitchRange) els.pitchRange.value = localStorage.getItem('companion_pitch') || els.pitchRange.value;
+if (els.rateRange) els.rateRange.value = localStorage.getItem('companion_rate') || els.rateRange.value;
+if (els.pitchVal) els.pitchVal.textContent = els.pitchRange.value;
+if (els.rateVal) els.rateVal.textContent = els.rateRange.value;
+if (els.pitchRange) els.pitchRange.oninput = () => els.pitchVal.textContent = els.pitchRange.value;
+if (els.rateRange) els.rateRange.oninput = () => els.rateVal.textContent = els.rateRange.value;
 
 els.ttsSource.value = localStorage.getItem('companion_ttsSource') || 'browser';
 els.elevenKey.value = localStorage.getItem('companion_elevenKey') || '';
-els.emotionalVoice.checked = localStorage.getItem('companion_emotionalVoice') === 'true';
+if (els.emotionalVoice) els.emotionalVoice.checked = localStorage.getItem('companion_emotionalVoice') === 'true';
 els.audioCacheEnabled.checked = (localStorage.getItem('companion_audioCache') ?? 'true') === 'true';
 els.veniceOwnPromptOnly.checked = localStorage.getItem('companion_veniceOwnPromptOnly') === 'true';
 els.callMode.value = localStorage.getItem('companion_callMode') || 'lautsprecher';
 els.micSenseEnabled.checked = localStorage.getItem('companion_micSense') === 'true';
-els.narratorEnabled.checked = localStorage.getItem('companion_narratorEnabled') === 'true';
-els.pitchRangeNarrator.value = localStorage.getItem('companion_pitchNarrator') || els.pitchRangeNarrator.value;
-els.rateRangeNarrator.value = localStorage.getItem('companion_rateNarrator') || els.rateRangeNarrator.value;
-els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
-els.rateValNarrator.textContent = els.rateRangeNarrator.value;
-els.pitchRangeNarrator.oninput = () => els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
-els.rateRangeNarrator.oninput = () => els.rateValNarrator.textContent = els.rateRangeNarrator.value;
+if (els.narratorEnabled) els.narratorEnabled.checked = localStorage.getItem('companion_narratorEnabled') === 'true';
+if (els.pitchRangeNarrator) els.pitchRangeNarrator.value = localStorage.getItem('companion_pitchNarrator') || els.pitchRangeNarrator.value;
+if (els.rateRangeNarrator) els.rateRangeNarrator.value = localStorage.getItem('companion_rateNarrator') || els.rateRangeNarrator.value;
+if (els.pitchValNarrator) els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
+if (els.rateValNarrator) els.rateValNarrator.textContent = els.rateRangeNarrator.value;
+if (els.pitchRangeNarrator) els.pitchRangeNarrator.oninput = () => els.pitchValNarrator.textContent = els.pitchRangeNarrator.value;
+if (els.rateRangeNarrator) els.rateRangeNarrator.oninput = () => els.rateValNarrator.textContent = els.rateRangeNarrator.value;
 
 // The narrator settings are provider-agnostic on purpose: the Android block is
 // always shown when the narrator is on, the ElevenLabs voice picker only when
@@ -1444,12 +1378,12 @@ els.rateRangeNarrator.oninput = () => els.rateValNarrator.textContent = els.rate
 function updateVoicePanels() {
   const eleven = els.ttsSource.value === 'elevenlabs';
   els.elevenPanel.style.display = eleven ? 'block' : 'none';
-  els.narratorPanel.style.display = els.narratorEnabled.checked ? 'block' : 'none';
-  els.elevenNarratorPanel.style.display = (eleven && els.narratorEnabled.checked) ? 'block' : 'none';
+  if (els.narratorPanel) els.narratorPanel.style.display = els.narratorEnabled.checked ? 'block' : 'none';
+  if (els.elevenNarratorPanel) els.elevenNarratorPanel.style.display = (eleven && els.narratorEnabled.checked) ? 'block' : 'none';
 }
 updateVoicePanels();
 els.ttsSource.onchange = updateVoicePanels;
-els.narratorEnabled.onchange = updateVoicePanels;
+if (els.narratorEnabled) els.narratorEnabled.onchange = updateVoicePanels;
 
 async function loadElevenVoices(quiet) {
   const key = apiKeyFor('companion_elevenKey');
@@ -1462,7 +1396,8 @@ async function loadElevenVoices(quiet) {
     if (!data.voices) throw new Error('Keine Stimmen erhalten - Schlüssel prüfen.');
     elevenVoiceCache = data.voices;
     if (typeof renderCharacters === 'function') renderCharacters();
-    [els.elevenVoiceSelect, els.elevenVoiceSelectNarrator].forEach(sel => {
+    // Both selects live with the figures now; whatever is still here gets filled.
+    [els.elevenVoiceSelect, els.elevenVoiceSelectNarrator].filter(Boolean).forEach(sel => {
       sel.innerHTML = '';
       data.voices.forEach(v => {
         const opt = document.createElement('option');
@@ -1472,9 +1407,9 @@ async function loadElevenVoices(quiet) {
       });
     });
     const saved = localStorage.getItem('companion_elevenVoiceId');
-    if (saved && data.voices.some(v => v.voice_id === saved)) els.elevenVoiceSelect.value = saved;
+    if (els.elevenVoiceSelect) if (saved && data.voices.some(v => v.voice_id === saved)) els.elevenVoiceSelect.value = saved;
     const savedNarr = localStorage.getItem('companion_elevenVoiceIdNarrator');
-    if (savedNarr && data.voices.some(v => v.voice_id === savedNarr)) els.elevenVoiceSelectNarrator.value = savedNarr;
+    if (els.elevenVoiceSelectNarrator) if (savedNarr && data.voices.some(v => v.voice_id === savedNarr)) els.elevenVoiceSelectNarrator.value = savedNarr;
     if (!quiet) addMsg('system', `${data.voices.length} ElevenLabs-Stimmen geladen.`);
   } catch (err) {
     addMsg('system', 'ElevenLabs-Stimmen konnten nicht geladen werden: ' + err.message);
@@ -1487,9 +1422,9 @@ function playAnyPreview(voiceId) {
   if (ready) playPreviewUrl(ready);
   else previewVoice(voiceId);
 }
-els.previewCharVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelect.value);
-els.previewCharEmotionBtn.onclick = () => previewVoiceEmotional(els.elevenVoiceSelect.value);
-els.previewNarratorVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelectNarrator.value || els.elevenVoiceSelect.value);
+if (els.previewCharVoiceBtn) els.previewCharVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelect.value);
+if (els.previewCharEmotionBtn) els.previewCharEmotionBtn.onclick = () => previewVoiceEmotional(els.elevenVoiceSelect.value);
+if (els.previewNarratorVoiceBtn) els.previewNarratorVoiceBtn.onclick = () => playAnyPreview(els.elevenVoiceSelectNarrator.value || els.elevenVoiceSelect.value);
 
 
 // Model identifiers change as Venice adds and retires models, so the list is
@@ -1656,7 +1591,7 @@ els.veniceModelSelect.onchange = () => {
 function populateVoices() {
   const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('de'));
   const allVoices = voices.length ? voices : speechSynthesis.getVoices();
-  [els.voiceSelect, els.voiceSelectNarrator].forEach(sel => {
+  [els.voiceSelect, els.voiceSelectNarrator].filter(Boolean).forEach(sel => {
     sel.innerHTML = '';
     allVoices.forEach(v => {
       const opt = document.createElement('option');
@@ -1666,9 +1601,9 @@ function populateVoices() {
     });
   });
   const saved = localStorage.getItem('companion_voice');
-  if (saved && allVoices.some(v => v.name === saved)) els.voiceSelect.value = saved;
+  if (els.voiceSelect) if (saved && allVoices.some(v => v.name === saved)) els.voiceSelect.value = saved;
   const savedNarr = localStorage.getItem('companion_voiceNarrator');
-  if (savedNarr && allVoices.some(v => v.name === savedNarr)) els.voiceSelectNarrator.value = savedNarr;
+  if (els.voiceSelectNarrator) if (savedNarr && allVoices.some(v => v.name === savedNarr)) els.voiceSelectNarrator.value = savedNarr;
 }
 populateVoices();
 speechSynthesis.onvoiceschanged = populateVoices;
@@ -1681,7 +1616,7 @@ speechSynthesis.onvoiceschanged = populateVoices;
 // scene, the device and the story prompt - figures come from the archive now.
 els.loadDefaultsBtn.onclick = () => {
   if (!confirm('Szene, Gerätebeschreibung und Geschichten-Vorgabe werden durch die Vorlagen ersetzt. Figuren und Schlüssel bleiben unberührt. Fortfahren?')) return;
-  els.sceneDesc.value = DEFAULT_SCENE;
+  if (els.sceneDesc) els.sceneDesc.value = DEFAULT_SCENE;
   els.device1Desc.value = DEFAULT_DEVICE1_DESC;
   els.storyIdea.value = DEFAULT_STORY_IDEA;
   if (els.liveScene) els.liveScene.value = DEFAULT_SCENE;
@@ -1767,26 +1702,26 @@ els.saveSettingsBtn.onclick = () => {
     safeSet(`companion_d1_pat_${p}`, els[`d1pat_${p}`].checked ? 'true' : 'false');
     safeSet(`companion_d2_pat_${p}`, els[`d2pat_${p}`].checked ? 'true' : 'false');
     });
-    safeSet('companion_sceneDesc', els.sceneDesc.value.trim());
+    if (els.sceneDesc) safeSet('companion_sceneDesc', els.sceneDesc.value.trim());
     safeSet('companion_styleExamples', els.styleExamples.value.trim());
     safeSet('companion_temperature', els.tempRange.value);
     safeSet('companion_replyLength', els.replyLength.value);
     saveCharacters();
-    safeSet('companion_voice', els.voiceSelect.value);
-    safeSet('companion_pitch', els.pitchRange.value);
-    safeSet('companion_rate', els.rateRange.value);
+    if (els.voiceSelect) safeSet('companion_voice', els.voiceSelect.value);
+    if (els.pitchRange) safeSet('companion_pitch', els.pitchRange.value);
+    if (els.rateRange) safeSet('companion_rate', els.rateRange.value);
     safeSet('companion_ttsSource', els.ttsSource.value);
     safeSet('companion_elevenKey', els.elevenKey.value.trim());
-    safeSet('companion_elevenVoiceId', els.elevenVoiceSelect.value || '');
-    safeSet('companion_emotionalVoice', els.emotionalVoice.checked ? 'true' : 'false');
+    if (els.elevenVoiceSelect) safeSet('companion_elevenVoiceId', els.elevenVoiceSelect.value || '');
+    if (els.emotionalVoice) safeSet('companion_emotionalVoice', els.emotionalVoice.checked ? 'true' : 'false');
     safeSet('companion_audioCache', els.audioCacheEnabled.checked ? 'true' : 'false');
     safeSet('companion_callMode', els.callMode.value);
     safeSet('companion_micSense', els.micSenseEnabled.checked ? 'true' : 'false');
-    safeSet('companion_narratorEnabled', els.narratorEnabled.checked ? 'true' : 'false');
-    safeSet('companion_voiceNarrator', els.voiceSelectNarrator.value || '');
-    safeSet('companion_pitchNarrator', els.pitchRangeNarrator.value);
-    safeSet('companion_rateNarrator', els.rateRangeNarrator.value);
-    safeSet('companion_elevenVoiceIdNarrator', els.elevenVoiceSelectNarrator.value || '');
+    if (els.narratorEnabled) safeSet('companion_narratorEnabled', els.narratorEnabled.checked ? 'true' : 'false');
+    if (els.voiceSelectNarrator) safeSet('companion_voiceNarrator', els.voiceSelectNarrator.value || '');
+    if (els.pitchRangeNarrator) safeSet('companion_pitchNarrator', els.pitchRangeNarrator.value);
+    if (els.rateRangeNarrator) safeSet('companion_rateNarrator', els.rateRangeNarrator.value);
+    if (els.elevenVoiceSelectNarrator) safeSet('companion_elevenVoiceIdNarrator', els.elevenVoiceSelectNarrator.value || '');
     safeSet('companion_veniceOwnPromptOnly', els.veniceOwnPromptOnly.checked ? 'true' : 'false');
     updateTrackVisibility();
     addMsg('system', `Einstellungen gespeichert (${(localStorageBytes() / 1024).toFixed(0)} KB belegt).`);
@@ -3067,40 +3002,32 @@ els.muteBtn.onclick = () => {
 // Resolving all three in one place is what lets the ensemble mode reuse the
 // entire speech path without any of it knowing that characters exist.
 function resolveVoice(role) {
+  const fallback = { voice: '', eleven: '', pitch: 1.0, rate: 1.0, emotional: false };
+  const fromVersion = (v) => ({
+    voice: v.voice || '',
+    eleven: v.elevenVoice || '',
+    pitch: typeof v.pitch === 'number' ? v.pitch : 1.0,
+    rate: typeof v.rate === 'number' ? v.rate : 1.0,
+    emotional: !!v.emotional,
+  });
+
+  // A named speaker in the current cast is the common case.
   const named = (typeof characters !== 'undefined')
     ? characters.find(c => c.name && c.name === role)
     : null;
-  if (named) {
-    return {
-      voice: named.voice || localStorage.getItem('companion_voice') || '',
-      eleven: named.elevenVoice || localStorage.getItem('companion_elevenVoiceId') || '',
-      pitch: typeof named.pitch === 'number' ? named.pitch : 1.0,
-      rate: typeof named.rate === 'number' ? named.rate : 1.0,
-    };
-  }
-  const narrator = role === 'narrator' && localStorage.getItem('companion_narratorEnabled') === 'true';
+  if (named) return fromVersion(named);
 
-  // A narrator chosen from the archive brings its own voice; the older
-  // narrator settings stay as the fallback for anyone who never picked one.
-  if (narrator) {
+  // The narrator is whichever figure was picked for the role.
+  if (role === 'narrator') {
     const chosen = getFigure(localStorage.getItem('companion_narratorFigure') || '');
     const version = chosen ? latestVersion(chosen) : null;
-    if (version) {
-      return {
-        voice: version.voice || localStorage.getItem('companion_voice') || '',
-        eleven: version.elevenVoice || localStorage.getItem('companion_elevenVoiceId') || '',
-        pitch: typeof version.pitch === 'number' ? version.pitch : 0.9,
-        rate: typeof version.rate === 'number' ? version.rate : 0.9,
-      };
-    }
+    if (version) return fromVersion(version);
   }
 
-  return {
-    voice: (narrator && localStorage.getItem('companion_voiceNarrator')) || localStorage.getItem('companion_voice') || '',
-    eleven: (narrator && localStorage.getItem('companion_elevenVoiceIdNarrator')) || localStorage.getItem('companion_elevenVoiceId') || '',
-    pitch: parseFloat(localStorage.getItem(narrator ? 'companion_pitchNarrator' : 'companion_pitch') || (narrator ? '0.9' : '1.1')),
-    rate: parseFloat(localStorage.getItem(narrator ? 'companion_rateNarrator' : 'companion_rate') || (narrator ? '0.9' : '0.95')),
-  };
+  // Anything unattributed borrows the first non-user figure, so a stray line is
+  // never silent.
+  const first = (typeof characters !== 'undefined') ? characters.find(c => !c.isUser) : null;
+  return first ? fromVersion(first) : fallback;
 }
 
 function speakBrowser(text, role) {
@@ -3131,7 +3058,10 @@ function fetchElevenAudio(text, role) {
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
 
-  const emotional = localStorage.getItem('companion_emotionalVoice') === 'true';
+  // Emotional delivery is a property of the figure now: one character can sigh
+  // and laugh while a narrator stays even, which was impossible with a single
+  // switch for the whole app.
+  const emotional = resolveVoice(role).emotional;
   const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
 
   // v3 accepts only three discrete stability values (0.0 / 0.5 / 1.0) and
@@ -3221,8 +3151,8 @@ async function previewVoice(voiceId, customText) {
 
   if (previewAudio) { try { previewAudio.pause(); } catch (e) {} previewAudio = null; }
 
-  const emotional = localStorage.getItem('companion_emotionalVoice') === 'true';
-  const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
+  const emotional = true; // a preview is there to show the range
+  const modelId = 'eleven_v3';
   const sample = customText
     || 'Hallo. So klinge ich, wenn ich ruhig spreche - und so, wenn es etwas lebhafter wird.';
 
@@ -4013,6 +3943,7 @@ function versionFromCharacter(c, versionNumber) {
     pitch: c.pitch, rate: c.rate,
     gender: c.gender || 'offen',
     isNarrator: !!c.isNarrator,
+    emotional: !!c.emotional,
     voice: c.voice || '', elevenVoice: c.elevenVoice || '',
     image: c.image || '', imageKey: c.imageKey || '',
     created: new Date().toISOString(),
@@ -4367,8 +4298,10 @@ async function generateCharacterImage(c, button) {
     c.image = await downscaleDataUrl(full, 192);
     dropFullImage(c.imageKey);
     c.imageKey = await storeFullImage(c.id, full);
-    saveCharacters();
+    storeCharacterVersion(c, false);
+    syncCastFromEdit(c);
     renderCharacters();
+    if (figuresOpen) renderFigureList();
   } catch (err) {
     addMsg('system', `Bild für ${c.name} fehlgeschlagen: ${err.message}`);
     button.disabled = false;
@@ -4482,8 +4415,12 @@ function renderCharacters() {
         });
         dropFullImage(c.imageKey);
         c.imageKey = await storeFullImage(c.id, original);
-        saveCharacters();
+        // A picture is not a draft - it belongs to the figure right away,
+        // otherwise it is gone the next time the editor is opened.
+        storeCharacterVersion(c, false);
+        syncCastFromEdit(c);
         renderCharacters();
+        if (figuresOpen) renderFigureList();
       } catch (err) {
         addMsg('system', 'Bild konnte nicht übernommen werden: ' + err.message);
       }
@@ -4602,6 +4539,21 @@ function renderCharacters() {
     narratorLabel.appendChild(narratorBox);
     narratorLabel.appendChild(document.createTextNode('Ist eine Erzählerstimme'));
     card.appendChild(narratorLabel);
+
+    const emoLabel = document.createElement('label');
+    emoLabel.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:8px;';
+    const emoBox = document.createElement('input');
+    emoBox.type = 'checkbox';
+    emoBox.style.width = 'auto';
+    emoBox.checked = !!c.emotional;
+    emoBox.onchange = () => { c.emotional = emoBox.checked; };
+    emoLabel.appendChild(emoBox);
+    emoLabel.appendChild(document.createTextNode('Spricht emotional (lacht, seufzt, atmet)'));
+    card.appendChild(emoLabel);
+    const emoHint = document.createElement('p');
+    emoHint.className = 'hint';
+    emoHint.textContent = 'Nutzt für diese Figur das ElevenLabs-Modell v3 - lebendiger, aber etwas unvorhersehbarer.';
+    card.appendChild(emoHint);
 
     const genderLabel = document.createElement('label');
     genderLabel.textContent = 'Geschlecht';
@@ -4890,6 +4842,7 @@ function sanitizeSingleCharacter(draft) {
     traits: (Array.isArray(d.traits) ? d.traits : []).filter(t => valid.has(t)),
     notes: String(d.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
+    emotional: true, // generated figures start expressive; the switch is in the card
     pitch: clamp(d.pitch, 0.5, 2, 1.0),
     rate: clamp(d.rate, 0.5, 1.5, 1.0),
     voice: '',
@@ -4974,7 +4927,7 @@ if (els.generateSceneBtn) els.generateSceneBtn.onclick = async () => {
     saveCharacters();
     renderArchiveSelect();
     renderCharacters();
-    if (draft.scene) els.sceneDesc.value = String(draft.scene).slice(0, 4000);
+    if (els.sceneDesc) if (draft.scene) els.sceneDesc.value = String(draft.scene).slice(0, 4000);
 
     addMsg('system', `Entwurf erstellt: ${characters.map(c => c.name).join(', ')}. Schau ihn dir an, ändere was du magst, und speichere dann.`);
   } catch (err) {
@@ -5006,7 +4959,8 @@ if (els.saveCastBtn) els.saveCastBtn.onclick = () => {
   const entry = {
     id: existing ? existing.id : 'cast_' + Date.now(),
     name: clean,
-    scene: els.sceneDesc.value.trim(),
+    // The scene field moved to the live panel; the stored value is the source.
+    scene: (localStorage.getItem('companion_sceneDesc') || '').slice(0, 4000),
     characters: JSON.parse(JSON.stringify(characters)),
   };
   if (existing) castLibrary[castLibrary.indexOf(existing)] = entry;
@@ -5346,6 +5300,18 @@ ${examples}`;
 }
 
 function ensembleFormatBlock() {
+  // With no narrator chosen, action lines have nobody to read them - they were
+  // spoken by whichever character happened to be next, which is exactly the
+  // muddle it looks like. So then there simply are none: pure dialogue, the way
+  // a phone call sounds.
+  if (localStorage.getItem('companion_narratorEnabled') !== 'true') {
+    return `Format - halte dich genau daran, sonst greifen die Stimmen nicht:
+- Jede Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "Mia: Komm näher."
+- KEINE Handlungsbeschreibungen, keine *Sternchen*, keine Erzählerstimme. Es gibt nur gesprochene Rede - so wie am Telefon, wo man einander nur hören kann.
+- Was geschieht, klingt allenfalls in dem an, was gesagt wird. Beschreibe es nicht von außen.
+- Keine Anführungszeichen, keine Regieanweisungen in Klammern, keine Überschriften.`;
+  }
+
   return `Format - halte dich genau daran, sonst greifen die Stimmen nicht:
 - Jede gesprochene Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "Mia: Komm näher."
 - Was geschieht, steht in *Sternchen* und ohne Namen-Doppelpunkt davor.
@@ -5356,8 +5322,10 @@ function ensembleFormatBlock() {
 
 function buildEnsemblePrompt(autoStep, isRetry) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
-  const emotional = localStorage.getItem('companion_emotionalVoice') === 'true'
-    && (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs';
+  // The tags only mean anything to ElevenLabs, and only for figures that are
+  // set to speak emotionally - otherwise they would be read out as words.
+  const emotional = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
+    && characters.some(c => !c.isUser && c.emotional);
   const { deviceStatus } = getDeviceContext();
 
   const emotionalInstruction = emotional
@@ -5397,7 +5365,7 @@ Bleib strikt in der oben beschriebenen Szene: derselbe Ort, dieselben Figuren, k
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-Umfang: etwa ${replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
+${autoStep ? '' : `Das hier ist ein Wechselgespräch: Halte dich kurz und gib mir den Zug zurück. Höchstens 4 Zeilen, und schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
 }
 
 function addEnsembleMsg(role, text) {
@@ -5424,6 +5392,13 @@ function addEnsembleMsg(role, text) {
 async function askEnsemble(userText, options) {
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+
+  // Sending again while a reply is still being fetched or spoken used to start
+  // a second, independent answer - and both then talked at once. The newer
+  // message wins: the older reply is cut off rather than layered underneath.
+  interruptPlayback();
+  const generation = playbackGeneration;
+
   history.push({ role: 'user', content: userText });
   if (history.length > 24) history = history.slice(-24);
 
@@ -5433,6 +5408,10 @@ async function askEnsemble(userText, options) {
       (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry),
       replyTokenBudget()
     );
+    // Superseded while the model was thinking: drop this answer entirely rather
+    // than adding it to a conversation that has already moved on.
+    if (playbackGeneration !== generation) return false;
+
     history.push({ role: 'assistant', content: replyText });
     sceneStep += 1;
 
@@ -5472,7 +5451,6 @@ async function askEnsemble(userText, options) {
       hasDevice2 ? getMotions(2).then(m => { motions2 = m; }) : Promise.resolve(),
     ]);
 
-    const generation = playbackGeneration;
     let upcoming = pieces.length ? prepareSpeech(pieces[0].text, pieces[0].role) : null;
     for (let i = 0; i < pieces.length; i++) {
       if (playbackGeneration !== generation) break; // user pressed stop
