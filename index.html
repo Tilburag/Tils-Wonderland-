@@ -754,7 +754,7 @@
       </div>
 
       <h3 style="font-size:14px; margin:20px 0 4px 0; font-weight:600;">Modelle je Aufgabe</h3>
-      <p class="hint">Die App macht dreierlei, und die drei Aufgaben stellen sehr verschiedene Ansprüche. Leer lassen heißt: das oben gewählte Modell des Anbieters. Budget leer heißt: die App rechnet es selbst aus.</p>
+      <p class="hint">Die App macht dreierlei, und die drei Aufgaben stellen sehr verschiedene Ansprüche. Jede Auswahl zeigt alle geladenen Modelle, nicht nur die vorsortierten - drück oben auf „Verfügbare Modelle laden", falls die Listen noch leer sind. „Wie oben eingestellt" nimmt das Modell aus dem Anbieter-Block, ein leeres Budget rechnet die App selbst aus.</p>
 
       <div id="taskModels"></div>
 
@@ -1403,12 +1403,42 @@ function renderTaskModels() {
     hint.textContent = task.hint;
     box.appendChild(hint);
 
-    const model = document.createElement('input');
-    model.type = 'text';
-    model.placeholder = 'Modell (leer = wie oben eingestellt)';
-    model.value = localStorage.getItem('companion_taskModel_' + task.id) || '';
-    model.oninput = () => safeSet('companion_taskModel_' + task.id, model.value.trim());
+    const stored = localStorage.getItem('companion_taskModel_' + task.id) || '';
+
+    // Alle geladenen Modelle, nicht nur die passendsten: was für das Gespräch
+    // taugt, ist für die Bewegung womöglich falsch, und diese Auswahl soll
+    // nicht dieselbe Vorsortierung erben wie die oben.
+    const model = document.createElement('select');
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = veniceModelCache.length
+      ? `(wie oben eingestellt - ${veniceModelCache.length} Modelle zur Auswahl)`
+      : '(wie oben eingestellt - noch keine Modelle geladen)';
+    model.appendChild(none);
+    veniceModelCache.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      const spec = m.model_spec || {};
+      opt.textContent = spec.name ? `${m.id} - ${spec.name}` : m.id;
+      model.appendChild(opt);
+    });
+    // Ein früher gewähltes Modell, das in der geladenen Liste fehlt, bleibt
+    // trotzdem stehen - sonst würde es beim Öffnen der Einstellungen still
+    // zurückgesetzt.
+    if (stored && !veniceModelCache.some(m => m.id === stored)) {
+      const kept = document.createElement('option');
+      kept.value = stored;
+      kept.textContent = stored + ' (nicht in der geladenen Liste)';
+      model.appendChild(kept);
+    }
+    model.value = stored;
+    model.onchange = () => safeSet('companion_taskModel_' + task.id, model.value);
     box.appendChild(model);
+
+    const tip = document.createElement('p');
+    tip.className = 'hint';
+    tip.textContent = task.tip;
+    box.appendChild(tip);
 
     const budget = document.createElement('input');
     budget.type = 'number';
@@ -1570,6 +1600,8 @@ async function loadVeniceModels(quiet) {
 
     veniceModelCache = list;
     renderVeniceModels();
+    // Die Aufgaben-Auswahlen leben von derselben Liste.
+    renderTaskModels();
     if (!quiet) addMsg('system', `${list.length} Venice-Modelle geladen, die passendsten stehen oben.`);
   } catch (err) {
     addMsg('system', 'Modellliste konnte nicht geladen werden: ' + err.message);
@@ -1882,8 +1914,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.45';
+const APP_VERSION = '0.46';
 const CHANGELOG = [
+  { v: '0.46', date: '2026-09-18', items: [
+    'Abschnitte ohne sprechbaren Text (nur eine Klangmarke) gehen nicht mehr an ElevenLabs. Der Dienst hat sie mit einem Fehler abgelehnt, und die Wiedergabe fiel mitten im Satz auf die Android-Stimme zurück.',
+    'Die Modellwahl je Aufgabe ist jetzt eine Auswahlliste mit allen geladenen Modellen statt eines Textfelds, mit Vorschlägen je Aufgabe.',
+  ]},
   { v: '0.45', date: '2026-09-18', items: [
     'Bei einer leeren Antwort wird das Token-Budget nicht mehr selbsttätig verdoppelt und die Anfrage bis zu dreimal wiederholt. Jeder dieser Anläufe wurde voll berechnet - ein Fehlschlag kostete mehr als eine gelungene Antwort.',
     'Stattdessen sagt die Meldung, welche Aufgabe mit welchem Budget und welchem Modell gescheitert ist und was dagegen hilft.',
@@ -3236,6 +3272,10 @@ function fetchElevenAudio(text, role) {
   const key = apiKeyFor('companion_elevenKey');
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
+  // Ein Abschnitt, der nach dem Entfernen der Klangmarken nichts Sprechbares
+  // mehr enthält, wird von ElevenLabs mit 400 abgelehnt ("empty text"). Solche
+  // Abschnitte sind still - das ist kein Fehler und braucht keine Meldung.
+  if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
 
   // Emotional delivery is a property of the figure now: one character can sigh
   // and laugh while a narrator stays even, which was impossible with a single
@@ -3893,11 +3933,14 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
 // Deshalb darf jede ihr eigenes Modell und ihr eigenes Budget haben.
 const TASKS = [
   { id: 'chat', label: 'Gespräch',
-    hint: 'Schreibt die Zeilen der Figuren. Braucht gutes Deutsch und Formattreue, kein Nachdenken - hier entstehen fast alle Kosten.' },
+    hint: 'Schreibt die Zeilen der Figuren. Braucht gutes Deutsch, Figurentreue und Formattreue - kein Nachdenken. Hier entstehen fast alle Kosten, also lohnt sich hier ein günstiges Modell am meisten.',
+    tip: 'Gut geeignet: ein Rollenspiel- oder Uncensored-Modell mittlerer Größe, etwa venice-uncensored-role-play, gemma-4-uncensored oder qwen-3-6-plus. Reasoning-Modelle wie GLM 5.x kosten hier viel und schreiben nicht besser.' },
   { id: 'motion', label: 'Bewegung',
-    hint: 'Übersetzt den Text in Bewegungswerte. Festes JSON-Schema, kein Nachdenken nötig - aber ein sehr kleines Modell bricht das Format.' },
+    hint: 'Übersetzt den Text in Bewegungswerte. Festes JSON-Schema, kein Nachdenken nötig - aber ein sehr kleines Modell bricht das Format.',
+    tip: 'Gut geeignet: dasselbe Modell wie fürs Gespräch, oder ein schnelles Allzweckmodell wie deepseek-v4-1-flash. Wenn die Meldung „Bewegungssteuerung Gerät 1" auftaucht, hier eine Stufe größer wählen.' },
   { id: 'draft', label: 'Entwurf',
-    hint: 'Erfindet Figuren und Szenen. Läuft selten, darf also das stärkere Modell sein.' },
+    hint: 'Erfindet Figuren und Szenen. Längere Ausgabe, strenges JSON, läuft aber selten - hier darf das stärkere Modell stehen.',
+    tip: 'Gut geeignet: das größte Modell, das du bezahlen magst, etwa z-ai-glm-5-3 oder qwen-3-8-2-4t-a95b. Bei einem Reasoning-Modell den Haken unten setzen.' },
 ];
 
 // Der Aufschlag deckt ab, was ein Reasoning-Modell vor dem ersten geschriebenen
