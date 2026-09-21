@@ -220,6 +220,54 @@
     font-size: 13px;
     padding: 10px 6px;
   }
+  .bottom-controls .side-col {
+    flex: 1;
+    max-width: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bottom-controls .side-col .side-btn { max-width: none; width: 100%; }
+  /* Szenenbilder im Gesprächsverlauf */
+  .msg.scene-image {
+    align-self: stretch;
+    max-width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+  }
+  .msg.scene-image img {
+    width: 100%;
+    border-radius: 14px;
+    display: block;
+    cursor: zoom-in;
+  }
+  .image-viewer {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 200;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    padding: calc(16px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom)) 12px;
+  }
+  .image-viewer img { max-width: 100%; max-height: 80vh; border-radius: 10px; }
+  .image-viewer .btn-row { display: flex; gap: 10px; }
+  .scene-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .scene-actions button { font-size: 12.5px; padding: 7px 12px; }
+  .msg.scene-video { align-self: stretch; max-width: 100%; }
+  .msg.scene-video video { width: 100%; border-radius: 14px; display: block; background: #000; }
+  .choice-dialog {
+    position: fixed; inset: 0; z-index: 210;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .choice-dialog .box {
+    background: var(--bg-panel-raised); border: 1px solid var(--line);
+    border-radius: 16px; padding: 18px; width: 100%; max-width: 360px;
+  }
+  .choice-dialog .box p { margin: 0 0 14px 0; font-size: 14px; line-height: 1.45; }
+  .choice-dialog .box button { width: 100%; margin-top: 8px; }
   .hint { font-size: 12px; color: var(--text-dim); text-align: center; }
   details summary { cursor: pointer; color: var(--text-dim); font-size: 13px; }
   #setupPanel > summary {
@@ -740,6 +788,13 @@
           <span style="font-size:13.5px; color:var(--text);">Nur passende Bildmodelle zeigen</span>
         </label>
         <p class="hint">Wird nur für die Profilbilder der Figuren gebraucht. Die Modelle unterscheiden sich darin, was sie darstellen - wenn eines eine Anfrage ablehnt, hilft ein anderes. Für fotorealistische Porträts eignet sich etwa lustify-v8.</p>
+        <label for="videoModel">Modell für Videos aus Szenenbildern</label>
+        <div class="text-input-row">
+          <input type="text" id="videoModel" placeholder="z.B. wan-2.6-image-to-video">
+          <button class="btn-secondary" id="loadVideoModelsBtn" type="button">Laden</button>
+        </div>
+        <select id="videoModelSelect"><option value="">(noch nicht geladen)</option></select>
+        <p class="hint">Nur Modelle, die ein Bild zum Leben erwecken („image-to-video"). Videos sind deutlich teurer als Bilder - vor jedem Clip zeigt die App den Preis.</p>
         <label for="portraitStyle">Stil der Profilbilder</label>
         <select id="portraitStyle">
           <option value="foto">Fotorealistisch - wie ein echtes Porträtfoto</option>
@@ -1105,12 +1160,15 @@
     <button class="btn-primary" id="sendTextBtn">Senden</button>
   </div>
   <div class="bottom-controls">
-    <div style="display:flex; flex-direction:column; gap:6px;">
+    <div class="side-col">
       <button class="btn-secondary side-btn" id="autoBtn">Automatik</button>
       <button class="btn-secondary side-btn" id="rememberBtn" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
     </div>
     <button class="talk-btn" id="talkBtn">📞<br>Anruf<br>starten</button>
-    <button class="estop side-btn" id="stopBtn">Stopp</button>
+    <div class="side-col">
+      <button class="estop side-btn" id="stopBtn">Stopp</button>
+      <button class="btn-secondary side-btn" id="sceneImageBtn" title="Ein Bild vom aktuellen Moment erzeugen">Bild</button>
+    </div>
   </div>
 </div>
 
@@ -1206,8 +1264,12 @@ const els = {
   onlySuitableModels: document.getElementById('onlySuitableModels'),
   imageModel: document.getElementById('imageModel'),
   portraitStyle: document.getElementById('portraitStyle'),
+  videoModel: document.getElementById('videoModel'),
+  videoModelSelect: document.getElementById('videoModelSelect'),
+  loadVideoModelsBtn: document.getElementById('loadVideoModelsBtn'),
   sharedProfile: document.getElementById('sharedProfile'),
   rememberBtn: document.getElementById('rememberBtn'),
+  sceneImageBtn: document.getElementById('sceneImageBtn'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
   onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
@@ -1976,8 +2038,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.58';
+const APP_VERSION = '0.60';
 const CHANGELOG = [
+  { v: '0.60', date: '2026-09-21', items: [
+    'Video aus einem Szenenbild: „▶ Video daraus" unter jedem Bild. Die App fragt jedes Mal nach 5 oder 10 Sekunden und zeigt dabei den Preis beider Längen. Das Video entsteht im Hintergrund, das Gespräch läuft weiter.',
+    'Neue Einstellung: Videomodell, mit Laden-Knopf für alle Modelle, die ein Bild animieren.',
+  ]},
+  { v: '0.59', date: '2026-09-21', items: [
+    'Szenenbild auf Abruf: „Bild" im Live-Bereich zeigt den aktuellen Moment des Gesprächs - mit den Figuren, wie ihr Aussehen-Feld sie beschreibt. Antippen vergrößert, dort lässt es sich speichern.',
+  ]},
   { v: '0.58', date: '2026-09-21', items: [
     'Gedächtnis: Mit „Erinnern" übernimmt die App das laufende Gespräch. Was alle Figuren über dich wissen, steht auf der Figurenseite; was eine Figur erlebt hat und wen sie kennt, im Feld „Gedächtnis" in ihrem Editor. Beides lässt sich lesen, ändern und löschen.',
     'Figuren, die sich schon begegnet sind, wissen in einer neuen Konstellation voneinander.',
@@ -4747,6 +4816,405 @@ function fallbackPortraitPrompt(c) {
     + `An original person, not a real individual and not a known fictional character. No text in the image.`;
 }
 
+// ---------- Szenenbild auf Abruf ----------
+// Ein Bild vom aktuellen Moment des Gesprächs. Das Entwurfsmodell fasst Szene,
+// Besetzung (mit dem verbindlichen Aussehen jeder Figur) und die letzten
+// Wechsel zu einer Bildbeschreibung zusammen; daraus malt das Bildmodell.
+// Das letzte Bild wird gemerkt - der nächste Schritt, ein kurzes Video, soll
+// genau dieses Bild zum Leben erwecken.
+let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
+
+function buildSceneImageRequest() {
+  const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 900);
+  const people = characters.filter(c => !c.isNarrator).map(c => {
+    const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : 'nicht festgelegt';
+    const looks = (c.appearance || '').trim();
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.slice(0, 400) : 'Aussehen frei, aber erwachsen.'}`;
+  }).join('\n');
+  const recent = history.slice(-8)
+    .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
+    .filter(Boolean).join('\n').slice(-2500);
+
+  return `Schreibe einen Bild-Prompt, der den aktuellen Moment dieses Gesprächs als ein einzelnes Bild zeigt. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
+
+Die Personen:
+${people}
+
+${scene ? `Der Ort und die Lage: ${scene}` : 'Kein fester Ort - wähle einen, der zum Gespräch passt.'}
+
+Was zuletzt geschah (das letzte ist der aktuelle Moment):
+${recent || '(noch nichts)'}
+
+Regeln:
+- Zeige genau den letzten Moment: wer ist zu sehen, wo, in welcher Haltung, wer tut was mit wem, Blicke, Licht, Stimmung.
+- Jede Person mit ihrem Aussehen wie oben angegeben - Haare, Augen, Statur, Kleidung. Das Geschlecht jeder Person unmissverständlich benennen ("a woman", "a man").
+- Alle abgebildeten Personen sind Erwachsene; schreibe ausdrücklich "adult". Keine realen Personen, keine bekannten Figuren aus Filmen, Spielen oder Büchern. Kein Text im Bild.
+- Technische Geräte nur zeigen, wenn das Gespräch sie ausdrücklich sichtbar beschreibt.
+${portraitStyle() === 'foto' ? '- Stil: ein echtes Foto, keine Illustration - Kamera, natürliches Licht, echte Hautstruktur. Keine Worte wie painting, illustration, digital art, render oder anime.' : ''}
+
+Antworte NUR mit dem englischen Prompt, zwei bis vier Sätze, ohne Anführungszeichen und ohne Erklärung.`;
+}
+
+function openImageViewer(dataUrl) {
+  const viewer = document.createElement('div');
+  viewer.className = 'image-viewer';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  viewer.appendChild(img);
+  const row = document.createElement('div');
+  row.className = 'btn-row';
+  const save = document.createElement('a');
+  save.className = 'btn-secondary';
+  save.textContent = 'Speichern';
+  save.href = dataUrl;
+  save.download = 'szene-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webp';
+  save.style.cssText = 'padding:10px 16px; text-decoration:none;';
+  const close = document.createElement('button');
+  close.className = 'btn-secondary';
+  close.textContent = 'Schließen';
+  close.onclick = () => viewer.remove();
+  row.appendChild(save);
+  row.appendChild(close);
+  viewer.appendChild(row);
+  viewer.onclick = (e) => { if (e.target === viewer) viewer.remove(); };
+  document.body.appendChild(viewer);
+}
+
+function addSceneImageMsg(dataUrl) {
+  const box = document.createElement('div');
+  box.className = 'msg scene-image';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = 'Szenenbild';
+  img.onclick = () => openImageViewer(dataUrl);
+  box.appendChild(img);
+  // Das Video animiert genau dieses Bild - deshalb sitzt der Knopf am Bild und
+  // nicht irgendwo in der Leiste.
+  const actions = document.createElement('div');
+  actions.className = 'scene-actions';
+  const videoBtn = document.createElement('button');
+  videoBtn.className = 'btn-secondary';
+  videoBtn.textContent = '▶ Video daraus';
+  videoBtn.onclick = () => startSceneVideo(dataUrl, videoBtn);
+  actions.appendChild(videoBtn);
+  box.appendChild(actions);
+  els.transcript.appendChild(box);
+  els.transcript.scrollTop = els.transcript.scrollHeight;
+}
+
+async function generateSceneImage() {
+  const key = apiKeyFor('companion_apiKey_venice');
+  if (!key) { addMsg('system', 'Für Szenenbilder wird ein Venice-Schlüssel gebraucht.'); return; }
+  if (!characters.some(c => !c.isNarrator)) { addMsg('system', 'Niemand in der Besetzung, den man zeigen könnte.'); return; }
+  if (history.length < 2) { addMsg('system', 'Noch ist nichts passiert, was man zeigen könnte.'); return; }
+
+  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  els.sceneImageBtn.disabled = true;
+  els.sceneImageBtn.textContent = 'Male...';
+  try {
+    let prompt = (await callProvider(
+      provider, buildSceneImageRequest(),
+      [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
+      0.7, taskBudget('draft', 900), { task: 'draft' }
+    )).trim().replace(/^["'`]+|["'`]+$/g, '');
+    if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
+    if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
+    if (portraitStyle() === 'foto') prompt = prompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture.';
+
+    const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: prompt.slice(0, 1400),
+        // Zusätzlich zur Anweisung im Prompt: nichts, was jünger als
+        // erwachsen wirken könnte.
+        negative_prompt: 'child, teen, minor, young-looking, childlike, blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
+          + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin' : ''),
+        width: 1024,
+        height: 768,
+        format: 'webp',
+        safe_mode: false,
+        hide_watermark: true,
+      })
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
+      throw new Error(res.status + (detail ? ': ' + detail : ''));
+    }
+    const body = await res.json();
+    const base64 = (Array.isArray(body.images) && body.images[0])
+      || (body.data && body.data[0] && body.data[0].b64_json) || '';
+    if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
+
+    const dataUrl = 'data:image/webp;base64,' + base64;
+    lastSceneImage = { dataUrl, prompt, createdAt: Date.now() };
+    addSceneImageMsg(dataUrl);
+    logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
+  } catch (err) {
+    addMsg('system', 'Szenenbild fehlgeschlagen: ' + err.message);
+  } finally {
+    els.sceneImageBtn.disabled = false;
+    els.sceneImageBtn.textContent = 'Bild';
+  }
+}
+
+// ---------- Video aus einem Szenenbild ----------
+// Venice erzeugt Videos asynchron: Auftrag einreichen, Kennung merken, dann alle
+// paar Sekunden nachfragen, bis das MP4 bereitliegt. Das dauert Minuten,
+// deshalb läuft es im Hintergrund, während das Gespräch weitergeht.
+// Bewusst mit eigenem fetch statt fetchWithRetry: dessen laufende Anfragen
+// werden bei jeder neuen Nachricht abgebrochen - ein Video soll das überleben.
+const VIDEO_POLL_MS = 5000;
+const VIDEO_MAX_WAIT_MS = 15 * 60 * 1000;
+const VIDEO_DEFAULT_MODEL = 'wan-2.6-image-to-video';
+
+function videoModelName() {
+  return (localStorage.getItem('companion_videoModel') || '').trim() || VIDEO_DEFAULT_MODEL;
+}
+
+async function veniceVideoCall(path, payload, timeoutMs) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), timeoutMs || 60000);
+  try {
+    return await fetch('https://api.venice.ai/api/v1/video/' + path, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: control.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readError(res) {
+  try { return JSON.stringify(await res.json()).slice(0, 240); } catch (e) { return ''; }
+}
+
+// Die Antwort der Preisabfrage wird nicht an einem festen Feldnamen
+// festgemacht - es zählt die erste Dollarzahl, die darin steht.
+function findPrice(obj) {
+  if (typeof obj === 'number') return obj;
+  if (!obj || typeof obj !== 'object') return null;
+  for (const k of ['quote', 'price', 'usd', 'cost', 'total', 'amount']) {
+    if (typeof obj[k] === 'number') return obj[k];
+    if (typeof obj[k] === 'string' && !isNaN(parseFloat(obj[k]))) return parseFloat(obj[k]);
+  }
+  for (const v of Object.values(obj)) {
+    const found = findPrice(v);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+async function quoteVideo(duration) {
+  try {
+    const res = await veniceVideoCall('quote', { model: videoModelName(), duration, resolution: '720p' }, 20000);
+    if (!res.ok) return { error: res.status + ' ' + (await readError(res)) };
+    return { price: findPrice(await res.json()) };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+function euroless(price) {
+  return price === null || price === undefined ? 'Preis unbekannt' : `etwa ${price.toFixed(2).replace('.', ',')} $`;
+}
+
+// Fragt jedes Mal nach der Länge und zeigt dabei gleich den Preis beider
+// Varianten - eine Entscheidung, ein Dialog.
+function askVideoLength(quotes) {
+  return new Promise(resolve => {
+    const dialog = document.createElement('div');
+    dialog.className = 'choice-dialog';
+    const box = document.createElement('div');
+    box.className = 'box';
+    const text = document.createElement('p');
+    text.textContent = `Ein kurzes Video aus diesem Bild mit ${videoModelName()}. Das dauert ein paar Minuten; das Gespräch läuft solange weiter.`;
+    box.appendChild(text);
+    ['5s', '10s'].forEach(d => {
+      const q = quotes[d];
+      const b = document.createElement('button');
+      b.className = 'btn-primary';
+      b.textContent = `${d === '5s' ? '5' : '10'} Sekunden - ${q.error ? 'nicht verfügbar' : euroless(q.price)}`;
+      b.disabled = !!q.error;
+      if (q.error) b.title = q.error;
+      b.onclick = () => { dialog.remove(); resolve(d); };
+      box.appendChild(b);
+    });
+    const cancel = document.createElement('button');
+    cancel.className = 'btn-secondary';
+    cancel.textContent = 'Abbrechen';
+    cancel.onclick = () => { dialog.remove(); resolve(null); };
+    box.appendChild(cancel);
+    dialog.appendChild(box);
+    document.body.appendChild(dialog);
+  });
+}
+
+function buildVideoMotionRequest() {
+  const recent = history.slice(-6)
+    .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
+    .filter(Boolean).join('\n').slice(-2000);
+  return `Beschreibe für ein Videomodell, wie sich das Bild in den nächsten Sekunden bewegen soll - auf Englisch, zwei bis drei Sätze. Das Bild zeigt den letzten Moment dieses Gesprächs:
+
+${recent}
+
+Beschreibe Bewegung, nicht Aussehen: wer bewegt sich wie, Blicke, Atem, Hände, Haare, Licht, eine ruhige Kamerabewegung. Die Personen bleiben dieselben wie im Bild. Alle Personen sind Erwachsene; keine realen Personen. Kein Text im Bild.
+
+Antworte NUR mit dem englischen Text, ohne Anführungszeichen.`;
+}
+
+async function startSceneVideo(imageDataUrl, button) {
+  if (!apiKeyFor('companion_apiKey_venice')) { addMsg('system', 'Für Videos wird ein Venice-Schlüssel gebraucht.'); return; }
+  button.disabled = true;
+  const label = button.textContent;
+  button.textContent = 'Frage Preis ab...';
+  let duration = null;
+  try {
+    const [q5, q10] = await Promise.all([quoteVideo('5s'), quoteVideo('10s')]);
+    if (q5.error && q10.error) {
+      addMsg('system', `Videomodell ${videoModelName()} ist nicht verfügbar: ${q5.error}`);
+      return;
+    }
+    duration = await askVideoLength({ '5s': q5, '10s': q10 });
+    if (!duration) return;
+    const price = (duration === '5s' ? q5 : q10).price;
+    logEvent('msg', { role: 'system', text: `Video angefordert: ${videoModelName()}, ${duration}, ${euroless(price)}` });
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+  runSceneVideo(imageDataUrl, duration);
+}
+
+async function runSceneVideo(imageDataUrl, duration) {
+  const model = videoModelName();
+  const holder = document.createElement('div');
+  holder.className = 'msg system';
+  holder.textContent = `Video (${duration}) wird vorbereitet...`;
+  els.transcript.appendChild(holder);
+  els.transcript.scrollTop = els.transcript.scrollHeight;
+  const started = Date.now();
+
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    let motion = '';
+    try {
+      motion = (await callProvider(provider, buildVideoMotionRequest(),
+        [{ role: 'user', content: 'Gib die Bewegungsbeschreibung zurück.' }],
+        0.6, taskBudget('draft', 500), { task: 'draft' })).trim().replace(/^["'`]+|["'`]+$/g, '');
+    } catch (e) { /* ohne Beschreibung geht es auch */ }
+    if (!motion) motion = 'Subtle natural movement, breathing, a slow gentle camera push-in.';
+    if (!/\badult/i.test(motion)) motion = 'Adults only. ' + motion;
+
+    holder.textContent = `Video (${duration}) ist in der Warteschlange...`;
+    const queued = await veniceVideoCall('queue', {
+      model, prompt: motion.slice(0, 2400), duration, resolution: '720p',
+      image_url: imageDataUrl,
+      negative_prompt: 'child, teen, minor, young-looking, childlike, text, watermark, distorted faces, extra limbs',
+    }, 120000);
+    if (!queued.ok) throw new Error(queued.status + ' ' + (await readError(queued)));
+    const job = await queued.json();
+    if (!job.queue_id) throw new Error('Keine Auftragskennung erhalten.');
+    logEvent('msg', { role: 'system', text: `Video in Warteschlange: ${job.queue_id}` });
+
+    let blob = null;
+    while (!blob) {
+      if (Date.now() - started > VIDEO_MAX_WAIT_MS) throw new Error('Nach 15 Minuten noch nicht fertig - abgebrochen.');
+      await new Promise(r => setTimeout(r, VIDEO_POLL_MS));
+      const res = await veniceVideoCall('retrieve', { model, queue_id: job.queue_id }, 120000);
+      if (!res.ok) throw new Error(res.status + ' ' + (await readError(res)));
+      const type = res.headers.get('content-type') || '';
+      if (type.includes('video')) { blob = await res.blob(); break; }
+      const status = await res.json();
+      const state = String(status.status || '').toUpperCase();
+      // Nur bei "COMPLETED" herunterladen - eine Download-Adresse gibt es bei
+      // manchen Modellen schon beim Einreichen, das Video ist dann aber noch
+      // lange nicht fertig.
+      if (state === 'COMPLETED') {
+        const url = status.download_url || job.download_url;
+        if (!url) throw new Error('Fertig, aber ohne Download-Adresse.');
+        const dl = await fetch(url);
+        if (!dl.ok) throw new Error('Download ' + dl.status);
+        blob = await dl.blob();
+        break;
+      }
+      if (state && state !== 'PROCESSING' && state !== 'QUEUED' && state !== 'PENDING') {
+        throw new Error(JSON.stringify(status).slice(0, 240));
+      }
+      const avg = Number(status.average_execution_time) || 0;
+      const done = Number(status.execution_duration) || 0;
+      const left = avg > done ? Math.round((avg - done) / 1000) : null;
+      holder.textContent = `Video (${duration}) wird erstellt` + (left !== null
+        ? ` - noch etwa ${left >= 60 ? Math.floor(left / 60) + ' min ' : ''}${left % 60} s`
+        : ` - läuft seit ${Math.round((Date.now() - started) / 1000)} s`);
+    }
+
+    const url = URL.createObjectURL(blob);
+    holder.className = 'msg scene-video';
+    holder.textContent = '';
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.muted = true;       // Autoplay auf dem Handy geht nur stumm
+    video.autoplay = true;
+    holder.appendChild(video);
+    const actions = document.createElement('div');
+    actions.className = 'scene-actions';
+    const save = document.createElement('a');
+    save.className = 'btn-secondary';
+    save.textContent = 'Speichern';
+    save.href = url;
+    save.download = 'szene-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.mp4';
+    save.style.cssText = 'padding:7px 12px; font-size:12.5px; text-decoration:none;';
+    actions.appendChild(save);
+    holder.appendChild(actions);
+    els.transcript.scrollTop = els.transcript.scrollHeight;
+    logEvent('msg', { role: 'system', text: `Video fertig nach ${Math.round((Date.now() - started) / 1000)} s (${Math.round(blob.size / 1024)} KB).` });
+    // Bei Venice aufräumen - das Video liegt jetzt nur noch hier.
+    veniceVideoCall('complete', { model, queue_id: job.queue_id }, 20000).catch(() => {});
+  } catch (err) {
+    holder.textContent = 'Video fehlgeschlagen: ' + err.message;
+    logEvent('msg', { role: 'system', text: 'Video fehlgeschlagen: ' + err.message });
+    if (els.transcript.style.display === 'none') showToast('Video fehlgeschlagen: ' + err.message, true);
+  }
+}
+
+async function loadVideoModels(quiet) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  try {
+    const res = await fetch('https://api.venice.ai/api/v1/models?type=video', {
+      headers: key ? { Authorization: 'Bearer ' + key } : {}
+    });
+    if (!res.ok) throw new Error('Antwort ' + res.status);
+    const body = await res.json();
+    const list = (Array.isArray(body.data) ? body.data : []).filter(m => /image-to-video|i2v/i.test(m.id || ''));
+    els.videoModelSelect.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = list.length ? `(${list.length} Modelle, die ein Bild animieren)` : '(keine gefunden)';
+    els.videoModelSelect.appendChild(none);
+    list.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      const spec = m.model_spec || {};
+      opt.textContent = spec.name ? `${m.id} - ${spec.name}` : m.id;
+      els.videoModelSelect.appendChild(opt);
+    });
+    els.videoModelSelect.value = list.some(m => m.id === els.videoModel.value.trim()) ? els.videoModel.value.trim() : '';
+    if (!quiet) addMsg('system', `${list.length} Videomodelle geladen.`);
+  } catch (err) {
+    if (!quiet) addMsg('system', 'Videomodelle konnten nicht geladen werden: ' + err.message);
+  }
+}
+
 function portraitStyle() {
   return localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
 }
@@ -6603,6 +7071,17 @@ function renderLivePanel() {
 
 els.liveAddBtn.onclick = () => addFigureToCast(els.liveAddFigure.value);
 els.rememberBtn.onclick = () => rememberConversation();
+els.sceneImageBtn.onclick = () => generateSceneImage();
+// Hier und nicht bei den übrigen Einstellungen: VIDEO_DEFAULT_MODEL steht
+// weiter hinten im Skript und wäre dort beim Start noch nicht benutzbar.
+els.videoModel.value = localStorage.getItem('companion_videoModel') || VIDEO_DEFAULT_MODEL;
+els.videoModel.oninput = () => safeSet('companion_videoModel', els.videoModel.value.trim());
+els.videoModelSelect.onchange = () => {
+  if (!els.videoModelSelect.value) return;
+  els.videoModel.value = els.videoModelSelect.value;
+  safeSet('companion_videoModel', els.videoModel.value);
+};
+els.loadVideoModelsBtn.onclick = () => loadVideoModels(false);
 els.sharedProfile.value = sharedProfile();
 els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
