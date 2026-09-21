@@ -1921,8 +1921,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.49';
+const APP_VERSION = '0.50';
 const CHANGELOG = [
+  { v: '0.50', date: '2026-09-21', items: [
+    'Bei Venice wird das Nachdenken abgeschaltet, wo „Denkt vor" nicht angehakt ist. Hybride Modelle wie DeepSeek V4 Flash haben sonst bei der Bewegung das ganze Budget verdacht, bevor sie antworteten.',
+    'Steuerwerte oder JSON, die ein Modell in den Dialog schreibt, werden herausgefiltert statt als Figurenzeile vorgelesen. Der Prompt verbietet sie zusätzlich.',
+    'Das automatische Budget für die Bewegung hat eine Untergrenze von 800 Token.',
+  ]},
   { v: '0.49', date: '2026-09-21', items: [
     'Der Geschichtenmodus schreibt seinen Fortschritt und seine Fehler jetzt ins Protokoll. Bisher standen sie nur in der Statuszeile, und ein Fehlschlag hinterließ im Protokoll keine Spur.',
     'Die automatischen Token-Grenzen für Gespräch und Geschichte sind großzügiger. Seit dem Wegfall des festen Aufschlags in 0.45 waren sie zu knapp, und lange Teile konnten mitten im Satz enden. Die Grenze kostet nichts - berechnet wird nur, was geschrieben wird.',
@@ -4033,9 +4038,14 @@ async function callProviderOnce(provider, systemPrompt, messages, temperature, m
     return callOpenAiCompatible(systemPrompt, 'https://openrouter.ai/api/v1/chat/completions',
       'companion_apiKey_openrouter', 'companion_model_openrouter', 'anthropic/claude-3.5-sonnet', null, messages, temperature, maxTokens, override);
   } else if (provider === 'venice') {
-    const veniceExtra = els.veniceOwnPromptOnly.checked
-      ? { venice_parameters: { include_venice_system_prompt: false } }
-      : {};
+    // Hybride Modelle wie DeepSeek V4 Flash denken standardmäßig nach, auch
+    // wenn niemand das braucht - bei der Bewegung verbrauchten sie so das ganze
+    // Budget, bevor ein Zeichen JSON kam. Venice kann das Nachdenken abschalten.
+    // Nur wo "Denkt vor" angehakt ist, darf das Modell denken.
+    const thinks = taskThinks((opts && opts.task) || 'chat');
+    const veniceParams = { disable_thinking: !thinks, strip_thinking_response: true };
+    if (els.veniceOwnPromptOnly.checked) veniceParams.include_venice_system_prompt = false;
+    const veniceExtra = { venice_parameters: veniceParams };
     return callOpenAiCompatible(systemPrompt, 'https://api.venice.ai/api/v1/chat/completions',
       'companion_apiKey_venice', 'companion_model_venice', 'venice-uncensored', veniceExtra, messages, temperature, maxTokens, override);
   }
@@ -5441,6 +5451,14 @@ function extractMotionMarker(line) {
   };
 }
 
+function looksTechnical(line) {
+  const body = line.replace(/^[^:{\[\n]{1,24}:\s*/, '').trim();
+  if (/^[\[{][\s\S]*[\]}]$/.test(body)) return true;
+  if (/"(device_\d|position|speed|low|high|bpm|texture)"\s*:/.test(body)) return true;
+  if (/^```/.test(body)) return true;
+  return false;
+}
+
 function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
   const out = [];
@@ -5450,6 +5468,14 @@ function parseEnsembleText(text) {
     const line = stripped.text;
     const lineMotion = stripped.motion;
     if (!line) return;
+    // Manche Modelle schreiben Steuerwerte als JSON mitten in den Dialog, weil
+    // die Gerätebeschreibung von Positionen spricht. Das ist kein Gesprochenes
+    // und würde vorgelesen - also weg damit, bevor es eine Figur zugeteilt
+    // bekommt. Die eigentliche Steuerung kommt ohnehin aus dem Bewegungsaufruf.
+    if (looksTechnical(line)) {
+      logEvent('msg', { role: 'system', text: 'Technische Zeile aus dem Text entfernt: ' + line.slice(0, 120) });
+      return;
+    }
 
     const m = line.match(/^([^:*\n]{1,24}):\s*(.+)$/);
     const matchedName = m ? names.find(n => n.toLowerCase() === m[1].trim().toLowerCase()) : null;
@@ -5577,9 +5603,10 @@ function buildEnsemblePrompt(autoStep, isRetry) {
   // Ohne Geräte-Wissen erfährt das schreibende Modell nichts vom Gerät. Der
   // Bewegungsaufruf bekommt die Beschreibung weiterhin - er muss ja wissen,
   // was er steuert.
-  const deviceBlock = deviceAware()
+  const deviceBlock = (deviceAware()
     ? deviceStatus
-    : 'Von technischen Geräten ist in dieser Szene keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun - erwähne kein Gerät, keinen Stroker, keine Maschine und keine Fernsteuerung.';
+    : 'Von technischen Geräten ist in dieser Szene keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun - erwähne kein Gerät, keinen Stroker, keine Maschine und keine Fernsteuerung.')
+    + '\n\nSchreibe niemals Steuerwerte, Positionen, Zahlen für Geschwindigkeit, JSON oder Code in deine Antwort. Die Steuerung übernimmt ein anderer Teil des Programms; du schreibst nur, was gesagt und getan wird.';
 
   const emotionalInstruction = emotional
     ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile, und nur bei gesprochenen Zeilen.`
@@ -5745,7 +5772,10 @@ async function askEnsemble(userText, options) {
           0.3,
           // Short JSON, but a reasoning model still thinks first - and an empty
           // answer here means the device silently keeps doing whatever it did.
-          taskBudget('motion', Math.min(6000, pieces.length * 110)),
+          // Untergrenze 800: die Grenze kostet nichts, solange sie nicht
+          // erreicht wird, und 110 je Abschnitt war schon für ein paar
+          // Zeilen JSON knapp.
+          taskBudget('motion', Math.min(6000, Math.max(800, pieces.length * 160))),
           { task: 'motion' }
         );
         const parsed = extractJson(raw);
