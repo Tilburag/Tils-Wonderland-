@@ -943,6 +943,13 @@
       </label>
       <p class="hint" id="liveDeviceAwareHint">Aus: Es wird weiterhin gesteuert, aber im Gespräch kommt das Gerät nicht vor - die Figuren beschreiben Hände, Mund und Körper.</p>
 
+      <label for="livePace">Aufbau</label>
+      <select id="livePace">
+        <option value="langsam">Langsam - viel Zeit für den Anfang</option>
+        <option value="zuegig">Zügig - kurze Einführung, dann geht es los</option>
+        <option value="direkt">Direkt - sofort zur Sache</option>
+      </select>
+
       <label>Wer spricht mit</label>
       <div id="liveCast"></div>
       <div class="text-input-row">
@@ -1011,6 +1018,11 @@
         <option value="neu">Figuren und Szene neu entwerfen lassen</option>
       </select>
       <p class="hint" id="storyCastHint"></p>
+      <div id="storyCast"></div>
+      <div class="text-input-row" id="storyAddRow">
+        <select id="storyAddFigure" style="flex:1;"></select>
+        <button class="btn-secondary" id="storyAddBtn" type="button">Hinzufügen</button>
+      </div>
 
       <label for="storyLength">Ungefähre Länge</label>
       <select id="storyLength">
@@ -1019,6 +1031,13 @@
         <option value="5">ca. 5 Minuten</option>
         <option value="10">ca. 10 Minuten</option>
         <option value="15">ca. 15 Minuten</option>
+      </select>
+
+      <label for="storyPace">Aufbau</label>
+      <select id="storyPace">
+        <option value="langsam">Langsam - ruhige Einführung, Steigerung erst in der Mitte</option>
+        <option value="zuegig">Zügig - kurze Einführung, dann gleich spürbar</option>
+        <option value="direkt">Direkt - mitten im Geschehen, ohne Vorgeplänkel</option>
       </select>
 
       <div class="btn-row">
@@ -1232,6 +1251,10 @@ const els = {
   motionMode: document.getElementById('motionMode'),
   storyCastMode: document.getElementById('storyCastMode'),
   storyCastHint: document.getElementById('storyCastHint'),
+  storyCast: document.getElementById('storyCast'),
+  storyAddRow: document.getElementById('storyAddRow'),
+  storyAddFigure: document.getElementById('storyAddFigure'),
+  storyAddBtn: document.getElementById('storyAddBtn'),
   storyLength: document.getElementById('storyLength'),
   genStoryBtn: document.getElementById('genStoryBtn'),
   storyStatus: document.getElementById('storyStatus'),
@@ -1252,6 +1275,8 @@ const els = {
   liveSetup: document.getElementById('liveSetup'),
   liveScene: document.getElementById('liveScene'),
   liveDeviceAware: document.getElementById('liveDeviceAware'),
+  livePace: document.getElementById('livePace'),
+  storyPace: document.getElementById('storyPace'),
   liveCast: document.getElementById('liveCast'),
   liveAddFigure: document.getElementById('liveAddFigure'),
   liveAddBtn: document.getElementById('liveAddBtn'),
@@ -1760,6 +1785,7 @@ els.loadDefaultsBtn.onclick = () => {
   try {
     els.device1Desc.value = DEFAULT_DEVICE1_DESC;
     els.storyIdea.value = DEFAULT_STORY_IDEA;
+    safeSet('companion_storyIdea', DEFAULT_STORY_IDEA);
     els.liveScene.value = DEFAULT_SCENE;
     safeSet('companion_sceneDesc', DEFAULT_SCENE);
     safeSet('companion_device1Desc', DEFAULT_DEVICE1_DESC);
@@ -1921,8 +1947,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.51';
+const APP_VERSION = '0.54';
 const CHANGELOG = [
+  { v: '0.54', date: '2026-09-21', items: [
+    'Mit „Die Figuren wissen vom Gerät" erfahren die Figuren jetzt, was das Gerät gerade tut - in Worten, mit Tendenz (schneller, langsamer, eingesetzt, zur Ruhe gekommen). Sie können sich darauf beziehen, und es stimmt.',
+    'Im Ein-Modell-Betrieb („Derselbe Aufruf") weiß die Figur, dass sie das Gerät selbst lenkt, und bekommt den letzten Stand, damit ihre erste Zeile daran anschließt.',
+    'Das schreibende Modell erfährt, wie sein Text zur Bewegung wird, und beschreibt Berührungen dadurch konkreter.',
+    'Behoben: Das Werteverbot aus 0.50 widersprach dem Ein-Modell-Betrieb, der Werte in Markern verlangt. Es gilt dort jetzt nur außerhalb der Marker.',
+  ]},
+  { v: '0.53', date: '2026-09-21', items: [
+    'Neuer Regler „Aufbau" in Geschichte und Live-Gespräch: langsam, zügig oder direkt. Er tauscht die eingebaute Anweisung zum Spannungsbogen aus, statt ihr mit einer eigenen Vorgabe zu widersprechen.',
+    'Das Bewegungsskript der Geschichte folgt demselben Aufbau - bei „direkt" beginnt die Bewegung nicht mehr mit langsamen, langen Hüben.',
+  ]},
+  { v: '0.52', date: '2026-09-21', items: [
+    'Die Geschichte zeigt ihre Besetzung wie das Live-Gespräch: mit Bild, zum Vorstellen, zum Entfernen und mit einer Auswahl zum Hinzufügen. Beim Neu-Entwerfen erscheinen die neuen Figuren dort, sobald sie fertig sind.',
+    '„Worum soll es gehen?" behält den zuletzt eingegebenen Text, statt bei jedem Start die Vorlage einzusetzen.',
+  ]},
   { v: '0.51', date: '2026-09-21', items: [
     'Die Bewegung wandert nicht mehr von selbst an den Anschlag. Bei gleichbleibenden Werten wurden Hublage und Tempo bisher Abschnitt für Abschnitt in dieselbe Richtung geschoben; jetzt bleibt die Hublage, wie das Modell sie gewählt hat, und das Tempo schwankt nur leicht darum.',
     'Die Zeilen der eigenen Figur dürfen das eigene Geschriebene weiterführen, ihm aber nicht mehr widersprechen oder es abschwächen.',
@@ -2240,6 +2280,7 @@ function buildSessionExport() {
     `Modell: ${model}`,
     `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? (emotional ? ' (v3, emotionale Tags an)' : ' (multilingual v2)') : ''}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
+    `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}`,
     `Figuren: ${characters.map(c => c.name + (c.isUser ? ' [ich]' : '')).join(', ')}`,
     deviceInfo(1),
     deviceInfo(2),
@@ -3532,7 +3573,29 @@ function replyLength() {
 // which is why a live scene used to plateau instead of building.
 let sceneStep = 0;
 
+// Wie schnell eine Szene zur Sache kommt. Früher war der Aufbau fest langsam,
+// und eine eigene Vorgabe wie "komm schnell zur Sache" widersprach der
+// eingebauten Anweisung "noch keine Steigerung" - welche gewann, entschied das
+// Modell. Jetzt wird die Anweisung selbst ausgetauscht.
+function pace(where) {
+  const v = localStorage.getItem('companion_pace_' + where);
+  return v === 'zuegig' || v === 'direkt' ? v : 'langsam';
+}
+
 function arcHint(step) {
+  const p = pace('live');
+  if (p === 'direkt') {
+    if (step <= 8) return 'Ihr seid schon mitten im Geschehen. Keine Einführung, kein Vorgeplänkel - es geht sofort zur Sache und bleibt auf hohem Niveau. Auf und Ab ist erwünscht, Abflachen nicht.';
+    if (step <= 14) return 'Die Szene nähert sich ihrem Höhepunkt. Keine Umwege, konsequent darauf zu.';
+    return 'Der Höhepunkt liegt hinter euch oder steht unmittelbar bevor. Lass es ruhiger werden und klingt aus, statt neu anzusetzen.';
+  }
+  if (p === 'zuegig') {
+    if (step <= 1) return 'Ihr seid am Anfang. Eine kurze Einführung von ein, zwei Sätzen, dann geht es spürbar los.';
+    if (step <= 4) return 'Die Szene ist in Gang. Steigere deutlich von Ausschnitt zu Ausschnitt.';
+    if (step <= 9) return 'Ihr seid mitten drin. Intensiv, mit klaren Veränderungen - ein kurzes Zurücknehmen macht den nächsten Schritt stärker.';
+    if (step <= 14) return 'Die Szene nähert sich ihrem Höhepunkt. Keine Umwege mehr, konsequent darauf zu.';
+    return 'Der Höhepunkt liegt hinter euch oder steht unmittelbar bevor. Lass es ruhiger werden und klingt aus, statt neu anzusetzen.';
+  }
   if (step <= 2) return 'Ihr seid am Anfang. Nehmt euch Zeit, bleibt bei Kleinigkeiten, noch keine Steigerung.';
   if (step <= 6) return 'Die Szene kommt in Gang. Es darf spürbar weitergehen, aber in kleinen Schritten und mit Pausen.';
   if (step <= 12) return 'Ihr seid mitten drin. Deutlich intensiver als am Anfang, mit klaren Veränderungen von Ausschnitt zu Ausschnitt - zwischendurch darf es auch kurz ruhiger werden, das macht den nächsten Schritt stärker.';
@@ -3652,6 +3715,68 @@ function getDeviceContext() {
   }
 
   return { deviceStatus, stateNote, hasDevice2 };
+}
+
+// Was das Gerät gerade tut, in Worten statt in Zahlen. Zahlen im Prompt
+// verleiten das schreibende Modell dazu, selbst Werte in den Dialog zu setzen;
+// Worte kann es aufgreifen, ohne aus der Rolle zu fallen.
+function motionInWords(st) {
+  if (!st || st.texture === 'stop' || (!st.bpm && st.texture !== 'hold')) return 'steht still';
+  const low = Number(st.low) || 0, high = Number(st.high) || 0;
+  const mid = (low + high) / 2, len = high - low;
+  const zone = mid >= 650 ? 'im oberen Teil der Strecke' : mid <= 350 ? 'im unteren Teil der Strecke' : 'in der Mitte der Strecke';
+  if (st.texture === 'hold') return `ruht ${zone}, ohne Hub`;
+  const tempo = st.bpm <= 20 ? 'sehr langsam' : st.bpm <= 40 ? 'langsam' : st.bpm <= 70 ? 'in mittlerem Tempo'
+    : st.bpm <= 100 ? 'schnell' : 'sehr schnell';
+  const stroke = len >= 650 ? 'über fast die ganze Länge' : len >= 350 ? `in langen Hüben ${zone}`
+    : len >= 180 ? `in mittellangen Hüben ${zone}` : `in kurzen Hüben ${zone}`;
+  const art = st.texture === 'pulse' ? ', in deutlich abgesetzten Stößen' : ', fließend';
+  return `bewegt sich ${tempo} ${stroke}${art}`;
+}
+
+function motionTrendInWords(deviceNum, current) {
+  const log = recentMotionLog.filter(e => e.device === deviceNum);
+  const prev = log.length >= 2 ? log[log.length - 2] : null;
+  if (!prev || !current) return '';
+  const d = (Number(current.bpm) || 0) - (Number(prev.bpm) || 0);
+  if (current.texture === 'stop' && prev.texture !== 'stop') return ' Eben ist es zur Ruhe gekommen.';
+  if (prev.texture === 'stop' && current.texture !== 'stop') return ' Eben hat es eingesetzt.';
+  if (d >= 12) return ' Es ist gerade schneller geworden.';
+  if (d <= -12) return ' Es ist gerade langsamer geworden.';
+  return ' Das Tempo ist seit dem letzten Mal etwa gleich geblieben.';
+}
+
+// Rückmeldung an die Figuren - nur mit eingeschaltetem Schalter "Die Figuren
+// wissen vom Gerät". Damit kann eine Figur sich auf das beziehen, was gerade
+// wirklich geschieht ("spürst du, wie ich langsamer werde?"), und es stimmt.
+// Im Ein-Modell-Betrieb steuert die Figur das Gerät selbst - dann ist es
+// buchstäblich ihre Bewegung, und sie bekommt zusätzlich den letzten Marker,
+// damit ihre erste Zeile nahtlos daran anschließt.
+function motionFeedbackBlock() {
+  if (!deviceAware()) return '';
+  const { hasDevice2 } = getDeviceContext();
+  const s1 = device1.getState();
+  let text = `WAS DAS GERÄT GERADE TUT: Gerät 1 ${motionInWords(s1)}.${motionTrendInWords(1, s1)}`;
+  if (hasDevice2) {
+    const s2 = device2.getState();
+    text += ` Gerät 2 ${motionInWords(s2)}.${motionTrendInWords(2, s2)}`;
+  }
+  if (inlineMotionEnabled()) {
+    text += `\nDas ist deine eigene Bewegung - du lenkst das Gerät mit den Markern. Der letzte Stand war <<${s1.low}-${s1.high}@${s1.bpm} ${s1.texture}>>; deine erste Zeile knüpft daran an, statt neu anzufangen.`
+      + `\nDu darfst darauf eingehen, dass du es bist, die das Gerät bewegt, und dass du spürst oder merkst, was es gerade tut. Sprich darüber in Worten, nie in Zahlen.`;
+  } else {
+    text += `\nDas ist die Folge dessen, was zuletzt beschrieben wurde. Ihr dürft euch darauf beziehen - als würdet ihr es spüren, sehen oder selbst lenken. Sprecht darüber in Worten, nie in Zahlen.`;
+  }
+  return '\n\n' + text;
+}
+
+// Wie der Text das Gerät erreicht - damit das schreibende Modell weiß, was am
+// anderen Ende mit seinen Sätzen passiert.
+function motionCouplingBlock() {
+  if (inlineMotionEnabled()) {
+    return '\n\nDu schreibst den Text UND lenkst das Gerät. Was eine Zeile beschreibt und was ihr Marker sagt, muss dasselbe sein: steht im Text "ganz langsam, über die ganze Länge", steht im Marker ein langer, langsamer Hub. Keine Zeile beschreibt etwas anderes, als das Gerät in diesem Moment tut.';
+  }
+  return '\n\nAus eurem Text leitet ein zweiter Schritt die Bewegung ab, Zeile für Zeile. Damit sie genau passt, beschreibt Berührungen konkret: wie schnell, ob über die ganze Länge oder nur an einer Stelle, ob fließend oder in abgesetzten Stößen, wann es schneller oder langsamer wird und wann es innehält. Vage Sätze ergeben vage Bewegung. Nennt dabei nie Zahlen oder Werte.';
 }
 
 
@@ -5603,10 +5728,20 @@ function buildEnsemblePrompt(autoStep, isRetry) {
   // Ohne Geräte-Wissen erfährt das schreibende Modell nichts vom Gerät. Der
   // Bewegungsaufruf bekommt die Beschreibung weiterhin - er muss ja wissen,
   // was er steuert.
+  // Das Verbot von Werten im Text galt seit 0.50 ausnahmslos - und widersprach
+  // damit ausgerechnet dem Ein-Modell-Betrieb, der Werte in Markern verlangt.
+  // Dort gilt es jetzt nur außerhalb der Marker.
+  const noValues = inlineMotionEnabled()
+    ? 'Zahlen und Werte stehen ausschließlich im Marker am Zeilenende. Im gesprochenen oder erzählten Text selbst stehen nie Werte, Positionen, JSON oder Code.'
+    : 'Schreibe niemals Steuerwerte, Positionen, Zahlen für Geschwindigkeit, JSON oder Code in deine Antwort. Die Steuerung übernimmt ein anderer Teil des Programms; du schreibst nur, was gesagt und getan wird.';
   const deviceBlock = (deviceAware()
     ? deviceStatus
-    : 'Von technischen Geräten ist in dieser Szene keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun - erwähne kein Gerät, keinen Stroker, keine Maschine und keine Fernsteuerung.')
-    + '\n\nSchreibe niemals Steuerwerte, Positionen, Zahlen für Geschwindigkeit, JSON oder Code in deine Antwort. Die Steuerung übernimmt ein anderer Teil des Programms; du schreibst nur, was gesagt und getan wird.';
+    : inlineMotionEnabled()
+      ? 'Im gesprochenen und erzählten Text ist von technischen Geräten keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun. Die Marker am Zeilenende steuern das Gerät unsichtbar im Hintergrund.'
+      : 'Von technischen Geräten ist in dieser Szene keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun - erwähne kein Gerät, keinen Stroker, keine Maschine und keine Fernsteuerung.')
+    + motionCouplingBlock()
+    + motionFeedbackBlock()
+    + '\n\n' + noValues;
 
   const emotionalInstruction = emotional
     ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile, und nur bei gesprochenen Zeilen.`
@@ -5870,7 +6005,11 @@ const story = {
   resolveCurrent: null,
 };
 
-if (!els.storyIdea.value) els.storyIdea.value = DEFAULT_STORY_IDEA;
+// Früher wurde bei jedem Start die Vorlage eingesetzt, weil das Feld nirgends
+// gesichert war. Jetzt bleibt stehen, was zuletzt darin stand; die Vorlage
+// kommt nur beim allerersten Start.
+els.storyIdea.value = localStorage.getItem('companion_storyIdea') ?? DEFAULT_STORY_IDEA;
+els.storyIdea.oninput = () => safeSet('companion_storyIdea', els.storyIdea.value);
 
 els.motionMode.value = localStorage.getItem('companion_motionMode') || 'zweit';
 els.motionMode.onchange = () => safeSet('companion_motionMode', els.motionMode.value);
@@ -5881,10 +6020,9 @@ function updateStoryCastHint() {
   const neu = els.storyCastMode.value === 'neu';
   safeSet('companion_storyCastMode', els.storyCastMode.value);
   els.storyCastHint.textContent = neu
-    ? 'Aus deiner Vorgabe werden zuerst Szene und Figuren entworfen, dann die Geschichte geschrieben. Die neuen Figuren landen im Archiv; deine bisherige Besetzung wird ersetzt.'
-    : 'Es treten ausschließlich die Figuren deiner Besetzung auf: '
-      + (characters.map(c => c.name).join(', ') || 'noch keine')
-      + '. Es werden keine weiteren erfunden.';
+    ? 'Aus deiner Vorgabe werden zuerst Szene und Figuren entworfen, dann die Geschichte geschrieben. Die neuen Figuren landen im Archiv und ersetzen die Besetzung unten.'
+    : 'Es treten ausschließlich diese Figuren auf, es werden keine weiteren erfunden. Dieselbe Besetzung gilt auch im Live-Gespräch.';
+  renderStoryCast();
 }
 els.storyCastMode.onchange = updateStoryCastHint;
 updateStoryCastHint();
@@ -5954,6 +6092,9 @@ function showSettings() {
 function switchMode(mode) {
   const previous = currentMode;
   currentMode = mode;
+  // Die Besetzung kann sich in der Figurenseite geändert haben (Bild, Name) -
+  // beim Öffnen der Geschichte wird die Liste deshalb neu gezeichnet.
+  if (mode === 'story') renderStoryCast();
 
   try { localStorage.setItem('companion_mode', mode); } catch (e) {}
   showOnly(mode === 'story' ? 'story' : 'live');
@@ -6067,8 +6208,18 @@ els.navSetup.onclick = () => openSetup();
 function narratorFigures() { return figureArchive.filter(f => latestVersion(f).isNarrator); }
 function playableFigures() { return figureArchive.filter(f => !latestVersion(f).isNarrator); }
 
-function renderLiveCast() {
-  els.liveCast.innerHTML = '';
+// Live und Geschichte teilen sich eine Besetzung. Beide Ansichten zeichnen
+// deshalb dieselbe Liste, und eine Änderung in der einen erscheint sofort in
+// der anderen.
+function refreshCastViews() {
+  renderLivePanel();
+  renderStoryCast();
+}
+
+function renderLiveCast() { renderCastList(els.liveCast, true); }
+
+function renderCastList(container, editable) {
+  container.innerHTML = '';
   characters.forEach((c, index) => {
     const row = document.createElement('div');
     row.className = 'figure-row';
@@ -6098,39 +6249,73 @@ function renderLiveCast() {
     play.onclick = () => introduceFigure(c);
     row.appendChild(play);
 
-    const remove = document.createElement('button');
-    remove.className = 'act';
-    remove.textContent = '✕';
-    // Auch die eigene Figur lässt sich herausnehmen. Ohne Ich-Figur schreibt das
-    // Modell schlicht keine Zeilen für mich - das ist erlaubt, nicht kaputt.
-    remove.title = 'Aus der Besetzung nehmen';
-    remove.onclick = () => {
-      characters.splice(index, 1);
-      saveCharacters();
-      renderLivePanel();
-    };
-    row.appendChild(remove);
+    if (editable) {
+      const remove = document.createElement('button');
+      remove.className = 'act';
+      remove.textContent = '✕';
+      // Auch die eigene Figur lässt sich herausnehmen. Ohne Ich-Figur schreibt das
+      // Modell schlicht keine Zeilen für mich - das ist erlaubt, nicht kaputt.
+      remove.title = 'Aus der Besetzung nehmen';
+      remove.onclick = () => {
+        characters.splice(index, 1);
+        saveCharacters();
+        refreshCastViews();
+      };
+      row.appendChild(remove);
+    }
 
-    els.liveCast.appendChild(row);
+    container.appendChild(row);
   });
+  if (!characters.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Noch niemand in der Besetzung.';
+    container.appendChild(empty);
+  }
 }
 
-function renderLiveAddOptions() {
-  els.liveAddFigure.innerHTML = '';
+function renderLiveAddOptions() { fillAddOptions(els.liveAddFigure); }
+
+function fillAddOptions(select) {
+  select.innerHTML = '';
   const available = playableFigures().filter(f => !characters.some(c => c.figureId === f.id));
   if (!available.length) {
     const opt = document.createElement('option');
     opt.value = '';
     opt.textContent = '(alle Figuren sind schon dabei)';
-    els.liveAddFigure.appendChild(opt);
+    select.appendChild(opt);
     return;
   }
   available.forEach(f => {
     const opt = document.createElement('option');
     opt.value = f.id;
     opt.textContent = latestVersion(f).name;
-    els.liveAddFigure.appendChild(opt);
+    select.appendChild(opt);
   });
+}
+
+function addFigureToCast(figureId) {
+  const figure = getFigure(figureId);
+  if (!figure) return;
+  // Die Figur bringt ihr Ich-Merkmal selbst mit.
+  const copy = characterFromVersion(figure, latestVersion(figure).v);
+  if (!copy) return;
+  characters.push(copy);
+  if (copy.isUser) keepSingleUser(copy.figureId);
+  saveCharacters();
+  refreshCastViews();
+}
+
+// Im Modus "neu entwerfen" wird die Besetzung beim Erzeugen ersetzt -
+// Hinzufügen und Entfernen hätten dann keine Wirkung und wären irreführend.
+// Die Liste bleibt trotzdem sichtbar: nach dem Entwurf stehen dort die neuen
+// Figuren.
+function renderStoryCast() {
+  if (!els.storyCast) return;
+  const neu = els.storyCastMode.value === 'neu';
+  renderCastList(els.storyCast, !neu);
+  els.storyAddRow.style.display = neu ? 'none' : 'flex';
+  if (!neu) fillAddOptions(els.storyAddFigure);
 }
 
 function renderLiveNarrator() {
@@ -6156,23 +6341,14 @@ function renderLiveNarrator() {
 function renderLivePanel() {
   els.liveScene.value = localStorage.getItem('companion_sceneDesc') || '';
   els.liveDeviceAware.checked = (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
+  els.livePace.value = pace('live');
   renderLiveCast();
   renderLiveAddOptions();
   renderLiveNarrator();
 }
 
-els.liveAddBtn.onclick = () => {
-  const figure = getFigure(els.liveAddFigure.value);
-  if (!figure) return;
-  // Die Figur bringt ihr Ich-Merkmal selbst mit - vorher wurde hier fest "false"
-  // übergeben, weshalb "Das bin ich" beim Hinzufügen immer verlorenging.
-  const copy = characterFromVersion(figure, latestVersion(figure).v);
-  if (!copy) return;
-  characters.push(copy);
-  if (copy.isUser) keepSingleUser(copy.figureId);
-  saveCharacters();
-  renderLivePanel();
-};
+els.liveAddBtn.onclick = () => addFigureToCast(els.liveAddFigure.value);
+els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
 
 els.liveNarrator.onchange = () => {
   const id = els.liveNarrator.value;
@@ -6181,6 +6357,10 @@ els.liveNarrator.onchange = () => {
 };
 
 els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.value.trim()); };
+
+els.livePace.onchange = () => safeSet('companion_pace_live', els.livePace.value);
+els.storyPace.value = pace('story');
+els.storyPace.onchange = () => safeSet('companion_pace_story', els.storyPace.value);
 
 els.liveDeviceAware.onchange = () => {
   safeSet('companion_deviceAware', els.liveDeviceAware.checked ? 'true' : 'false');
@@ -6205,13 +6385,34 @@ function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, pre
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
   const narratorOn = localStorage.getItem('companion_narratorEnabled') === 'true';
 
+  const ARCS = {
+    langsam: {
+      single: 'Die Geschichte muss in diesem einen Abschnitt vollständig verlaufen: ruhiger Einstieg, spürbare Steigerung, Höhepunkt, kurzer Ausklang.',
+      start: 'Das ist der ANFANG. Führe in die Situation ein und beginne ruhig. Steigere noch nicht zu früh.',
+      middle: 'Steigere spürbar weiter, aber erreiche den Höhepunkt noch nicht.',
+      end: 'Das ist der SCHLUSS. Führe zum Höhepunkt und lass die Geschichte danach ruhig ausklingen.',
+    },
+    zuegig: {
+      single: 'Die Geschichte muss in diesem einen Abschnitt vollständig verlaufen: Einstieg in wenigen Sätzen, rasche Steigerung, Höhepunkt, kurzer Ausklang.',
+      start: 'Das ist der ANFANG. Führe in wenigen Sätzen ein und steigere noch in diesem Teil deutlich - kein langes Vorgeplänkel.',
+      middle: 'Steigere weiter und halte die Intensität hoch; ein kurzes Zurücknehmen ist erlaubt, ein Abflachen nicht.',
+      end: 'Das ist der SCHLUSS. Führe zum Höhepunkt und lass die Geschichte danach kurz ausklingen.',
+    },
+    direkt: {
+      single: 'Setze mitten im Geschehen ein, ohne Einführung und ohne Vorgeplänkel. Von der ersten Zeile an geht es zur Sache, auf hohem Niveau mit Auf und Ab, bis zum Höhepunkt und einem kurzen Ausklang.',
+      start: 'Das ist der ANFANG - aber setze mitten im Geschehen ein, ohne Einführung und ohne Vorgeplänkel. Von der ersten Zeile an geht es zur Sache.',
+      middle: 'Bleib auf hohem Niveau, mit Auf und Ab, ohne abzuflachen. Erreiche den Höhepunkt noch nicht.',
+      end: 'Das ist der SCHLUSS. Führe zum Höhepunkt und lass die Geschichte danach kurz ausklingen.',
+    },
+  };
+  const a = ARCS[pace('story')];
   const arc = sectionCount === 1
-    ? 'Die Geschichte muss in diesem einen Abschnitt vollständig verlaufen: ruhiger Einstieg, spürbare Steigerung, Höhepunkt, kurzer Ausklang.'
+    ? a.single
     : sectionIndex === 0
-      ? 'Das ist der ANFANG. Führe in die Situation ein und beginne ruhig. Steigere noch nicht zu früh.'
+      ? a.start
       : sectionIndex === sectionCount - 1
-        ? 'Das ist der SCHLUSS. Führe zum Höhepunkt und lass die Geschichte danach ruhig ausklingen.'
-        : `Das ist Teil ${sectionIndex + 1} von ${sectionCount}, also die MITTE. Steigere spürbar weiter, aber erreiche den Höhepunkt noch nicht.`;
+        ? a.end
+        : `Das ist Teil ${sectionIndex + 1} von ${sectionCount}, also die MITTE. ${a.middle}`;
 
   // Jede Geschichte ist ein Drehbuch mit mehreren benannten Stimmen - es gibt
   // keinen Einzelfigur-Modus mehr, der ein anderes Format bräuchte.
@@ -6246,7 +6447,7 @@ async function generateStoryText(provider, idea, minutes) {
   const maxTokens = taskBudget('chat', Math.min(12000, Math.round(wordsPerSection * 3)));
 
   let full = '';
-  logEvent('msg', { role: 'system', text: `Geschichte: ${minutes} Minuten in ${sectionCount} Teilen, je rund ${wordsPerSection} Wörter, Budget ${maxTokens} Token, Modell ${taskModelName('chat') || modelFor('companion_model_' + provider) || provider}` });
+  logEvent('msg', { role: 'system', text: `Geschichte: Aufbau ${pace('story')}, ${minutes} Minuten in ${sectionCount} Teilen, je rund ${wordsPerSection} Wörter, Budget ${maxTokens} Token, Modell ${taskModelName('chat') || modelFor('companion_model_' + provider) || provider}` });
   for (let i = 0; i < sectionCount; i++) {
     setStoryStatus(`Schreibe Teil ${i + 1} von ${sectionCount}...`);
     setStoryProgress((i / sectionCount) * 0.5);
@@ -6265,6 +6466,16 @@ async function generateStoryText(provider, idea, minutes) {
 }
 
 // ---- generating the motion script ----
+// Der Bewegungsbogen muss zum Aufbau der Geschichte passen - eine direkt
+// einsetzende Geschichte mit 15 Hüben pro Minute zu beginnen, widerspräche
+// dem Text.
+function scriptArcText() {
+  const p = pace('story');
+  if (p === 'direkt') return 'Die Geschichte setzt mitten im Geschehen ein: beginne bereits im mittleren Bereich (etwa 35-60), halte das Niveau mit deutlichem Auf und Ab, erreiche eine intensive Phase mit oft kürzeren Hüben (60-110) und schließe mit einem kurzen, ruhigeren Ausklang.';
+  if (p === 'zuegig') return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: nur ein kurzer ruhiger Anfang (etwa 20-35), dann zügige Steigerung (35-65), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-110), dann ein kurzer Ausklang.';
+  return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: ruhiger Anfang mit langen, langsamen Hüben (etwa 15-30), allmähliche Steigerung (30-60), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-110), dann ein ruhiger Ausklang.';
+}
+
 function buildScriptPrompt(chunks, deviceNum, offset, total) {
   const prefix = 'd' + deviceNum;
   const desc = (localStorage.getItem(`companion_device${deviceNum}Desc`) || '').trim();
@@ -6297,7 +6508,7 @@ Bewegungsarten: ${textureLegend}.
 
 MEHRERE PHASEN sind der eigentliche Zweck: Ein Abschnitt soll nicht durchgehend dasselbe tun. Typisch sind zwei bis drei Phasen, etwa ein langsamer Beginn, der in etwas Schnelleres übergeht, oder eine kurze Pause vor dem Wiedereinsetzen. Nur bei sehr kurzen Abschnitten reicht eine Phase.
 
-Über die ganze Geschichte hinweg soll ein Bogen entstehen: ruhiger Anfang mit langen, langsamen Hüben (etwa 15-30), allmähliche Steigerung (30-60), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-110), dann ein ruhiger Ausklang. Innerhalb dieses Bogens sind Rückschritte ausdrücklich erwünscht - ein kurzes Zurücknehmen macht die folgende Steigerung wirksamer als stures Durchziehen.
+${scriptArcText()} Innerhalb dieses Bogens sind Rückschritte ausdrücklich erwünscht - ein kurzes Zurücknehmen macht die folgende Steigerung wirksamer als stures Durchziehen.
 
 Richte dich nach dem Text: Beschreibt er eine Bewegung konkret, setz sie um. Beschreibt er nur Rede oder Stimmung, führe die vorherigen Werte sinnvoll fort.
 
@@ -6424,6 +6635,7 @@ async function draftSceneAndCast(provider, idea) {
 els.genStoryBtn.onclick = async () => {
   const idea = els.storyIdea.value.trim();
   if (!idea) { setStoryStatus('Bitte zuerst beschreiben, worum es gehen soll.'); return; }
+  safeSet('companion_storyIdea', els.storyIdea.value);
   stopStory();
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const minutes = parseInt(els.storyLength.value, 10);
@@ -6438,7 +6650,11 @@ els.genStoryBtn.onclick = async () => {
   els.playStoryBtn.disabled = true;
   els.storyText.innerHTML = '';
   try {
-    if (neueBesetzung) await draftSceneAndCast(provider, idea);
+    if (neueBesetzung) {
+      await draftSceneAndCast(provider, idea);
+      // Die frisch entworfenen Figuren sofort zeigen - in beiden Ansichten.
+      refreshCastViews();
+    }
     const text = await generateStoryText(provider, idea, minutes);
     const segments = parseEnsembleText(text);
     story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {} }));
