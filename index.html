@@ -937,6 +937,12 @@
       <label for="liveScene">Kurz: wo seid ihr, was ist die Lage? (optional)</label>
       <textarea id="liveScene" style="min-height:90px" placeholder="Ein paar Sätze genügen. Leer lassen, wenn es einfach losgehen soll."></textarea>
 
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveDeviceAware" checked style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Die Figuren wissen vom Gerät</span>
+      </label>
+      <p class="hint" id="liveDeviceAwareHint">Aus: Es wird weiterhin gesteuert, aber im Gespräch kommt das Gerät nicht vor - die Figuren beschreiben Hände, Mund und Körper.</p>
+
       <label>Wer spricht mit</label>
       <div id="liveCast"></div>
       <div class="text-input-row">
@@ -1245,6 +1251,7 @@ const els = {
   livePanel: document.getElementById('livePanel'),
   liveSetup: document.getElementById('liveSetup'),
   liveScene: document.getElementById('liveScene'),
+  liveDeviceAware: document.getElementById('liveDeviceAware'),
   liveCast: document.getElementById('liveCast'),
   liveAddFigure: document.getElementById('liveAddFigure'),
   liveAddBtn: document.getElementById('liveAddBtn'),
@@ -1914,8 +1921,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.46';
+const APP_VERSION = '0.47';
 const CHANGELOG = [
+  { v: '0.47', date: '2026-09-18', items: [
+    'Steht eine Figur auf „das bin ich", gilt das Geschriebene als ihre Zeile: es trägt ihren Namen im Verlauf und geht mit Namen an das Modell. Die Figuren sprechen mich dadurch an, statt über mich zu reden.',
+    'Neuer Schalter im Live-Bereich: „Die Figuren wissen vom Gerät". Aus bedeutet, dass weiter gesteuert wird, das Gerät im Gespräch aber nicht vorkommt.',
+  ]},
   { v: '0.46', date: '2026-09-18', items: [
     'Abschnitte ohne sprechbaren Text (nur eine Klangmarke) gehen nicht mehr an ElevenLabs. Der Dienst hat sie mit einem Fehler abgelehnt, und die Wiedergabe fiel mitten im Satz auf die Android-Stimme zurück.',
     'Die Modellwahl je Aufgabe ist jetzt eine Auswahlliste mit allen geladenen Modellen statt eines Textfelds, mit Vorschlägen je Aufgabe.',
@@ -2875,7 +2886,7 @@ if (SpeechRecognition) {
     const text = (event.results[0][0].transcript || '').trim();
     if (!text) return;
     if (callActive) { handleSpokenTurn(text); return; }
-    addMsg('user', text);
+    addUserMsg(text);
     askActive(text);
   };
   recognizer.onerror = (e) => {
@@ -3078,7 +3089,7 @@ async function handleSpokenTurn(text) {
   if (callBusy) interruptPlayback(); // spoken over a running reply
   callBusy = true;
   if (!headphoneMode()) stopListening();
-  addMsg('user', text);
+  addUserMsg(text);
   try {
     await askActive(text);
   } finally {
@@ -3119,7 +3130,7 @@ function sendTypedMessage() {
   // Typing mid-call is fine, but the microphone has to be closed for it -
   // otherwise the reply to the typed message gets transcribed as input.
   if (typeof callActive !== 'undefined' && callActive) stopListening();
-  addMsg('user', text);
+  addUserMsg(text);
   els.textInput.value = '';
   // Ohne catch verschwand eine Ablehnung hier spurlos - kein Text, kein Fehler,
   // nur Stille.
@@ -3586,6 +3597,12 @@ function logMotionChoice(deviceNum, motion) {
 
 // Shared device context (descriptions, connection status, current live motion state)
 // used by both the conversational prompt and the separate motion-derivation prompt.
+// Der Schalter im Live-Bereich. Die Steuerung läuft unabhängig davon weiter -
+// er entscheidet nur, ob die Figuren das Gerät kennen und ansprechen dürfen.
+function deviceAware() {
+  return (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
+}
+
 function getDeviceContext() {
   const d1connected = device1.isConnected();
   const d2connected = device2.isConnected();
@@ -5441,7 +5458,9 @@ function buildCastBlock() {
   return `Die Figuren in dieser Szene:
 ${cast}
 
-${me ? `${me.name} bin ich. Schreibe die Zeilen meiner Figur mit, als kurze, zustimmende Reaktionen von höchstens einem Satz - sie werden mir vorgelesen.
+${me ? `${me.name} bin ich. Sprich mich als ${me.name} an - die anderen Figuren reden mit mir, nicht über mich, und nennen mich bei diesem Namen. Wenn ich selbst etwas schreibe, steht es im Verlauf als Zeile von ${me.name}; behandle es als das, was ich gesagt oder getan habe.
+
+Schreibe die Zeilen meiner Figur mit, als kurze, zustimmende Reaktionen von höchstens einem Satz - sie werden mir vorgelesen.
 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
@@ -5536,6 +5555,12 @@ function buildEnsemblePrompt(autoStep, isRetry) {
   const emotional = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
     && characters.some(c => !c.isUser && c.emotional);
   const { deviceStatus } = getDeviceContext();
+  // Ohne Geräte-Wissen erfährt das schreibende Modell nichts vom Gerät. Der
+  // Bewegungsaufruf bekommt die Beschreibung weiterhin - er muss ja wissen,
+  // was er steuert.
+  const deviceBlock = deviceAware()
+    ? deviceStatus
+    : 'Von technischen Geräten ist in dieser Szene keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun - erwähne kein Gerät, keinen Stroker, keine Maschine und keine Fernsteuerung.';
 
   const emotionalInstruction = emotional
     ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile, und nur bei gesprochenen Zeilen.`
@@ -5561,7 +5586,7 @@ function buildEnsemblePrompt(autoStep, isRetry) {
   return `${buildCastBlock()}
 
 ${scene ? `Die Szene:\n${scene}\n` : ''}
-${deviceStatus}${micSenseHint()}
+${deviceBlock}${micSenseHint()}
 
 Wo ihr im Verlauf steht (Ausschnitt ${sceneStep + 1}): ${arcHint(sceneStep)}
 Die Szene soll sich über viele Ausschnitte hinweg aufbauen, nicht in einem. Jeder Ausschnitt bringt die Handlung einen erkennbaren Schritt weiter - wiederhole nie eine vorherige Zeile wörtlich.${retryNote}
@@ -5575,6 +5600,28 @@ Bleib strikt in der oben beschriebenen Szene: derselbe Ort, dieselben Figuren, k
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
 ${autoStep ? '' : `Das hier ist ein Wechselgespräch: Halte dich kurz und gib mir den Zug zurück. Höchstens 4 Zeilen, und schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
+}
+
+// Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
+// im Verlauf trägt es ihren Namen, und im Prompt erscheint es als ihre Zeile.
+// Sonst wüsste das Modell nicht, wer da gerade spricht.
+function addUserMsg(text) {
+  const me = userCharacter();
+  if (me) {
+    const label = document.createElement('div');
+    label.className = 'msg speaker-label';
+    const picture = characterImage(me.name);
+    if (picture) {
+      const avatar = document.createElement('img');
+      avatar.className = 'msg-avatar';
+      avatar.src = picture;
+      label.appendChild(avatar);
+    }
+    label.appendChild(document.createTextNode(me.name));
+    label.style.alignSelf = 'flex-end';
+    els.transcript.appendChild(label);
+  }
+  addUserMsg(text);
 }
 
 function addEnsembleMsg(role, text) {
@@ -5641,7 +5688,11 @@ async function askEnsemble(userText, options) {
   interruptPlayback();
   const generation = playbackGeneration;
 
-  history.push({ role: 'user', content: userText });
+  // Unter dem Namen meiner Figur, damit das Modell weiß, wer da spricht -
+  // sonst steht mein Satz namenlos im Verlauf und die Figuren reden über mich
+  // in der dritten Person, statt mich anzusprechen.
+  const me = userCharacter();
+  history.push({ role: 'user', content: me && userText ? `${me.name}: ${userText}` : userText });
   if (history.length > 24) history = history.slice(-24);
 
   setThinking('Antwort wird geschrieben');
@@ -6048,6 +6099,7 @@ function renderLiveNarrator() {
 
 function renderLivePanel() {
   els.liveScene.value = localStorage.getItem('companion_sceneDesc') || '';
+  els.liveDeviceAware.checked = (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
   renderLiveCast();
   renderLiveAddOptions();
   renderLiveNarrator();
@@ -6073,6 +6125,10 @@ els.liveNarrator.onchange = () => {
 };
 
 els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.value.trim()); };
+
+els.liveDeviceAware.onchange = () => {
+  safeSet('companion_deviceAware', els.liveDeviceAware.checked ? 'true' : 'false');
+};
 
 els.liveStartBtn.onclick = () => {
   safeSet('companion_sceneDesc', els.liveScene.value.trim());
