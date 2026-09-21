@@ -1921,8 +1921,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.47';
+const APP_VERSION = '0.49';
 const CHANGELOG = [
+  { v: '0.49', date: '2026-09-21', items: [
+    'Der Geschichtenmodus schreibt seinen Fortschritt und seine Fehler jetzt ins Protokoll. Bisher standen sie nur in der Statuszeile, und ein Fehlschlag hinterließ im Protokoll keine Spur.',
+    'Die automatischen Token-Grenzen für Gespräch und Geschichte sind großzügiger. Seit dem Wegfall des festen Aufschlags in 0.45 waren sie zu knapp, und lange Teile konnten mitten im Satz enden. Die Grenze kostet nichts - berechnet wird nur, was geschrieben wird.',
+    'Wird eine Antwort an der Token-Grenze abgeschnitten, steht das jetzt im Protokoll.',
+  ]},
+  { v: '0.48', date: '2026-09-18', items: [
+    'Nachrichten ließen sich in 0.47 nicht absenden: die neue Namenszeile rief sich selbst endlos auf. Behoben.',
+  ]},
   { v: '0.47', date: '2026-09-18', items: [
     'Steht eine Figur auf „das bin ich", gilt das Geschriebene als ihre Zeile: es trägt ihren Namen im Verlauf und geht mit Namen an das Modell. Die Figuren sprechen mich dadurch an, statt über mich zu reden.',
     'Neuer Schalter im Live-Bereich: „Die Figuren wissen vom Gerät". Aus bedeutet, dass weiter gesteuert wird, das Gerät im Gespräch aber nicht vorkommt.',
@@ -3564,7 +3572,11 @@ async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
 function replyTokenBudget() {
   const shape = replyLength();
   const words = shape.lines * shape.words;
-  return taskBudget('chat', Math.min(12000, Math.round(words * 1.5)));
+  // Die Grenze kostet nichts, solange sie nicht erreicht wird - berechnet wird
+  // nur, was tatsächlich geschrieben wird. Bis 0.44 lag hier stets ein Aufschlag
+  // von 1.200 obendrauf; ohne ihn war der Faktor 1,5 zu knapp für deutschen Text
+  // mit Namen, Handlungszeilen und Klangmarken.
+  return taskBudget('chat', Math.min(12000, Math.round(words * 2.5)));
 }
 
 function creativeTemperature() {
@@ -3923,6 +3935,13 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
   // Some providers return the content as an array of parts rather than a string.
   if (Array.isArray(content)) content = content.map(c => (c && c.text) || '').join('');
   content = (content || '').trim();
+
+  // Abgeschnitten, aber nicht leer: das Ergebnis ist brauchbar, endet aber
+  // womöglich mitten im Satz. Kein Fehler - aber ins Protokoll, damit man
+  // sieht, dass das Budget für diese Aufgabe zu knapp ist.
+  if (content && choice && choice.finish_reason === 'length') {
+    logEvent('msg', { role: 'system', text: `Antwort an der Token-Grenze abgeschnitten (Budget ${maxTokens}).` });
+  }
 
   if (!content) {
     // Reasoning models spend part of the budget on internal thinking before
@@ -5621,7 +5640,7 @@ function addUserMsg(text) {
     label.style.alignSelf = 'flex-end';
     els.transcript.appendChild(label);
   }
-  addUserMsg(text);
+  addMsg('user', text);
 }
 
 function addEnsembleMsg(role, text) {
@@ -5840,7 +5859,14 @@ function updateStoryCastHint() {
 els.storyCastMode.onchange = updateStoryCastHint;
 updateStoryCastHint();
 
-function setStoryStatus(text) { els.storyStatus.textContent = text; }
+// Der Geschichtenmodus meldete seinen Stand und seine Fehler nur in der
+// Statuszeile auf dem Bildschirm - im Protokoll stand davon nichts, sodass ein
+// Fehlschlag dort spurlos blieb. Jeder Stand geht jetzt mit hinein; daran ist
+// auch abzulesen, bis zu welchem Teil die Erzeugung gekommen ist.
+function setStoryStatus(text) {
+  els.storyStatus.textContent = text;
+  if (text) logEvent('msg', { role: 'system', text: 'Geschichte: ' + text });
+}
 
 // The backup hint sits far down in the settings, where a message is easy to
 // miss - especially a failure. It goes into the transcript as well, which is
@@ -6184,11 +6210,13 @@ Schreib in der Gegenwart. Jede Figur bleibt bei ihrem eigenen Wesen und ihrer ei
 async function generateStoryText(provider, idea, minutes) {
   const sectionCount = Math.max(1, Math.ceil(minutes / STORY_SECTION_MINUTES));
   const wordsPerSection = Math.round((minutes * STORY_WORDS_PER_MINUTE) / sectionCount);
-  // Roughly 1.6 tokens per German word, plus headroom so the last sentence
-  // isn't cut off mid-word.
-  const maxTokens = taskBudget('chat', Math.min(12000, Math.round(wordsPerSection * 2.2)));
+  // Deutsch braucht grob 1,6 bis 2 Token je Wort, dazu Namen, Handlungszeilen
+  // und Klangmarken. Faktor 3 lässt dem Schluss eines Teils Luft; die Grenze
+  // selbst kostet nichts, berechnet wird nur, was geschrieben wird.
+  const maxTokens = taskBudget('chat', Math.min(12000, Math.round(wordsPerSection * 3)));
 
   let full = '';
+  logEvent('msg', { role: 'system', text: `Geschichte: ${minutes} Minuten in ${sectionCount} Teilen, je rund ${wordsPerSection} Wörter, Budget ${maxTokens} Token, Modell ${taskModelName('chat') || modelFor('companion_model_' + provider) || provider}` });
   for (let i = 0; i < sectionCount; i++) {
     setStoryStatus(`Schreibe Teil ${i + 1} von ${sectionCount}...`);
     setStoryProgress((i / sectionCount) * 0.5);
@@ -6404,8 +6432,11 @@ els.genStoryBtn.onclick = async () => {
   } catch (err) {
     setStoryStatus('Fehler: ' + err.message);
     setStoryProgress(0);
+  } finally {
+    // Früher stand das hinter dem catch - ein Fehler im catch selbst hätte den
+    // Knopf dauerhaft gesperrt.
+    els.genStoryBtn.disabled = false;
   }
-  els.genStoryBtn.disabled = false;
 };
 
 // ---- playback ----
