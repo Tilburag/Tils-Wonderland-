@@ -1947,8 +1947,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.54';
+const APP_VERSION = '0.56';
 const CHANGELOG = [
+  { v: '0.56', date: '2026-09-21', items: [
+    'Mehr Spielraum für die KI am Gerät: bis 230 Hübe pro Minute statt 160, und kurze Hübe dürfen halb so schmal sein wie bisher. Lange Hübe bremst weiterhin das Tempolimit, schnell geht vor allem kurz.',
+    'Neue Bewegungsart „tremor": feines, schnelles Zittern an einer Stelle, im schnellsten Takt, den die Verbindung schafft. Die KI kennt sie und weiß, was das Gerät kann und was nicht.',
+  ]},
+  { v: '0.55', date: '2026-09-21', items: [
+    'Mit leerer Besetzung antwortet niemand mehr - es kommt eine Meldung. Vorher erfand das Modell eine Figur namens „Mia" aus den Prompt-Beispielen, ohne Stimme und mit dem Namen im angezeigten Text.',
+    'Die Beispiele im Prompt tragen jetzt den Namen einer Figur, die wirklich mitspielt.',
+  ]},
   { v: '0.54', date: '2026-09-21', items: [
     'Mit „Die Figuren wissen vom Gerät" erfahren die Figuren jetzt, was das Gerät gerade tut - in Worten, mit Tendenz (schneller, langsamer, eingesetzt, zur Ruhe gekommen). Sie können sich darauf beziehen, und es stimmt.',
     'Im Ein-Modell-Betrieb („Derselbe Aufruf") weiß die Figur, dass sie das Gerät selbst lenkt, und bekommt den letzten Stand, damit ihre erste Zeile daran anschließt.',
@@ -2573,9 +2581,15 @@ const WS_RECONNECT_MAX_MS = 20000;
 
 const MOTION_LIMITS = {
   minIntervalMs: 130,        // fastest command cadence the websocket link sustains
-  maxBpm: 160,               // full strokes per minute; above this the mechanics can't follow anyway
+  // Früher 160. Die eigentliche Grenze liegt woanders: Ein Halbhub dauert
+  // mindestens minIntervalMs, das ergibt höchstens rund 230 Hübe pro Minute,
+  // und lange Hübe bremst maxUnitsPerSec ohnehin von selbst. Was darunter
+  // liegt, darf die KI jetzt nutzen - schnell geht vor allem kurz.
+  maxBpm: 230,               // full strokes per minute
   maxUnitsPerSec: 5000,      // fastest carriage travel at speed cap 1.0, on the 0-999 scale
-  minSeparation: 0.12,       // shortest usable stroke, as a fraction of the configured travel
+  minSeparation: 0.05,       // shortest usable stroke (früher 0.12 - kurze Hübe wurden aufgeweitet)
+  tremorMinAmp: 12,          // Zittern: kleinste Weite auf der 0-999-Skala (etwa 1,5 mm)
+  tremorMaxAmp: 90,          // Zittern: größte Weite - darüber ist es kein Zittern mehr
   rampMs: 700,               // how long a change of pace takes to blend in
   jitter: 0.12,              // slight timing irregularity so long stretches don't feel machine-made
 };
@@ -2806,18 +2820,31 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     let high = toDevice(req && req.high != null ? req.high : 650);
     if (high < low) { const t = low; low = high; high = t; }
 
-    // Too short a stroke reads as a stutter rather than a movement, so widen it
-    // around its own midpoint instead of letting it collapse.
-    const minSep = span * MOTION_LIMITS.minSeparation;
-    if (high - low < minSep) {
+    if (texture === 'tremor') {
+      // Zittern: klein und schnell um die gewünschte Stelle. Eine Weite von 1
+      // (etwa "800-801") ist mechanisch nicht darstellbar, 300 kein Zittern mehr.
       const mid = (low + high) / 2;
-      low = Math.max(minPos, mid - minSep / 2);
-      high = Math.min(maxPos, mid + minSep / 2);
+      const amp = Math.max(MOTION_LIMITS.tremorMinAmp, Math.min(MOTION_LIMITS.tremorMaxAmp, high - low));
+      low = Math.max(minPos, mid - amp / 2);
+      high = Math.min(maxPos, mid + amp / 2);
+    } else {
+      // Too short a stroke reads as a stutter rather than a movement, so widen it
+      // around its own midpoint instead of letting it collapse.
+      const minSep = span * MOTION_LIMITS.minSeparation;
+      if (high - low < minSep) {
+        const mid = (low + high) / 2;
+        low = Math.max(minPos, mid - minSep / 2);
+        high = Math.min(maxPos, mid + minSep / 2);
+      }
     }
 
     // The user's speed ceiling now limits an actual rate rather than an abstract
     // 0-1 number, so the setting means the same thing in every situation.
-    const bpm = Math.max(0, Math.min(MOTION_LIMITS.maxBpm, (req && req.bpm) || 0)) * speedCap;
+    // Zittern läuft immer im schnellsten Takt - ein bpm von 0 würde es sonst
+    // unten als "Stillstand" abfangen.
+    const bpm = texture === 'tremor'
+      ? MOTION_LIMITS.maxBpm * speedCap
+      : Math.max(0, Math.min(MOTION_LIMITS.maxBpm, (req && req.bpm) || 0)) * speedCap;
 
     // Store what was actually accepted, not what was asked for - otherwise the
     // log shows values the device never ran, which makes it useless for tracing.
@@ -2898,8 +2925,14 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     }
 
     const bpm = Math.max(2, c.bpm);
-    const halfMs = Math.max(MOTION_LIMITS.minIntervalMs, Math.min(4000, 30000 / bpm));
-    const stepMs = Math.round(halfMs * (1 + (Math.random() - 0.5) * MOTION_LIMITS.jitter));
+    const halfMs = m.texture === 'tremor'
+      ? MOTION_LIMITS.minIntervalMs
+      : Math.max(MOTION_LIMITS.minIntervalMs, Math.min(4000, 30000 / bpm));
+    // Beim Zittern keine Unregelmäßigkeit nach unten - schneller als der
+    // Takt der Verbindung geht es nicht, und genau der ist gemeint.
+    const stepMs = m.texture === 'tremor'
+      ? Math.round(halfMs * (1 + Math.random() * 0.05))
+      : Math.round(halfMs * (1 + (Math.random() - 0.5) * MOTION_LIMITS.jitter));
 
     const pos = m.goingUp ? c.high : c.low;
     m.goingUp = !m.goingUp;
@@ -3726,8 +3759,9 @@ function motionInWords(st) {
   const mid = (low + high) / 2, len = high - low;
   const zone = mid >= 650 ? 'im oberen Teil der Strecke' : mid <= 350 ? 'im unteren Teil der Strecke' : 'in der Mitte der Strecke';
   if (st.texture === 'hold') return `ruht ${zone}, ohne Hub`;
+  if (st.texture === 'tremor') return `zittert fein und schnell ${zone}`;
   const tempo = st.bpm <= 20 ? 'sehr langsam' : st.bpm <= 40 ? 'langsam' : st.bpm <= 70 ? 'in mittlerem Tempo'
-    : st.bpm <= 100 ? 'schnell' : 'sehr schnell';
+    : st.bpm <= 100 ? 'schnell' : st.bpm <= 170 ? 'sehr schnell' : 'so schnell es geht';
   const stroke = len >= 650 ? 'über fast die ganze Länge' : len >= 350 ? `in langen Hüben ${zone}`
     : len >= 180 ? `in mittellangen Hüben ${zone}` : `in kurzen Hüben ${zone}`;
   const art = st.texture === 'pulse' ? ', in deutlich abgesetzten Stößen' : ', fließend';
@@ -3787,12 +3821,14 @@ const TEXTURE_LABELS = {
   smooth: 'smooth (fließende, durchgehende Bewegung zwischen den beiden Punkten)',
   pulse: 'pulse (schneller Stoß zum Umkehrpunkt, dann kurz halten - deutlich abgesetzt)',
   hold: 'hold (Bewegung ruht an einer Stelle, kein Hub)',
+  tremor: 'tremor (feines, schnelles Zittern auf kurzer Strecke, so schnell wie die Verbindung es zulässt - etwa vier Mal pro Sekunde hin und her; low und high legen Ort und Weite des Zitterns fest, 12 bis 90 Einheiten, bpm spielt dabei keine Rolle)',
   stop: 'stop (Gerät kommt zur Ruhe)',
 };
 function allowedTexturesFor(prefix) {
   const on = (p) => (localStorage.getItem(`companion_${prefix}_pat_${p}`) ?? 'true') === 'true';
   const list = ['smooth']; // always available - it's the baseline movement
   if (on('pulse')) list.push('pulse');
+  if (on('tremor')) list.push('tremor');
   return list;
 }
 
@@ -3800,7 +3836,7 @@ const ARC_GUIDE = `
 Grober Ablauf über eine ganze Sitzung (Orientierung, kein starres Schema):
 1. Einstieg: lange, langsame Hübe über einen großen Teil der Strecke, niedrige Frequenz (etwa 15-30).
 2. Aufbau: die Frequenz steigt schrittweise (etwa 30-60), die Strecke darf sich verkürzen oder verschieben.
-3. Intensive Phase: höhere Frequenz (etwa 60-110), oft kürzere Hübe in einem bestimmten Abschnitt der Strecke. Auch hier nicht stur derselbe Wert - kleine Schwankungen und gelegentlich wieder ein langer Hub halten es lebendig.
+3. Intensive Phase: höhere Frequenz (etwa 60-160, bei kurzen Hüben auch darüber), oft kürzere Hübe in einem bestimmten Abschnitt der Strecke; an Höhepunkten auch "tremor", wenn verfügbar. Auch hier nicht stur derselbe Wert - kleine Schwankungen und gelegentlich wieder ein langer Hub halten es lebendig.
 4. Ausklang: die Frequenz sinkt, die Hübe werden wieder länger und ruhiger.
 
 Entscheidend ist der Text, nicht dieser Leitfaden: Er sagt dir, wo im Ablauf ihr gerade seid. Wenn der Text ruhig bleibt, darf die Bewegung ruhig bleiben. Wechsle nicht um des Wechsels willen - das macht den Ablauf unruhig statt spannend. Ändere die Werte deutlich, wenn der Text eine Änderung beschreibt, und nur leicht, wenn er fortführt, was gerade läuft.`;
@@ -3868,7 +3904,7 @@ ${stateNote}${recentText}${roleNote}
 So beschreibst du eine Bewegung - in konkreten physikalischen Werten, nicht in Stimmungen:
 - "low": unterer Umkehrpunkt auf der Strecke, 0 = ganz unten, 999 = ganz oben
 - "high": oberer Umkehrpunkt, immer größer als low
-- "bpm": vollständige Hübe pro Minute, 0 bis 160
+- "bpm": vollständige Hübe pro Minute, 0 bis 230. Über etwa 160 wird es nur mit kurzen Hüben wirklich so schnell - lange Hübe bremst das Gerät von selbst
 - "texture": Art der Bewegung
 
 low und high zusammen beschreiben BEIDES: wie lang der Hub ist (Abstand) und WO auf der Strecke er stattfindet (Lage). "Nur ganz oben" ist also ein kurzer Abstand weit oben, z.B. 720-900. "Über die ganze Länge" ist 60-940.
@@ -3892,7 +3928,7 @@ ${ARC_GUIDE}
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Array, ohne Markdown, mit GENAU ${pieces.length} Objekten in exakt dieser Reihenfolge. Deine gesamte Antwort MUSS mit "[" beginnen und mit "]" enden - kein einleitender Satz, keine Erklärung, nur das Array:
 [
-  {"low": 0-999, "high": 0-999, "bpm": 0-160, "texture": "${textureEnum}"}
+  {"low": 0-999, "high": 0-999, "bpm": 0-230, "texture": "${textureEnum}"}
 ]
 
 Textabschnitte:
@@ -5668,6 +5704,14 @@ function inlineMotionEnabled() {
   return wantsSingle && !twoDevices;
 }
 
+// Die Beispiele im Prompt nannten fest "Mia". Stand niemand in der Besetzung,
+// übernahm das Modell den Namen aus dem Beispiel und erfand damit eine Figur.
+// Jetzt tragen die Beispiele den Namen einer Figur, die wirklich mitspielt.
+function exampleName() {
+  const c = characters.find(x => !x.isUser && !x.isNarrator && x.name);
+  return c ? c.name : 'Figur';
+}
+
 function inlineMotionBlock() {
   if (!inlineMotionEnabled()) return '';
   const device = (localStorage.getItem('companion_device1Desc') || '').trim();
@@ -5682,17 +5726,20 @@ BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe. Hänge an JEDE Ze
 Bedeutung:
 - low = unterer Umkehrpunkt auf der Strecke, 0 ganz unten, 999 ganz oben
 - high = oberer Umkehrpunkt, größer als low
-- bpm = vollständige Hübe pro Minute, 0 bis 160
+- bpm = vollständige Hübe pro Minute, 0 bis 230. Über etwa 160 wird es nur mit kurzen Hüben wirklich so schnell - lange Hübe bremst das Gerät von selbst
 - art = ${enum_}
 
 low und high sagen zusammen, wie lang der Hub ist und wo auf der Strecke er liegt. "Nur ganz oben" ist ein kurzer Hub weit oben, etwa 720-900. "Über die ganze Länge" ist 60-940.
 
+Was das Gerät kann - nutze es ruhig aus: sehr langsame, lange Hübe (unter 15) genauso wie sehr schnelle, kurze (bis 230, etwa 780-880@220). Kurze Hübe dürfen bis etwa 50 Einheiten schmal sein. ${textures.includes('tremor') ? 'Mit "tremor" zittert das Gerät fein und schnell an einer Stelle, etwa <<790-840@0 tremor>> - das ist das Schnellste und Feinste, was es kann; ein echtes Vibrieren wie bei einem Vibrator schafft es nicht, beschreibe es also als Zittern oder Flattern.' : ''} Ein Muster wie "drei schnelle Hübe oben, dann tief" setzt du über mehrere Zeilen um, jede Zeile mit ihrem eigenen Marker.
+
 ${device ? `Das Gerät: ${device.slice(0, 700)}\n` : ''}
 Beispiele:
-- Mia: Komm her. <<200-800@22 smooth>>
-- Mia: Langsamer... <<300-700@16 smooth>>
-- Mia: Ja, genau so. <<700-900@95 smooth>>
-- Mia: Warte. <<400-600@0 hold>>
+- ${exampleName()}: Komm her. <<200-800@22 smooth>>
+- ${exampleName()}: Langsamer... <<300-700@16 smooth>>
+- ${exampleName()}: Ja, genau so. <<700-900@95 smooth>>
+- ${exampleName()}: Warte. <<400-600@0 hold>>${textures.includes('tremor') ? `
+- ${exampleName()}: Und jetzt ganz fein, genau an der Spitze. <<800-840@0 tremor>>` : ''}
 
 Regeln: Der Marker steht immer am Zeilenende, nach dem Text, nie mitten im Satz. "stop" nur, wenn ausdrücklich alles zur Ruhe kommt. Wenn eine Zeile nichts am Gerät ändert, wiederhole die Werte der vorherigen Zeile. Über die Zeilen hinweg soll sich etwas entwickeln, statt dass überall dasselbe steht.`;
 }
@@ -5704,16 +5751,16 @@ function ensembleFormatBlock() {
   // a phone call sounds.
   if (localStorage.getItem('companion_narratorEnabled') !== 'true') {
     return `Format - halte dich genau daran, sonst greifen die Stimmen nicht:
-- Jede Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "Mia: Komm näher."
+- Jede Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "${exampleName()}: Komm näher."
 - KEINE Handlungsbeschreibungen, keine *Sternchen*, keine Erzählerstimme. Es gibt nur gesprochene Rede - so wie am Telefon, wo man einander nur hören kann.
 - Was geschieht, klingt allenfalls in dem an, was gesagt wird. Beschreibe es nicht von außen.
 - Keine Anführungszeichen, keine Regieanweisungen in Klammern, keine Überschriften.`;
   }
 
   return `Format - halte dich genau daran, sonst greifen die Stimmen nicht:
-- Jede gesprochene Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "Mia: Komm näher."
+- Jede gesprochene Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "${exampleName()}: Komm näher."
 - Was geschieht, steht in *Sternchen* und ohne Namen-Doppelpunkt davor.
-- NENNE in den Handlungszeilen immer die Figur beim Namen, die gerade etwas tut - also *Mia fährt langsam nach unten* statt *sie fährt langsam nach unten*. Bei mehreren Figuren ist "sie" sonst nicht zuzuordnen, weder für mich noch für die Gerätesteuerung. Wenn zwei gleichzeitig handeln, nenne beide.
+- NENNE in den Handlungszeilen immer die Figur beim Namen, die gerade etwas tut - also *${exampleName()} fährt langsam nach unten* statt *sie fährt langsam nach unten*. Bei mehreren Figuren ist "sie" sonst nicht zuzuordnen, weder für mich noch für die Gerätesteuerung. Wenn zwei gleichzeitig handeln, nenne beide.
 - Beschreibe in den Handlungszeilen konkret und körperlich, was geschieht: wer, womit, wo und in welchem Tempo. Schreib das sinnlich aus, nicht als nüchterne Feststellung - eine Handlungszeile darf und soll ausführlicher sein als eine Redezeile. Richtung, Tempo und Ort müssen dabei erkennbar bleiben, denn daraus wird die Gerätebewegung abgeleitet.
 - Eine Zeile pro Sprecher. Keine Anführungszeichen, keine Regieanweisungen in Klammern, keine Überschriften.`;
 }
@@ -5860,6 +5907,12 @@ if (els.thinkingCancel) {
 }
 
 async function askEnsemble(userText, options) {
+  // Ohne Figur, die antworten kann, erfand das Modell eine - mit dem Namen aus
+  // den Prompt-Beispielen, ohne Stimme und ohne Aussehen.
+  if (!characters.some(c => !c.isUser && !c.isNarrator)) {
+    addMsg('system', 'Niemand in der Besetzung, der antworten kann. Füge im Live-Bereich unter „Wer spricht mit" eine Figur hinzu.');
+    return false;
+  }
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
 
@@ -6471,9 +6524,9 @@ async function generateStoryText(provider, idea, minutes) {
 // dem Text.
 function scriptArcText() {
   const p = pace('story');
-  if (p === 'direkt') return 'Die Geschichte setzt mitten im Geschehen ein: beginne bereits im mittleren Bereich (etwa 35-60), halte das Niveau mit deutlichem Auf und Ab, erreiche eine intensive Phase mit oft kürzeren Hüben (60-110) und schließe mit einem kurzen, ruhigeren Ausklang.';
-  if (p === 'zuegig') return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: nur ein kurzer ruhiger Anfang (etwa 20-35), dann zügige Steigerung (35-65), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-110), dann ein kurzer Ausklang.';
-  return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: ruhiger Anfang mit langen, langsamen Hüben (etwa 15-30), allmähliche Steigerung (30-60), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-110), dann ein ruhiger Ausklang.';
+  if (p === 'direkt') return 'Die Geschichte setzt mitten im Geschehen ein: beginne bereits im mittleren Bereich (etwa 35-60), halte das Niveau mit deutlichem Auf und Ab, erreiche eine intensive Phase mit oft kürzeren Hüben (60-160) und schließe mit einem kurzen, ruhigeren Ausklang.';
+  if (p === 'zuegig') return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: nur ein kurzer ruhiger Anfang (etwa 20-35), dann zügige Steigerung (35-65), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-160), dann ein kurzer Ausklang.';
+  return 'Über die ganze Geschichte hinweg soll ein Bogen entstehen: ruhiger Anfang mit langen, langsamen Hüben (etwa 15-30), allmähliche Steigerung (30-60), eine intensive Phase mit oft kürzeren Hüben in einem bestimmten Bereich der Strecke (60-160), dann ein ruhiger Ausklang.';
 }
 
 function buildScriptPrompt(chunks, deviceNum, offset, total) {
@@ -6501,7 +6554,7 @@ Eine Phase beschreibt Bewegung physikalisch:
 - "weight": relativer Zeitanteil dieser Phase am Abschnitt (1 bis 5). Zwei Phasen mit weight 1 und 3 teilen den Abschnitt im Verhältnis 1:3.
 - "low": unterer Umkehrpunkt, 0 = ganz unten, 999 = ganz oben
 - "high": oberer Umkehrpunkt, größer als low
-- "bpm": vollständige Hübe pro Minute, 0 bis 160
+- "bpm": vollständige Hübe pro Minute, 0 bis 230. Über etwa 160 wird es nur mit kurzen Hüben wirklich so schnell - lange Hübe bremst das Gerät von selbst
 - "texture": ${textureEnum}
 
 Bewegungsarten: ${textureLegend}.
