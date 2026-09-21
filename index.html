@@ -1921,8 +1921,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.50';
+const APP_VERSION = '0.51';
 const CHANGELOG = [
+  { v: '0.51', date: '2026-09-21', items: [
+    'Die Bewegung wandert nicht mehr von selbst an den Anschlag. Bei gleichbleibenden Werten wurden Hublage und Tempo bisher Abschnitt für Abschnitt in dieselbe Richtung geschoben; jetzt bleibt die Hublage, wie das Modell sie gewählt hat, und das Tempo schwankt nur leicht darum.',
+    'Die Zeilen der eigenen Figur dürfen das eigene Geschriebene weiterführen, ihm aber nicht mehr widersprechen oder es abschwächen.',
+  ]},
   { v: '0.50', date: '2026-09-21', items: [
     'Bei Venice wird das Nachdenken abgeschaltet, wo „Denkt vor" nicht angehakt ist. Hybride Modelle wie DeepSeek V4 Flash haben sonst bei der Bewegung das ganze Budget verdacht, bevor sie antworteten.',
     'Steuerwerte oder JSON, die ein Modell in den Dialog schreibt, werden herausgefiltert statt als Figurenzeile vorgelesen. Der Prompt verbietet sie zusätzlich.',
@@ -3825,8 +3829,6 @@ function addVariation(motions, deviceNum) {
     && recent.filter(e => e.bpm >= MOTION_LIMITS.maxBpm * 0.85).length >= 4;
 
   const out = [];
-  let accBpm = 0, accShift = 0;
-  const MAX_ACC_BPM = 30, MAX_ACC_SHIFT = 200;
 
   for (let i = 0; i < motions.length; i++) {
     const raw = motions[i];
@@ -3854,19 +3856,17 @@ function addVariation(motions, deviceNum) {
       && Math.abs(num(raw.low, 0) - num(rawPrev.low, 0)) < 40
       && Math.abs(num(raw.high, 0) - num(rawPrev.high, 0)) < 40;
 
+    // Gleiche Werte über mehrere Abschnitte heißen bei einem brauchbaren Modell
+    // "so weitermachen". Früher wurde daraus eine Rampe: Tempo und Hublage
+    // wanderten Abschnitt für Abschnitt in dieselbe Richtung, bis alles am
+    // oberen Anschlag klebte. Die Hublage bedeutet aber etwas Körperliches -
+    // Basis oder Spitze - und bleibt deshalb, wie das Modell sie gewählt hat.
+    // Das Tempo schwankt nur noch leicht um den gewählten Wert, abwechselnd nach
+    // oben und unten, ohne sich aufzusummieren.
     if (still && movable) {
-      accBpm = Math.max(-MAX_ACC_BPM, Math.min(MAX_ACC_BPM, accBpm + dir * (4 + Math.round(Math.random() * 6))));
-      accShift = Math.max(-MAX_ACC_SHIFT, Math.min(MAX_ACC_SHIFT, accShift + dir * (20 + Math.round(Math.random() * 35))));
-    }
-
-    if (movable && (accBpm || accShift)) {
-      cur.bpm = Math.max(0, Math.min(MOTION_LIMITS.maxBpm, Math.round(num(raw.bpm, 40) + accBpm)));
-      let low = Math.round(num(raw.low, 350)) + accShift;
-      let high = Math.round(num(raw.high, 650)) + accShift;
-      const over = Math.max(0, high - 999) + Math.min(0, low);
-      low -= over; high -= over;
-      cur.low = Math.max(0, Math.min(999, low));
-      cur.high = Math.max(0, Math.min(999, high));
+      const swing = 3 + Math.round(Math.random() * 5);           // 3..8
+      const sign = (i % 2 === 1) ? 1 : -1;
+      cur.bpm = Math.max(0, Math.min(MOTION_LIMITS.maxBpm, Math.round(num(raw.bpm, 40) + sign * swing)));
     }
     out.push(cur);
   }
@@ -5505,7 +5505,7 @@ ${cast}
 
 ${me ? `${me.name} bin ich. Sprich mich als ${me.name} an - die anderen Figuren reden mit mir, nicht über mich, und nennen mich bei diesem Namen. Wenn ich selbst etwas schreibe, steht es im Verlauf als Zeile von ${me.name}; behandle es als das, was ich gesagt oder getan habe.
 
-Schreibe die Zeilen meiner Figur mit, als kurze, zustimmende Reaktionen von höchstens einem Satz - sie werden mir vorgelesen.
+Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem Satz - sie werden mir vorgelesen. Was ich selbst zuletzt geschrieben habe, gilt: Die Zeilen von ${me.name} dürfen es aufgreifen und weiterführen, aber ihm nie widersprechen, es nicht abschwächen und keine andere Stimmung behaupten. Habe ich "sehr gut" geschrieben, sagt ${me.name} nicht "es ist okay". Habe ich um etwas gebeten, zieht ${me.name} es nicht zurück. Im Zweifel lieber keine Zeile für ${me.name} als eine, die nicht zu mir passt.
 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
