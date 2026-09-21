@@ -739,7 +739,12 @@
           <input type="checkbox" id="onlySuitableImageModels" checked style="width:auto;">
           <span style="font-size:13.5px; color:var(--text);">Nur passende Bildmodelle zeigen</span>
         </label>
-        <p class="hint">Wird nur für die Profilbilder der Figuren gebraucht. Die Modelle unterscheiden sich darin, was sie darstellen - wenn eines eine Anfrage ablehnt, hilft ein anderes.</p>
+        <p class="hint">Wird nur für die Profilbilder der Figuren gebraucht. Die Modelle unterscheiden sich darin, was sie darstellen - wenn eines eine Anfrage ablehnt, hilft ein anderes. Für fotorealistische Porträts eignet sich etwa lustify-v8.</p>
+        <label for="portraitStyle">Stil der Profilbilder</label>
+        <select id="portraitStyle">
+          <option value="foto">Fotorealistisch - wie ein echtes Porträtfoto</option>
+          <option value="frei">Frei - das Modell wählt den Stil</option>
+        </select>
 
         <p class="hint">
           Lädt die aktuelle Modellliste direkt bei Venice. Für Rollenspiel und Erzählung
@@ -836,6 +841,9 @@
         <input type="range" id="d1MaxPos" min="600" max="999" step="10" value="950">
         <label for="d1SpeedCap">Geschwindigkeitsbegrenzung: <span id="d1SpeedCapVal">1.0</span></label>
         <input type="range" id="d1SpeedCap" min="0.2" max="1" step="0.1" value="1">
+        <label for="d1FastGap">Schnellster Takt fürs Zittern: <span id="d1FastGapVal">70</span> ms</label>
+        <input type="range" id="d1FastGap" min="30" max="140" step="5" value="70">
+        <p class="hint">Wie oft pro Sekunde beim Zittern ein neuer Befehl ans Gerät geht. Kleiner ist schneller. Kappt das Gerät die Verbindung, verlangsamt die App von selbst - dann hier einen Schritt zurück.</p>
         <label>Erlaubte Bewegungsart</label>
         <div style="display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0 8px 0;">
           <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:0;"><input type="checkbox" id="d1pat_pulse" style="width:auto;">Stoßende Bewegung erlauben</label>
@@ -861,6 +869,9 @@
         <input type="range" id="d2MaxPos" min="600" max="999" step="10" value="950">
         <label for="d2SpeedCap">Geschwindigkeitsbegrenzung: <span id="d2SpeedCapVal">1.0</span></label>
         <input type="range" id="d2SpeedCap" min="0.2" max="1" step="0.1" value="1">
+        <label for="d2FastGap">Schnellster Takt fürs Zittern: <span id="d2FastGapVal">70</span> ms</label>
+        <input type="range" id="d2FastGap" min="30" max="140" step="5" value="70">
+        <p class="hint">Wie oft pro Sekunde beim Zittern ein neuer Befehl ans Gerät geht. Kleiner ist schneller. Kappt das Gerät die Verbindung, verlangsamt die App von selbst - dann hier einen Schritt zurück.</p>
         <label>Erlaubte Bewegungsart</label>
         <div style="display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0 8px 0;">
           <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:0;"><input type="checkbox" id="d2pat_pulse" style="width:auto;">Stoßende Bewegung erlauben</label>
@@ -992,6 +1003,10 @@
         <button class="btn-secondary" id="newFigureBtn">＋ Leere Figur</button>
       </div>
 
+      <label for="sharedProfile" style="margin-top:18px;">Was alle Figuren über dich wissen</label>
+      <textarea id="sharedProfile" style="min-height:110px" placeholder="Wird beim Erinnern gefüllt: dein Name, was dir gefällt, was nicht. Du kannst hier auch selbst etwas eintragen oder streichen."></textarea>
+      <p class="hint">Dieses Wissen teilen sich alle Figuren. Was eine Figur mit dir erlebt hat und wen sie kennt, steht dagegen bei ihr selbst, im Feld „Gedächtnis" im Figureneditor.</p>
+
       <label for="figureIdea">Figur beschreiben und erzeugen lassen</label>
       <textarea id="figureIdea" style="min-height:70px" placeholder="Ein Satz genügt: wer ist das, wie ist sie drauf? Zum Beispiel: eine ruhige Heilerin, die wenig sagt und genau hinschaut."></textarea>
       <div class="btn-row">
@@ -1090,7 +1105,10 @@
     <button class="btn-primary" id="sendTextBtn">Senden</button>
   </div>
   <div class="bottom-controls">
-    <button class="btn-secondary side-btn" id="autoBtn">Automatik</button>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <button class="btn-secondary side-btn" id="autoBtn">Automatik</button>
+      <button class="btn-secondary side-btn" id="rememberBtn" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
+    </div>
     <button class="talk-btn" id="talkBtn">📞<br>Anruf<br>starten</button>
     <button class="estop side-btn" id="stopBtn">Stopp</button>
   </div>
@@ -1187,6 +1205,9 @@ const els = {
   veniceModelSelect: document.getElementById('veniceModelSelect'),
   onlySuitableModels: document.getElementById('onlySuitableModels'),
   imageModel: document.getElementById('imageModel'),
+  portraitStyle: document.getElementById('portraitStyle'),
+  sharedProfile: document.getElementById('sharedProfile'),
+  rememberBtn: document.getElementById('rememberBtn'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
   onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
@@ -1213,10 +1234,12 @@ const els = {
   d1MinPos: document.getElementById('d1MinPos'), d1MinPosVal: document.getElementById('d1MinPosVal'),
   d1MaxPos: document.getElementById('d1MaxPos'), d1MaxPosVal: document.getElementById('d1MaxPosVal'),
   d1SpeedCap: document.getElementById('d1SpeedCap'), d1SpeedCapVal: document.getElementById('d1SpeedCapVal'),
+  d1FastGap: document.getElementById('d1FastGap'), d1FastGapVal: document.getElementById('d1FastGapVal'),
   d1pat_pulse: document.getElementById('d1pat_pulse'),
   d2MinPos: document.getElementById('d2MinPos'), d2MinPosVal: document.getElementById('d2MinPosVal'),
   d2MaxPos: document.getElementById('d2MaxPos'), d2MaxPosVal: document.getElementById('d2MaxPosVal'),
   d2SpeedCap: document.getElementById('d2SpeedCap'), d2SpeedCapVal: document.getElementById('d2SpeedCapVal'),
+  d2FastGap: document.getElementById('d2FastGap'), d2FastGapVal: document.getElementById('d2FastGapVal'),
   d2pat_pulse: document.getElementById('d2pat_pulse'),
   bleStatus2: document.getElementById('bleStatus2'),
   motionStatus2: document.getElementById('motionStatus2'),
@@ -1371,6 +1394,8 @@ loadDeviceSetting(els.d1SpeedCap, els.d1SpeedCapVal, 'companion_d1_speedCap', 1)
 loadDeviceSetting(els.d2MinPos, els.d2MinPosVal, 'companion_d2_minPos', 50);
 loadDeviceSetting(els.d2MaxPos, els.d2MaxPosVal, 'companion_d2_maxPos', 950);
 loadDeviceSetting(els.d2SpeedCap, els.d2SpeedCapVal, 'companion_d2_speedCap', 1);
+loadDeviceSetting(els.d1FastGap, els.d1FastGapVal, 'companion_d1_fastGap', 70);
+loadDeviceSetting(els.d2FastGap, els.d2FastGapVal, 'companion_d2_fastGap', 70);
 
 // Only one optional texture remains: everything else is now expressed through
 // the stroke's end points and rate rather than through named patterns.
@@ -1414,6 +1439,8 @@ els.modelOpenrouter.value = localStorage.getItem('companion_model_openrouter') |
 els.apiKeyVenice.value = localStorage.getItem('companion_apiKey_venice') || '';
 els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venice-uncensored';
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
+els.portraitStyle.value = localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
+els.portraitStyle.onchange = () => safeSet('companion_portraitStyle', els.portraitStyle.value);
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
 // Drei Zeilen, für jede Aufgabe eine. Alles leer zu lassen ist der bisherige
 // Zustand - ein Modell für alles, Budget automatisch.
@@ -1870,6 +1897,8 @@ els.saveSettingsBtn.onclick = () => {
     safeSet('companion_d2_minPos', els.d2MinPos.value);
     safeSet('companion_d2_maxPos', els.d2MaxPos.value);
     safeSet('companion_d2_speedCap', els.d2SpeedCap.value);
+    safeSet('companion_d1_fastGap', els.d1FastGap.value);
+    safeSet('companion_d2_fastGap', els.d2FastGap.value);
     PATTERN_IDS.forEach(p => {
     safeSet(`companion_d1_pat_${p}`, els[`d1pat_${p}`].checked ? 'true' : 'false');
     safeSet(`companion_d2_pat_${p}`, els[`d2pat_${p}`].checked ? 'true' : 'false');
@@ -1947,8 +1976,18 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.56';
+const APP_VERSION = '0.58';
 const CHANGELOG = [
+  { v: '0.58', date: '2026-09-21', items: [
+    'Gedächtnis: Mit „Erinnern" übernimmt die App das laufende Gespräch. Was alle Figuren über dich wissen, steht auf der Figurenseite; was eine Figur erlebt hat und wen sie kennt, im Feld „Gedächtnis" in ihrem Editor. Beides lässt sich lesen, ändern und löschen.',
+    'Figuren, die sich schon begegnet sind, wissen in einer neuen Konstellation voneinander.',
+    'Profilbilder werden standardmäßig fotorealistisch angefragt - mit Kamera, Licht und Hautstruktur in der Beschreibung und ohne Illustrationsstile.',
+  ]},
+  { v: '0.57', date: '2026-09-21', items: [
+    'Erster Test mit angeschlossenem Gerät: über 600 Befehle im 130-ms-Takt, kein einziger Abbruch.',
+    'Das Zittern folgt jetzt dem gewünschten Tempo. Bisher lief es fest im 130-ms-Takt - verlangte die KI „schneller", änderte sich nichts, obwohl die Figur es behauptete.',
+    'Neuer Regler je Gerät: „Schnellster Takt fürs Zittern", voreingestellt 70 ms (fast doppelt so schnell wie bisher), bis 30 ms. Kappt das Gerät die Verbindung, verlangsamt die App von selbst.',
+  ]},
   { v: '0.56', date: '2026-09-21', items: [
     'Mehr Spielraum für die KI am Gerät: bis 230 Hübe pro Minute statt 160, und kurze Hübe dürfen halb so schmal sein wie bisher. Lange Hübe bremst weiterhin das Tempolimit, schnell geht vor allem kurz.',
     'Neue Bewegungsart „tremor": feines, schnelles Zittern an einer Stelle, im schnellsten Takt, den die Verbindung schafft. Die KI kennt sie und weiß, was das Gerät kann und was nicht.',
@@ -2632,6 +2671,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       minPos: parseInt(localStorage.getItem(`companion_${settingsPrefix}_minPos`), 10) || 50,
       maxPos: parseInt(localStorage.getItem(`companion_${settingsPrefix}_maxPos`), 10) || 950,
       speedCap: parseFloat(localStorage.getItem(`companion_${settingsPrefix}_speedCap`)) || 1,
+      // Kürzester Abstand zwischen zwei Befehlen beim Zittern. Der erste Test am
+      // Gerät lief mit 130 ms über hundert Sekunden ohne einen einzigen Abbruch.
+      fastGap: Math.max(30, Math.min(140, parseInt(localStorage.getItem(`companion_${settingsPrefix}_fastGap`), 10) || 70)),
     };
   }
 
@@ -2769,9 +2811,19 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     scheduleFlush();
   }
 
+  // Beim Zittern darf der Abstand bis auf den eingestellten schnellsten Takt
+  // sinken - sonst würden Befehle zusammengefasst und die Hin-und-her-Bewegung
+  // bekäme Lücken. Die Rücknahme nach einem Abbruch wirkt weiterhin: sie
+  // addiert sich auf den jeweiligen Grundabstand.
+  function currentGap() {
+    const backoff = Math.max(0, state.sendGapMs - WS_SEND_GAP_START_MS);
+    const base = state.motion.texture === 'tremor' ? getSettings().fastGap : WS_SEND_GAP_START_MS;
+    return base + backoff;
+  }
+
   function scheduleFlush() {
     if (state.flushTimer) return;
-    const wait = Math.max(0, state.lastSendAt + state.sendGapMs - Date.now());
+    const wait = Math.max(0, state.lastSendAt + currentGap() - Date.now());
     state.flushTimer = setTimeout(flushTCode, wait);
   }
 
@@ -2854,7 +2906,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       bpm: Math.max(0, Math.min(MOTION_LIMITS.maxBpm, Math.round((req && req.bpm) || 0))),
       texture,
     };
-    m.target = { low, high, bpm, texture };
+    m.target = { low, high, bpm, texture, tremorBpm: Math.round((req && req.bpm) || 0) };
     m.texture = texture;
     logEvent('motion', { device: label, low: m.requested.low, high: m.requested.high, bpm: m.requested.bpm, texture });
 
@@ -2879,14 +2931,17 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // "pulse" covers its distance in a fraction of the beat. What matters
   // physically is distance over time, so that is what gets limited - by
   // stretching the movement's duration until it fits under the ceiling.
-  function sendMove(pos, desiredMs) {
+  function sendMove(pos, desiredMs, floorMs) {
     const m = state.motion;
     const { speedCap } = getSettings();
     const p = clampPos(Math.round(pos));
     const distance = Math.abs(p - m.lastPos);
     const unitsPerSec = Math.max(80, MOTION_LIMITS.maxUnitsPerSec * speedCap);
     const minMsForSpeed = Math.round((distance / unitsPerSec) * 1000);
-    const ms = Math.max(MOTION_LIMITS.minIntervalMs, Math.round(desiredMs), minMsForSpeed);
+    // Bisher galt für jede Bewegung mindestens minIntervalMs (130 ms) - auch
+    // fürs Zittern. Deshalb lief es im ersten Test immer gleich schnell, egal
+    // was die KI verlangte.
+    const ms = Math.max(floorMs || MOTION_LIMITS.minIntervalMs, Math.round(desiredMs), minMsForSpeed);
     m.lastPos = p;
     sendTCode('L0' + tcodePos(p) + 'I' + ms);
     return ms;
@@ -2925,8 +2980,14 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     }
 
     const bpm = Math.max(2, c.bpm);
+    // Beim Zittern bestimmt bpm, WIE schnell es zittert: 0 ist ein ruhiges
+    // Flattern (200 ms je Richtung), 230 der schnellste eingestellte Takt.
+    // Vorher lief es fest im 130-ms-Takt - "noch schneller" änderte nichts,
+    // während die Figur behauptete, schneller zu werden.
+    const fastGap = getSettings().fastGap;
+    const tremorBpm = Math.max(0, Math.min(MOTION_LIMITS.maxBpm, m.target.tremorBpm || 0));
     const halfMs = m.texture === 'tremor'
-      ? MOTION_LIMITS.minIntervalMs
+      ? Math.round(200 - (tremorBpm / MOTION_LIMITS.maxBpm) * (200 - fastGap))
       : Math.max(MOTION_LIMITS.minIntervalMs, Math.min(4000, 30000 / bpm));
     // Beim Zittern keine Unregelmäßigkeit nach unten - schneller als der
     // Takt der Verbindung geht es nicht, und genau der ist gemeint.
@@ -2940,7 +3001,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // "pulse" reaches its turning point faster than the beat and then waits
     // there, which is what makes it read as a distinct thrust rather than a glide.
     const travelMs = m.texture === 'pulse' ? Math.round(stepMs * 0.45) : stepMs;
-    const actualMs = sendMove(pos, travelMs);
+    const actualMs = sendMove(pos, travelMs, m.texture === 'tremor' ? fastGap : undefined);
 
     // If the speed ceiling stretched the movement, the beat has to stretch with
     // it - otherwise the next command would arrive before this one finished.
@@ -3759,7 +3820,10 @@ function motionInWords(st) {
   const mid = (low + high) / 2, len = high - low;
   const zone = mid >= 650 ? 'im oberen Teil der Strecke' : mid <= 350 ? 'im unteren Teil der Strecke' : 'in der Mitte der Strecke';
   if (st.texture === 'hold') return `ruht ${zone}, ohne Hub`;
-  if (st.texture === 'tremor') return `zittert fein und schnell ${zone}`;
+  if (st.texture === 'tremor') {
+    const speed = st.bpm >= 180 ? 'so schnell es geht' : st.bpm >= 100 ? 'schnell' : st.bpm >= 40 ? 'mäßig schnell' : 'ruhig';
+    return `zittert fein und ${speed} ${zone}`;
+  }
   const tempo = st.bpm <= 20 ? 'sehr langsam' : st.bpm <= 40 ? 'langsam' : st.bpm <= 70 ? 'in mittlerem Tempo'
     : st.bpm <= 100 ? 'schnell' : st.bpm <= 170 ? 'sehr schnell' : 'so schnell es geht';
   const stroke = len >= 650 ? 'über fast die ganze Länge' : len >= 350 ? `in langen Hüben ${zone}`
@@ -3821,7 +3885,7 @@ const TEXTURE_LABELS = {
   smooth: 'smooth (fließende, durchgehende Bewegung zwischen den beiden Punkten)',
   pulse: 'pulse (schneller Stoß zum Umkehrpunkt, dann kurz halten - deutlich abgesetzt)',
   hold: 'hold (Bewegung ruht an einer Stelle, kein Hub)',
-  tremor: 'tremor (feines, schnelles Zittern auf kurzer Strecke, so schnell wie die Verbindung es zulässt - etwa vier Mal pro Sekunde hin und her; low und high legen Ort und Weite des Zitterns fest, 12 bis 90 Einheiten, bpm spielt dabei keine Rolle)',
+  tremor: 'tremor (feines, schnelles Zittern auf kurzer Strecke; low und high legen Ort und Weite fest, 12 bis 90 Einheiten; bpm legt fest, wie schnell es zittert: 0 ist ein ruhiges Flattern, 230 so schnell das Gerät kann)',
   stop: 'stop (Gerät kommt zur Ruhe)',
 };
 function allowedTexturesFor(prefix) {
@@ -4664,7 +4728,7 @@ ${(c.appearance || '').trim()
   ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Augen, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
   : 'Übersetze das Wesen ins Sichtbare: Gesicht, Ausdruck, Blick, Haltung, Haare, Kleidung, Licht und Hintergrund passend zur Szene. Eine ruhige Figur schaut anders als eine ungeduldige - das soll man sehen.'}
 
-Vorgaben: Brustbild einer erwachsenen Person, bekleidet, Blick zur Kamera. Keine realen Personen und keine Figuren aus bekannten Filmen, Spielen oder Büchern - eine eigenständige Person. Kein Text und keine Schrift im Bild.
+${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Person, bekleidet, Blick zur Kamera. Keine realen Personen und keine Figuren aus bekannten Filmen, Spielen oder Büchern - eine eigenständige Person. Kein Text und keine Schrift im Bild.
 
 Antworte NUR mit dem englischen Prompt, ein bis drei Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
@@ -4681,6 +4745,10 @@ function fallbackPortraitPrompt(c) {
     + ((c.appearance || '').trim() ? `Appearance: ${c.appearance.trim().slice(0, 400)}. ` : '')
     + `Character impression: ${traits || 'calm and approachable'}. `
     + `An original person, not a real individual and not a known fictional character. No text in the image.`;
+}
+
+function portraitStyle() {
+  return localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
 }
 
 async function generateCharacterImage(c, button) {
@@ -4720,8 +4788,11 @@ async function generateCharacterImage(c, button) {
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        prompt: imagePrompt.slice(0, 1400),
-        negative_prompt: 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo',
+        prompt: (portraitStyle() === 'foto'
+          ? imagePrompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture, 85mm lens.'
+          : imagePrompt.slice(0, 1400)),
+        negative_prompt: 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
+          + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed' : ''),
         width: 1024,
         height: 1024,
         format: 'webp',
@@ -5047,6 +5118,21 @@ function renderCharacters() {
     styleArea.placeholder = 'Zwei bis vier Zeilen genau so, wie diese Figur klingen soll. Die KI nimmt sie als Vorlage für Wortwahl und Detailgrad.';
     styleArea.oninput = () => { c.styleExamples = styleArea.value; };
     card.appendChild(styleArea);
+
+    // Das Gedächtnis gehört zur Figur, nicht zu einer Version: überarbeitet man
+    // ihr Aussehen, soll sie deshalb nicht vergessen, was sie erlebt hat. Es
+    // wird sofort gesichert und nicht erst mit "Sichern".
+    if (c.figureId && !c.isUser && !c.isNarrator) {
+      const memLabel = document.createElement('label');
+      memLabel.textContent = 'Gedächtnis - was sie erlebt hat und wen sie kennt';
+      card.appendChild(memLabel);
+      const memArea = document.createElement('textarea');
+      memArea.value = figureMemory(c.figureId);
+      memArea.style.minHeight = '90px';
+      memArea.placeholder = 'Leer. Füllt sich, wenn du im Gespräch auf „Erinnern" tippst. Du kannst hier korrigieren oder streichen.';
+      memArea.oninput = () => setFigureMemory(c.figureId, memArea.value);
+      card.appendChild(memArea);
+    }
 
     const lengthLabel = document.createElement('label');
     lengthLabel.textContent = 'Länge der Antworten';
@@ -5657,6 +5743,120 @@ function parseEnsembleText(text) {
   return out.length ? out : [{ role: 'character', text: text.trim() }];
 }
 
+// ---------- Gedächtnis ----------
+// Zwei Ebenen: was ALLE Figuren über mich wissen (Vorlieben, Grenzen, Name) und
+// was JEDE Figur für sich erlebt hat, einschließlich der anderen Figuren, mit
+// denen sie schon eine Szene hatte. Geschrieben wird nur auf Knopfdruck
+// ("Erinnern"), gelesen bei jedem Aufruf. Beides ist begrenzt, damit die
+// Anfragen nicht mit jedem Gespräch länger und teurer werden.
+const MEMORY_MAX_PROFILE = 1500;
+const MEMORY_MAX_FIGURE = 1800;
+
+function loadMemoryMap() {
+  try { return JSON.parse(localStorage.getItem('companion_figureMemory') || '{}') || {}; }
+  catch (e) { return {}; }
+}
+function figureMemory(figureId) {
+  return String(loadMemoryMap()[figureId] || '').trim();
+}
+function setFigureMemory(figureId, text) {
+  const map = loadMemoryMap();
+  const clean = String(text || '').trim().slice(0, MEMORY_MAX_FIGURE);
+  if (clean) map[figureId] = clean; else delete map[figureId];
+  safeSet('companion_figureMemory', JSON.stringify(map));
+}
+function sharedProfile() {
+  return (localStorage.getItem('companion_sharedProfile') || '').trim();
+}
+
+function memoryBlock() {
+  const parts = [];
+  const profile = sharedProfile();
+  if (profile) parts.push(`Was ihr alle über mich wisst:\n${profile}`);
+  characters.filter(c => !c.isUser && !c.isNarrator && c.figureId).forEach(c => {
+    const mem = figureMemory(c.figureId);
+    if (mem) parts.push(`Woran sich ${c.name} erinnert - das weiß nur ${c.name}, die anderen nur, wenn sie dabei waren:\n${mem}`);
+  });
+  if (!parts.length) return '';
+  return '\n\nGEDÄCHTNIS - das ist früher geschehen und gilt weiter. Greift es auf, wo es passt, beiläufig und ohne es aufzuzählen:\n\n'
+    + parts.join('\n\n');
+}
+
+function buildRememberPrompt(figures, transcript) {
+  const me = userCharacter();
+  const old = figures.map(c => `${c.name}:\n${figureMemory(c.figureId) || '(noch leer)'}`).join('\n\n');
+  const figureKeys = figures.map(c => `"${c.name}": "..."`).join(', ');
+  return `Du führst das Gedächtnis von Figuren in einem fortlaufenden Rollenspiel. Unten stehen das bisherige Gedächtnis und das letzte Gespräch. Aktualisiere das Gedächtnis.
+
+Ich bin der Nutzer. ${me ? `Im Gespräch war ich die Figur ${me.name}; Zeilen von ${me.name} stammen von mir.` : 'Ich hatte keine eigene Figur; meine Zeilen stehen ohne Namen.'}
+
+1. "profil" - was ALLE Figuren über mich wissen sollen: wie ich angesprochen werden will, was mir gefällt und was nicht, meine Wünsche und Grenzen, auch zu Tempo, Stelle und Art der Bewegung. Nur, was ich gesagt oder deutlich gezeigt habe - nichts erfinden, nichts über die Figuren. Kurze Stichpunkte, höchstens 12.
+
+2. "figuren" - für jede dieser Figuren (${figures.map(c => c.name).join(', ')}) aus IHRER Sicht: was zwischen ihr und mir geschehen ist, das Wichtigste in Kürze; welche anderen Figuren dabei waren und wie sie zu ihnen steht. Höchstens 8 Stichpunkte je Figur.
+
+Arbeite das Neue in das Bestehende ein, statt es anzuhängen: Behalte Wichtiges, fasse Ähnliches zusammen, streiche, was durch das neue Gespräch überholt ist. Älteres darf knapper werden. Deutsch, sachlich, ohne Zahlen, Werte oder Marker.
+
+BISHERIGES PROFIL:
+${sharedProfile() || '(noch leer)'}
+
+BISHERIGES GEDÄCHTNIS DER FIGUREN:
+${old}
+
+DAS GESPRÄCH:
+${transcript}
+
+Antworte NUR mit JSON, ohne Markdown:
+{"profil": "- ...\\n- ...", "figuren": {${figureKeys}}}`;
+}
+
+function memoryText(v) {
+  if (Array.isArray(v)) return v.map(x => '- ' + String(x).replace(/^[-•]\s*/, '')).join('\n');
+  return String(v || '').trim();
+}
+
+async function rememberConversation() {
+  const figures = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId);
+  if (!figures.length) { addMsg('system', 'Niemand in der Besetzung, der sich erinnern könnte.'); return; }
+  const transcript = history.slice(-24)
+    .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
+    .filter(Boolean).join('\n');
+  if (history.length < 2 || !transcript) { addMsg('system', 'Noch nichts, woran man sich erinnern könnte.'); return; }
+
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  els.rememberBtn.disabled = true;
+  els.rememberBtn.textContent = 'Erinnere...';
+  try {
+    const raw = await callProvider(
+      provider, buildRememberPrompt(figures, transcript),
+      [{ role: 'user', content: 'Gib das aktualisierte Gedächtnis als JSON zurück.' }],
+      0.3, taskBudget('draft', 2500), { task: 'draft' }
+    );
+    const data = extractJson(raw);
+    if (!data || typeof data !== 'object') throw new Error('Die Antwort war nicht verwertbar.');
+
+    const profile = memoryText(data.profil).slice(0, MEMORY_MAX_PROFILE);
+    if (profile) safeSet('companion_sharedProfile', profile);
+
+    const byName = data.figuren && typeof data.figuren === 'object' ? data.figuren : {};
+    const updated = [];
+    figures.forEach(c => {
+      const key = Object.keys(byName).find(k => k.trim().toLowerCase() === c.name.trim().toLowerCase());
+      const text = key ? memoryText(byName[key]) : '';
+      if (text) { setFigureMemory(c.figureId, text); updated.push(c.name); }
+    });
+
+    if (els.sharedProfile) els.sharedProfile.value = sharedProfile();
+    logEvent('msg', { role: 'system', text: 'Gedächtnis: ' + JSON.stringify({ profil: profile, figuren: byName }).slice(0, 1500) });
+    addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
+      + (profile ? ' Das gemeinsame Wissen über dich ist aktualisiert.' : ''));
+  } catch (err) {
+    addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
+  } finally {
+    els.rememberBtn.disabled = false;
+    els.rememberBtn.textContent = 'Erinnern';
+  }
+}
+
 function buildCastBlock() {
   const cast = characters.map(c => '- ' + describeCharacter(c)).join('\n');
   const me = userCharacter();
@@ -5671,7 +5871,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -5731,7 +5931,7 @@ Bedeutung:
 
 low und high sagen zusammen, wie lang der Hub ist und wo auf der Strecke er liegt. "Nur ganz oben" ist ein kurzer Hub weit oben, etwa 720-900. "Über die ganze Länge" ist 60-940.
 
-Was das Gerät kann - nutze es ruhig aus: sehr langsame, lange Hübe (unter 15) genauso wie sehr schnelle, kurze (bis 230, etwa 780-880@220). Kurze Hübe dürfen bis etwa 50 Einheiten schmal sein. ${textures.includes('tremor') ? 'Mit "tremor" zittert das Gerät fein und schnell an einer Stelle, etwa <<790-840@0 tremor>> - das ist das Schnellste und Feinste, was es kann; ein echtes Vibrieren wie bei einem Vibrator schafft es nicht, beschreibe es also als Zittern oder Flattern.' : ''} Ein Muster wie "drei schnelle Hübe oben, dann tief" setzt du über mehrere Zeilen um, jede Zeile mit ihrem eigenen Marker.
+Was das Gerät kann - nutze es ruhig aus: sehr langsame, lange Hübe (unter 15) genauso wie sehr schnelle, kurze (bis 230, etwa 780-880@220). Kurze Hübe dürfen bis etwa 50 Einheiten schmal sein. ${textures.includes('tremor') ? 'Mit "tremor" zittert das Gerät fein an einer Stelle, etwa <<790-840@150 tremor>>. Beim Zittern bedeutet bpm die Geschwindigkeit des Zitterns: 0 ruhiges Flattern, 230 das Schnellste, was das Gerät kann. "Schneller zittern" heißt also: bpm erhöhen. "Kleiner" heißt: low und high enger zusammen. Sag nur, dass es schneller wird, wenn du bpm auch wirklich erhöhst.' : ''} Ein Muster wie "drei schnelle Hübe oben, dann tief" setzt du über mehrere Zeilen um, jede Zeile mit ihrem eigenen Marker.
 
 ${device ? `Das Gerät: ${device.slice(0, 700)}\n` : ''}
 Beispiele:
@@ -5739,7 +5939,8 @@ Beispiele:
 - ${exampleName()}: Langsamer... <<300-700@16 smooth>>
 - ${exampleName()}: Ja, genau so. <<700-900@95 smooth>>
 - ${exampleName()}: Warte. <<400-600@0 hold>>${textures.includes('tremor') ? `
-- ${exampleName()}: Und jetzt ganz fein, genau an der Spitze. <<800-840@0 tremor>>` : ''}
+- ${exampleName()}: Und jetzt ganz fein, genau an der Spitze. <<800-840@120 tremor>>
+- ${exampleName()}: Schneller. <<800-840@200 tremor>>` : ''}
 
 Regeln: Der Marker steht immer am Zeilenende, nach dem Text, nie mitten im Satz. "stop" nur, wenn ausdrücklich alles zur Ruhe kommt. Wenn eine Zeile nichts am Gerät ändert, wiederhole die Werte der vorherigen Zeile. Über die Zeilen hinweg soll sich etwas entwickeln, statt dass überall dasselbe steht.`;
 }
@@ -6401,6 +6602,9 @@ function renderLivePanel() {
 }
 
 els.liveAddBtn.onclick = () => addFigureToCast(els.liveAddFigure.value);
+els.rememberBtn.onclick = () => rememberConversation();
+els.sharedProfile.value = sharedProfile();
+els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
 
 els.liveNarrator.onchange = () => {
