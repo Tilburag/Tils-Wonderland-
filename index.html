@@ -582,6 +582,12 @@
     transition: background 200ms, color 200ms;
   }
   .story-line.narrator { font-style: italic; }
+  .story-panel { margin: 12px 0 8px 0; }
+  .story-panel img { width: 100%; border-radius: 12px; display: block; cursor: zoom-in; }
+  .story-panel .pending {
+    border: 1px dashed var(--line); border-radius: 12px;
+    padding: 28px 12px; text-align: center; font-size: 12.5px; color: var(--text-dim);
+  }
   .story-line.now {
     background: var(--bg-panel-raised);
     color: var(--text);
@@ -1110,6 +1116,12 @@
         <option value="direkt">Direkt - mitten im Geschehen, ohne Vorgeplänkel</option>
       </select>
 
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:12px 0 0 0;">
+        <input type="checkbox" id="storyImages" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Mit Bildern, wie ein Comic</span>
+      </label>
+      <p class="hint">Etwa ein Bild pro Minute Geschichte, höchstens acht - jedes zeigt den Moment, der gleich folgt. Sie entstehen im Hintergrund, abspielen kann man schon vorher. Mit Lustify rund einen Cent pro Bild.</p>
+
       <div class="btn-row">
         <button class="btn-primary" id="genStoryBtn">Geschichte und Skript erzeugen</button>
       </div>
@@ -1362,6 +1374,7 @@ const els = {
   liveDeviceAware: document.getElementById('liveDeviceAware'),
   livePace: document.getElementById('livePace'),
   storyPace: document.getElementById('storyPace'),
+  storyImages: document.getElementById('storyImages'),
   liveCast: document.getElementById('liveCast'),
   liveAddFigure: document.getElementById('liveAddFigure'),
   liveAddBtn: document.getElementById('liveAddBtn'),
@@ -2038,8 +2051,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.60';
+const APP_VERSION = '0.62';
 const CHANGELOG = [
+  { v: '0.62', date: '2026-09-21', items: [
+    'Geschichten mit Bildern, wie ein Comic: ein Haken im Geschichtenbereich, etwa ein Bild pro Minute. Die Bilder entstehen im Hintergrund und erscheinen vor dem Text, den sie zeigen; beim Abspielen rückt jedes Bild ins Bild, wenn sein Abschnitt beginnt.',
+    'Aufbewahrte Geschichten behalten ihre Bilder.',
+  ]},
+  { v: '0.61', date: '2026-09-21', items: [
+    'Figuren- und Szenen-Generator beschreiben das Aussehen jetzt ausführlich nach festem Schema: Alter, Haare, Gesicht, Haut, Statur, Körper, Kleidung, Auffälliges. Porträts und Szenenbilder werden dadurch genauer und einheitlicher.',
+    'Neuer Knopf im Figureneditor: „✨ Aussehen ausarbeiten" ergänzt eine knappe Beschreibung nach demselben Schema, ohne Vorhandenes zu ändern.',
+    'Das Gespräch bekommt nur eine gekürzte Fassung des Aussehens - die volle Beschreibung geht an die Bildmodelle, nicht in jede Nachricht.',
+  ]},
   { v: '0.60', date: '2026-09-21', items: [
     'Video aus einem Szenenbild: „▶ Video daraus" unter jedem Bild. Die App fragt jedes Mal nach 5 oder 10 Sekunden und zeigt dabei den Preis beider Längen. Das Video entsteht im Hintergrund, das Gespräch läuft weiter.',
     'Neue Einstellung: Videomodell, mit Laden-Knopf für alle Modelle, die ein Bild animieren.',
@@ -4695,7 +4717,9 @@ function describeCharacter(c) {
   if (c.gender && c.gender !== 'offen') parts.push(`Geschlecht: ${GENDER_TEXT[c.gender] || c.gender}`);
   // Given to the writing model as well, so hair or eyes can be mentioned
   // without being invented differently each time.
-  if ((c.appearance || '').trim()) parts.push(`Aussehen: ${c.appearance.trim()}`);
+  // Gekürzt: das Gespräch braucht das Auffälligste, nicht bei jeder Nachricht
+  // die ganze Körperbeschreibung - die geht nur an die Bildmodelle.
+  if ((c.appearance || '').trim()) parts.push(`Aussehen: ${appearanceShort(c.appearance.replace(/\s*\n\s*/g, '; '), 380)}`);
   TRAIT_GROUPS.forEach(group => {
     const picked = group.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text);
     if (picked.length) parts.push(`${group.label}: ${picked.join(', ')}`);
@@ -4786,7 +4810,7 @@ WICHTIG: Das Geschlecht muss im englischen Prompt unmissverständlich benannt se
 
 Figur: ${c.name}
 ${c.gender && c.gender !== 'offen' ? `Geschlecht: ${GENDER_TEXT[c.gender]}` : ''}
-${(c.appearance || '').trim() ? `Aussehen - das ist verbindlich und muss genau so umgesetzt werden: ${c.appearance.trim().slice(0, 500)}` : ''}
+${(c.appearance || '').trim() ? `Aussehen - das ist verbindlich und muss genau so umgesetzt werden: ${c.appearance.trim().slice(0, APPEARANCE_MAX)}` : ''}
 Wesenszüge: ${traits || 'keine angegeben'}
 Beschreibung: ${(c.notes || '').slice(0, 900)}
 ${spoken ? `So spricht sie - das sagt etwas über ihre Ausstrahlung: ${spoken.slice(0, 300)}` : ''}
@@ -4794,7 +4818,7 @@ ${c.isNarrator ? 'Diese Figur ist eine Erzählerstimme, keine Mitspielerin.' : '
 ${scene ? `Umgebung der Szene: ${scene}` : ''}
 
 ${(c.appearance || '').trim()
-  ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Augen, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
+  ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Gesicht, Augen, Haut, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Nenne das Auffälligste zuerst (Haare, Gesicht, Augen), denn Bildmodelle gewichten die ersten Wörter am stärksten. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
   : 'Übersetze das Wesen ins Sichtbare: Gesicht, Ausdruck, Blick, Haltung, Haare, Kleidung, Licht und Hintergrund passend zur Szene. Eine ruhige Figur schaut anders als eine ungeduldige - das soll man sehen.'}
 
 ${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Person, bekleidet, Blick zur Kamera. Keine realen Personen und keine Figuren aus bekannten Filmen, Spielen oder Büchern - eine eigenständige Person. Kein Text und keine Schrift im Bild.
@@ -4811,7 +4835,7 @@ function fallbackPortraitPrompt(c) {
   const genderWord = { weiblich: 'woman', maennlich: 'man', divers: 'non-binary person' }[c.gender] || 'person';
   return `Portrait photograph of an adult ${genderWord} named ${c.name}, upper body, clothed, `
     + `looking at the camera, soft natural light, shallow depth of field. `
-    + ((c.appearance || '').trim() ? `Appearance: ${c.appearance.trim().slice(0, 400)}. ` : '')
+    + ((c.appearance || '').trim() ? `Appearance: ${c.appearance.trim().replace(/\s*\n\s*/g, '; ').slice(0, 700)}. ` : '')
     + `Character impression: ${traits || 'calm and approachable'}. `
     + `An original person, not a real individual and not a known fictional character. No text in the image.`;
 }
@@ -4824,35 +4848,39 @@ function fallbackPortraitPrompt(c) {
 // genau dieses Bild zum Leben erwecken.
 let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
 
-function buildSceneImageRequest() {
+function buildSceneImageRequest(momentText) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 900);
   const people = characters.filter(c => !c.isNarrator).map(c => {
     const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : 'nicht festgelegt';
     const looks = (c.appearance || '').trim();
-    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.slice(0, 400) : 'Aussehen frei, aber erwachsen.'}`;
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}`;
   }).join('\n');
-  const recent = history.slice(-8)
-    .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
-    .filter(Boolean).join('\n').slice(-2500);
+  // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
+  // Bild illustrieren soll.
+  const recent = momentText
+    ? String(momentText).slice(0, 2500)
+    : history.slice(-8)
+      .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
+      .filter(Boolean).join('\n').slice(-2500);
 
-  return `Schreibe einen Bild-Prompt, der den aktuellen Moment dieses Gesprächs als ein einzelnes Bild zeigt. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
+  return `Schreibe einen Bild-Prompt, der ${momentText ? 'den Kern dieses Abschnitts einer Geschichte' : 'den aktuellen Moment dieses Gesprächs'} als ein einzelnes Bild zeigt. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
 
 Die Personen:
 ${people}
 
 ${scene ? `Der Ort und die Lage: ${scene}` : 'Kein fester Ort - wähle einen, der zum Gespräch passt.'}
 
-Was zuletzt geschah (das letzte ist der aktuelle Moment):
+${momentText ? 'Der Abschnitt, den das Bild zeigen soll:' : 'Was zuletzt geschah (das letzte ist der aktuelle Moment):'}
 ${recent || '(noch nichts)'}
 
 Regeln:
 - Zeige genau den letzten Moment: wer ist zu sehen, wo, in welcher Haltung, wer tut was mit wem, Blicke, Licht, Stimmung.
-- Jede Person mit ihrem Aussehen wie oben angegeben - Haare, Augen, Statur, Kleidung. Das Geschlecht jeder Person unmissverständlich benennen ("a woman", "a man").
+- Jede Person mit ihrem Aussehen wie oben angegeben: zuerst Geschlecht und Alter ("a 28-year-old woman"), dann das Auffälligste - Haare, Gesicht, Augen, Statur, Figur, Haut mit Tattoos oder Besonderheiten -, dann Kleidung oder was davon zu sehen ist. Bildmodelle gewichten die ersten Wörter am stärksten.
 - Alle abgebildeten Personen sind Erwachsene; schreibe ausdrücklich "adult". Keine realen Personen, keine bekannten Figuren aus Filmen, Spielen oder Büchern. Kein Text im Bild.
 - Technische Geräte nur zeigen, wenn das Gespräch sie ausdrücklich sichtbar beschreibt.
 ${portraitStyle() === 'foto' ? '- Stil: ein echtes Foto, keine Illustration - Kamera, natürliches Licht, echte Hautstruktur. Keine Worte wie painting, illustration, digital art, render oder anime.' : ''}
 
-Antworte NUR mit dem englischen Prompt, zwei bis vier Sätze, ohne Anführungszeichen und ohne Erklärung.`;
+Antworte NUR mit dem englischen Prompt, drei bis sechs Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
 
 function openImageViewer(dataUrl) {
@@ -4902,57 +4930,61 @@ function addSceneImageMsg(dataUrl) {
   els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
+// Bildbeschreibung schreiben und malen lassen - gemeinsam für Live-Gespräch
+// und Geschichte.
+async function makeSceneImage(momentText) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  let prompt = (await callProvider(
+    provider, buildSceneImageRequest(momentText),
+    [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
+    0.7, taskBudget('draft', 1200), { task: 'draft' }
+  )).trim().replace(/^["'`]+|["'`]+$/g, '');
+  if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
+  if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
+  if (portraitStyle() === 'foto') prompt = prompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture.';
+
+  const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt: prompt.slice(0, 1400),
+      negative_prompt: 'child, teen, minor, young-looking, childlike, blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
+        + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin' : ''),
+      width: 1024,
+      height: 768,
+      format: 'webp',
+      safe_mode: false,
+      hide_watermark: true,
+    })
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
+    throw new Error(res.status + (detail ? ': ' + detail : ''));
+  }
+  const body = await res.json();
+  const base64 = (Array.isArray(body.images) && body.images[0])
+    || (body.data && body.data[0] && body.data[0].b64_json) || '';
+  if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
+  logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
+  return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
+}
+
 async function generateSceneImage() {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Szenenbilder wird ein Venice-Schlüssel gebraucht.'); return; }
   if (!characters.some(c => !c.isNarrator)) { addMsg('system', 'Niemand in der Besetzung, den man zeigen könnte.'); return; }
   if (history.length < 2) { addMsg('system', 'Noch ist nichts passiert, was man zeigen könnte.'); return; }
 
-  const model = modelFor('companion_imageModel') || 'venice-sd35';
-  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   els.sceneImageBtn.disabled = true;
   els.sceneImageBtn.textContent = 'Male...';
   try {
-    let prompt = (await callProvider(
-      provider, buildSceneImageRequest(),
-      [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
-      0.7, taskBudget('draft', 900), { task: 'draft' }
-    )).trim().replace(/^["'`]+|["'`]+$/g, '');
-    if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
-    if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
-    if (portraitStyle() === 'foto') prompt = prompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture.';
-
-    const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt: prompt.slice(0, 1400),
-        // Zusätzlich zur Anweisung im Prompt: nichts, was jünger als
-        // erwachsen wirken könnte.
-        negative_prompt: 'child, teen, minor, young-looking, childlike, blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
-          + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin' : ''),
-        width: 1024,
-        height: 768,
-        format: 'webp',
-        safe_mode: false,
-        hide_watermark: true,
-      })
-    });
-    if (!res.ok) {
-      let detail = '';
-      try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
-      throw new Error(res.status + (detail ? ': ' + detail : ''));
-    }
-    const body = await res.json();
-    const base64 = (Array.isArray(body.images) && body.images[0])
-      || (body.data && body.data[0] && body.data[0].b64_json) || '';
-    if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
-
-    const dataUrl = 'data:image/webp;base64,' + base64;
+    const { dataUrl, prompt } = await makeSceneImage();
     lastSceneImage = { dataUrl, prompt, createdAt: Date.now() };
     addSceneImageMsg(dataUrl);
-    logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
   } catch (err) {
     addMsg('system', 'Szenenbild fehlgeschlagen: ' + err.message);
   } finally {
@@ -5559,10 +5591,55 @@ function renderCharacters() {
     card.appendChild(lookLabel);
     const lookArea = document.createElement('textarea');
     lookArea.value = c.appearance || '';
-    lookArea.style.minHeight = '70px';
-    lookArea.placeholder = 'Haare, Augen, Statur, Kleidung, Alter. Zum Beispiel: Ende zwanzig, kupferrotes Haar bis zur Schulter, grüne Augen, kräftige Schultern, einfaches Leinenhemd.';
+    lookArea.style.minHeight = '150px';
+    lookArea.placeholder = 'Alter: 29\nHaare: kupferrot, schulterlang, gewellt\nGesicht: oval, grüne Augen, volle Lippen, Sommersprossen\nHaut: hell, kleines Tattoo am Handgelenk\nStatur: 172 cm, schlank, sportlich\nKörper: ...\nKleidung: ...\nAuffällig: ...';
     lookArea.oninput = () => { c.appearance = lookArea.value; };
     card.appendChild(lookArea);
+
+    // Für Figuren, die noch mit ein, zwei Sätzen beschrieben sind: das Modell
+    // arbeitet das Vorhandene nach dem festen Schema aus, ohne etwas davon zu
+    // ändern. Landet nur im Feld - festgehalten wird es wie alles andere mit
+    // Sichern.
+    if (!c.isNarrator) {
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'btn-secondary';
+      expandBtn.type = 'button';
+      expandBtn.textContent = '✨ Aussehen ausarbeiten';
+      expandBtn.style.marginTop = '6px';
+      expandBtn.onclick = async () => {
+        const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+        expandBtn.disabled = true;
+        expandBtn.textContent = 'Arbeite aus...';
+        try {
+          const raw = await callProvider(provider,
+            `Arbeite das Aussehen dieser Figur für ein Rollenspiel zwischen Erwachsenen aus.
+
+Figur: ${c.name}${c.gender && c.gender !== 'offen' ? ', Geschlecht: ' + GENDER_TEXT[c.gender] : ''}
+Bisheriges Aussehen: ${(c.appearance || '').trim() || '(noch keines)'}
+Wesen: ${(c.notes || '').slice(0, 600)}
+
+Alles, was im bisherigen Aussehen steht, bleibt genau so - du ergänzt nur, was fehlt, passend zum Wesen der Figur.
+
+${APPEARANCE_SCHEMA}
+
+Antworte NUR mit JSON: {"appearance": "..."}`,
+            [{ role: 'user', content: 'Gib das ausgearbeitete Aussehen als JSON zurück.' }],
+            0.7, taskBudget('draft', 1500), { task: 'draft' });
+          const data = extractJson(raw);
+          const text = String((data && data.appearance) || '').replace(/\\n/g, '\n').trim().slice(0, APPEARANCE_MAX);
+          if (!text) throw new Error('Die Antwort war leer.');
+          c.appearance = text;
+          lookArea.value = text;
+          addMsg('system', `${c.name}: Aussehen ausgearbeitet. Mit Sichern festhalten.`);
+        } catch (err) {
+          addMsg('system', 'Aussehen ausarbeiten fehlgeschlagen: ' + err.message);
+        } finally {
+          expandBtn.disabled = false;
+          expandBtn.textContent = '✨ Aussehen ausarbeiten';
+        }
+      };
+      card.appendChild(expandBtn);
+    }
     const lookHint = document.createElement('p');
     lookHint.className = 'hint';
     lookHint.textContent = 'Hält das Porträt über mehrere Versuche gleich und gibt der Erzählung etwas Festes, statt das Aussehen jedes Mal neu zu erfinden.';
@@ -5789,7 +5866,9 @@ Für jede Figur wählst du Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
 ${voiceBlock}
 
-Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}, ein Feld "appearance" mit Alter, Haaren, Augen, Statur und Kleidung in einem oder zwei Sätzen, ein Feld "styleExamples" mit zwei bis drei Beispielzeilen im Ton dieser Figur, ein Feld "replyLength" ("kurz", "mittel", "lang" oder "sehrlang") und ein Feld "temperature" zwischen 0.3 und 1.0.
+Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}, ein Feld "appearance" (siehe unten), ein Feld "styleExamples" mit zwei bis drei Beispielzeilen im Ton dieser Figur, ein Feld "replyLength" ("kurz", "mittel", "lang" oder "sehrlang") und ein Feld "temperature" zwischen 0.3 und 1.0.
+
+${APPEARANCE_SCHEMA}
 
 Dazu je ein Feld "notes" mit drei bis fünf Sätzen: wie die Figur spricht, wie sie sich verhält, wie sie zu den anderen steht. Und "pitch" und "rate" als Zahlen zwischen 0.8 und 1.2 - setz die Werte der beiden Figuren spürbar auseinander, damit man sie beim Zuhören unterscheidet.
 
@@ -5819,7 +5898,7 @@ function sanitizeSingleCharacter(draft) {
     traits: (Array.isArray(d.traits) ? d.traits : []).filter(t => valid.has(t)),
     notes: String(d.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
-    appearance: String(d.appearance || '').slice(0, 600),
+    appearance: String(d.appearance || '').slice(0, APPEARANCE_MAX),
     // Everything the model was asked for is taken over, with the same clamping
     // as the manual fields - a draft that ignores the bounds must not be able
     // to set values the sliders could never produce.
@@ -5853,7 +5932,7 @@ function sanitizeDraftCharacters(list) {
     traits: (Array.isArray(c.traits) ? c.traits : []).filter(t => valid.has(t)),
     notes: String(c.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[c.gender] ? c.gender : 'offen',
-    appearance: String(c.appearance || '').slice(0, 600),
+    appearance: String(c.appearance || '').slice(0, APPEARANCE_MAX),
     emotional: c.emotional === undefined ? true : !!c.emotional,
     styleExamples: String(c.styleExamples || '').slice(0, 1200),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
@@ -6027,6 +6106,33 @@ els.newFigureBtn.onclick = () => {
 // A single figure from one sentence. Separate from the scene draft on purpose:
 // that one replaces the whole cast and the scene, which is the last thing you
 // want when you just wanted to add somebody.
+// Das Aussehen ist die einzige Quelle, aus der Porträt und Szenenbilder die
+// Figur zeichnen. Ein, zwei Sätze reichten nicht: das Bildmodell musste den
+// Rest erfinden, und dieselbe Figur sah auf jedem Bild anders aus. Jetzt gibt
+// es ein festes Schema in fester Reihenfolge - das Auffälligste zuerst, weil
+// Bildmodelle die ersten Wörter am stärksten gewichten.
+const APPEARANCE_MAX = 1100;
+const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
+Alter: eine konkrete Zahl, mindestens 21, dazu wie alt die Person wirkt (erwachsen)
+Haare: Farbe, Länge, Struktur, Frisur
+Gesicht: Form, Augenfarbe und -form, Brauen, Nase, Lippen, Haut im Gesicht
+Haut: Ton, Besonderheiten wie Sommersprossen, Muttermale, Narben, Tattoos, Piercings - mit Stelle
+Statur: Größe in cm, Körperbau, Muskulatur, Schultern
+Körper: Figur im Einzelnen - Brust, Taille, Hüfte, Po, Beine, Hände; bei Männern auch Brust- und Körperbehaarung
+Kleidung: typischer Stil und was die Figur gewöhnlich trägt, mit Farben und Stoffen
+Auffällig: ein, zwei Merkmale, an denen man sie sofort wiedererkennt
+Alles konkret und sichtbar - Farben, Formen, Größen -, keine Charakterbeschreibung und keine Vergleiche wie "wie eine Göttin". Die Person ist eindeutig erwachsen; keine Merkmale, die sie jünger als erwachsen wirken lassen.`;
+
+// Kürzt, ohne mitten im Wort abzubrechen - fürs Gesprächs-Prompt, das nicht bei
+// jeder Nachricht die volle Körperbeschreibung braucht.
+function appearanceShort(text, max) {
+  const t = String(text || '').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastBreak = Math.max(cut.lastIndexOf('\n'), cut.lastIndexOf('. '), cut.lastIndexOf(', '));
+  return (lastBreak > max * 0.6 ? cut.slice(0, lastBreak) : cut).trim() + ' …';
+}
+
 function buildFigureDraftPrompt(idea) {
   const traitList = TRAIT_GROUPS
     .map(g => `${g.label}: ` + g.traits.map(([id, text]) => `"${id}" (${text})`).join(', '))
@@ -6045,7 +6151,7 @@ Wähle Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
 
 "gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
-"appearance" beschreibt das Aussehen in einem oder zwei Sätzen: Alter, Haare, Augen, Statur, Kleidung. Konkret und bildlich, denn daraus wird später ein Porträt erzeugt.
+${APPEARANCE_SCHEMA}
 "notes" sind drei bis fünf Sätze: wie sie spricht, wie sie sich verhält, wie sie zu anderen steht.
 "styleExamples" sind zwei bis drei Beispielzeilen, die genau so klingen, wie diese Figur reden würde - als Vorlage für Wortwahl und Detailgrad, mit Zeilenumbrüchen getrennt.
 "replyLength" ist einer dieser Werte: "kurz", "mittel", "lang", "sehrlang" - passend dazu, ob die Figur knapp ist oder ausschweifend.
@@ -6068,7 +6174,7 @@ els.genFigureBtn.onclick = async () => {
     const raw = await callProvider(
       provider, buildFigureDraftPrompt(idea),
       [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
-      0.8, taskBudget('draft', 3000), { persona: true, task: 'draft' }
+      0.8, taskBudget('draft', 3800), { persona: true, task: 'draft' }
     );
     const draft = extractJson(raw);
     const clean = sanitizeSingleCharacter(draft);
@@ -7096,6 +7202,8 @@ els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.val
 
 els.livePace.onchange = () => safeSet('companion_pace_live', els.livePace.value);
 els.storyPace.value = pace('story');
+els.storyImages.checked = localStorage.getItem('companion_storyImages') === 'true';
+els.storyImages.onchange = () => safeSet('companion_storyImages', els.storyImages.checked ? 'true' : 'false');
 els.storyPace.onchange = () => safeSet('companion_pace_story', els.storyPace.value);
 
 els.liveDeviceAware.onchange = () => {
@@ -7322,9 +7430,30 @@ function addStoryNote(text) {
   els.storyText.appendChild(div);
 }
 
+function renderStoryPanel(c, i) {
+  const panel = document.createElement('div');
+  panel.className = 'story-panel';
+  panel.id = 'storyPanel' + i;
+  if (c.image) {
+    const img = document.createElement('img');
+    img.src = c.image;
+    img.alt = 'Bild zur Geschichte';
+    img.onclick = () => openImageViewer(c.image);
+    panel.appendChild(img);
+  } else {
+    const wait = document.createElement('div');
+    wait.className = 'pending';
+    wait.textContent = c.imageFailed ? 'Bild konnte nicht erzeugt werden.' : 'Bild wird gemalt...';
+    panel.appendChild(wait);
+  }
+  return panel;
+}
+
 function renderStory() {
   els.storyText.innerHTML = '';
   story.chunks.forEach((c, i) => {
+    // Das Bild steht vor dem Text, den es zeigt - wie ein Comicpanel.
+    if (c.image || c.imagePending || c.imageFailed) els.storyText.appendChild(renderStoryPanel(c, i));
     const div = document.createElement('div');
     div.className = 'story-line' + (c.role === 'narrator' ? ' narrator' : '');
     div.id = 'storyLine' + i;
@@ -7339,8 +7468,66 @@ function highlightChunk(i) {
     const el = document.getElementById('storyLine' + n);
     if (el) el.classList.toggle('now', n === i);
   });
-  const el = document.getElementById('storyLine' + i);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Beginnt ein Abschnitt mit einem Bild, rückt das Bild in den Blick statt
+  // nur die Zeile - sonst läge es halb über dem Bildschirmrand.
+  const panel = story.chunks[i] && story.chunks[i].image ? document.getElementById('storyPanel' + i) : null;
+  const el = panel || document.getElementById('storyLine' + i);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: panel ? 'start' : 'center' });
+}
+
+// Etwa ein Bild pro Minute, höchstens acht, das erste gleich am Anfang.
+function pickStoryImageAnchors(count, minutes) {
+  if (count < 1) return [];
+  const wanted = Math.max(2, Math.min(8, Math.round(minutes * 0.8)));
+  const n = Math.min(wanted, count);
+  const anchors = [];
+  for (let k = 0; k < n; k++) anchors.push(Math.round((k * count) / n));
+  return [...new Set(anchors)].filter(a => a < count);
+}
+
+let storyImageRun = 0;
+
+// Läuft im Hintergrund, zwei Bilder gleichzeitig. Eine neu erzeugte Geschichte
+// macht laufende Bilder der alten ungültig (storyImageRun), damit kein Bild an
+// den falschen Text gerät.
+async function generateStoryImages(minutes) {
+  const run = ++storyImageRun;
+  const anchors = pickStoryImageAnchors(story.chunks.length, minutes);
+  if (!anchors.length) return;
+  const chunks = story.chunks;
+  anchors.forEach(a => { chunks[a].imagePending = true; });
+  renderStory();
+  let done = 0, failed = 0;
+  const describe = (a, k) => {
+    const end = k + 1 < anchors.length ? anchors[k + 1] : chunks.length;
+    return chunks.slice(a, Math.min(end, a + 6))
+      .map(c => (c.role && c.role !== 'narrator' && c.role !== 'character' ? c.role + ': ' : '') + stripAudioTags(c.text))
+      .join('\n');
+  };
+  const queue = anchors.map((a, k) => ({ a, k }));
+  const worker = async () => {
+    while (queue.length) {
+      const { a, k } = queue.shift();
+      try {
+        const { dataUrl } = await makeSceneImage(describe(a, k));
+        if (run !== storyImageRun) return;
+        chunks[a].image = dataUrl;
+        done++;
+      } catch (err) {
+        if (run !== storyImageRun) return;
+        chunks[a].imageFailed = true;
+        failed++;
+        logEvent('msg', { role: 'system', text: 'Geschichte: Bild fehlgeschlagen - ' + err.message });
+      }
+      chunks[a].imagePending = false;
+      const old = document.getElementById('storyPanel' + a);
+      if (old && old.replaceWith) old.replaceWith(renderStoryPanel(chunks[a], a));
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  if (run !== storyImageRun) return;
+  logEvent('msg', { role: 'system', text: `Geschichte: ${done} von ${anchors.length} Bildern fertig${failed ? `, ${failed} fehlgeschlagen` : ''}.` });
+  if (failed && !done) setStoryStatus(els.storyStatus.textContent + ' Die Bilder konnten nicht erzeugt werden - siehe Protokoll.');
 }
 
 // Used when the story should bring its own cast: scene and figures are drafted
@@ -7395,7 +7582,14 @@ els.genStoryBtn.onclick = async () => {
     const segments = parseEnsembleText(text);
     story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {} }));
     story.index = 0;
+    storyImageRun++;   // Bilder einer früheren Geschichte gelten nicht mehr
     renderStory();
+
+    // Die Bilder laufen neben dem Bewegungsskript her und blockieren nichts.
+    if (els.storyImages.checked) {
+      if (apiKeyFor('companion_apiKey_venice')) generateStoryImages(minutes);
+      else addStoryNote('Für Bilder wird ein Venice-Schlüssel gebraucht.');
+    }
 
     const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
     const script1 = await generateScript(provider, 1);
@@ -7612,7 +7806,7 @@ els.saveStoryBtn.onclick = async () => {
     name: name.trim(),
     saved: new Date().toISOString(),
     scene: (localStorage.getItem('companion_sceneDesc') || '').slice(0, 4000),
-    chunks: story.chunks.map(c => ({ role: c.role, text: c.text, phases: c.phases })),
+    chunks: story.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases }, c.image ? { image: c.image } : {})),
   };
   try {
     await dbPut(STORE_STORIES, 'story_' + Date.now(), entry);
@@ -7630,7 +7824,8 @@ els.loadStoryBtn.onclick = async () => {
     const entry = await dbGet(STORE_STORIES, key);
     if (!entry || !Array.isArray(entry.chunks)) throw new Error('Eintrag unlesbar.');
     stopStory();
-    story.chunks = entry.chunks.map(c => ({ role: c.role, text: c.text, phases: c.phases || {} }));
+    storyImageRun++;
+    story.chunks = entry.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases || {} }, c.image ? { image: c.image } : {}));
     story.index = 0;
     renderStory();
     els.playStoryBtn.disabled = false;
