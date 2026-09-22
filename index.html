@@ -791,6 +791,9 @@
           <button class="btn-secondary" id="loadImageModelsBtn" type="button">Laden</button>
         </div>
         <select id="imageModelSelect"><option value="">(noch nicht geladen)</option></select>
+        <label for="fantasyImageModel">Modell für Fantasiewesen (leer = dasselbe)</label>
+        <select id="fantasyImageModel"><option value="">(dasselbe wie oben)</option></select>
+        <p class="hint">Fotomodelle wie Lustify kennen fast nur echte Menschen und malen Hautfarben wie Blau lieber auf Haare und Kleidung. Für Figuren, deren Art nicht „Mensch" ist, nimmt die App dieses Modell - ein Allzweckmodell kann das meist besser.</p>
         <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
           <input type="checkbox" id="onlySuitableImageModels" checked style="width:auto;">
           <span style="font-size:13.5px; color:var(--text);">Nur passende Bildmodelle zeigen</span>
@@ -1118,6 +1121,14 @@
         <option value="direkt">Direkt - mitten im Geschehen, ohne Vorgeplänkel</option>
       </select>
 
+      <label for="storyPlay">Wie sie mit dir umgeht</label>
+      <select id="storyPlay">
+        <option value="figur">So, wie es ihrem Wesen entspricht</option>
+        <option value="necken">Neckend - spielt mit dir, lässt dich warten, hört kurz vorher auf</option>
+        <option value="fordernd">Fordernd - übernimmt die Kontrolle, gibt dir Anweisungen</option>
+        <option value="wild">Wild - leidenschaftlich, direkt, ohne Zurückhaltung</option>
+      </select>
+
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:12px 0 0 0;">
         <input type="checkbox" id="storyImages" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Mit Bildern, wie ein Comic</span>
@@ -1290,6 +1301,7 @@ const els = {
   photoInput: document.getElementById('photoInput'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
+  fantasyImageModel: document.getElementById('fantasyImageModel'),
   onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
   anthropicPanel: document.getElementById('anthropicPanel'),
   openaiPanel: document.getElementById('openaiPanel'),
@@ -1381,6 +1393,7 @@ const els = {
   livePace: document.getElementById('livePace'),
   storyPace: document.getElementById('storyPace'),
   storyImages: document.getElementById('storyImages'),
+  storyPlay: document.getElementById('storyPlay'),
   liveCast: document.getElementById('liveCast'),
   liveAddFigure: document.getElementById('liveAddFigure'),
   liveAddBtn: document.getElementById('liveAddBtn'),
@@ -1522,6 +1535,7 @@ els.modelVenice.value = localStorage.getItem('companion_model_venice') || 'venic
 els.imageModel.value = localStorage.getItem('companion_imageModel') || 'venice-sd35';
 els.portraitStyle.value = localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
 els.portraitStyle.onchange = () => safeSet('companion_portraitStyle', els.portraitStyle.value);
+els.fantasyImageModel.onchange = () => safeSet('companion_fantasyImageModel', els.fantasyImageModel.value);
 els.llmProvider.value = localStorage.getItem('companion_llmProvider') || 'anthropic';
 // Drei Zeilen, für jede Aufgabe eine. Alles leer zu lassen ist der bisherige
 // Zustand - ein Modell für alles, Budget automatisch.
@@ -1834,6 +1848,28 @@ function renderImageModels() {
   // nothing is selected.
   const current = els.imageModel.value.trim();
   if (current && list.some(m => m.id === current)) els.imageModelSelect.value = current;
+
+  // Alle Modelle, nicht nur die vorsortierten - die "passendsten" sind hier
+  // ausgerechnet die Fotomodelle, die mit Fantasiewesen nicht zurechtkommen.
+  const fantasy = localStorage.getItem('companion_fantasyImageModel') || '';
+  els.fantasyImageModel.innerHTML = '';
+  const same = document.createElement('option');
+  same.value = '';
+  same.textContent = '(dasselbe wie oben)';
+  els.fantasyImageModel.appendChild(same);
+  imageModelCache.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.id;
+    els.fantasyImageModel.appendChild(opt);
+  });
+  if (fantasy && !imageModelCache.some(m => m.id === fantasy)) {
+    const kept = document.createElement('option');
+    kept.value = fantasy;
+    kept.textContent = fantasy + ' (nicht in der geladenen Liste)';
+    els.fantasyImageModel.appendChild(kept);
+  }
+  els.fantasyImageModel.value = fantasy;
 }
 
 els.onlySuitableImageModels.onchange = renderImageModels;
@@ -2057,8 +2093,24 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.67';
+const APP_VERSION = '0.71';
 const CHANGELOG = [
+  { v: '0.71', date: '2026-09-22', items: [
+    'Die Geschichte beachtet jetzt „Derselbe Aufruf": Text und Bewegung entstehen zusammen, das separate Bewegungsskript entfällt. Fehlen zu viele Marker, springt es automatisch ein. Bisher galt die Einstellung nur im Live-Gespräch.',
+    'Alle drei Bewegungswege bekommen dieselbe Priorität vorangestellt: Die Bewegung muss genau zur Situation passen - Stelle, Tempo, Art - und sich ständig verändern. Der Spannungsbogen ist nur noch der grobe Rahmen.',
+  ]},
+  { v: '0.70', date: '2026-09-22', items: [
+    'Szenen- und Geschichtenbilder folgen dem Kleidungszustand der Handlung. Bisher galt die Kleidung aus dem Aussehen als verbindlich - jede Figur trug auf jedem Bild dasselbe Outfit, auch wenn sie längst nackt war. Bilder zur Geschichte kennen jetzt auch, was vor ihrem Abschnitt geschah.',
+    'Neue Auswahl in der Geschichte: „Wie sie mit dir umgeht" - wie ihr Wesen, neckend, fordernd oder wild. Außerdem bezieht jede Geschichte dich stärker ein: direkte Ansprache, Spannung durch Warten, konkrete Beschreibung.',
+  ]},
+  { v: '0.69', date: '2026-09-21', items: [
+    'Der Generator wählt jetzt aus allen vier Eigenschaftsgruppen - Wesen, Sprechweise, Rolle, Verhältnis. Vorher war keine Anzahl vorgegeben, und meist kam nur „Wesen" vor.',
+    'Eigenschaften mit Umlaut („führt", „zurückhaltend") oder als ganzer Text („leise, fast flüsternd") werden richtig zugeordnet, statt still wegzufallen. Was sich gar nicht zuordnen lässt, steht im Protokoll.',
+  ]},
+  { v: '0.68', date: '2026-09-21', items: [
+    'Eigenes Bildmodell für Fantasiewesen: Fotomodelle wie Lustify kennen fast nur echte Menschen. Figuren, deren Art nicht „Mensch" ist, werden mit dem hier gewählten Modell gemalt.',
+    'Spitze Ohren, schwarze Augen ohne Weiß, Leuchtmuster, Hörner, Schwanz, Flügel und Schuppen werden fest ins Englische übersetzt und angehängt. Die Haarfarbe wird ausdrücklich genannt, damit die Hautfarbe nicht in die Haare wandert.',
+  ]},
   { v: '0.67', date: '2026-09-21', items: [
     'Fantasiewesen im Bild: Die App liest Art und Hautfarbe selbst aus dem Aussehen und setzt sie verlässlich an den Anfang des Bildprompts. Der Fotostil zieht nicht mehr zu „natürlicher" Haut, und die Negativliste schließt bei Fantasiewesen menschliche Hauttöne aus statt 3D-Darstellungen.',
     'Der Porträt-Prompt steht jetzt im Protokoll - so lässt sich sehen, was das Bildmodell tatsächlich bekommen hat.',
@@ -4012,6 +4064,16 @@ function allowedTexturesFor(prefix) {
   return list;
 }
 
+// Das Wichtigste an der Bewegung, für alle drei Wege (Live zweiter Aufruf,
+// Live im selben Aufruf, Geschichte). Bisher stand der Spannungsbogen im
+// Vordergrund, und heraus kamen gleichförmige Treppen (24, 30, 28, 36 ...) -
+// ein Muster aus der Formel, nicht aus dem Text.
+const MOTION_PRIORITY = `DAS WICHTIGSTE: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
+- STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
+- TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
+- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor.
+- VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.`;
+
 const ARC_GUIDE = `
 Grober Ablauf über eine ganze Sitzung (Orientierung, kein starres Schema):
 1. Einstieg: lange, langsame Hübe über einen großen Teil der Strecke, niedrige Frequenz (etwa 15-30).
@@ -4090,6 +4152,8 @@ So beschreibst du eine Bewegung - in konkreten physikalischen Werten, nicht in S
 low und high zusammen beschreiben BEIDES: wie lang der Hub ist (Abstand) und WO auf der Strecke er stattfindet (Lage). "Nur ganz oben" ist also ein kurzer Abstand weit oben, z.B. 720-900. "Über die ganze Länge" ist 60-940.
 
 ${textureLegend}
+
+${MOTION_PRIORITY}
 
 Beispiele zur Kalibrierung (so übersetzt du Text in Werte):
 - "fährt langsam über die ganze Länge nach unten und wieder hoch" -> {"low": 60, "high": 940, "bpm": 22, "texture": "smooth"}
@@ -4550,6 +4614,39 @@ const GENDER_TEXT = Object.fromEntries(GENDERS);
 
 const TRAIT_TEXT = {};
 TRAIT_GROUPS.forEach(g => g.traits.forEach(([id, text]) => { TRAIT_TEXT[id] = text; }));
+
+// Die Kennungen sind ohne Umlaute geschrieben ("fuehrt", "zurueckhaltend").
+// Modelle schreiben aber gern "führt", "Zurückhaltend" oder gleich den ganzen
+// Text ("leise, fast flüsternd") - bisher fiel all das stillschweigend weg, und
+// ganze Gruppen blieben leer. Jetzt wird es der richtigen Kennung zugeordnet.
+function normTrait(x) {
+  return String(x || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z ,]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+const TRAIT_LOOKUP = {};
+TRAIT_GROUPS.forEach(g => g.traits.forEach(([id, text]) => {
+  TRAIT_LOOKUP[normTrait(id)] = id;
+  TRAIT_LOOKUP[normTrait(text)] = id;
+  TRAIT_LOOKUP[normTrait(text.split(',')[0])] = id;
+}));
+
+function matchTraits(list, who) {
+  const out = [];
+  const dropped = [];
+  (Array.isArray(list) ? list : []).forEach(raw => {
+    const n = normTrait(raw);
+    let id = TRAIT_LOOKUP[n] || TRAIT_LOOKUP[n.split(',')[0].trim()];
+    if (!id && n.length > 3) {
+      const k = Object.keys(TRAIT_LOOKUP).find(k => k.length > 3 && (n.startsWith(k) || k.startsWith(n)));
+      if (k) id = TRAIT_LOOKUP[k];
+    }
+    if (id && !out.includes(id)) out.push(id);
+    else if (!id) dropped.push(String(raw));
+  });
+  if (dropped.length) logEvent('msg', { role: 'system', text: `Eigenschaften ohne Entsprechung verworfen${who ? ' (' + who + ')' : ''}: ${dropped.join(', ')}` });
+  return out;
+}
 
 // Deliberately contrasting: one who leads and stays close, one who watches and
 // comments from a distance. Two figures with the same temperament produce
@@ -5063,8 +5160,13 @@ function buildSceneImageRequest(momentText) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 900);
   const people = characters.filter(c => !c.isNarrator).map(c => {
     const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : 'nicht festgelegt';
-    const looks = (c.appearance || '').trim();
-    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}`;
+    // Die Kleidung ist nur der Ausgangszustand. Stand sie bisher im
+    // "verbindlichen" Aussehen, trug jede Figur auf jedem Bild dasselbe Outfit -
+    // auch mitten in einer Szene, in der sie längst nackt war.
+    const looksAll = (c.appearance || '').trim();
+    const clothes = ((looksAll.match(/^\s*Kleidung\s*:\s*(.+)$/mi) || [])[1] || '').trim();
+    const looks = looksAll.replace(/^\s*Kleidung\s*:.*$/mi, '').trim();
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
   }).join('\n');
   // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
   // Bild illustrieren soll.
@@ -5081,12 +5183,13 @@ ${people}
 
 ${scene ? `Der Ort und die Lage: ${scene}` : 'Kein fester Ort - wähle einen, der zum Gespräch passt.'}
 
-${momentText ? 'Der Abschnitt, den das Bild zeigen soll:' : 'Was zuletzt geschah (das letzte ist der aktuelle Moment):'}
+${momentText ? 'Die Geschichte bis hierher und der Abschnitt, den das Bild zeigen soll:' : 'Was zuletzt geschah (das letzte ist der aktuelle Moment):'}
 ${recent || '(noch nichts)'}
 
 Regeln:
 - Zeige genau den letzten Moment: wer ist zu sehen, wo, in welcher Haltung, wer tut was mit wem, Blicke, Licht, Stimmung.
-- Jede Person mit ihrem Aussehen wie oben angegeben: zuerst Geschlecht und Alter ("a 28-year-old woman"), dann das Auffälligste - Haare, Gesicht, Augen, Statur, Figur, Haut mit Tattoos oder Besonderheiten -, dann Kleidung oder was davon zu sehen ist. Bildmodelle gewichten die ersten Wörter am stärksten.
+- Kläre zuerst für jede Person, was sie in diesem Moment trägt - nach dem, was im Text bis hierher geschehen ist. Wurde etwas ausgezogen, ist es weg; ist jemand nackt, zeige ihn nackt und schreibe es ausdrücklich ("fully naked", "topless", "wearing only ..."). Die übliche Kleidung gilt nur, solange der Text nichts anderes sagt.
+- Jede Person mit ihrem Aussehen wie oben angegeben: zuerst Geschlecht und Alter ("a 28-year-old woman"), dann das Auffälligste - Haare, Gesicht, Augen, Statur, Figur, Haut mit Tattoos oder Besonderheiten -, dann der Kleidungszustand von eben. Bildmodelle gewichten die ersten Wörter am stärksten.
 - Alle abgebildeten Personen sind Erwachsene; schreibe ausdrücklich "adult". Keine realen Personen, keine bekannten Figuren aus Filmen, Spielen oder Büchern. Kein Text im Bild.
 - ${NONHUMAN_RULE}
 - Technische Geräte nur zeigen, wenn das Gespräch sie ausdrücklich sichtbar beschreibt.
@@ -5146,7 +5249,7 @@ function addSceneImageMsg(dataUrl) {
 // und Geschichte.
 async function makeSceneImage(momentText) {
   const key = apiKeyFor('companion_apiKey_venice');
-  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  let model = modelFor('companion_imageModel') || 'venice-sd35';
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   let prompt = (await callProvider(
     provider, buildSceneImageRequest(momentText),
@@ -5162,10 +5265,14 @@ async function makeSceneImage(momentText) {
   const alien = infos.filter(x => x.info.nonHuman);
   const colors = [...new Set(alien.map(x => x.info.color).filter(Boolean))];
   alien.forEach(({ c, info }) => {
-    if (info.color && !new RegExp('\\b' + info.color + '\\b', 'i').test(prompt)) {
+    if (info.color && !new RegExp(info.color + '[- ]skin', 'i').test(prompt)) {
       prompt += ` ${c.name} has entirely ${info.color} skin.`;
     }
+    if (info.traits.length) prompt += ` ${c.name}: ${info.traits.join(', ')}.`;
+    if (info.hair && info.hair !== info.color) prompt += ` ${c.name}'s hair is ${info.hair}.`;
   });
+  const fantasyModel = (localStorage.getItem('companion_fantasyImageModel') || '').trim();
+  if (alien.length && fantasyModel) model = fantasyModel;
   prompt = prompt.slice(0, 1250) + styleSuffix(alien.length > 0, colors);
 
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
@@ -5177,7 +5284,11 @@ async function makeSceneImage(momentText) {
       // Die Hautfarben-Sperre nur, wenn niemand Menschliches mitspielt - sonst
       // würde sie auch die menschlichen Figuren verfärben.
       negative_prompt: 'child, teen, minor, young-looking, childlike, '
-        + negativeFor(alien.length > 0, alien.length === infos.length ? colors : []),
+        + negativeFor(alien.length > 0, alien.length === infos.length ? colors : [])
+        // Steht im Prompt, dass jemand nackt ist, soll das Bildmodell nicht
+        // aus Gewohnheit doch noch ein Oberteil malen.
+        + (/\b(fully naked|completely naked|nude|naked)\b/i.test(prompt) ? ', clothes, clothing, shirt, top, bra, leggings, pants'
+          : /\btopless\b/i.test(prompt) ? ', shirt, top, bra' : ''),
       width: 1024,
       height: 768,
       format: 'webp',
@@ -5563,18 +5674,60 @@ function speciesInfo(appearance) {
       if (re.test(low) || (skin && new RegExp(`\\b\\w*${de}`, 'i').test(skin))) { color = en; break; }
     }
   }
-  return { nonHuman, color };
+  return {
+    nonHuman,
+    color,
+    traits: nonHuman ? speciesTraitsEnglish(text) : [],
+    hair: nonHuman ? hairColorEnglish(text) : null,
+  };
+}
+
+// Die übrigen nicht-menschlichen Merkmale, fest übersetzt - damit sie nicht
+// davon abhängen, ob das Textmodell sie in die Bildbeschreibung übernimmt.
+const SPECIES_TRAITS = [
+  [/spitz[\wäöüß]*\s+([\wäöüß-]+\s+)?ohren|elf[\wäöüß]*ohren|elf[\wäöüß]*\s+ohren/i, 'long pointed elf ears clearly visible'],
+  [/augen\s+ohne\s+([\wäöüß]+\s+)?wei/i, 'solid black eyes without visible whites'],
+  [/leucht[\wäöüß]*\s*(punkt|muster|mal|streif)|biolumin/i, 'glowing bioluminescent markings on the skin'],
+  [/hörner|\bhorn\b/i, 'horns'],
+  [/schwanz/i, 'a long tail'],
+  [/flügel/i, 'wings'],
+  [/schupp/i, 'scales on the skin'],
+];
+
+function speciesTraitsEnglish(appearance) {
+  const t = String(appearance || '');
+  return SPECIES_TRAITS.filter(([re]) => re.test(t)).map(([, en]) => en);
+}
+
+// Die Haarfarbe ausdrücklich nennen - sonst färbt das Bildmodell die Haare in
+// der Farbe, die es eigentlich der Haut geben soll.
+function hairColorEnglish(appearance) {
+  const hair = ((String(appearance || '').match(/^\s*Haare\s*:\s*(.+)$/mi) || [])[1] || '').toLowerCase();
+  if (!hair) return null;
+  for (const [de, en] of SKIN_COLORS) if (hair.includes(de)) return en;
+  if (/blond/.test(hair)) return 'blonde';
+  if (/braun|brünett/.test(hair)) return 'brown';
+  return null;
 }
 
 function shapeForSpecies(prompt, info) {
   if (!info.nonHuman) return prompt;
   let p = prompt.replace(/^Portrait of (a|an) /i, 'Portrait of $1 ');
-  if (info.color && !new RegExp('\\b' + info.color + '\\b', 'i').test(p.slice(0, 160))) {
+  // Die Farbe muss an der HAUT stehen - "light blue hair" am Anfang hat vorher
+  // gereicht, um den Zusatz zu überspringen, und genau so landete das Blau im Haar.
+  if (info.color && !new RegExp(info.color + '[- ]skin', 'i').test(p.slice(0, 160))) {
     p = `A ${info.color}-skinned humanoid. ` + p;
   } else if (!info.color && !/humanoid|alien|creature|elf|demon/i.test(p.slice(0, 160))) {
     p = 'A non-human fantasy humanoid. ' + p;
   }
   if (info.color) p += ` Skin color: entirely ${info.color}, clearly not a human skin tone.`;
+  if (info.traits && info.traits.length) p += ` Non-human features: ${info.traits.join(', ')}.`;
+  if (info.hair && info.hair !== info.color) {
+    // Hat das Textmodell die Hautfarbe ins Haar geschrieben, wird das korrigiert
+    // statt dem Bildmodell zwei widersprüchliche Angaben zu geben.
+    if (info.color) p = p.replace(new RegExp(`\\b((?:light|dark|bright|pale|deep|icy)\\s+)?${info.color}\\s+hair\\b`, 'gi'), `${info.hair} hair`);
+    p += ` Hair color: ${info.hair}, not ${info.color || 'dyed'}.`;
+  }
   return p;
 }
 
@@ -5585,19 +5738,20 @@ function styleSuffix(anyNonHuman, colors) {
     : ' Photorealistic, real photograph, natural skin texture, 85mm lens.';
 }
 
-function negativeFor(anyNonHuman, colors) {
+function negativeFor(anyNonHuman, colors, hairGuard) {
   let n = 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo';
   if (portraitStyle() === 'foto') {
     n += anyNonHuman ? ', illustration, painting, drawing, cartoon, anime' : ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed';
   }
-  if (colors.length) n += ', human skin tone, beige skin, pale skin, tan skin';
+  if (colors.length) n += ', human skin tone, beige skin, pale skin, tan skin, normal human face';
+  if (hairGuard) n += `, ${hairGuard} hair, dyed hair`;
   return n;
 }
 
 async function generateCharacterImage(c, button) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Profilbilder wird ein Venice-Schlüssel gebraucht.'); return; }
-  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  let model = modelFor('companion_imageModel') || 'venice-sd35';
 
   const previous = button.textContent;
   button.disabled = true;
@@ -5627,6 +5781,8 @@ async function generateCharacterImage(c, button) {
     }
     const species = speciesInfo(c.appearance);
     imagePrompt = shapeForSpecies(imagePrompt, species);
+    const fantasyModel = (localStorage.getItem('companion_fantasyImageModel') || '').trim();
+    if (species.nonHuman && fantasyModel) model = fantasyModel;
     const colors = species.color ? [species.color] : [];
     const finalPrompt = imagePrompt.slice(0, 1250) + styleSuffix(species.nonHuman, colors);
     logEvent('msg', { role: 'system', text: `Porträt ${c.name} (${model}${species.nonHuman ? ', Fantasiewesen' + (species.color ? ' ' + species.color : '') : ''}): ${finalPrompt.slice(0, 500)}` });
@@ -5637,7 +5793,8 @@ async function generateCharacterImage(c, button) {
       body: JSON.stringify({
         model,
         prompt: finalPrompt.slice(0, 1450),
-        negative_prompt: negativeFor(species.nonHuman, colors),
+        negative_prompt: negativeFor(species.nonHuman, colors,
+          species.color && species.hair && species.hair !== species.color ? species.color : null),
         width: 1024,
         height: 1024,
         format: 'webp',
@@ -6228,6 +6385,8 @@ Liefere:
 
 Für jede Figur wählst du Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
+
+Aus JEDER der vier Gruppen wählst du etwas, sonst bleibt die Figur halb beschrieben: Wesen zwei bis drei, Sprechweise ein bis zwei, Rolle in der Szene genau eine, Verhältnis zu den anderen genau eine. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
 ${voiceBlock}
 
 Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}, ein Feld "appearance" (siehe unten), ein Feld "styleExamples" mit zwei bis drei Beispielzeilen im Ton dieser Figur, ein Feld "replyLength" ("kurz", "mittel", "lang" oder "sehrlang") und ein Feld "temperature" zwischen 0.3 und 1.0.
@@ -6261,7 +6420,7 @@ function sanitizeSingleCharacter(draft) {
     name: String(d.name || 'Neue Figur').slice(0, 24),
     isUser: false,
     isNarrator: false,
-    traits: (Array.isArray(d.traits) ? d.traits : []).filter(t => valid.has(t)),
+    traits: matchTraits(d.traits, d.name),
     notes: String(d.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
     appearance: String(d.appearance || '').slice(0, APPEARANCE_MAX),
@@ -6296,7 +6455,7 @@ function sanitizeDraftCharacters(list) {
     id: 'gen' + Date.now() + '_' + i,
     name: String(c.name || 'Figur ' + (i + 1)).slice(0, 24),
     isUser: !!c.isUser,
-    traits: (Array.isArray(c.traits) ? c.traits : []).filter(t => valid.has(t)),
+    traits: matchTraits(c.traits, c.name),
     notes: String(c.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[c.gender] ? c.gender : 'offen',
     appearance: String(c.appearance || '').slice(0, APPEARANCE_MAX),
@@ -6634,6 +6793,8 @@ Meine Vorgabe: ${idea}
 
 Wähle Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
+
+Aus JEDER der vier Gruppen wählst du etwas, sonst bleibt die Figur halb beschrieben: Wesen zwei bis drei, Sprechweise ein bis zwei, Rolle in der Szene genau eine, Verhältnis zu den anderen genau eine. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
 
 "gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
 ${APPEARANCE_SCHEMA}
@@ -6980,7 +7141,9 @@ function inlineMotionBlock() {
 
   return `
 
-BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe. Hänge an JEDE Zeile am Ende einen Marker in dieser Form an:
+${MOTION_PRIORITY}
+
+BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe, und er ist genauso wichtig wie der Text. Hänge an JEDE Zeile am Ende einen Marker in dieser Form an:
 <<low-high@bpm art>>
 
 Bedeutung:
@@ -7697,6 +7860,8 @@ els.liveScene.oninput = () => { safeSet('companion_sceneDesc', els.liveScene.val
 els.livePace.onchange = () => safeSet('companion_pace_live', els.livePace.value);
 els.storyPace.value = pace('story');
 els.storyImages.checked = localStorage.getItem('companion_storyImages') === 'true';
+els.storyPlay.value = localStorage.getItem('companion_storyPlay') || 'figur';
+els.storyPlay.onchange = () => safeSet('companion_storyPlay', els.storyPlay.value);
 els.storyImages.onchange = () => safeSet('companion_storyImages', els.storyImages.checked ? 'true' : 'false');
 els.storyPace.onchange = () => safeSet('companion_pace_story', els.storyPace.value);
 
@@ -7769,11 +7934,26 @@ Vorgabe von mir: ${idea}
 
 ${arc}
 
-Umfang: ungefähr ${wordsPerSection} Wörter. Das ist wichtig - deutlich kürzer oder länger passt nicht zur geplanten Dauer.
+Umfang: ungefähr ${wordsPerSection} Wörter. Das ist wichtig - deutlich kürzer oder länger passt nicht zur geplanten Dauer.${inlineMotionBlock() ? inlineMotionBlock() + '\n\nDie Marker zählen nicht zum Umfang.' : ''}
+
+${storyPlayBlock()}
 
 ${formatInstruction}${styleBlock()}
 
 Schreib in der Gegenwart. Jede Figur bleibt bei ihrem eigenen Wesen und ihrer eigenen Sprechweise. Es treten ausschließlich die oben genannten Figuren auf - erfinde keine weiteren, auch keine Nebenfiguren, die nur einmal etwas sagen. Keine Überschriften, keine Kapitelnummern, keine Aufzählungen, keine Meta-Kommentare über die Geschichte - nur den Text selbst.${continuation}`;
+}
+
+// Ich bin nicht Zuhörer, sondern mittendrin - das galt bisher nur zwischen den
+// Zeilen, und die Geschichten blieben entsprechend brav erzählt. Die Spielart
+// legt fest, wie die Figuren mit mir umgehen.
+function storyPlayBlock() {
+  const base = 'Ich bin mittendrin, nicht Zuschauer: Die Figuren tun es mit mir und sprechen mich direkt an - mit Fragen, kleinen Befehlen, Neckereien, Lob. Baue Spannung auf: Andeuten, Warten lassen, unerwartete Wechsel von Tempo und Stelle, bevor es weitergeht. Beschreibe konkret und sinnlich, was sie tun und was sie dabei sagen, statt es zusammenzufassen. Wer sich im Lauf der Geschichte auszieht, bleibt ausgezogen.';
+  const play = {
+    necken: 'Spielart NECKEND: Sie spielt mit mir. Sie reizt, hört kurz vorher auf, lässt mich zappeln und betteln, wechselt zwischen fast nichts und ganz viel, kommentiert meine Ungeduld und genießt sie. Der Höhepunkt kommt erst, wenn sie es erlaubt.',
+    fordernd: 'Spielart FORDERND: Sie übernimmt die Kontrolle. Sie gibt mir klare Anweisungen, bestimmt Tempo und Stelle, sagt mir, was ich tun und lassen soll, und lässt mich spüren, dass sie entscheidet.',
+    wild: 'Spielart WILD: Leidenschaftlich und direkt, ohne Zurückhaltung. Hohes Tempo, deutliche Worte, heftige Reaktionen - kurze ruhigere Momente nur, um danach noch stärker weiterzumachen.',
+  }[localStorage.getItem('companion_storyPlay') || 'figur'];
+  return base + (play ? '\n\n' + play : '');
 }
 
 async function generateStoryText(provider, idea, minutes) {
@@ -7785,7 +7965,7 @@ async function generateStoryText(provider, idea, minutes) {
   const maxTokens = taskBudget('chat', Math.min(12000, Math.round(wordsPerSection * 3)));
 
   let full = '';
-  logEvent('msg', { role: 'system', text: `Geschichte: Aufbau ${pace('story')}, ${minutes} Minuten in ${sectionCount} Teilen, je rund ${wordsPerSection} Wörter, Budget ${maxTokens} Token, Modell ${taskModelName('chat') || modelFor('companion_model_' + provider) || provider}` });
+  logEvent('msg', { role: 'system', text: `Geschichte: Aufbau ${pace('story')}, Spielart ${localStorage.getItem('companion_storyPlay') || 'figur'}, ${minutes} Minuten in ${sectionCount} Teilen, je rund ${wordsPerSection} Wörter, Budget ${maxTokens} Token, Modell ${taskModelName('chat') || modelFor('companion_model_' + provider) || provider}` });
   for (let i = 0; i < sectionCount; i++) {
     setStoryStatus(`Schreibe Teil ${i + 1} von ${sectionCount}...`);
     setStoryProgress((i / sectionCount) * 0.5);
@@ -7846,9 +8026,11 @@ Bewegungsarten: ${textureLegend}.
 
 MEHRERE PHASEN sind der eigentliche Zweck: Ein Abschnitt soll nicht durchgehend dasselbe tun. Typisch sind zwei bis drei Phasen, etwa ein langsamer Beginn, der in etwas Schnelleres übergeht, oder eine kurze Pause vor dem Wiedereinsetzen. Nur bei sehr kurzen Abschnitten reicht eine Phase.
 
-${scriptArcText()} Innerhalb dieses Bogens sind Rückschritte ausdrücklich erwünscht - ein kurzes Zurücknehmen macht die folgende Steigerung wirksamer als stures Durchziehen.
+${MOTION_PRIORITY}
 
-Richte dich nach dem Text: Beschreibt er eine Bewegung konkret, setz sie um. Beschreibt er nur Rede oder Stimmung, führe die vorherigen Werte sinnvoll fort.
+Als grober Rahmen: ${scriptArcText()} Rückschritte sind ausdrücklich erwünscht - ein kurzes Zurücknehmen macht die folgende Steigerung wirksamer als stures Durchziehen.
+
+Beschreibt ein Abschnitt nur Rede oder Stimmung, führe die vorherigen Werte fort - aber mit einer kleinen Veränderung, nicht als exakte Kopie.
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Array, ohne Markdown, mit GENAU ${chunks.length} Objekten in dieser Reihenfolge. Beginne mit "[" und ende mit "]":
 [
@@ -7992,11 +8174,14 @@ async function generateStoryImages(minutes) {
   anchors.forEach(a => { chunks[a].imagePending = true; });
   renderStory();
   let done = 0, failed = 0;
+  const line = c => (c.role && c.role !== 'narrator' && c.role !== 'character' ? c.role + ': ' : '') + stripAudioTags(c.text);
   const describe = (a, k) => {
     const end = k + 1 < anchors.length ? anchors[k + 1] : chunks.length;
-    return chunks.slice(a, Math.min(end, a + 6))
-      .map(c => (c.role && c.role !== 'narrator' && c.role !== 'character' ? c.role + ': ' : '') + stripAudioTags(c.text))
-      .join('\n');
+    // Was vorher geschah, gehört dazu: hat sie sich zwei Abschnitte früher
+    // ausgezogen, ist sie jetzt nicht wieder angezogen.
+    const before = chunks.slice(0, a).map(line).join('\n').slice(-1400);
+    const moment = chunks.slice(a, Math.min(end, a + 6)).map(line).join('\n');
+    return (before ? `BIS HIERHER (für Kleidung, Ort und Lage):\n${before}\n\n` : '') + `DIESER MOMENT:\n${moment}`;
   };
   const queue = anchors.map((a, k) => ({ a, k }));
   const worker = async () => {
@@ -8074,7 +8259,7 @@ els.genStoryBtn.onclick = async () => {
     }
     const text = await generateStoryText(provider, idea, minutes);
     const segments = parseEnsembleText(text);
-    story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {} }));
+    story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {}, motion: p.motion || null }));
     story.index = 0;
     storyImageRun++;   // Bilder einer früheren Geschichte gelten nicht mehr
     renderStory();
@@ -8086,7 +8271,29 @@ els.genStoryBtn.onclick = async () => {
     }
 
     const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
-    const script1 = await generateScript(provider, 1);
+
+    // "Derselbe Aufruf": Die Bewegung steht schon als Marker im Text - Text und
+    // Bewegung stammen aus demselben Kopf und passen damit genau zueinander.
+    // Früher galt die Einstellung nur im Live-Gespräch; die Geschichte legte
+    // das Skript immer in eigenen Aufrufen darüber. Fehlen zu viele Marker,
+    // springt der zweite Weg ein.
+    let script1 = null;
+    if (inlineMotionEnabled()) {
+      const n = story.chunks.length;
+      const marked = story.chunks.filter(c => c.motion).length;
+      if (n && marked >= n * 0.6) {
+        let carried = null;
+        script1 = story.chunks.map(c => {
+          if (c.motion) carried = c.motion;
+          const m = carried || { low: 200, high: 800, bpm: 22, texture: 'smooth' };
+          return [{ weight: 1, low: m.low, high: m.high, bpm: m.bpm, texture: m.texture }];
+        });
+        logEvent('msg', { role: 'system', text: `Geschichte: Bewegung aus demselben Aufruf wie der Text - ${marked} von ${n} Abschnitten mit eigenem Marker, kein zweiter Aufruf.` });
+      } else {
+        addStoryNote(`Nur ${marked} von ${n} Abschnitten hatten einen Bewegungsmarker - das Skript wird deshalb separat erzeugt.`);
+      }
+    }
+    if (!script1) script1 = await generateScript(provider, 1);
     const script2 = hasDevice2 ? await generateScript(provider, 2) : null;
     story.chunks.forEach((c, i) => {
       c.phases[1] = script1[i];
