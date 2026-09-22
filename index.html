@@ -2093,8 +2093,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.71';
+const APP_VERSION = '0.72';
 const CHANGELOG = [
+  { v: '0.72', date: '2026-09-22', items: [
+    'Bewegungsfolgen: Ein Marker kann jetzt einmalige Schritte hintereinander enthalten - „zu 950 in 2s | zittern 900-950@200 3s | zu 500 in 1s | halten 2s | pendeln 300-800@40". Das Gerät spielt sie genau einmal ab; der letzte Schritt gilt weiter.',
+    'Marker mitten im Satz: Sie starten genau bei dem Wort, vor dem sie stehen. Mit ElevenLabs aufs Zeichen genau über Zeitstempel, sonst anteilig geschätzt. Gilt im Live-Gespräch und in der Geschichte, jeweils im Betrieb „Derselbe Aufruf".',
+    'Abschnitte, die nur aus Klangmarken bestehen, bleiben still - ohne die irreführende Meldung über einen fehlenden Schlüssel.',
+  ]},
   { v: '0.71', date: '2026-09-22', items: [
     'Die Geschichte beachtet jetzt „Derselbe Aufruf": Text und Bewegung entstehen zusammen, das separate Bewegungsskript entfällt. Fehlen zu viele Marker, springt es automatisch ein. Bisher galt die Einstellung nur im Live-Gespräch.',
     'Alle drei Bewegungswege bekommen dieselbe Priorität vorangestellt: Die Bewegung muss genau zur Situation passen - Stelle, Tempo, Art - und sich ständig verändern. Der Spannungsbogen ist nur noch der grobe Rahmen.',
@@ -3026,7 +3031,72 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // an abstract pattern name and an intensity, and invent the mapping from words
   // to values itself; that invented mapping was inconsistent from call to call,
   // which is where most of the randomness came from.
+  // ---------- Bewegungsfolgen ----------
+  // Bisher kannte das Gerät nur Zustände: "pendle so lange, bis etwas anderes
+  // kommt". Eine einmalige Geste - einmal ganz hoch, oben zittern, in der Mitte
+  // verharren - war nicht darstellbar. Eine Folge spielt solche Schritte genau
+  // einmal nacheinander ab; der letzte Schritt gilt weiter, bis Neues kommt.
+  // Tempolimit, Wegbegrenzung und Befehlstakt gelten für jeden Schritt, weil
+  // alles durch sendMove bzw. applyState läuft.
+  let seq = null;
+  function cancelSequence() {
+    if (seq) { clearTimeout(seq.timer); seq = null; }
+  }
+  function haltLoop() {
+    const m = state.motion;
+    clearTimeout(m.timer);
+    m.timer = null;
+    m.current.bpm = 0;
+  }
+  function runSequence(steps) {
+    cancelSequence();
+    if (!Array.isArray(steps) || !steps.length) return;
+    const token = {};
+    seq = { token, timer: null };
+    let k = 0;
+    const next = () => {
+      if (!seq || seq.token !== token) return;
+      const step = steps[k++];
+      if (!step) { seq = null; return; }
+      const m = state.motion;
+      const { minPos, maxPos } = getSettings();
+      const span = Math.max(1, maxPos - minPos);
+      const toDevice = (v) => minPos + (Math.max(0, Math.min(999, v)) / 999) * span;
+      const later = (ms) => { if (seq && seq.token === token) seq.timer = setTimeout(next, Math.max(0, ms)); };
+      if (step.type === 'move') {
+        haltLoop();
+        const actual = sendMove(toDevice(step.to), step.ms);
+        m.texture = 'hold';
+        m.requested = { low: step.to, high: step.to, bpm: 0, texture: 'hold' };
+        setMotionStatus(true);
+        logEvent('motion', { device: label, low: step.to, high: step.to, bpm: 0, texture: `Fahrt ${(step.ms / 1000).toFixed(1)} s` });
+        later(Math.max(step.ms, actual));
+      } else if (step.type === 'hold') {
+        haltLoop();
+        m.texture = 'hold';
+        m.requested = Object.assign({}, m.requested, { bpm: 0, texture: 'hold' });
+        logEvent('motion', { device: label, low: m.requested.low, high: m.requested.high, bpm: 0, texture: `halten ${(step.ms / 1000).toFixed(1)} s` });
+        later(step.ms);
+      } else if (step.type === 'stop') {
+        seq = null;
+        applyState({ texture: 'stop' });
+      } else {
+        // Innerhalb einer Folge ohne sanftes Anlaufen: die KI hat genau
+        // diesen Schritt gewählt, er soll sofort in seinem Tempo laufen.
+        applyState({ low: step.low, high: step.high, bpm: step.bpm, texture: step.texture }, true);
+        if (step.ms) later(step.ms); else seq = null;
+      }
+    };
+    next();
+  }
+
+  // Von außen: ein neuer Zustand beendet eine laufende Folge.
   function setMotion(req) {
+    cancelSequence();
+    applyState(req);
+  }
+
+  function applyState(req, instant) {
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
     const span = Math.max(1, maxPos - minPos);
@@ -3087,7 +3157,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     if (!m.timer) {
       // Start from the current target's shape but at a standstill, so the first
       // strokes ease in rather than snapping to full pace.
-      m.current = { low, high, bpm: 0 };
+      m.current = { low, high, bpm: instant ? bpm : 0 };
       m.lastTickAt = Date.now();
       tick();
     }
@@ -3176,7 +3246,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     m.timer = setTimeout(tick, Math.max(stepMs, actualMs));
   }
 
-  return { setMotion, isConnected: isOpen, getState: () => state.motion.requested };
+  return { setMotion, runSequence, isConnected: isOpen, getState: () => state.motion.requested };
 }
 
 const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, els.motionTrackFill, 'Gerät 1', 'd1');
@@ -3184,6 +3254,7 @@ const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2,
 
 els.stopBtn.onclick = () => {
   playbackGeneration += 1;
+  clearCueTimers();
   device1.setMotion({ texture: 'stop' });
   device2.setMotion({ texture: 'stop' });
   speechSynthesis.cancel();
@@ -3365,6 +3436,7 @@ function headphoneMode() {
 // effect immediately instead of at the end of the current sentence.
 function interruptPlayback() {
   playbackGeneration += 1;
+  if (typeof clearCueTimers === 'function') clearCueTimers();
   // Auch die laufenden Anfragen, sonst arbeitet im Hintergrund eine Antwort
   // weiter, die niemand mehr hören will - und die Anzeige bliebe stehen.
   if (typeof abortAllRequests === 'function') abortAllRequests();
@@ -3576,10 +3648,12 @@ function resolveVoice(role) {
   return first ? fromVersion(first) : fallback;
 }
 
-function speakBrowser(text, role) {
+function speakBrowser(text, role, onStart, onBoundary) {
   const picked = resolveVoice(role);
   return new Promise((resolve) => {
     const utter = new SpeechSynthesisUtterance(text);
+    if (onStart) utter.onstart = () => onStart();
+    if (onBoundary) utter.onboundary = (e) => onBoundary(e.charIndex || 0);
     utter.lang = 'de-DE';
     utter.pitch = picked.pitch;
     utter.rate = picked.rate;
@@ -3746,14 +3820,135 @@ function makePreviewButton(getVoiceId) {
   return btn;
 }
 
-function playElevenUrl(objectUrl) {
+// Wann welche Stelle eines Textes gesprochen wird. Mit Zeitstempeln von
+// ElevenLabs aufs Zeichen genau, sonst anteilig über die Länge geschätzt -
+// Klangmarken wie [seufzt] zählen dabei nicht als gesprochene Zeichen.
+function makeTimeline(text, durationMs, starts) {
+  const full = String(text || '');
+  const spoken = Math.max(1, stripAudioTags(full).length);
+  return {
+    exact: !!(starts && starts.length),
+    reach: null,   // wird von scheduleCues gesetzt; die Android-Stimme meldet gesprochene Stellen
+    spokenPos: (pos) => stripAudioTags(full.slice(0, pos)).length,
+    timeAt(pos) {
+      if (starts && starts.length) {
+        const k = Math.max(0, Math.min(starts.length - 1, pos));
+        return Math.round((Number(starts[k]) || 0) * 1000);
+      }
+      return Math.round((stripAudioTags(full.slice(0, pos)).length / spoken) * durationMs);
+    },
+  };
+}
+
+let cueTimers = [];
+function clearCueTimers() {
+  cueTimers.forEach(clearTimeout);
+  cueTimers = [];
+}
+
+function applyCue(num, cue) {
+  const dev = num === 2 ? device2 : device1;
+  if (!cue) return;
+  if (cue.kind === 'seq') {
+    dev.runSequence(cue.steps);
+    logEvent('msg', { role: 'system', text: `Gerät ${num} Folge: ${cue.label}` });
+    const sum = cueSummary(cue);
+    if (sum) logMotionChoice(num, sum);
+  } else {
+    dev.setMotion(cue.motion);
+    logMotionChoice(num, cue.motion);
+  }
+}
+
+// Startet jeden Marker in dem Moment, in dem die Worte dahinter gesprochen
+// werden. isValid prüft, ob die Wiedergabe noch dieselbe ist.
+// Rückgabe: flush() startet am Ende des Stücks, was noch aussteht - bei der
+// geschätzten Zeitachse kann die Stimme schneller fertig sein als gedacht, und
+// dann gehört der Rest nicht in das nächste Stück hinein.
+function scheduleCues(cues, timeline, isValid) {
+  const list = (cues || []).map(c => ({ c, fired: false, timer: null }));
+  const fire = (item) => {
+    if (item.fired) return;
+    item.fired = true;
+    clearTimeout(item.timer);
+    if (isValid()) applyCue(1, item.c.cue);
+  };
+  list.forEach(item => {
+    item.timer = setTimeout(() => fire(item), Math.max(0, timeline.timeAt(item.c.at)));
+    cueTimers.push(item.timer);
+  });
+  // Ohne Zeitstempel: meldet die Stimme, wo sie gerade ist, gilt das vor der Schätzung.
+  if (!timeline.exact) timeline.reach = (spoken) => list.forEach(item => { if (timeline.spokenPos(item.c.at) <= spoken) fire(item); });
+  return { flush: () => list.forEach(fire) };
+}
+
+function hasMidCues(cues) {
+  return Array.isArray(cues) && cues.some(c => c.at > 0);
+}
+
+// Wie fetchElevenAudio, aber mit Zeitstempeln pro Zeichen. Nur für Stücke,
+// in denen ein Marker mitten im Satz steht - der Umweg über die Zeitstempel
+// braucht die ganze Antwort am Stück statt gestreamt.
+function fetchElevenAudioTimed(text, role) {
+  const key = apiKeyFor('companion_elevenKey');
+  const voiceId = resolveVoice(role).eleven;
+  if (!key || !voiceId) return null;
+  if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
+  const emotional = resolveVoice(role).emotional;
+  const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
+  const voiceSettings = modelId === 'eleven_v3'
+    ? { stability: 0.0, similarity_boost: 0.75 }
+    : emotional
+      ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
+      : { stability: 0.5, similarity_boost: 0.75 };
+  const cacheKey = audioKey(voiceId, modelId, text) + '|ts';
+  return (async () => {
+    if (audioCacheEnabled()) {
+      try {
+        const cached = await dbGet(STORE_AUDIO, cacheKey);
+        if (cached && cached.blob) return { url: URL.createObjectURL(cached.blob), starts: cached.starts || null };
+      } catch (e) {}
+    }
+    const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
+      method: 'POST',
+      headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, model_id: modelId, voice_settings: voiceSettings }),
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { const b = await res.json(); detail = b?.detail?.message || JSON.stringify(b).slice(0, 200); } catch (e) {}
+      throw new Error('ElevenLabs ' + res.status + (detail ? ': ' + detail : ''));
+    }
+    const data = await res.json();
+    const blob = base64ToBlob(data.audio_base64 || '', 'audio/mpeg');
+    const al = data.alignment || data.normalized_alignment || {};
+    const aStarts = Array.isArray(al.character_start_times_seconds) ? al.character_start_times_seconds : [];
+    let starts = null;
+    if (aStarts.length === text.length) starts = aStarts;
+    else if (aStarts.length > 1) {
+      // Weicht die Zeichenzahl ab, wird die Zeitachse anteilig umgelegt.
+      starts = Array.from({ length: text.length }, (_, k) => aStarts[Math.round(k * (aStarts.length - 1) / Math.max(1, text.length - 1))]);
+    }
+    if (audioCacheEnabled()) dbPut(STORE_AUDIO, cacheKey, { blob, starts }).catch(() => {});
+    return { url: URL.createObjectURL(blob), starts };
+  })();
+}
+
+function playElevenUrl(objectUrl, onStart, text, role, starts) {
   const audio = new Audio(objectUrl);
   currentElevenAudio = audio;
   return new Promise((resolve) => {
     currentElevenResolve = resolve;
+    let begun = false;
     const done = () => { URL.revokeObjectURL(objectUrl); resolve(); };
     audio.onended = done;
     audio.onerror = done;
+    audio.onplaying = () => {
+      if (begun || !onStart) return;
+      begun = true;
+      const dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration * 1000 : estimateSpeechMs(text || '', role);
+      onStart(makeTimeline(text, dur, starts));
+    };
     audio.play();
   });
 }
@@ -3761,29 +3956,45 @@ function playElevenUrl(objectUrl) {
 // Prepares a piece for playback and returns a handle. Everything that can be
 // done ahead of time (the network round trip) happens here; play() only starts
 // the sound. Browser TTS has nothing to prefetch, so it just defers.
-function prepareSpeech(text, role) {
-  if (isMuted) return { play: () => Promise.resolve() };
-  const source = localStorage.getItem('companion_ttsSource') || 'browser';
-  if (source !== 'elevenlabs') {
-    return { play: () => speakBrowser(stripAudioTags(text), role) };
+function prepareSpeech(text, role, timed) {
+  const estimate = () => makeTimeline(text, estimateSpeechMs(text, role), null);
+  const browser = (onStart) => {
+    const tl = estimate();
+    return speakBrowser(stripAudioTags(text), role, onStart ? () => onStart(tl) : null, (at) => { if (tl.reach) tl.reach(at); });
+  };
+  if (isMuted) return { play: (onStart) => { if (onStart) onStart(estimate()); return Promise.resolve(); } };
+  // Nur Klangmarken, nichts Sprechbares: still - und keine irreführende Meldung
+  // über fehlende Schlüssel, wie sie hier früher kam.
+  if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) {
+    return { play: (onStart) => { if (onStart) onStart(makeTimeline(text, 400, null)); return Promise.resolve(); } };
   }
-  const pending = fetchElevenAudio(text, role);
+  const source = localStorage.getItem('companion_ttsSource') || 'browser';
+  if (source !== 'elevenlabs') return { play: browser };
+  const pending = (timed && fetchElevenAudioTimed(text, role)) || fetchElevenAudio(text, role);
   if (!pending) {
     addMsg('system', 'ElevenLabs ist ausgewählt, aber Schlüssel oder Stimme fehlen - nutze stattdessen die Android-Stimme.');
-    return { play: () => speakBrowser(stripAudioTags(text), role) };
+    return { play: browser };
   }
   // Swallow the rejection here so an early failure can't surface as an
   // unhandled rejection while the previous piece is still playing.
   const safe = pending.catch((err) => ({ error: err }));
   return {
-    play: async () => {
+    play: async (onStart) => {
       if (isMuted) return;
-      const result = await safe;
+      let result = await safe;
+      if (result && result.error && timed) {
+        // Ohne Zeitstempel weiter - die Marker laufen dann auf der Schätzung.
+        logEvent('msg', { role: 'system', text: 'Zeitstempel nicht verfügbar (' + result.error.message + ') - Marker laufen auf Schätzung.' });
+        const plain = fetchElevenAudio(text, role);
+        result = plain ? await plain.catch((err) => ({ error: err })) : result;
+      }
       if (result && result.error) {
         addMsg('system', 'ElevenLabs-Fehler: ' + result.error.message + ' - nutze stattdessen die Android-Stimme.');
-        return speakBrowser(stripAudioTags(text), role);
+        return browser(onStart);
       }
-      return playElevenUrl(result);
+      const url = typeof result === 'string' ? result : result.url;
+      const starts = typeof result === 'string' ? null : result.starts;
+      return playElevenUrl(url, onStart, text, role, starts);
     }
   };
 }
@@ -4072,6 +4283,7 @@ const MOTION_PRIORITY = `DAS WICHTIGSTE: Die Bewegung passt genau zu dem, was in
 - STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
 - TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
 - ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor.
+- EINMALIGES bleibt einmalig: "einmal ganz hoch", "kurz innehalten", "dann zittern" sind Schritte einer Folge, kein Zustand, der sich wiederholt - wo das Format Folgen erlaubt, nutze sie.
 - VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.`;
 
 const ARC_GUIDE = `
@@ -4517,8 +4729,19 @@ function splitSegmentsIntoPieces(segments, maxChars) {
   segments.forEach(seg => {
     // A marker belongs to its whole line, so every piece cut from that line
     // carries it - the movement should not change mid-sentence.
-    splitIntoPieces(seg.text, maxChars).forEach(text =>
-      pieces.push({ role: seg.role, text, motion: seg.motion || null }));
+    // Die Marker-Positionen werden auf die Stücke umgerechnet, in die die Zeile
+    // zerlegt wird - ein Marker mitten im zweiten Satz gehört zum zweiten Stück.
+    const parts = splitIntoPieces(seg.text, maxChars);
+    let from = 0;
+    parts.forEach((text, k) => {
+      const start = Math.max(0, seg.text.indexOf(text, from));
+      const end = start + text.length;
+      from = end;
+      const cues = (seg.cues || []).filter(c => (c.at >= start && c.at < end) || (k === parts.length - 1 && c.at >= end))
+        .map(c => ({ at: Math.min(text.length, Math.max(0, c.at - start)), cue: c.cue }));
+      const last = [...cues].reverse().map(c => cueSummary(c.cue)).find(Boolean) || null;
+      pieces.push({ role: seg.role, text, motion: last, cues });
+    });
   });
   return pieces;
 }
@@ -6919,6 +7142,90 @@ function extractMotionMarker(line) {
   };
 }
 
+// ---------- Marker-Sprache ----------
+// Ein Marker ist ein ZUSTAND (<<low-high@bpm art>>) oder eine FOLGE einmaliger
+// Schritte, durch | getrennt: "zu 950 in 2s | zittern 900-950@200 3s |
+// halten 1,5s | pendeln 300-800@40". Kommazahlen dürfen deutsch sein.
+const MARKER_ANY = /<<([^<>]{1,400})>>/g;
+const SEQ_MAX_STEPS = 12;
+const secs = (x) => parseFloat(String(x).replace(',', '.'));
+const clampMs = (x, lo, hi) => Math.round(Math.max(lo, Math.min(hi, secs(x) * 1000)));
+const pos999 = (x) => Math.max(0, Math.min(999, parseInt(x, 10)));
+
+function parseMotionStep(raw) {
+  const t = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+  let m;
+  if ((m = t.match(/^(?:zittern|zitter|tremor|vibrieren|vibration|flattern|beben)\s*(\d{1,3})\s*-\s*(\d{1,3})\s*(?:@\s*(\d{1,3}))?\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) {
+    return { type: 'osc', low: pos999(m[1]), high: pos999(m[2]), bpm: m[3] ? parseInt(m[3], 10) : 180, texture: 'tremor', ms: m[4] ? clampMs(m[4], 300, 60000) : 0 };
+  }
+  if ((m = t.match(/^(?:halten|halt|verharren|warten|pause|pausieren|stopp|stop)\s*(\d+(?:[.,]\d+)?)\s*s\w*$/))) {
+    return { type: 'hold', ms: clampMs(m[1], 100, 30000) };
+  }
+  if (/^(?:stopp|stop|aus|ende)$/.test(t)) return { type: 'stop' };
+  if ((m = t.match(/^(?:(pendeln|pendel|gleiten|streichen|streicheln|stoßen|stossen|pumpen|welle)\s*)?(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*([a-z]+)?\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) {
+    const verb = m[1] || '';
+    let texture = m[5] && ['smooth', 'pulse', 'tremor', 'hold', 'stop'].includes(m[5]) ? m[5] : (/^(sto|pump)/.test(verb) ? 'pulse' : 'smooth');
+    return { type: 'osc', low: pos999(m[2]), high: pos999(m[3]), bpm: parseInt(m[4], 10), texture, ms: m[6] ? clampMs(m[6], 300, 60000) : 0 };
+  }
+  if ((m = t.match(/^(?:zu|zur|zum|auf|nach|bis|hoch(?:\s+(?:auf|zu|bis))?|runter(?:\s+(?:auf|zu|bis))?|hinauf|hinunter|fahr\w*|gleit\w*)?\s*(\d{1,3})\s*(?:in\s*)?(\d+(?:[.,]\d+)?)\s*s\w*$/))) {
+    return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000) };
+  }
+  return null;
+}
+
+function parseMotionCue(content) {
+  const parts = String(content).split(/\s*[|;]\s*/).filter(Boolean).slice(0, SEQ_MAX_STEPS);
+  const steps = parts.map(parseMotionStep);
+  if (!steps.length || steps.some(x => !x)) return null;
+  if (steps.length === 1) {
+    const st = steps[0];
+    if (st.type === 'osc' && !st.ms) return { kind: 'state', motion: { low: st.low, high: st.high, bpm: st.bpm, texture: st.texture } };
+    if (st.type === 'stop') return { kind: 'state', motion: { low: 350, high: 650, bpm: 0, texture: 'stop' } };
+  }
+  return { kind: 'seq', steps, label: parts.join(' | ') };
+}
+
+// Die letzte greifbare Position einer Folge - für Rückmeldung und Verlauf.
+function cueSummary(cue) {
+  if (!cue) return null;
+  if (cue.kind === 'state') return cue.motion;
+  for (let k = cue.steps.length - 1; k >= 0; k--) {
+    const st = cue.steps[k];
+    if (st.type === 'osc') return { low: st.low, high: st.high, bpm: st.bpm, texture: st.texture };
+    if (st.type === 'move') return { low: st.to, high: st.to, bpm: 0, texture: 'hold' };
+  }
+  return null;
+}
+
+// Marker werden im Text durch unsichtbare Platzhalter ersetzt, die jede
+// weitere Zerlegung (Sternchen, lange Zeilen) unbeschadet überstehen. Erst
+// ganz am Ende werden sie zu Positionen im fertigen Text.
+const CUE_BASE = 0xE000;
+let cueRegistry = [];
+function placeholderFor(cue) {
+  cueRegistry.push(cue);
+  return String.fromCharCode(CUE_BASE + cueRegistry.length - 1);
+}
+function takeCues(text) {
+  const cues = [];
+  let clean = '';
+  for (const ch of String(text)) {
+    const code = ch.charCodeAt(0);
+    if (code >= CUE_BASE && code < CUE_BASE + 6000) {
+      const cue = cueRegistry[code - CUE_BASE];
+      if (cue) cues.push({ at: clean.length, cue });
+    } else if (/\s/.test(ch) && (clean === '' || /\s$/.test(clean))) {
+      // doppelte Leerzeichen (wo ein Marker stand) gleich hier zusammenfassen,
+      // damit die Positionen nicht verrutschen
+      continue;
+    } else {
+      clean += ch;
+    }
+  }
+  const out = clean.replace(/\s+$/, '');
+  return { text: out, cues: cues.map(c => ({ at: Math.min(out.length, c.at), cue: c.cue })) };
+}
+
 function looksTechnical(line) {
   const body = line.replace(/^[^:{\[\n]{1,24}:\s*/, '').trim();
   if (/^[\[{][\s\S]*[\]}]$/.test(body)) return true;
@@ -6931,11 +7238,30 @@ function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
   const out = [];
 
+  cueRegistry = [];
   text.split(/\n+/).forEach(rawLine => {
-    const stripped = extractMotionMarker(rawLine.trim());
-    const line = stripped.text;
-    const lineMotion = stripped.motion;
-    if (!line) return;
+    // Alle Marker der Zeile - auch mitten im Satz - werden zu Platzhaltern.
+    // Steht nur ein einziger am Zeilenende (die alte Schreibweise), gilt er wie
+    // bisher für die ganze Zeile und rückt an ihren Anfang.
+    const trimmedLine = rawLine.trim();
+    const found = [...trimmedLine.matchAll(MARKER_ANY)];
+    let line = trimmedLine;
+    let leadCue = '';
+    if (found.length) {
+      const onlyAtEnd = found.length === 1 && trimmedLine.slice(found[0].index + found[0][0].length).trim() === '';
+      line = trimmedLine.replace(MARKER_ANY, (all, inner) => {
+        const cue = parseMotionCue(inner);
+        if (!cue) { logEvent('msg', { role: 'system', text: 'Bewegungsmarker nicht verstanden: ' + all.slice(0, 120) }); return ' '; }
+        const ph = placeholderFor(cue);
+        if (onlyAtEnd) { leadCue = ph; return ''; }
+        return ph;
+      }).replace(/[ \t]{2,}/g, ' ').trim();
+    }
+    // Platzhalter vor dem Namen würden die Zuordnung zur Figur verhindern.
+    const lead = line.match(new RegExp('^[\\uE000-\\uF76F\\s]+'));
+    if (lead) { leadCue = lead[0].replace(/\s/g, '') + leadCue; line = line.slice(lead[0].length); }
+    const lineMotion = null;
+    if (!line.replace(new RegExp('[\\uE000-\\uF76F]', 'g'), '').trim()) return;
     // Manche Modelle schreiben Steuerwerte als JSON mitten in den Dialog, weil
     // die Gerätebeschreibung von Positionen spricht. Das ist kein Gesprochenes
     // und würde vorgelesen - also weg damit, bevor es eine Figur zugeteilt
@@ -6947,16 +7273,25 @@ function parseEnsembleText(text) {
 
     const m = line.match(/^([^:*\n]{1,24}):\s*(.+)$/);
     const matchedName = m ? names.find(n => n.toLowerCase() === m[1].trim().toLowerCase()) : null;
-    const body = matchedName ? m[2] : line;
+    const body = leadCue + (matchedName ? m[2] : line);
     const speaker = matchedName || 'character';
 
     // Action can appear inside a character's line too, so the asterisk split
     // still runs on the remainder and wins over the speaker attribution.
     splitIntoSegments(body).forEach(seg => {
+      const { text: segText, cues } = takeCues(seg.text);
+      if (!segText) {
+        // Nur Marker, kein Text: an das vorige Stück hängen, ans Ende.
+        const prev = out[out.length - 1];
+        if (prev && cues.length) cues.forEach(c => prev.cues.push({ at: prev.text.length, cue: c.cue }));
+        return;
+      }
+      const last = [...cues].reverse().map(c => cueSummary(c.cue)).find(Boolean) || null;
       out.push({
         role: seg.role === 'narrator' ? 'narrator' : speaker,
-        text: seg.text,
-        motion: lineMotion,
+        text: segText,
+        motion: last || lineMotion,
+        cues,
       });
     });
   });
@@ -7143,29 +7478,38 @@ function inlineMotionBlock() {
 
 ${MOTION_PRIORITY}
 
-BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe, und er ist genauso wichtig wie der Text. Hänge an JEDE Zeile am Ende einen Marker in dieser Form an:
-<<low-high@bpm art>>
+BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe, genauso wichtig wie der Text. Du steuerst das Gerät mit Markern in doppelten spitzen Klammern direkt im Text. Ein Marker gilt ab der Stelle, an der er steht: Setze ihn VOR die Worte, zu denen die Bewegung gehört - gern mitten im Satz. Die App startet ihn genau in dem Moment, in dem diese Worte gesprochen werden.
 
-Bedeutung:
-- low = unterer Umkehrpunkt auf der Strecke, 0 ganz unten, 999 ganz oben
-- high = oberer Umkehrpunkt, größer als low
-- bpm = vollständige Hübe pro Minute, 0 bis 230. Über etwa 160 wird es nur mit kurzen Hüben wirklich so schnell - lange Hübe bremst das Gerät von selbst
+Es gibt zwei Arten von Markern.
+
+1. ZUSTAND - wiederholt sich, bis der nächste Marker kommt:
+<<low-high@bpm art>>, etwa <<200-800@30 smooth>>
+- low und high = die Umkehrpunkte, 0 ganz unten, 999 ganz oben; zusammen sagen sie, wo auf der Strecke und wie lang der Hub ist
+- bpm = vollständige Hübe pro Minute, 0 bis 230. Über etwa 160 wird es nur mit kurzen Hüben wirklich so schnell
 - art = ${enum_}
 
-low und high sagen zusammen, wie lang der Hub ist und wo auf der Strecke er liegt. "Nur ganz oben" ist ein kurzer Hub weit oben, etwa 720-900. "Über die ganze Länge" ist 60-940.
+2. FOLGE - einmalige Schritte, durch | getrennt, die genau einmal nacheinander ablaufen:
+- zu 950 in 2s - fährt einmal in 2 Sekunden auf Position 950 (hoch, runter, egal wohin)
+- zittern 880-950@200 3s - zittert 3 Sekunden zwischen 880 und 950; bpm sagt, wie schnell
+- halten 1,5s - verharrt, wo es gerade ist
+- pendeln 300-800@40 4s - pendelt 4 Sekunden; mit "pulse" dahinter als harte Stöße: pendeln 300-800@90 pulse 3s
+- stopp - alles aus
+Der letzte Schritt gilt weiter, bis der nächste Marker kommt: Endet die Folge mit pendeln ohne Dauer, pendelt es weiter; endet sie mit halten oder einer Fahrt, bleibt es dort stehen.
 
-Was das Gerät kann - nutze es ruhig aus: sehr langsame, lange Hübe (unter 15) genauso wie sehr schnelle, kurze (bis 230, etwa 780-880@220). Kurze Hübe dürfen bis etwa 50 Einheiten schmal sein. ${textures.includes('tremor') ? 'Mit "tremor" zittert das Gerät fein an einer Stelle, etwa <<790-840@150 tremor>>. Beim Zittern bedeutet bpm die Geschwindigkeit des Zitterns: 0 ruhiges Flattern, 230 das Schnellste, was das Gerät kann. "Schneller zittern" heißt also: bpm erhöhen. "Kleiner" heißt: low und high enger zusammen. Sag nur, dass es schneller wird, wenn du bpm auch wirklich erhöhst.' : ''} Ein Muster wie "drei schnelle Hübe oben, dann tief" setzt du über mehrere Zeilen um, jede Zeile mit ihrem eigenen Marker.
+Beispiel "einmal ganz hoch, oben zittern, dann in der Mitte verharren, kurz Pause und weiter":
+<<zu 950 in 2s | zittern 900-950@200 3s | zu 500 in 1s | halten 2s | pendeln 300-800@40>>
+
+Was das Gerät kann - nutze es aus: sehr langsame, lange Hübe genauso wie sehr schnelle, kurze (etwa 780-880@220); Fahrten von 0,2 bis 20 Sekunden; Zittern von ruhig (@0) bis so schnell es geht (@230). ${textures.includes('tremor') ? '' : '(Zittern ist in den Einstellungen abgeschaltet.) '}Sag im Text nur, was der Marker auch wirklich tut - "schneller" heißt höheres bpm, "kleiner" heißt low und high enger.
 
 ${device ? `Das Gerät: ${device.slice(0, 700)}\n` : ''}
 Beispiele:
-- ${exampleName()}: Komm her. <<200-800@22 smooth>>
-- ${exampleName()}: Langsamer... <<300-700@16 smooth>>
-- ${exampleName()}: Ja, genau so. <<700-900@95 smooth>>
-- ${exampleName()}: Warte. <<400-600@0 hold>>${textures.includes('tremor') ? `
-- ${exampleName()}: Und jetzt ganz fein, genau an der Spitze. <<800-840@120 tremor>>
-- ${exampleName()}: Schneller. <<800-840@200 tremor>>` : ''}
+- ${exampleName()}: <<200-800@22 smooth>> Komm her.
+- ${exampleName()}: Ich fahre ganz langsam <<zu 60 in 3s>> hinunter bis zum Ansatz, <<halten 1s | zu 950 in 1,5s>> und wieder ganz hoch.
+- ${exampleName()}: Nur die Spitze jetzt <<760-940@120 smooth>> - so schnell, wie du es magst.
+- ${exampleName()}: Warte. <<halten 2s>> Noch nicht.${textures.includes('tremor') ? `
+- ${exampleName()}: Und jetzt <<zittern 800-850@200 4s | 300-850@50 smooth>> ganz fein an der Spitze, dann wieder lang.` : ''}
 
-Regeln: Der Marker steht immer am Zeilenende, nach dem Text, nie mitten im Satz. "stop" nur, wenn ausdrücklich alles zur Ruhe kommt. Wenn eine Zeile nichts am Gerät ändert, wiederhole die Werte der vorherigen Zeile. Über die Zeilen hinweg soll sich etwas entwickeln, statt dass überall dasselbe steht.`;
+Regeln: Setze Marker dort, wo sich am Gerät etwas ändert - Zeilen ohne Änderung brauchen keinen, dann läuft weiter, was gerade läuft. Ein Marker steht hinter dem Namen, nie davor. Was der Text in diesem Moment beschreibt und was der Marker tut, ist dasselbe. "stopp" nur, wenn ausdrücklich alles aufhört.`;
 }
 
 function ensembleFormatBlock() {
@@ -7407,16 +7751,13 @@ async function askEnsemble(userText, options) {
     // whichever piece it arrives at, usually the first or second.
     // With inline markers the values are already here, so there is nothing to
     // wait for and the movement applies from the very first piece.
-    const inline = inlineMotionEnabled() && pieces.some(p => p.motion);
+    const inline = inlineMotionEnabled() && pieces.some(p => p.cues && p.cues.length);
     let motions1 = null, motions2 = null;
     let motionReady = Promise.resolve();
 
     if (inline) {
-      let carried = null;
-      motions1 = pieces.map(p => {
-        if (p.motion) carried = p.motion;
-        return carried || device1.getState();
-      });
+      // Die Marker laufen während des Sprechens (siehe unten), nicht vorab.
+      logEvent('msg', { role: 'system', text: `Bewegung aus demselben Aufruf: ${pieces.reduce((n, p) => n + (p.cues || []).length, 0)} Marker in ${pieces.length} Zeilen.` });
     } else {
       motionReady = Promise.all([
         getMotions(1).then(m => { motions1 = m; }),
@@ -7424,12 +7765,13 @@ async function askEnsemble(userText, options) {
       ]);
     }
 
-    let upcoming = pieces.length ? prepareSpeech(pieces[0].text, pieces[0].role) : null;
+    const prep = (p) => prepareSpeech(p.text, p.role, inline && hasMidCues(p.cues));
+    let upcoming = pieces.length ? prep(pieces[0]) : null;
     for (let i = 0; i < pieces.length; i++) {
       if (playbackGeneration !== generation) break; // user pressed stop
       if (!autoPlaying && silent) break;
       const current = upcoming;
-      upcoming = (i + 1 < pieces.length) ? prepareSpeech(pieces[i + 1].text, pieces[i + 1].role) : null;
+      upcoming = (i + 1 < pieces.length) ? prep(pieces[i + 1]) : null;
 
       // Not there yet means the derivation is still running: leave the device
       // doing what it was doing rather than forcing it to a guessed value.
@@ -7443,7 +7785,12 @@ async function askEnsemble(userText, options) {
         device2.setMotion(m2);
         logMotionChoice(2, m2);
       }
-      await current.play();
+      const piece = pieces[i];
+      let ctl = null;
+      await current.play(inline && piece.cues && piece.cues.length
+        ? (timeline) => { ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation); }
+        : null);
+      if (ctl) ctl.flush();
     }
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
     return true;
@@ -8259,7 +8606,7 @@ els.genStoryBtn.onclick = async () => {
     }
     const text = await generateStoryText(provider, idea, minutes);
     const segments = parseEnsembleText(text);
-    story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {}, motion: p.motion || null }));
+    story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {}, cues: p.cues || [] }));
     story.index = 0;
     storyImageRun++;   // Bilder einer früheren Geschichte gelten nicht mehr
     renderStory();
@@ -8278,20 +8625,23 @@ els.genStoryBtn.onclick = async () => {
     // das Skript immer in eigenen Aufrufen darüber. Fehlen zu viele Marker,
     // springt der zweite Weg ein.
     let script1 = null;
+    let inlineStory = false;
     if (inlineMotionEnabled()) {
+      // Die Marker stehen schon im Text und laufen beim Vorlesen aufs Wort.
+      // Abschnitte ohne eigenen Marker führen einfach fort, was gerade läuft.
       const n = story.chunks.length;
-      const marked = story.chunks.filter(c => c.motion).length;
-      if (n && marked >= n * 0.6) {
-        let carried = null;
-        script1 = story.chunks.map(c => {
-          if (c.motion) carried = c.motion;
-          const m = carried || { low: 200, high: 800, bpm: 22, texture: 'smooth' };
-          return [{ weight: 1, low: m.low, high: m.high, bpm: m.bpm, texture: m.texture }];
-        });
-        logEvent('msg', { role: 'system', text: `Geschichte: Bewegung aus demselben Aufruf wie der Text - ${marked} von ${n} Abschnitten mit eigenem Marker, kein zweiter Aufruf.` });
+      const marked = story.chunks.filter(c => c.cues.length).length;
+      if (n && marked >= Math.max(1, n * 0.35)) {
+        inlineStory = true;
+        script1 = story.chunks.map(() => null);
+        const seqs = story.chunks.reduce((k, c) => k + c.cues.filter(x => x.cue.kind === 'seq').length, 0);
+        logEvent('msg', { role: 'system', text: `Geschichte: Bewegung aus demselben Aufruf - ${marked} von ${n} Abschnitten mit Markern, davon ${seqs} Folgen, kein zweiter Aufruf.` });
       } else {
+        story.chunks.forEach(c => { c.cues = []; });
         addStoryNote(`Nur ${marked} von ${n} Abschnitten hatten einen Bewegungsmarker - das Skript wird deshalb separat erzeugt.`);
       }
+    } else {
+      story.chunks.forEach(c => { c.cues = []; });
     }
     if (!script1) script1 = await generateScript(provider, 1);
     const script2 = hasDevice2 ? await generateScript(provider, 2) : null;
@@ -8302,7 +8652,7 @@ els.genStoryBtn.onclick = async () => {
 
     setStoryProgress(1);
     const words = text.split(/\s+/).length;
-    const fallbackCount = story.chunks.filter(c => !c.phases[1]).length;
+    const fallbackCount = inlineStory ? 0 : story.chunks.filter(c => !c.phases[1]).length;
     if (fallbackCount) addStoryNote(`${fallbackCount} Abschnitte ohne eigenes Skript.`);
     setStoryStatus(`Fertig: ${story.chunks.length} Abschnitte, rund ${words} Wörter (etwa ${Math.round(words / STORY_WORDS_PER_MINUTE)} Minuten).`);
     els.playStoryBtn.disabled = false;
@@ -8329,10 +8679,22 @@ function estimateSpeechMs(text, role) {
   return Math.max(800, (words / (STORY_WORDS_PER_MINUTE * rate)) * 60000);
 }
 
-async function prepareTimedSpeech(text, role) {
+async function prepareTimedSpeech(text, role, timed) {
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
   if (source === 'elevenlabs') {
-    const pending = fetchElevenAudio(text, role);
+    let starts = null;
+    let pending = timed ? fetchElevenAudioTimed(text, role) : null;
+    if (pending) {
+      try {
+        const r = await pending;
+        starts = r.starts;
+        pending = Promise.resolve(r.url);
+      } catch (err) {
+        addStoryNote('Zeitstempel nicht verfügbar (' + err.message + ') - Marker laufen auf Schätzung.');
+        pending = null;
+      }
+    }
+    if (!pending) pending = fetchElevenAudio(text, role);
     if (pending) {
       try {
         const url = await pending;
@@ -8346,6 +8708,7 @@ async function prepareTimedSpeech(text, role) {
         });
         return {
           durationMs,
+          starts,
           play: () => new Promise((resolve) => {
             story.audio = audio;
             story.resolveCurrent = resolve;
@@ -8362,10 +8725,12 @@ async function prepareTimedSpeech(text, role) {
   }
   // Browser TTS gives no duration in advance, so the phases run on an estimate
   // here. It drifts a little over a long chunk; ElevenLabs is exact.
-  return {
+  const handle = {
     durationMs: estimateSpeechMs(text, role),
-    play: () => speakBrowser(stripAudioTags(text), role)
+    timeline: null,
+    play: () => speakBrowser(stripAudioTags(text), role, null, (at) => { if (handle.timeline && handle.timeline.reach) handle.timeline.reach(at); })
   };
+  return handle;
 }
 
 function clearPhaseTimers() {
@@ -8377,6 +8742,8 @@ function schedulePhases(chunk, durationMs) {
   const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
   [[1, device1], [2, device2]].forEach(([num, dev]) => {
     if (num === 2 && !hasDevice2) return;
+    // Hat der Abschnitt eigene Marker, steuern die Gerät 1 - aufs Wort genau.
+    if (num === 1 && chunk.cues && chunk.cues.length) return;
     const phases = chunk.phases[num];
     if (!Array.isArray(phases) || !phases.length) return;
     const totalWeight = phases.reduce((sum, ph) => sum + Math.max(0.2, ph.weight || 1), 0);
@@ -8396,7 +8763,8 @@ function schedulePhases(chunk, durationMs) {
 async function runStory() {
   // The next chunk's audio is fetched while the current one plays, so the
   // transition between chunks has no gap in it.
-  let upcoming = await prepareTimedSpeech(story.chunks[story.index].text, story.chunks[story.index].role);
+  const prepChunk = (c) => prepareTimedSpeech(c.text, c.role, hasMidCues(c.cues));
+  let upcoming = await prepChunk(story.chunks[story.index]);
 
   while (story.playing && story.index < story.chunks.length) {
     const i = story.index;
@@ -8405,14 +8773,20 @@ async function runStory() {
 
     const nextIndex = i + 1;
     const nextPromise = nextIndex < story.chunks.length
-      ? prepareTimedSpeech(story.chunks[nextIndex].text, story.chunks[nextIndex].role)
+      ? prepChunk(story.chunks[nextIndex])
       : null;
 
     highlightChunk(i);
     setStoryProgress((i + 1) / story.chunks.length);
     schedulePhases(chunk, current.durationMs);
+    let cueCtl = null;
+    if (chunk.cues && chunk.cues.length) {
+      current.timeline = makeTimeline(chunk.text, current.durationMs, current.starts);
+      cueCtl = scheduleCues(chunk.cues, current.timeline, () => story.playing && story.index === i);
+    }
 
     await current.play();
+    if (cueCtl && story.playing) cueCtl.flush();
     clearPhaseTimers();
 
     if (!story.playing) break;
@@ -8461,6 +8835,7 @@ function stopStory() {
   story.playing = false;
   story.paused = false;
   clearPhaseTimers();
+  clearCueTimers();
   if (story.audio) { try { story.audio.pause(); } catch (e) {} }
   if (story.resolveCurrent) { story.resolveCurrent(); story.resolveCurrent = null; }
   speechSynthesis.cancel();
@@ -8507,7 +8882,8 @@ els.saveStoryBtn.onclick = async () => {
     name: name.trim(),
     saved: new Date().toISOString(),
     scene: (localStorage.getItem('companion_sceneDesc') || '').slice(0, 4000),
-    chunks: story.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases }, c.image ? { image: c.image } : {})),
+    chunks: story.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases },
+      c.image ? { image: c.image } : {}, c.cues && c.cues.length ? { cues: c.cues } : {})),
   };
   try {
     await dbPut(STORE_STORIES, 'story_' + Date.now(), entry);
@@ -8526,7 +8902,7 @@ els.loadStoryBtn.onclick = async () => {
     if (!entry || !Array.isArray(entry.chunks)) throw new Error('Eintrag unlesbar.');
     stopStory();
     storyImageRun++;
-    story.chunks = entry.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases || {} }, c.image ? { image: c.image } : {}));
+    story.chunks = entry.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases || {}, cues: c.cues || [] }, c.image ? { image: c.image } : {}));
     story.index = 0;
     renderStory();
     els.playStoryBtn.disabled = false;
