@@ -2057,8 +2057,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.66';
+const APP_VERSION = '0.67';
 const CHANGELOG = [
+  { v: '0.67', date: '2026-09-21', items: [
+    'Fantasiewesen im Bild: Die App liest Art und Hautfarbe selbst aus dem Aussehen und setzt sie verlässlich an den Anfang des Bildprompts. Der Fotostil zieht nicht mehr zu „natürlicher" Haut, und die Negativliste schließt bei Fantasiewesen menschliche Hauttöne aus statt 3D-Darstellungen.',
+    'Der Porträt-Prompt steht jetzt im Protokoll - so lässt sich sehen, was das Bildmodell tatsächlich bekommen hat.',
+  ]},
   { v: '0.66', date: '2026-09-21', items: [
     '▶ in der Figurenliste: Die Figur stellt sich selbst vor - Name, Wesen, Vorlieben, mit Gefühl, wenn sie emotional spricht. Die Vorstellung wird einmal erzeugt und bei der Figur aufbewahrt; neu nur bei geänderter Stimme, Version oder auf Wunsch („↻ Vorstellung neu aufnehmen" im Editor).',
     'Das Leeren des Ton-Zwischenspeichers lässt die Vorstellungen stehen.',
@@ -5151,7 +5155,18 @@ async function makeSceneImage(momentText) {
   )).trim().replace(/^["'`]+|["'`]+$/g, '');
   if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
-  if (portraitStyle() === 'foto') prompt = prompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture.';
+  // Fantasiewesen in der Szene: ihre Hautfarbe wird ausdrücklich angehängt,
+  // falls der Prompt sie verschluckt hat, und der Stil zieht nicht mehr zur
+  // "natürlichen" Haut.
+  const infos = characters.filter(c => !c.isNarrator).map(c => ({ c, info: speciesInfo(c.appearance) }));
+  const alien = infos.filter(x => x.info.nonHuman);
+  const colors = [...new Set(alien.map(x => x.info.color).filter(Boolean))];
+  alien.forEach(({ c, info }) => {
+    if (info.color && !new RegExp('\\b' + info.color + '\\b', 'i').test(prompt)) {
+      prompt += ` ${c.name} has entirely ${info.color} skin.`;
+    }
+  });
+  prompt = prompt.slice(0, 1250) + styleSuffix(alien.length > 0, colors);
 
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
     method: 'POST',
@@ -5159,8 +5174,10 @@ async function makeSceneImage(momentText) {
     body: JSON.stringify({
       model,
       prompt: prompt.slice(0, 1400),
-      negative_prompt: 'child, teen, minor, young-looking, childlike, blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
-        + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin' : ''),
+      // Die Hautfarben-Sperre nur, wenn niemand Menschliches mitspielt - sonst
+      // würde sie auch die menschlichen Figuren verfärben.
+      negative_prompt: 'child, teen, minor, young-looking, childlike, '
+        + negativeFor(alien.length > 0, alien.length === infos.length ? colors : []),
       width: 1024,
       height: 768,
       format: 'webp',
@@ -5520,6 +5537,63 @@ function portraitStyle() {
   return localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
 }
 
+// ---------- Fantasiewesen im Bild ----------
+// Drei Dinge zogen jedes blauhäutige Wesen zum Menschen: vorn stand "Portrait
+// of a woman", hinten "real photograph, natural skin texture", und die
+// Negativliste schloss "cgi, 3d render" aus - genau das Register, in dem ein
+// Bildmodell Fantasiewesen kennt. Außerdem hing alles daran, dass das
+// Textmodell die Hautfarbe nach vorn schreibt. Jetzt liest die App die Art
+// und Hautfarbe selbst aus dem Aussehen und setzt sie verlässlich ein.
+const SKIN_COLORS = [['türkis', 'turquoise'], ['blau', 'blue'], ['grün', 'green'], ['violett', 'violet'],
+  ['lila', 'purple'], ['rot', 'red'], ['orange', 'orange'], ['rosa', 'pink'], ['pink', 'pink'],
+  ['grau', 'grey'], ['silber', 'silver'], ['gold', 'golden'], ['weiß', 'white'], ['schwarz', 'black']];
+
+function speciesInfo(appearance) {
+  const text = String(appearance || '');
+  const art = ((text.match(/^\s*Art\s*:\s*(.+)$/mi) || [])[1] || '').trim();
+  const skin = ((text.match(/^\s*Haut\s*:\s*(.+)$/mi) || [])[1] || '').trim();
+  const nonHuman = art
+    ? !/^mensch\b/i.test(art)
+    : /\b(alien|außerirdisch\w*|elf\w*|dämon\w*|fantasiewesen|humanoid\w*|hörner|schwanz)\b|(blau|grün|türkis|violett|lila|silber|gold)häutig/i.test(text);
+  let color = null;
+  if (nonHuman) {
+    const low = (skin + ' | ' + art + ' | ' + text).toLowerCase();
+    for (const [de, en] of SKIN_COLORS) {
+      const re = new RegExp(`${de}\\w*\\s+haut|${de}häutig|haut\\w*[^.;\\n|]{0,24}${de}`, 'i');
+      if (re.test(low) || (skin && new RegExp(`\\b\\w*${de}`, 'i').test(skin))) { color = en; break; }
+    }
+  }
+  return { nonHuman, color };
+}
+
+function shapeForSpecies(prompt, info) {
+  if (!info.nonHuman) return prompt;
+  let p = prompt.replace(/^Portrait of (a|an) /i, 'Portrait of $1 ');
+  if (info.color && !new RegExp('\\b' + info.color + '\\b', 'i').test(p.slice(0, 160))) {
+    p = `A ${info.color}-skinned humanoid. ` + p;
+  } else if (!info.color && !/humanoid|alien|creature|elf|demon/i.test(p.slice(0, 160))) {
+    p = 'A non-human fantasy humanoid. ' + p;
+  }
+  if (info.color) p += ` Skin color: entirely ${info.color}, clearly not a human skin tone.`;
+  return p;
+}
+
+function styleSuffix(anyNonHuman, colors) {
+  if (portraitStyle() !== 'foto') return '';
+  return anyNonHuman
+    ? ` Photorealistic, cinematic lighting, highly detailed skin texture${colors.length ? ', ' + colors.join(' and ') + ' skin' : ''}.`
+    : ' Photorealistic, real photograph, natural skin texture, 85mm lens.';
+}
+
+function negativeFor(anyNonHuman, colors) {
+  let n = 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo';
+  if (portraitStyle() === 'foto') {
+    n += anyNonHuman ? ', illustration, painting, drawing, cartoon, anime' : ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed';
+  }
+  if (colors.length) n += ', human skin tone, beige skin, pale skin, tan skin';
+  return n;
+}
+
 async function generateCharacterImage(c, button) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Profilbilder wird ein Venice-Schlüssel gebraucht.'); return; }
@@ -5548,20 +5622,22 @@ async function generateCharacterImage(c, button) {
     // drop the gender on the way. Stating it in front of the prompt costs
     // nothing and removes the most common way a portrait comes out wrong.
     const genderWord = { weiblich: 'a woman', maennlich: 'a man', divers: 'a non-binary person' }[c.gender];
-    if (genderWord && !new RegExp(genderWord, 'i').test(imagePrompt)) {
+    if (genderWord && !new RegExp(genderWord.replace(/^an? /, ''), 'i').test(imagePrompt)) {
       imagePrompt = `Portrait of ${genderWord}. ` + imagePrompt;
     }
+    const species = speciesInfo(c.appearance);
+    imagePrompt = shapeForSpecies(imagePrompt, species);
+    const colors = species.color ? [species.color] : [];
+    const finalPrompt = imagePrompt.slice(0, 1250) + styleSuffix(species.nonHuman, colors);
+    logEvent('msg', { role: 'system', text: `Porträt ${c.name} (${model}${species.nonHuman ? ', Fantasiewesen' + (species.color ? ' ' + species.color : '') : ''}): ${finalPrompt.slice(0, 500)}` });
 
     const res = await fetch('https://api.venice.ai/api/v1/image/generate', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        prompt: (portraitStyle() === 'foto'
-          ? imagePrompt.slice(0, 1250) + ' Photorealistic, real photograph, natural skin texture, 85mm lens.'
-          : imagePrompt.slice(0, 1400)),
-        negative_prompt: 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo'
-          + (portraitStyle() === 'foto' ? ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed' : ''),
+        prompt: finalPrompt.slice(0, 1450),
+        negative_prompt: negativeFor(species.nonHuman, colors),
         width: 1024,
         height: 1024,
         format: 'webp',
