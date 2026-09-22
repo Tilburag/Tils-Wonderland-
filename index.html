@@ -256,6 +256,8 @@
   .scene-actions { display: flex; gap: 8px; margin-top: 6px; }
   .scene-actions button { font-size: 12.5px; padding: 7px 12px; }
   .msg.scene-video { align-self: stretch; max-width: 100%; }
+  .msg.user-photo { align-self: flex-end; padding: 0; background: none; border: none; max-width: 60%; }
+  .msg.user-photo img { width: 100%; border-radius: 12px; display: block; cursor: zoom-in; }
   .msg.scene-video video { width: 100%; border-radius: 14px; display: block; background: #000; }
   .choice-dialog {
     position: fixed; inset: 0; z-index: 210;
@@ -1169,6 +1171,8 @@
   </div>
   <div class="text-input-row">
     <input type="text" id="textInput" placeholder="Nachricht schreiben...">
+    <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken" style="flex:0 0 auto; padding:10px 12px;">📷</button>
+    <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
     <button class="btn-primary" id="sendTextBtn">Senden</button>
   </div>
   <div class="bottom-controls">
@@ -1282,6 +1286,8 @@ const els = {
   sharedProfile: document.getElementById('sharedProfile'),
   rememberBtn: document.getElementById('rememberBtn'),
   sceneImageBtn: document.getElementById('sceneImageBtn'),
+  photoBtn: document.getElementById('photoBtn'),
+  photoInput: document.getElementById('photoInput'),
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
   onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
@@ -2051,8 +2057,23 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.62';
+const APP_VERSION = '0.66';
 const CHANGELOG = [
+  { v: '0.66', date: '2026-09-21', items: [
+    '▶ in der Figurenliste: Die Figur stellt sich selbst vor - Name, Wesen, Vorlieben, mit Gefühl, wenn sie emotional spricht. Die Vorstellung wird einmal erzeugt und bei der Figur aufbewahrt; neu nur bei geänderter Stimme, Version oder auf Wunsch („↻ Vorstellung neu aufnehmen" im Editor).',
+    'Das Leeren des Ton-Zwischenspeichers lässt die Vorstellungen stehen.',
+  ]},
+  { v: '0.65', date: '2026-09-21', items: [
+    'Foto an die Figuren: 📷 neben „Senden" öffnet die Kamera. Das Foto geht ohne Metadaten mit deiner Nachricht an das Gesprächsmodell, nur für diese eine Antwort, und wird nirgends gespeichert.',
+    'Eigene Fotos lassen sich nicht mehr als Profilbild hochladen. Profilbilder entstehen nur noch über „✨ Bild"; ein Tipp aufs Bild vergrößert es.',
+  ]},
+  { v: '0.64', date: '2026-09-21', items: [
+    'Fantasiewesen: Das Aussehen beginnt jetzt mit der Art. Nicht-menschliche Merkmale - Hautfarbe, Ohren, Schwanz, Leuchtmuster - stehen in Porträt und Szenenbild ganz vorn, sodass das Bildmodell nicht mehr einen Menschen malt.',
+    'Die Generatoren füllen mehr aus: ausführlichere Notizen, mehr Beispielzeilen und eine eigene Stimmbeschreibung, die „Eigene Stimme entwerfen" direkt verwendet. Neues Feld dafür im Figureneditor.',
+  ]},
+  { v: '0.63', date: '2026-09-21', items: [
+    'Eigene Stimmen: „🎙 Eigene Stimme entwerfen" im Figureneditor beschreibt die Stimme aus Aussehen, Wesen und Sprechweise der Figur und lässt ElevenLabs drei Hörproben erzeugen. Die gewählte wird im ElevenLabs-Konto gespeichert und der Figur zugewiesen.',
+  ]},
   { v: '0.62', date: '2026-09-21', items: [
     'Geschichten mit Bildern, wie ein Comic: ein Haken im Geschichtenbereich, etwa ein Bild pro Minute. Die Bilder entstehen im Hintergrund und erscheinen vor dem Text, den sie zeigen; beim Abspielen rückt jedes Bild ins Bild, wenn sein Abschnitt beginnt.',
     'Aufbewahrte Geschichten behalten ihre Bilder.',
@@ -4216,7 +4237,7 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens, mod
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: messages || history, temperature: temperature ?? 1 })
+    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: messages || toApiMessages(history, 'anthropic'), temperature: temperature ?? 1 })
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
@@ -4241,7 +4262,7 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'system', content: systemPrompt }, ...(messages || history)],
+      messages: [{ role: 'system', content: systemPrompt }, ...(messages || toApiMessages(history, 'openai'))],
       max_tokens: maxTokens || 800,
       temperature: temperature ?? 1,
       ...(extraBody || {})
@@ -4326,6 +4347,24 @@ function taskLabel(task) {
 // Anbieter voll berechnet - ein Fehlschlag kostete damit mehr als eine
 // gelungene Antwort, und niemand bekam zu sehen, warum. Jetzt gibt es einen
 // Versuch und eine Meldung, die sagt, was zu tun ist.
+// Ein Foto geht nur mit der Nachricht mit, zu der es gehört. Danach steht im
+// Verlauf nur noch ein Vermerk - sonst würde das Bild bei jeder weiteren
+// Anfrage erneut geschickt und bezahlt, und die Figuren kämen nicht davon los.
+function toApiMessages(list, flavor) {
+  let lastUser = -1;
+  list.forEach((m, k) => { if (m.role === 'user') lastUser = k; });
+  return list.map((m, k) => {
+    if (!m.image) return { role: m.role, content: m.content };
+    const text = m.content || 'Schau mal.';
+    if (k !== lastUser) return { role: m.role, content: text + ' (Dazu hatte ich ein Foto geschickt.)' };
+    const mime = m.image.slice(5, m.image.indexOf(';'));
+    const data = m.image.split(',')[1];
+    return flavor === 'anthropic'
+      ? { role: m.role, content: [{ type: 'image', source: { type: 'base64', media_type: mime, data } }, { type: 'text', text }] }
+      : { role: m.role, content: [{ type: 'text', text }, { type: 'image_url', image_url: { url: m.image } }] };
+  });
+}
+
 async function callProvider(provider, systemPrompt, messages, temperature, maxTokens, opts) {
   const task = (opts && opts.task) || 'chat';
   try {
@@ -4574,6 +4613,7 @@ function versionFromCharacter(c, versionNumber) {
     pitch: c.pitch, rate: c.rate,
     gender: c.gender || 'offen',
     appearance: c.appearance || '',
+    voiceDescription: c.voiceDescription || '',
     isNarrator: !!c.isNarrator,
     // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
     // dadurch, dass eine Figur gerade mitspielt oder nicht.
@@ -4728,6 +4768,171 @@ function describeCharacter(c) {
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (parts.length ? parts.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
 
+// ---------- Eigene Stimme entwerfen (ElevenLabs Voice Design) ----------
+// Zwei Schritte bei ElevenLabs: aus einer Beschreibung entstehen Hörproben,
+// die gewählte wird dann als dauerhafte Stimme gespeichert. Das Speichern
+// belegt einen Platz für eigene Stimmen im Konto - wie viele es davon gibt,
+// hängt vom Abo ab. Deshalb nur auf Knopfdruck, nie automatisch.
+// Das Textfeld zur Stimmbeschreibung, damit ein Entwurf dort sichtbar wird.
+// Als WeakMap statt am Figurenobjekt - sonst wanderte ein Bedienelement mit in
+// den Speicher.
+const voiceAreaFor = new WeakMap();
+
+async function elevenCall(path, payload) {
+  const key = apiKeyFor('companion_elevenKey');
+  const res = await fetch('https://api.elevenlabs.io/v1/' + path, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()).slice(0, 260); } catch (e) {}
+    throw new Error('ElevenLabs ' + res.status + (detail ? ': ' + detail : ''));
+  }
+  return res.json();
+}
+
+function buildVoiceDesignRequest(c) {
+  const traits = TRAIT_GROUPS.flatMap(g => g.traits.filter(([id]) => (c.traits || []).includes(id)).map(([, t]) => t)).join(', ');
+  return `Beschreibe die Stimme dieser Figur für ElevenLabs Voice Design und schreibe einen Probetext.
+
+Figur: ${c.name}
+${c.gender && c.gender !== 'offen' ? 'Geschlecht: ' + GENDER_TEXT[c.gender] : ''}
+Aussehen: ${appearanceShort(String(c.appearance || '').replace(/\s*\n\s*/g, '; '), 300)}
+Wesen: ${traits || '-'}
+Notizen: ${String(c.notes || '').slice(0, 600)}
+So spricht sie: ${String(c.styleExamples || '').slice(0, 400)}
+
+"description": englisch, 2 bis 4 Sätze - Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar), Sprechtempo, Stimmung, Ausdruck. Wichtig: "speaks native German with no foreign accent". Keine Namen realer Personen und keine bekannten Stimmen nachahmen.
+"text": deutsch, 150 bis 300 Zeichen, so wie genau diese Figur reden würde - daran hört man die Stimme zur Probe.
+
+Antworte NUR mit JSON: {"description": "...", "text": "..."}`;
+}
+
+function playBase64Mp3(b64) {
+  const audio = new Audio('data:audio/mpeg;base64,' + b64);
+  audio.play().catch(() => {});
+  return audio;
+}
+
+// Drei Hörproben, jede mit Anhören und Nehmen. "Neu entwerfen" würfelt neu,
+// ohne einen Platz zu belegen - erst "Nehmen" speichert.
+function chooseVoicePreview(name, previews) {
+  return new Promise(resolve => {
+    let playing = null;
+    const stop = () => { if (playing) { try { playing.pause(); } catch (e) {} playing = null; } };
+    const dialog = document.createElement('div');
+    dialog.className = 'choice-dialog';
+    const box = document.createElement('div');
+    box.className = 'box';
+    const text = document.createElement('p');
+    text.textContent = `Drei Stimmen für ${name}. Hör sie dir an und nimm die passende - sie wird dann in deinem ElevenLabs-Konto gespeichert.`;
+    box.appendChild(text);
+    previews.forEach((pv, k) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; gap:8px;';
+      const play = document.createElement('button');
+      play.className = 'btn-secondary';
+      play.textContent = `▶ Stimme ${k + 1}`;
+      play.onclick = () => { stop(); playing = playBase64Mp3(pv.audio_base_64); };
+      const take = document.createElement('button');
+      take.className = 'btn-primary';
+      take.textContent = 'Nehmen';
+      take.onclick = () => { stop(); dialog.remove(); resolve({ pick: pv }); };
+      row.appendChild(play);
+      row.appendChild(take);
+      box.appendChild(row);
+    });
+    const again = document.createElement('button');
+    again.className = 'btn-secondary';
+    again.textContent = 'Neu entwerfen';
+    again.onclick = () => { stop(); dialog.remove(); resolve({ again: true }); };
+    box.appendChild(again);
+    const cancel = document.createElement('button');
+    cancel.className = 'btn-secondary';
+    cancel.textContent = 'Abbrechen';
+    cancel.onclick = () => { stop(); dialog.remove(); resolve({}); };
+    box.appendChild(cancel);
+    dialog.appendChild(box);
+    document.body.appendChild(dialog);
+  });
+}
+
+async function designVoiceForFigure(c, button, onDone) {
+  if (!apiKeyFor('companion_elevenKey')) { addMsg('system', 'Für eigene Stimmen wird ein ElevenLabs-Schlüssel gebraucht.'); return; }
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const label = button.textContent;
+  button.disabled = true;
+  try {
+    // Steht schon eine Beschreibung bei der Figur, gilt sie - du hast sie
+    // gelesen oder geändert. Sonst entsteht eine und wird ins Feld übernommen.
+    let description = String(c.voiceDescription || '').trim();
+    let sample = '';
+    if (!description || !String(c.styleExamples || '').trim()) {
+      button.textContent = 'Beschreibe Stimme...';
+      const raw = await callProvider(provider, buildVoiceDesignRequest(c),
+        [{ role: 'user', content: 'Gib Beschreibung und Probetext als JSON zurück.' }],
+        0.7, taskBudget('draft', 900), { task: 'draft' });
+      const spec = extractJson(raw) || {};
+      if (!description) description = String(spec.description || '').trim();
+      sample = String(spec.text || '').trim();
+    }
+    description = description.slice(0, 1000);
+    if (!description) throw new Error('Keine Stimmbeschreibung erhalten.');
+    if (!/native German/i.test(description)) description += ' Speaks native German with no foreign accent.';
+    if (!c.voiceDescription) {
+      c.voiceDescription = description;
+      if (voiceAreaFor.has(c)) voiceAreaFor.get(c).value = description;
+    }
+    if (!sample) sample = String(c.styleExamples || '').replace(/\s+/g, ' ').trim();
+    // ElevenLabs verlangt mindestens 100 Zeichen Probetext.
+    if (sample.length < 100) sample = (sample + ' ' + String(c.styleExamples || '').replace(/\s+/g, ' ')).trim();
+    if (sample.length < 100) sample = (sample + ' Schön, dass du da bist. Lass uns einfach sehen, wohin uns dieser Abend führt - ich habe Zeit.').trim();
+    sample = sample.slice(0, 1000);
+
+    for (;;) {
+      button.textContent = 'Erzeuge Hörproben...';
+      let data;
+      try {
+        data = await elevenCall('text-to-voice/design', { voice_description: description, text: sample, model_id: 'eleven_ttv_v3' });
+      } catch (err) {
+        // Ältere Konten kennen das v3-Modell für Voice Design womöglich nicht.
+        data = await elevenCall('text-to-voice/design', { voice_description: description, text: sample, model_id: 'eleven_multilingual_ttv_v2' });
+      }
+      const previews = Array.isArray(data.previews) ? data.previews.filter(p => p.generated_voice_id && p.audio_base_64) : [];
+      if (!previews.length) throw new Error('ElevenLabs hat keine Hörproben geliefert.');
+      logEvent('msg', { role: 'system', text: `Stimmentwurf für ${c.name}: ${description}` });
+
+      button.textContent = 'Wähle eine Stimme...';
+      const choice = await chooseVoicePreview(c.name, previews);
+      if (choice.again) continue;
+      if (!choice.pick) return;
+
+      button.textContent = 'Speichere Stimme...';
+      const saved = await elevenCall('text-to-voice', {
+        voice_name: `${c.name} (Begleiter-App)`,
+        voice_description: description.slice(0, 500),
+        generated_voice_id: choice.pick.generated_voice_id,
+      });
+      const voiceId = saved.voice_id;
+      if (!voiceId) throw new Error('Gespeichert, aber ohne Stimmkennung.');
+      if (!elevenVoiceCache.some(v => v.voice_id === voiceId)) {
+        elevenVoiceCache.push({ voice_id: voiceId, name: `${c.name} (Begleiter-App)`, labels: {} });
+      }
+      c.elevenVoice = voiceId;
+      if (onDone) onDone(voiceId);
+      addMsg('system', `${c.name} hat eine eigene Stimme. Mit Sichern festhalten.`);
+      return;
+    }
+  } catch (err) {
+    addMsg('system', 'Stimme entwerfen fehlgeschlagen: ' + err.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
+
 function fillVoiceOptions(sel, selected, kind) {
   sel.innerHTML = '';
   const empty = document.createElement('option');
@@ -4808,6 +5013,8 @@ function buildPortraitRequest(c) {
 
 WICHTIG: Das Geschlecht muss im englischen Prompt unmissverständlich benannt sein - "a woman", "a man" oder "a non-binary person" gleich am Anfang. Ein Bildmodell rät sonst, und das Ergebnis passt dann nicht zur Figur.
 
+${NONHUMAN_RULE}
+
 Figur: ${c.name}
 ${c.gender && c.gender !== 'offen' ? `Geschlecht: ${GENDER_TEXT[c.gender]}` : ''}
 ${(c.appearance || '').trim() ? `Aussehen - das ist verbindlich und muss genau so umgesetzt werden: ${c.appearance.trim().slice(0, APPEARANCE_MAX)}` : ''}
@@ -4821,7 +5028,7 @@ ${(c.appearance || '').trim()
   ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Gesicht, Augen, Haut, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Nenne das Auffälligste zuerst (Haare, Gesicht, Augen), denn Bildmodelle gewichten die ersten Wörter am stärksten. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
   : 'Übersetze das Wesen ins Sichtbare: Gesicht, Ausdruck, Blick, Haltung, Haare, Kleidung, Licht und Hintergrund passend zur Szene. Eine ruhige Figur schaut anders als eine ungeduldige - das soll man sehen.'}
 
-${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Person, bekleidet, Blick zur Kamera. Keine realen Personen und keine Figuren aus bekannten Filmen, Spielen oder Büchern - eine eigenständige Person. Kein Text und keine Schrift im Bild.
+${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Figur, bekleidet, Blick zur Kamera. Keine realen Personen und keine Namen von Filmen, Spielen oder Büchern - beschreibe eine eigenständige Gestalt mit eigenen Worten. Kein Text und keine Schrift im Bild.
 
 Antworte NUR mit dem englischen Prompt, ein bis drei Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
@@ -4877,6 +5084,7 @@ Regeln:
 - Zeige genau den letzten Moment: wer ist zu sehen, wo, in welcher Haltung, wer tut was mit wem, Blicke, Licht, Stimmung.
 - Jede Person mit ihrem Aussehen wie oben angegeben: zuerst Geschlecht und Alter ("a 28-year-old woman"), dann das Auffälligste - Haare, Gesicht, Augen, Statur, Figur, Haut mit Tattoos oder Besonderheiten -, dann Kleidung oder was davon zu sehen ist. Bildmodelle gewichten die ersten Wörter am stärksten.
 - Alle abgebildeten Personen sind Erwachsene; schreibe ausdrücklich "adult". Keine realen Personen, keine bekannten Figuren aus Filmen, Spielen oder Büchern. Kein Text im Bild.
+- ${NONHUMAN_RULE}
 - Technische Geräte nur zeigen, wenn das Gespräch sie ausdrücklich sichtbar beschreibt.
 ${portraitStyle() === 'foto' ? '- Stil: ein echtes Foto, keine Illustration - Kamera, natürliches Licht, echte Hautstruktur. Keine Worte wie painting, illustration, digital art, render oder anime.' : ''}
 
@@ -5247,6 +5455,67 @@ async function loadVideoModels(quiet) {
   }
 }
 
+// ---------- Foto an die Figuren ----------
+// Die Kamera liefert eine Datei, die Ort und Gerät enthalten kann. Sie wird
+// deshalb auf eine Zeichenfläche gemalt und neu als JPEG erzeugt - dabei
+// bleiben nur die Bildpunkte übrig. Gespeichert wird das Foto nirgends, auch
+// nicht im Protokoll.
+function chatModelId() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  return taskModelName('chat') || modelFor('companion_model_' + provider) || '';
+}
+
+// true = kann Bilder sehen, false = kann es nicht, null = unbekannt.
+function chatModelSeesImages() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  if (provider !== 'venice') return null;
+  const id = chatModelId() || 'venice-uncensored';
+  const m = veniceModelCache.find(x => x.id === id);
+  if (!m) return null;
+  const caps = (m.model_spec && m.model_spec.capabilities) || {};
+  return typeof caps.supportsVision === 'boolean' ? caps.supportsVision : null;
+}
+
+function addPhotoMsg(dataUrl) {
+  const box = document.createElement('div');
+  box.className = 'msg user-photo';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = 'Dein Foto';
+  img.onclick = () => openImageViewer(dataUrl);
+  box.appendChild(img);
+  els.transcript.appendChild(box);
+  els.transcript.scrollTop = els.transcript.scrollHeight;
+}
+
+async function sendPhoto(file) {
+  if (!characters.some(c => !c.isUser && !c.isNarrator)) {
+    addMsg('system', 'Niemand in der Besetzung, der das Foto ansehen könnte.');
+    return;
+  }
+  const sees = chatModelSeesImages();
+  if (sees === false) {
+    addMsg('system', `Das Gesprächsmodell ${chatModelId()} kann keine Bilder sehen. Wähle in den Einstellungen unter „Modelle je Aufgabe" für das Gespräch eines, das Bilder versteht.`);
+    return;
+  }
+  let dataUrl;
+  try {
+    dataUrl = await downscaleImage(file, 768);
+  } catch (err) {
+    addMsg('system', 'Foto konnte nicht gelesen werden: ' + err.message);
+    return;
+  }
+  const text = els.textInput.value.trim() || 'Schau mal.';
+  els.textInput.value = '';
+  addUserMsg(text);
+  addPhotoMsg(dataUrl);
+  logEvent('msg', { role: 'system', text: `Foto geschickt (${Math.round(dataUrl.length * 0.75 / 1024)} KB, ohne Metadaten)${sees === null ? ' - ob das Modell Bilder sieht, ist unbekannt' : ''}.` });
+  askActive(text, { image: dataUrl }).catch(err => {
+    setThinking('');
+    addMsg('system', 'Fehler beim Abrufen der Antwort: ' + (err && err.message ? err.message : err));
+  });
+}
+
 function portraitStyle() {
   return localStorage.getItem('companion_portraitStyle') === 'frei' ? 'frei' : 'foto';
 }
@@ -5416,39 +5685,17 @@ function renderCharacters() {
     avatar.className = 'char-avatar' + (c.image ? '' : ' empty');
     if (c.image) avatar.src = c.image;
     else avatar.textContent = (c.name || '?').trim().charAt(0).toUpperCase() || '?';
-    const picker = document.createElement('input');
-    picker.type = 'file';
-    picker.accept = 'image/*';
-    picker.style.display = 'none';
-    picker.onchange = async () => {
-      const file = picker.files && picker.files[0];
-      if (!file) return;
-      try {
-        c.image = await downscaleImage(file, 192);
-        // The untouched file goes to the database; only the preview is shrunk.
-        const original = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Datei nicht lesbar.'));
-          reader.readAsDataURL(file);
-        });
-        dropFullImage(c.imageKey);
-        c.imageKey = await storeFullImage(c.id, original);
-        // A picture is not a draft - it belongs to the figure right away,
-        // otherwise it is gone the next time the editor is opened.
-        storeCharacterVersion(c, false);
-        syncCastFromEdit(c);
-        renderCharacters();
-        if (figuresOpen) renderFigureList();
-      } catch (err) {
-        addMsg('system', 'Bild konnte nicht übernommen werden: ' + err.message);
-      }
-    };
-    avatar.style.cursor = 'pointer';
-    avatar.title = 'Bild wählen';
-    avatar.onclick = () => picker.click();
+    // Eigene Fotos als Profilbild gibt es nicht mehr - Profilbilder entstehen
+    // nur noch über "✨ Bild". Ein Tipp aufs Bild vergrößert es.
+    if (c.image) {
+      avatar.style.cursor = 'zoom-in';
+      avatar.title = 'Vergrößern';
+      avatar.onclick = async () => {
+        const full = c.imageKey ? await loadFullImage(c.imageKey).catch(() => null) : null;
+        openImageViewer(full || c.image);
+      };
+    }
     head.appendChild(avatar);
-    head.appendChild(picker);
 
     const genImg = document.createElement('button');
     genImg.className = 'char-del';
@@ -5510,6 +5757,7 @@ function renderCharacters() {
     del.onclick = () => {
       if (!confirm(`${c.name} endgültig aus dem Archiv löschen? Alle Versionen gehen verloren.`)) return;
       dropFullImage(c.imageKey);
+      forgetIntro(c.figureId);
       figureArchive = figureArchive.filter(f => f.id !== c.figureId);
       characters = characters.filter(x => x.figureId !== c.figureId);
       saveArchive();
@@ -5742,6 +5990,46 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     previewRow.appendChild(emotionBtn);
     card.appendChild(previewRow);
 
+    if (!c.isUser) {
+      const vdLabel = document.createElement('label');
+      vdLabel.textContent = 'Stimme - Beschreibung (für „Eigene Stimme entwerfen")';
+      card.appendChild(vdLabel);
+      const vdArea = document.createElement('textarea');
+      vdArea.value = c.voiceDescription || '';
+      vdArea.style.minHeight = '70px';
+      vdArea.placeholder = 'Englisch, z.B.: A warm, slightly husky adult woman around 30, calm and playful, speaks native German with no foreign accent.';
+      vdArea.oninput = () => { c.voiceDescription = vdArea.value; };
+      card.appendChild(vdArea);
+      voiceAreaFor.set(c, vdArea);
+    }
+
+    // Eine eigene Stimme, passend zur Figur - statt der nächstbesten aus der
+    // Bibliothek. Drei Hörproben, du wählst eine, sie landet dauerhaft in deinem
+    // ElevenLabs-Konto und ist sofort der Figur zugewiesen.
+    if (!c.isUser) {
+      const designBtn = document.createElement('button');
+      designBtn.type = 'button';
+      designBtn.className = 'btn-secondary';
+      designBtn.textContent = '🎙 Eigene Stimme entwerfen';
+      designBtn.style.marginTop = '6px';
+      designBtn.onclick = () => designVoiceForFigure(c, designBtn, (voiceId) => {
+        fillVoiceOptions(elevenSel, voiceId, 'eleven');
+        elevenSel.value = voiceId;
+      });
+      card.appendChild(designBtn);
+
+      if (c.figureId) {
+        const introBtn = document.createElement('button');
+        introBtn.type = 'button';
+        introBtn.className = 'btn-secondary';
+        introBtn.textContent = '↻ Vorstellung neu aufnehmen';
+        introBtn.style.marginTop = '6px';
+        introBtn.title = 'Die aufbewahrte Vorstellung ersetzen - etwa nach geänderten Notizen';
+        introBtn.onclick = () => introduceFigure(c, c.figureId, introBtn, true);
+        card.appendChild(introBtn);
+      }
+    }
+
     const pitchLabel = document.createElement('label');
     const pitchVal = document.createElement('span');
     pitchVal.textContent = c.pitch;
@@ -5870,10 +6158,12 @@ Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"
 
 ${APPEARANCE_SCHEMA}
 
-Dazu je ein Feld "notes" mit drei bis fünf Sätzen: wie die Figur spricht, wie sie sich verhält, wie sie zu den anderen steht. Und "pitch" und "rate" als Zahlen zwischen 0.8 und 1.2 - setz die Werte der beiden Figuren spürbar auseinander, damit man sie beim Zuhören unterscheidet.
+${VOICE_SCHEMA}
+
+Dazu je ein Feld "notes" mit fünf bis acht Sätzen: Wesen, etwas Hintergrund, wie die Figur spricht, wie sie sich verhält, wie sie zu den anderen und zu mir steht. Und "pitch" und "rate" als Zahlen zwischen 0.8 und 1.2 - setz die Werte der beiden Figuren spürbar auseinander, damit man sie beim Zuhören unterscheidet.
 
 Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown, beginnend mit "{" und endend mit "}":
-{"scene": "...", "characters": [{"name": "...", "isUser": false, "gender": "...", "appearance": "...", "traits": ["..."], "notes": "...", "styleExamples": "...", "replyLength": "mittel", "temperature": 0.8, "pitch": 1.0, "rate": 1.0, "voiceName": "..."}]}`;
+{"scene": "...", "characters": [{"name": "...", "isUser": false, "gender": "...", "appearance": "...", "voiceDescription": "...", "traits": ["..."], "notes": "...", "styleExamples": "...", "replyLength": "mittel", "temperature": 0.8, "pitch": 1.0, "rate": 1.0, "voiceName": "..."}]}`;
 }
 
 // A generated draft goes straight into the app's own data structures, so it has
@@ -5899,6 +6189,7 @@ function sanitizeSingleCharacter(draft) {
     notes: String(d.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
     appearance: String(d.appearance || '').slice(0, APPEARANCE_MAX),
+    voiceDescription: String(d.voiceDescription || '').slice(0, 800),
     // Everything the model was asked for is taken over, with the same clamping
     // as the manual fields - a draft that ignores the bounds must not be able
     // to set values the sliders could never produce.
@@ -5933,6 +6224,7 @@ function sanitizeDraftCharacters(list) {
     notes: String(c.notes || '').slice(0, 1200),
     gender: GENDER_TEXT[c.gender] ? c.gender : 'offen',
     appearance: String(c.appearance || '').slice(0, APPEARANCE_MAX),
+    voiceDescription: String(c.voiceDescription || '').slice(0, 800),
     emotional: c.emotional === undefined ? true : !!c.emotional,
     styleExamples: String(c.styleExamples || '').slice(0, 1200),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
@@ -5975,28 +6267,135 @@ function figureGist(version) {
 
 // A short spoken line in the figure's own voice - far quicker for telling two
 // similar-sounding voices apart than reading their settings.
-async function introduceFigure(version) {
-  const line = `Hallo, ich bin ${version.name}.`;
+// ---------- Vorstellung einer Figur ----------
+// Früher spielte ▶ nur die Musterstimme von ElevenLabs ab - ein fremder Satz,
+// der mit der Figur nichts zu tun hatte. Jetzt stellt sie sich selbst vor, in
+// ihrem Ton, mit Gefühl, wenn sie emotional spricht. Erzeugt wird das genau
+// einmal und bei der Figur aufbewahrt. Neu entsteht es nur, wenn sich Name,
+// Version, Stimme oder "spricht emotional" ändern - oder auf Wunsch.
+const INTRO_PREFIX = 'intro_';
+
+function loadIntroMap() {
+  try { return JSON.parse(localStorage.getItem('companion_figureIntros') || '{}') || {}; }
+  catch (e) { return {}; }
+}
+function saveIntroMap(map) { safeSet('companion_figureIntros', JSON.stringify(map)); }
+
+function introFingerprint(v) {
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
-  if (source === 'elevenlabs' && version.elevenVoice) {
-    const ready = voicePreviewUrl(version.elevenVoice);
-    if (ready) { playPreviewUrl(ready); return; }
-    return previewVoice(version.elevenVoice, line);
+  return [source, source === 'elevenlabs' ? (v.elevenVoice || '') : (v.voice || ''),
+    v.name, v.v || v.version || 0, v.emotional ? 1 : 0].join('|');
+}
+
+async function forgetIntro(figureId) {
+  const map = loadIntroMap();
+  if (map[figureId]) { delete map[figureId]; saveIntroMap(map); }
+  await dbDelete(STORE_AUDIO, INTRO_PREFIX + figureId).catch(() => {});
+}
+
+function buildIntroRequest(v) {
+  const traits = TRAIT_GROUPS.flatMap(g => g.traits.filter(([id]) => (v.traits || []).includes(id)).map(([, t]) => t)).join(', ');
+  const emotional = v.emotional && (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs';
+  return `Du bist ${v.name}. Stell dich mir ganz kurz vor, gesprochen, in deinem eigenen Ton.
+
+Wer du bist: ${String(v.notes || '').slice(0, 700)}
+Wesen: ${traits || '-'}
+So sprichst du: ${String(v.styleExamples || '').slice(0, 400)}
+
+Zwei bis vier Sätze, höchstens 320 Zeichen: dein Name, was dich ausmacht, was du magst - ruhig auch, was dir im Bett gefällt. Du sprichst mich direkt an.${emotional ? ' Setze zwei bis drei Audio-Tags in eckigen Klammern ein, dort wo sie passen: [lacht], [seufzt], [flüstert], [atmet schwer], [stöhnt leise], [stöhnt].' : ' Keine Klammern, keine Regieanweisungen.'}
+Keine Anführungszeichen, keine Erklärung - nur der gesprochene Text.`;
+}
+
+async function elevenIntroAudio(text, v) {
+  const key = apiKeyFor('companion_elevenKey');
+  const modelId = v.emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
+  const voiceSettings = modelId === 'eleven_v3'
+    ? { stability: 0.0, similarity_boost: 0.75 }
+    : { stability: 0.5, similarity_boost: 0.75 };
+  const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${v.elevenVoice}`, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, model_id: modelId, voice_settings: voiceSettings }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { const b = await res.json(); detail = b?.detail?.message || JSON.stringify(b).slice(0, 200); } catch (e) {}
+    throw new Error('ElevenLabs ' + res.status + (detail ? ': ' + detail : ''));
   }
-  // Browser voice: speak with this figure's own pitch and rate.
+  return res.blob();
+}
+
+function speakWithBrowser(text, v) {
   return new Promise((resolve) => {
-    const utter = new SpeechSynthesisUtterance(line);
+    const utter = new SpeechSynthesisUtterance(stripAudioTags(text));
     utter.lang = 'de-DE';
-    utter.pitch = typeof version.pitch === 'number' ? version.pitch : 1;
-    utter.rate = typeof version.rate === 'number' ? version.rate : 1;
-    if (version.voice) {
-      const match = speechSynthesis.getVoices().find(v => v.name === version.voice);
+    utter.pitch = typeof v.pitch === 'number' ? v.pitch : 1;
+    utter.rate = typeof v.rate === 'number' ? v.rate : 1;
+    if (v.voice) {
+      const match = speechSynthesis.getVoices().find(x => x.name === v.voice);
       if (match) utter.voice = match;
     }
     utter.onend = resolve;
     utter.onerror = resolve;
     speechSynthesis.speak(utter);
   });
+}
+
+// v: die Figurenversion (Name, Stimme, Notizen ...), figureId: wo abgelegt wird.
+async function introduceFigure(v, figureId, button, force) {
+  figureId = figureId || v.figureId;
+  if (previewAudio) { try { previewAudio.pause(); } catch (e) {} previewAudio = null; }
+  speechSynthesis.cancel();
+
+  const source = localStorage.getItem('companion_ttsSource') || 'browser';
+  const useEleven = source === 'elevenlabs' && v.elevenVoice && apiKeyFor('companion_elevenKey');
+  const fp = introFingerprint(v);
+  const map = loadIntroMap();
+  const stored = figureId ? map[figureId] : null;
+
+  // Schon vorhanden und noch gültig: nur abspielen, nichts erzeugen.
+  if (!force && stored && stored.fp === fp) {
+    if (useEleven) {
+      const blob = await dbGet(STORE_AUDIO, INTRO_PREFIX + figureId).catch(() => null);
+      if (blob) {
+        previewAudio = new Audio(URL.createObjectURL(blob));
+        previewAudio.play().catch(() => {});
+        return;
+      }
+    } else if (stored.text) {
+      return speakWithBrowser(stored.text, v);
+    }
+  }
+
+  const label = button ? button.textContent : '';
+  if (button) { button.disabled = true; button.textContent = '…'; }
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    let text = (await callProvider(provider, buildIntroRequest(v),
+      [{ role: 'user', content: 'Stell dich vor.' }],
+      0.9, taskBudget('chat', 400), { persona: true, task: 'chat' }))
+      .trim().replace(/^["'„“]+|["'“”]+$/g, '').slice(0, 450);
+    if (!text) text = `Hallo, ich bin ${v.name}.`;
+
+    if (useEleven) {
+      const blob = await elevenIntroAudio(text, v);
+      if (figureId) await dbPut(STORE_AUDIO, INTRO_PREFIX + figureId, blob);
+      previewAudio = new Audio(URL.createObjectURL(blob));
+      previewAudio.play().catch(() => {});
+    } else {
+      speakWithBrowser(text, v);
+    }
+    if (figureId) {
+      const m = loadIntroMap();
+      m[figureId] = { fp, text };
+      saveIntroMap(m);
+    }
+    logEvent('msg', { role: 'system', text: `Vorstellung von ${v.name} erzeugt und aufbewahrt: ${text}` });
+  } catch (err) {
+    addMsg('system', `Vorstellung von ${v.name} fehlgeschlagen: ${err.message}`);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = label; }
+  }
 }
 
 let figureFilterNarrators = false;
@@ -6061,7 +6460,7 @@ function renderFigureList() {
     play.className = 'act';
     play.textContent = '▶';
     play.title = 'Kurz vorstellen';
-    play.onclick = (e) => { e.stopPropagation(); introduceFigure(version); };
+    play.onclick = (e) => { e.stopPropagation(); introduceFigure(version, figure.id, play); };
     row.appendChild(play);
 
     els.figureList.appendChild(row);
@@ -6112,8 +6511,14 @@ els.newFigureBtn.onclick = () => {
 // es ein festes Schema in fester Reihenfolge - das Auffälligste zuerst, weil
 // Bildmodelle die ersten Wörter am stärksten gewichten.
 const APPEARANCE_MAX = 1100;
+
+// Früher wurde aus jedem Fantasiewesen ein Mensch: "Porträtfoto", "echte Haut"
+// und "a woman" am Anfang zogen das Bildmodell zuverlässig zum Menschen. Steht
+// die Art vorn und ausdrücklich, malt es, was gemeint ist - auch fotorealistisch.
+const NONHUMAN_RULE = 'Ist eine Figur kein Mensch (andere Hautfarbe, besondere Ohren, Augen, Hörner, Schwanz, Leuchtmuster oder Ähnliches), gehört das GANZ AN DEN ANFANG und muss unübersehbar benannt sein, etwa "a tall blue-skinned humanoid alien woman with glowing freckles and a long tail" - sonst malt das Bildmodell einen Menschen. Fotorealistisch heißt dann: so, als hätte man dieses Wesen wirklich fotografiert.';
 const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
-Alter: eine konkrete Zahl, mindestens 21, dazu wie alt die Person wirkt (erwachsen)
+Art: "Mensch" - oder bei einem Fantasiewesen die Art in eigenen Worten mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
+Alter: eine konkrete Zahl, mindestens 21 - bei Fantasiewesen erwachsen und wie mindestens 21 Menschenjahre wirkend
 Haare: Farbe, Länge, Struktur, Frisur
 Gesicht: Form, Augenfarbe und -form, Brauen, Nase, Lippen, Haut im Gesicht
 Haut: Ton, Besonderheiten wie Sommersprossen, Muttermale, Narben, Tattoos, Piercings - mit Stelle
@@ -6121,7 +6526,11 @@ Statur: Größe in cm, Körperbau, Muskulatur, Schultern
 Körper: Figur im Einzelnen - Brust, Taille, Hüfte, Po, Beine, Hände; bei Männern auch Brust- und Körperbehaarung
 Kleidung: typischer Stil und was die Figur gewöhnlich trägt, mit Farben und Stoffen
 Auffällig: ein, zwei Merkmale, an denen man sie sofort wiedererkennt
-Alles konkret und sichtbar - Farben, Formen, Größen -, keine Charakterbeschreibung und keine Vergleiche wie "wie eine Göttin". Die Person ist eindeutig erwachsen; keine Merkmale, die sie jünger als erwachsen wirken lassen.`;
+Alles konkret und sichtbar - Farben, Formen, Größen -, keine Charakterbeschreibung und keine Vergleiche wie "wie eine Göttin". Eine eigenständige Gestalt in eigenen Worten: keine Namen von Filmen, Serien, Spielen oder Büchern und keine bekannten Figuren - beschreibe stattdessen, wie sie aussieht. Die Figur ist eindeutig erwachsen; keine Merkmale, die sie jünger als erwachsen wirken lassen.`;
+
+// Die Stimme als eigene Beschreibung - damit "Eigene Stimme entwerfen" sofort
+// weiß, wonach es suchen soll, und du vorher lesen und ändern kannst.
+const VOICE_SCHEMA = `"voiceDescription" beschreibt die Stimme auf Englisch, 2 bis 4 Sätze, für ElevenLabs Voice Design: Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar, samtig), Sprechtempo, Stimmung, Ausdruck, Atem. Immer mit "speaks native German with no foreign accent". Keine Namen realer Personen, keine bekannten Stimmen.`;
 
 // Kürzt, ohne mitten im Wort abzubrechen - fürs Gesprächs-Prompt, das nicht bei
 // jeder Nachricht die volle Körperbeschreibung braucht.
@@ -6152,15 +6561,16 @@ ${traitList}
 
 "gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
 ${APPEARANCE_SCHEMA}
-"notes" sind drei bis fünf Sätze: wie sie spricht, wie sie sich verhält, wie sie zu anderen steht.
-"styleExamples" sind zwei bis drei Beispielzeilen, die genau so klingen, wie diese Figur reden würde - als Vorlage für Wortwahl und Detailgrad, mit Zeilenumbrüchen getrennt.
+"notes" sind fünf bis acht Sätze: ihr Wesen, ein wenig Hintergrund, wie sie spricht, wie sie sich verhält, wie sie mit mir umgeht, was sie mag und was nicht.
+${VOICE_SCHEMA}
+"styleExamples" sind drei bis vier Beispielzeilen, die genau so klingen, wie diese Figur reden würde - als Vorlage für Wortwahl und Detailgrad, mit Zeilenumbrüchen getrennt.
 "replyLength" ist einer dieser Werte: "kurz", "mittel", "lang", "sehrlang" - passend dazu, ob die Figur knapp ist oder ausschweifend.
 "temperature" ist eine Zahl zwischen 0.3 und 1.0: niedrig für eine beherrschte, gleichmäßige Figur, hoch für eine sprunghafte.
 "emotional" ist true, wenn die Figur hörbar lacht, seufzt und atmet, sonst false.
 "pitch" und "rate" sind Zahlen zwischen 0.8 und 1.2.
 ${voices ? `\nWähle eine passende Stimme und gib ihren Namen exakt so in "voiceName" an:\n${voices}\n` : ''}
 Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown:
-{"name": "...", "gender": "...", "appearance": "...", "traits": ["..."], "notes": "...", "styleExamples": "...", "replyLength": "mittel", "temperature": 0.8, "emotional": true, "pitch": 1.0, "rate": 1.0, "voiceName": "..."}`;
+{"name": "...", "gender": "...", "appearance": "...", "voiceDescription": "...", "traits": ["..."], "notes": "...", "styleExamples": "...", "replyLength": "mittel", "temperature": 0.8, "emotional": true, "pitch": 1.0, "rate": 1.0, "voiceName": "..."}`;
 }
 
 els.genFigureBtn.onclick = async () => {
@@ -6174,7 +6584,7 @@ els.genFigureBtn.onclick = async () => {
     const raw = await callProvider(
       provider, buildFigureDraftPrompt(idea),
       [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
-      0.8, taskBudget('draft', 3800), { persona: true, task: 'draft' }
+      0.8, taskBudget('draft', 4500), { persona: true, task: 'draft' }
     );
     const draft = extractJson(raw);
     const clean = sanitizeSingleCharacter(draft);
@@ -6701,7 +7111,10 @@ async function askEnsemble(userText, options) {
   // sonst steht mein Satz namenlos im Verlauf und die Figuren reden über mich
   // in der dritten Person, statt mich anzusprechen.
   const me = userCharacter();
-  history.push({ role: 'user', content: me && userText ? `${me.name}: ${userText}` : userText });
+  history.push(Object.assign(
+    { role: 'user', content: me && userText ? `${me.name}: ${userText}` : userText },
+    options && options.image ? { image: options.image } : {}
+  ));
   if (history.length > 24) history = history.slice(-24);
 
   setThinking('Antwort wird geschrieben');
@@ -7074,7 +7487,7 @@ function renderCastList(container, editable) {
     play.className = 'act';
     play.textContent = '▶';
     play.title = 'Kurz vorstellen';
-    play.onclick = () => introduceFigure(c);
+    play.onclick = () => introduceFigure(c, c.figureId, play);
     row.appendChild(play);
 
     if (editable) {
@@ -7178,6 +7591,11 @@ function renderLivePanel() {
 els.liveAddBtn.onclick = () => addFigureToCast(els.liveAddFigure.value);
 els.rememberBtn.onclick = () => rememberConversation();
 els.sceneImageBtn.onclick = () => generateSceneImage();
+els.photoBtn.onclick = () => { els.photoInput.value = ''; els.photoInput.click(); };
+els.photoInput.onchange = () => {
+  const file = els.photoInput.files && els.photoInput.files[0];
+  if (file) sendPhoto(file);
+};
 // Hier und nicht bei den übrigen Einstellungen: VIDEO_DEFAULT_MODEL steht
 // weiter hinten im Skript und wäre dort beim Start noch nicht benutzbar.
 els.videoModel.value = localStorage.getItem('companion_videoModel') || VIDEO_DEFAULT_MODEL;
@@ -7538,7 +7956,7 @@ async function draftSceneAndCast(provider, idea) {
   const raw = await callProvider(
     provider, buildSceneDraftPrompt(idea),
     [{ role: 'user', content: 'Gib den Entwurf als JSON zurück.' }],
-    0.7, taskBudget('draft', 8000), { persona: true, task: 'draft' }
+    0.7, taskBudget('draft', 10000), { persona: true, task: 'draft' }
   );
   const draft = extractJson(raw);
   if (!draft || typeof draft !== 'object') throw new Error('Der Entwurf war nicht verwertbar.');
@@ -7857,8 +8275,11 @@ els.clearAudioCacheBtn.onclick = async () => {
   if (!stats.count) { els.audioCacheInfo.textContent = 'Es ist nichts aufbewahrt.'; return; }
   if (!confirm(`${stats.count} gespeicherte Tonstücke (${stats.mb} MB) löschen? Erneutes Anhören kostet dann wieder.`)) return;
   try {
-    await dbRun(STORE_AUDIO, 'readwrite', s => s.clear());
-    els.audioCacheInfo.textContent = 'Zwischenspeicher geleert.';
+    // Die Vorstellungen der Figuren gehören zur Figur, nicht zum Zwischenspeicher
+    // - sie bleiben.
+    const keys = await dbKeys(STORE_AUDIO);
+    for (const k of keys) if (!String(k).startsWith(INTRO_PREFIX)) await dbDelete(STORE_AUDIO, k);
+    els.audioCacheInfo.textContent = 'Zwischenspeicher geleert. Die Vorstellungen der Figuren sind geblieben.';
   } catch (err) {
     els.audioCacheInfo.textContent = 'Löschen fehlgeschlagen: ' + err.message;
   }
