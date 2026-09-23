@@ -786,10 +786,7 @@
         <select id="veniceModelSelect">
           <option value="">(noch nicht geladen)</option>
         </select>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-          <input type="checkbox" id="onlySuitableModels" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Nur passende Modelle zeigen</span>
-        </label>
+        <p class="hint">Alle Modelle, die Empfehlungen oben. „unzensiert" heißt: schreibt auch explizite Inhalte; „denkt vor" heißt: gründlicher, aber langsamer; „sieht Bilder" braucht das Foto im Gespräch.</p>
         <label for="imageModel">Modell für Profilbilder</label>
         <div class="text-input-row">
           <input type="text" id="imageModel" placeholder="z.B. venice-sd35">
@@ -1291,7 +1288,6 @@ const els = {
   taskModels: document.getElementById('taskModels'),
   loadVeniceModelsBtn: document.getElementById('loadVeniceModelsBtn'),
   veniceModelSelect: document.getElementById('veniceModelSelect'),
-  onlySuitableModels: document.getElementById('onlySuitableModels'),
   imageModel: document.getElementById('imageModel'),
   portraitStyle: document.getElementById('portraitStyle'),
   videoModel: document.getElementById('videoModel'),
@@ -1567,28 +1563,8 @@ function renderTaskModels() {
     // taugt, ist für die Bewegung womöglich falsch, und diese Auswahl soll
     // nicht dieselbe Vorsortierung erben wie die oben.
     const model = document.createElement('select');
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = veniceModelCache.length
-      ? `(wie oben eingestellt - ${veniceModelCache.length} Modelle zur Auswahl)`
-      : '(wie oben eingestellt - noch keine Modelle geladen)';
-    model.appendChild(none);
-    veniceModelCache.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      const spec = m.model_spec || {};
-      opt.textContent = spec.name ? `${m.id} - ${spec.name}` : m.id;
-      model.appendChild(opt);
-    });
-    // Ein früher gewähltes Modell, das in der geladenen Liste fehlt, bleibt
-    // trotzdem stehen - sonst würde es beim Öffnen der Einstellungen still
-    // zurückgesetzt.
-    if (stored && !veniceModelCache.some(m => m.id === stored)) {
-      const kept = document.createElement('option');
-      kept.value = stored;
-      kept.textContent = stored + ' (nicht in der geladenen Liste)';
-      model.appendChild(kept);
-    }
+    fillGroupedSelect(model, veniceModelCache, TEXT_RECOMMENDED[task.id] || [], `Empfohlen für ${task.label}`, textModelNote, stored,
+      veniceModelCache.length ? `(wie oben eingestellt - ${veniceModelCache.length} Modelle zur Auswahl)` : '(wie oben eingestellt - noch keine Modelle geladen)');
     model.value = stored;
     model.onchange = () => safeSet('companion_taskModel_' + task.id, model.value);
     box.appendChild(model);
@@ -1718,32 +1694,10 @@ function modelSuitability(model) {
 }
 
 function renderVeniceModels() {
-  const list = els.onlySuitableModels.checked
-    ? veniceModelCache.slice().sort((a, b) => modelSuitability(b) - modelSuitability(a)).slice(0, 10)
-    : veniceModelCache;
-
-  els.veniceModelSelect.innerHTML = '';
-  const none = document.createElement('option');
-  none.value = '';
-  none.textContent = els.onlySuitableModels.checked
-    ? `(${list.length} von ${veniceModelCache.length} - die passendsten)`
-    : `(${list.length} Modelle - bitte wählen)`;
-  els.veniceModelSelect.appendChild(none);
-
-  list.forEach(m => {
-    const spec = m.model_spec || {};
-    const traits = Array.isArray(spec.traits) ? spec.traits.join(', ') : '';
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.id + (traits ? ' - ' + traits : (spec.name ? ' - ' + spec.name : ''));
-    els.veniceModelSelect.appendChild(opt);
-  });
-
-  const current = els.modelVenice.value.trim();
-  if (current && list.some(m => m.id === current)) els.veniceModelSelect.value = current;
+  fillGroupedSelect(els.veniceModelSelect, veniceModelCache, TEXT_RECOMMENDED.chat, 'Empfohlen fürs Gespräch', textModelNote,
+    els.modelVenice.value.trim(), veniceModelCache.length ? `(${veniceModelCache.length} Modelle - bitte wählen)` : '(noch nicht geladen)');
 }
 
-els.onlySuitableModels.onchange = renderVeniceModels;
 
 async function loadVeniceModels(quiet) {
   const key = apiKeyFor('companion_apiKey_venice');
@@ -1838,6 +1792,67 @@ const IMAGE_RECOMMENDED = {
   fantasy: [['z-image-turbo', 'unzensiert, gut bei Fantasiewesen'], ['chroma', 'unzensiert, vielseitig'], ['flux-2', 'stark bei Details, zensiert'], ['qwen-image', 'hohe Qualität, zensiert'], ['hidream', 'zensiert']],
 };
 const UNCENSORED_IMAGE = /lustify|z-image|chroma|wai|anime/i;
+
+// ---------- Einheitliche Modellauswahl ----------
+// Überall dasselbe Bild: oben die Empfehlungen für genau diese Aufgabe, darunter
+// alle weiteren, jeweils mit Vermerk, was das Modell kann oder nicht kann.
+const TEXT_RECOMMENDED = {
+  chat: [['gemma-4-uncensored', 'bewährt, schnell, gut im Rollenspiel'], ['venice-uncensored-role-play', 'fürs Rollenspiel gebaut'], ['qwen-3-6-plus', 'ausführlicher'], ['venice-uncensored', '']],
+  motion: [['gemma-4-uncensored', 'schnell, sauberes JSON'], ['qwen-3-6-plus', ''], ['deepseek-v4-1-flash', 'schnell - "Denkt vor" aus lassen'], ['venice-uncensored', '']],
+  draft: [['gemma-4-uncensored', 'schreibt auch explizite Beschreibungen'], ['qwen-3-6-plus', 'ausführlicher'], ['z-ai-glm-5-3', 'stark, aber langsamer'], ['qwen-3-8-2-4t-a95b', 'sehr stark, aber langsam - lehnte bei dir Explizites ab']],
+};
+const VIDEO_RECOMMENDED = [['wan-2-7-enhanced-image-to-video', 'von Venice selbst empfohlen, am offensten'], ['wan-2.6-image-to-video', 'offen'], ['wan-2-6-image-to-video', 'offen'], ['ovi', 'offen']];
+
+function textModelNote(m) {
+  const spec = m.model_spec || {};
+  const caps = spec.capabilities || {};
+  const traits = Array.isArray(spec.traits) ? spec.traits : [];
+  const notes = [];
+  notes.push(/uncensored|role-?play/i.test(m.id + ' ' + (spec.name || '')) || traits.includes('most_uncensored') ? 'unzensiert' : 'kann Explizites ablehnen');
+  if (caps.supportsReasoning) notes.push('denkt vor');
+  if (caps.supportsVision) notes.push('sieht Bilder');
+  return notes.join(', ');
+}
+function videoModelNote(m) {
+  return /wan|ovi/i.test(m.id) ? 'offen' : 'lehnt Explizites eher ab';
+}
+
+function fillGroupedSelect(sel, models, recommended, groupLabel, noteOf, current, emptyText) {
+  sel.innerHTML = '';
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = emptyText;
+  sel.appendChild(none);
+  const used = new Set();
+  const addGroup = (label, entries) => {
+    if (!entries.length) return;
+    const g = document.createElement('optgroup');
+    g.label = label;
+    entries.forEach(([id, note]) => {
+      used.add(id);
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = note ? `${id} - ${note}` : id;
+      g.appendChild(opt);
+    });
+    sel.appendChild(g);
+  };
+  const rec = [];
+  recommended.forEach(([want, why]) => {
+    const hit = models.find(m => m.id === want) || models.find(m => m.id.startsWith(want));
+    if (hit && !rec.some(([id]) => id === hit.id)) rec.push([hit.id, [...new Set([noteOf(hit), why].filter(Boolean))].join(' - ')]);
+  });
+  addGroup(groupLabel, rec);
+  const rest = models.filter(m => !used.has(m.id)).map(m => [m.id, noteOf(m)]);
+  addGroup(`Alle weiteren (${rest.length})`, rest);
+  if (current && !models.some(m => m.id === current)) {
+    const kept = document.createElement('option');
+    kept.value = current;
+    kept.textContent = current + ' (nicht in der geladenen Liste)';
+    sel.appendChild(kept);
+  }
+  sel.value = current || '';
+}
 
 function fillImageModelSelect(sel, kind, current, emptyText) {
   sel.innerHTML = '';
@@ -2113,8 +2128,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.77';
+const APP_VERSION = '0.79';
 const CHANGELOG = [
+  { v: '0.79', date: '2026-09-23', items: [
+    'Stimmen dürfen Akzente und Dialekte haben: französisch, italienisch, Wiener Schmäh, bei Fantasiewesen ein fremdartiger Klang - wenn es zur Figur passt. Vorher wurde akzentfreies Deutsch erzwungen.',
+  ]},
+  { v: '0.78', date: '2026-09-23', items: [
+    'Alle Modellauswahlen sind gleich aufgebaut: oben die Empfehlungen für genau diese Aufgabe, darunter alle weiteren, jeweils mit Vermerk - unzensiert, denkt vor, sieht Bilder.',
+    'Bildbeschreibungen schreibt jetzt zuerst das schnelle Gesprächsmodell statt des Entwurfsmodells - Porträts brauchten mit einem großen Denkmodell Minuten. Lehnt ein Modell ab, wird die Absage erkannt und nicht mehr als Bildbeschreibung verwendet.',
+    'Bewegungsmarker verstehen Muster auch ohne das Wort „muster" oder vertippt („<<rampe>>", „<<mustern steigern>>").',
+  ]},
   { v: '0.77', date: '2026-09-23', items: [
     'Die Bildmodell-Auswahl zeigt alle geladenen Modelle - Empfehlungen für Menschen bzw. Fantasiewesen stehen oben, unzensierte Modelle sind gekennzeichnet. Vorher waren es nur die zehn „passendsten".',
   ]},
@@ -5281,7 +5304,7 @@ Wesen: ${traits || '-'}
 Notizen: ${String(c.notes || '').slice(0, 600)}
 So spricht sie: ${String(c.styleExamples || '').slice(0, 400)}
 
-"description": englisch, 2 bis 4 Sätze - Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar), Sprechtempo, Stimmung, Ausdruck. Wichtig: "speaks native German with no foreign accent". Keine Namen realer Personen und keine bekannten Stimmen nachahmen.
+"description": englisch, 2 bis 4 Sätze - Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar), Sprechtempo, Stimmung, Ausdruck. Die Figur spricht Deutsch - aber gern mit Akzent oder Dialekt, wenn er zu ihr passt: ein leichter französischer Akzent, italienische Melodie, russische Härte, schwedischer Singsang, Wiener Schmäh, Schweizer Färbung, bei Fantasiewesen ein fremdartiger, nicht zuzuordnender Klang. Schreib ihn dann ausdrücklich hinein, etwa "speaks German with a light French accent". Nicht jede Figur braucht einen, aber ruhig öfter als selten - das macht die Stimmen unterscheidbar. Ohne Akzent: "speaks German without an accent". Keine Namen realer Personen und keine bekannten Stimmen nachahmen.
 "text": deutsch, 150 bis 300 Zeichen, so wie genau diese Figur reden würde - daran hört man die Stimme zur Probe.
 
 Antworte NUR mit JSON: {"description": "...", "text": "..."}`;
@@ -5357,7 +5380,9 @@ async function designVoiceForFigure(c, button, onDone) {
     }
     description = description.slice(0, 1000);
     if (!description) throw new Error('Keine Stimmbeschreibung erhalten.');
-    if (!/native German/i.test(description)) description += ' Speaks native German with no foreign accent.';
+    // Deutsch muss sie sprechen - der Text ist deutsch. Einen Akzent darf sie
+    // haben; früher wurde hier "no foreign accent" erzwungen.
+    if (!/german/i.test(description)) description += ' Speaks German.';
     if (!c.voiceDescription) {
       c.voiceDescription = description;
       if (voiceAreaFor.has(c)) voiceAreaFor.get(c).value = description;
@@ -5630,18 +5655,43 @@ function addSceneImageMsg(dataUrl) {
 // mit, die beim Start galt.
 function globalCast() { return characters; }
 
+// Bildbeschreibungen schreibt zuerst das Gesprächsmodell: es ist schnell und
+// (bei dir) unzensiert. Bisher war es das Entwurfsmodell - ein großes,
+// nachdenkendes Modell machte jedes Porträt zur Minutensache, und ein
+// zensiertes Modell schrieb statt eines Prompts eine Absage, die dann als
+// Bildbeschreibung ans Bildmodell ging. Eine Absage wird jetzt erkannt; dann
+// versucht es das andere Modell.
+function looksLikeRefusal(text) {
+  const head = String(text || '').replace(/^\s*adults only\.?\s*/i, '').slice(0, 320);
+  return /^(ich kann|ich werde|leider|es tut mir leid|sorry|i can'?t|i cannot|i'?m sorry|i won'?t|as an ai|unfortunately)/i.test(head.trim())
+    || /(kann ich (dir )?(hier )?(keinen|keine|nicht)|ich kann (dir |hier |das |so )*(keinen|keine|nicht)|nicht verfassen|nicht erstellen|content polic|not able to (write|create|help)|cannot (write|create|help)|gerne erstelle ich dir stattdessen)/i.test(head);
+}
+
+async function writeImagePrompt(system, ask, temperature, baseBudget) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  let lastErr = null;
+  for (const task of ['chat', 'draft']) {
+    try {
+      const out = String(await callProvider(provider, system, [{ role: 'user', content: ask }],
+        temperature, taskBudget(task, baseBudget), { task })).trim().replace(/^["'`]+|["'`]+$/g, '');
+      if (out && !looksLikeRefusal(out)) return out;
+      logEvent('msg', { role: 'system', text: `Bildbeschreibung vom ${taskLabel(task)}-Modell abgelehnt oder leer${task === 'chat' ? ' - versuche das Entwurfsmodell' : ''}.` });
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return '';
+}
+
 async function makeSceneImage(momentText, castOverride) {
   const castForTags = (castOverride || characters).filter(x => !x.isNarrator);
   for (const c of castForTags) { try { await ensureLookTag(c); } catch (e) {} }
   const key = apiKeyFor('companion_apiKey_venice');
   let model = modelFor('companion_imageModel') || 'venice-sd35';
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  let prompt = (await callProvider(
-    provider, buildSceneImageRequest(momentText, castOverride),
-    [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
-    0.7, taskBudget('draft', 1200), { task: 'draft' }
-  )).trim().replace(/^["'`]+|["'`]+$/g, '');
-  if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
+  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride), 'Gib den Bild-Prompt zurück.', 0.7, 1200);
+  if (!prompt) throw new Error('Die Bildbeschreibung wurde abgelehnt oder war leer - kein Bild erzeugt.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
   prompt = withLookTags(prompt, castForTags);
   // Fantasiewesen in der Szene: ihre Hautfarbe wird ausdrücklich angehängt,
@@ -5859,9 +5909,7 @@ async function runSceneVideo(imageDataUrl, duration) {
     const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
     let motion = '';
     try {
-      motion = (await callProvider(provider, buildVideoMotionRequest(),
-        [{ role: 'user', content: 'Gib die Bewegungsbeschreibung zurück.' }],
-        0.6, taskBudget('draft', 500), { task: 'draft' })).trim().replace(/^["'`]+|["'`]+$/g, '');
+      motion = await writeImagePrompt(buildVideoMotionRequest(), 'Gib die Bewegungsbeschreibung zurück.', 0.6, 500);
     } catch (e) { /* ohne Beschreibung geht es auch */ }
     if (!motion) motion = 'Subtle natural movement, breathing, a slow gentle camera push-in.';
     if (!/\badult/i.test(motion)) motion = 'Adults only. ' + motion;
@@ -5950,19 +5998,9 @@ async function loadVideoModels(quiet) {
     if (!res.ok) throw new Error('Antwort ' + res.status);
     const body = await res.json();
     const list = (Array.isArray(body.data) ? body.data : []).filter(m => /image-to-video|i2v/i.test(m.id || ''));
-    els.videoModelSelect.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = list.length ? `(${list.length} Modelle, die ein Bild animieren)` : '(keine gefunden)';
-    els.videoModelSelect.appendChild(none);
-    list.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      const spec = m.model_spec || {};
-      opt.textContent = spec.name ? `${m.id} - ${spec.name}` : m.id;
-      els.videoModelSelect.appendChild(opt);
-    });
-    els.videoModelSelect.value = list.some(m => m.id === els.videoModel.value.trim()) ? els.videoModel.value.trim() : '';
+    fillGroupedSelect(els.videoModelSelect, list, VIDEO_RECOMMENDED, 'Empfohlen für Videos', videoModelNote,
+      list.some(m => m.id === els.videoModel.value.trim()) ? els.videoModel.value.trim() : '',
+      list.length ? `(${list.length} Modelle, die ein Bild animieren)` : '(keine gefunden)');
     if (!quiet) addMsg('system', `${list.length} Videomodelle geladen.`);
   } catch (err) {
     if (!quiet) addMsg('system', 'Videomodelle konnten nicht geladen werden: ' + err.message);
@@ -6174,15 +6212,14 @@ async function ensureLookTag(c) {
   if (!(c.appearance || '').trim()) return '';
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : '';
-  const raw = await callProvider(provider,
+  const raw = await writeImagePrompt(
     `Schreibe für ein Bildmodell eine feste englische Kurzbeschreibung dieser Figur - sie wird auf JEDEM künftigen Bild wörtlich wiederverwendet, damit die Figur immer gleich aussieht.
 
 ${gender ? 'Geschlecht: ' + gender + '\n' : ''}Aussehen: ${String(c.appearance).slice(0, APPEARANCE_MAX)}
 
 Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), Geschlecht und Alter ("adult 29-year-old woman"), dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
 Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
-    [{ role: 'user', content: 'Gib die Kurzbeschreibung zurück.' }],
-    0.2, taskBudget('draft', 400), { task: 'draft' });
+    'Gib die Kurzbeschreibung zurück.', 0.2, 400);
   let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
   if (!tag) return '';
   if (!/\badult/i.test(tag)) tag = 'adult ' + tag;
@@ -6217,14 +6254,7 @@ async function generateCharacterImage(c, button) {
   try {
     let imagePrompt = '';
     try {
-      imagePrompt = (await callProvider(
-      'venice',
-      buildPortraitRequest(c),
-      [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
-      0.8,
-      taskBudget('draft', 800),
-      { task: 'draft' }
-      )).trim().replace(/^["'`]+|["'`]+$/g, '');
+      imagePrompt = await writeImagePrompt(buildPortraitRequest(c), 'Gib den Bild-Prompt zurück.', 0.8, 800);
     } catch (err) {
       addMsg('system', `Bildbeschreibung für ${c.name} misslungen (${err.message}) - nutze eine einfache Beschreibung.`);
     }
@@ -6694,7 +6724,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       const vdArea = document.createElement('textarea');
       vdArea.value = c.voiceDescription || '';
       vdArea.style.minHeight = '70px';
-      vdArea.placeholder = 'Englisch, z.B.: A warm, slightly husky adult woman around 30, calm and playful, speaks native German with no foreign accent.';
+      vdArea.placeholder = 'Englisch, z.B.: A warm, slightly husky adult woman around 30, calm and playful, speaks German with a light French accent.';
       vdArea.oninput = () => { c.voiceDescription = vdArea.value; };
       card.appendChild(vdArea);
       voiceAreaFor.set(c, vdArea);
@@ -7229,7 +7259,7 @@ Alles konkret und sichtbar - Farben, Formen, Größen -, keine Charakterbeschrei
 
 // Die Stimme als eigene Beschreibung - damit "Eigene Stimme entwerfen" sofort
 // weiß, wonach es suchen soll, und du vorher lesen und ändern kannst.
-const VOICE_SCHEMA = `"voiceDescription" beschreibt die Stimme auf Englisch, 2 bis 4 Sätze, für ElevenLabs Voice Design: Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar, samtig), Sprechtempo, Stimmung, Ausdruck, Atem. Immer mit "speaks native German with no foreign accent". Keine Namen realer Personen, keine bekannten Stimmen.`;
+const VOICE_SCHEMA = `"voiceDescription" beschreibt die Stimme auf Englisch, 2 bis 4 Sätze, für ElevenLabs Voice Design: Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar, samtig), Sprechtempo, Stimmung, Ausdruck, Atem. Die Figur spricht Deutsch - aber gern mit Akzent oder Dialekt, wenn er zu ihr passt: ein leichter französischer Akzent, italienische Melodie, russische Härte, schwedischer Singsang, Wiener Schmäh, Schweizer Färbung, bei Fantasiewesen ein fremdartiger, nicht zuzuordnender Klang. Schreib ihn dann ausdrücklich hinein, etwa "speaks German with a light French accent". Nicht jede Figur braucht einen, aber ruhig öfter als selten - das macht die Stimmen unterscheidbar. Ohne Akzent: "speaks German without an accent". Keine Namen realer Personen, keine bekannten Stimmen.`;
 
 // Kürzt, ohne mitten im Wort abzubrechen - fürs Gesprächs-Prompt, das nicht bei
 // jeder Nachricht die volle Körperbeschreibung braucht.
@@ -7489,9 +7519,11 @@ function parseMotionStep(raw) {
     return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000), ease: !!m[3] };
   }
   // Ein Muster aus dem Bewegungswortschatz: "muster welle schnell"
-  if ((m = t.match(/^muster\s+([a-zäöüß_]+)(?:\s+(langsam|mittel|schnell))?$/))) {
-    const steps = expandPattern(m[1], m[2]);
-    return steps ? { type: 'pattern', steps } : null;
+  // Auch ohne das Wort "muster" ("<<rampe>>") oder vertippt ("mustern").
+  if ((m = t.match(/^(muster[n:]?\s+)?([a-zäöüß_]+)(?:\s+(langsam|mittel|schnell))?$/))) {
+    const steps = expandPattern(m[2], m[3]);
+    if (steps) return { type: 'pattern', steps };
+    if (m[1]) return null;
   }
   return null;
 }
