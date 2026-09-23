@@ -2133,8 +2133,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.82';
+const APP_VERSION = '0.83';
 const CHANGELOG = [
+  { v: '0.83', date: '2026-09-23', items: [
+    'Lebendigere Erzählstimme: Die Handlungszeilen werden wie in einem Hörbuch erzählt - Rhythmus, Pausen, Spannung - statt als Protokoll, und nicht mehr jede beginnt mit dem vollen Namen („Fenja Sturm tritt ... Fenja Sturm öffnet ...").',
+    'Die Erzählerin spricht mit mehr Ausdruck (mehr Stil, weniger Stabilität) und darf, wenn sie emotional spricht, sparsam Klangmarken wie [leise] oder [atemlos] nutzen.',
+    'Bei v3-Stimmen wird seltener geschnitten, weil jeder Schnitt dort die Satzmelodie zurücksetzt.',
+  ]},
   { v: '0.82', date: '2026-09-23', items: [
     'Schnellerer Sprechbeginn: Lange Zeilen werden zum Sprechen an Satzgrenzen geteilt - der erste Abschnitt ist nur ein Satz und daher schnell vertont, zwei weitere werden währenddessen vorbereitet. Angezeigt wird weiterhin die ganze Zeile.',
     'Fließende Übergänge: ElevenLabs bekommt den Satz davor und danach mit, damit der Tonfall über die Schnittstelle weiterläuft (bei allen Modellen außer v3).',
@@ -3852,6 +3857,17 @@ function speakBrowser(text, role, onStart, onBoundary) {
 // Satz davor und danach: damit Betonung und Tonfall über die Schnittstelle
 // zwischen zwei Abschnitten weiterlaufen. v3 unterstützt das nicht - dort
 // bleibt es weg.
+// Die Erzählstimme klang flach: ohne "spricht emotional" lief sie mit der
+// neutralsten Einstellung (Stabilität 0,5, kein Stil). Erzählen braucht Farbe -
+// etwas weniger Stabilität, deutlich mehr Stil. Bei v3 die "natürliche" Stufe
+// statt der ganz freien: lebendig, aber ohne auszubrechen.
+function narratorVoiceSettings(role, modelId) {
+  if (role !== 'narrator') return null;
+  return modelId === 'eleven_v3'
+    ? { stability: 0.5, similarity_boost: 0.8 }
+    : { stability: 0.35, similarity_boost: 0.75, style: 0.45, use_speaker_boost: true };
+}
+
 function continuityFields(ctx, modelId) {
   if (!ctx || modelId === 'eleven_v3') return {};
   const out = {};
@@ -3879,11 +3895,11 @@ function fetchElevenAudio(text, role, ctx) {
   // rejects anything in between with a 400, so the expressive setting has to be
   // the lowest of those rather than a freely chosen number. The older model
   // does take a continuous value plus a style weight.
-  const voiceSettings = modelId === 'eleven_v3'
+  const voiceSettings = narratorVoiceSettings(role, modelId) || (modelId === 'eleven_v3'
     ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
-      : { stability: 0.5, similarity_boost: 0.75 };
+      : { stability: 0.5, similarity_boost: 0.75 });
 
   // The streaming endpoint starts sending audio before the whole clip is
   // rendered, so the first sound arrives sooner. No latency parameter here:
@@ -4083,11 +4099,11 @@ function fetchElevenAudioTimed(text, role, ctx) {
   if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
   const emotional = resolveVoice(role).emotional;
   const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
-  const voiceSettings = modelId === 'eleven_v3'
+  const voiceSettings = narratorVoiceSettings(role, modelId) || (modelId === 'eleven_v3'
     ? { stability: 0.0, similarity_boost: 0.75 }
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
-      : { stability: 0.5, similarity_boost: 0.75 };
+      : { stability: 0.5, similarity_boost: 0.75 });
   const cacheKey = audioKey(voiceId, modelId, text) + '|ts';
   return (async () => {
     if (audioCacheEnabled()) {
@@ -8001,6 +8017,28 @@ function inlineMotionEnabled() {
 // Die Beispiele im Prompt nannten fest "Mia". Stand niemand in der Besetzung,
 // übernahm das Modell den Namen aus dem Beispiel und erfand damit eine Figur.
 // Jetzt tragen die Beispiele den Namen einer Figur, die wirklich mitspielt.
+// Früher stand in jeder Handlungszeile der volle Name ("Fenja Sturm tritt ...
+// Fenja Sturm öffnet ... Fenja Sturm krallt ...") - gelesen klingt das wie ein
+// Protokoll. Mit einer Figur reicht "sie" und ab und zu der Vorname; bei
+// mehreren muss erkennbar bleiben, wer handelt, aber der Vorname genügt.
+function narrationNameRule() {
+  const acting = characters.filter(c => !c.isUser && !c.isNarrator);
+  if (acting.length <= 1) {
+    const first = String((acting[0] && acting[0].name) || exampleName()).split(/\s+/)[0];
+    return `In den Handlungszeilen genügt "sie" bzw. "er" - den Vornamen (${first}, nie den vollen Namen) nur ab und zu, etwa am Anfang einer Zeile nach einer Redezeile.`;
+  }
+  return 'In jeder Handlungszeile muss erkennbar sein, wer handelt - nenne die Figur dafür beim Vornamen, nie mit vollem Namen, und danach "sie" bzw. "er", solange es eindeutig bleibt. Wenn zwei gleichzeitig handeln, nenne beide.';
+}
+
+// Die Erzählstimme darf lebendig klingen - Klangmarken auch für sie, sofern
+// sie emotional spricht (sonst würden sie vorgelesen).
+function narratorTagRule() {
+  const emotional = resolveVoice('narrator').emotional;
+  const eleven = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs';
+  if (!eleven || !emotional) return ' Lebendigkeit entsteht hier über Satzmelodie, Pausen und Wortwahl.';
+  return ' Auch in Handlungszeilen sind hin und wieder Klangmarken für die Erzählstimme erlaubt, sparsam: [leise], [flüsternd], [atemlos], [genüsslich], [langsam].';
+}
+
 function exampleName() {
   const c = characters.find(x => !x.isUser && !x.isNarrator && x.name);
   return c ? c.name : 'Figur';
@@ -8066,8 +8104,8 @@ function ensembleFormatBlock() {
   return `Format - halte dich genau daran, sonst greifen die Stimmen nicht:
 - Jede gesprochene Zeile beginnt mit dem Namen der Figur und einem Doppelpunkt, z.B. "${exampleName()}: Komm näher."
 - Was geschieht, steht in *Sternchen* und ohne Namen-Doppelpunkt davor.
-- NENNE in den Handlungszeilen immer die Figur beim Namen, die gerade etwas tut - also *${exampleName()} fährt langsam nach unten* statt *sie fährt langsam nach unten*. Bei mehreren Figuren ist "sie" sonst nicht zuzuordnen, weder für mich noch für die Gerätesteuerung. Wenn zwei gleichzeitig handeln, nenne beide.
-- Beschreibe in den Handlungszeilen konkret und körperlich, was geschieht: wer, womit, wo und in welchem Tempo. Schreib das sinnlich aus, nicht als nüchterne Feststellung - eine Handlungszeile darf und soll ausführlicher sein als eine Redezeile. Richtung, Tempo und Ort müssen dabei erkennbar bleiben, denn daraus wird die Gerätebewegung abgeleitet.
+- ${narrationNameRule()}
+- Die Handlungszeilen erzählt eine Erzählstimme wie in einem guten erotischen Hörbuch: nah, warm, mit Rhythmus. Kurze und lange Sätze im Wechsel, Pausen mit "...", Spannung, die sich aufbaut - kein Protokoll ("Sie öffnet den Knopf. Sie greift."), sondern Erzählung, die man gern hört. Konkret und körperlich, was geschieht, womit und wo; eine Handlungszeile darf ausführlicher sein als eine Redezeile.${narratorTagRule()}
 - Eine Zeile pro Sprecher. Keine Anführungszeichen, keine Regieanweisungen in Klammern, keine Überschriften.`;
 }
 
@@ -8105,7 +8143,7 @@ function buildEnsemblePrompt(autoStep, isRetry, photo) {
     + '\n\n' + noValues;
 
   const emotionalInstruction = emotional
-    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile, und nur bei gesprochenen Zeilen.`
+    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile - vor allem in gesprochenen Zeilen.`
     : '';
 
   const autoInstruction = autoStep
@@ -8270,7 +8308,12 @@ async function askEnsemble(userText, options) {
     // Zum Sprechen werden lange Zeilen an Satzgrenzen geteilt - der erste
     // Abschnitt ist nur ein Satz und daher schnell vertont, der Rest wird
     // währenddessen vorbereitet. Angezeigt wird weiterhin die ganze Zeile.
-    const pieces = splitSegmentsIntoPieces(lines, 220, 90);
+    // v3 kann Abschnitte nicht nahtlos verbinden - jeder Schnitt setzt die
+    // Satzmelodie zurück. Dort nach dem kurzen ersten Satz nur noch selten
+    // schneiden, bei den anderen Modellen öfter (sie bekommen den Kontext mit).
+    const anyV3 = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
+      && lines.some(l => resolveVoice(l.role).emotional);
+    const pieces = splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90);
     const replyShownAt = Date.now();
 
     const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
