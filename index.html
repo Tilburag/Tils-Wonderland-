@@ -761,6 +761,11 @@
         <option value="zweit">Zweiter Aufruf - zuverlässig, greift leicht verzögert</option>
         <option value="einzel">Derselbe Aufruf - synchron ab dem ersten Wort, braucht ein starkes Modell</option>
       </select>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="motionVocab" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Bewegungswortschatz verwenden</span>
+      </label>
+      <p class="hint">An: Die KI darf fertige, erprobte Muster abrufen (Spitze necken, Welle, Stottern, Rampe ...), statt jede Bewegung selbst zu erfinden. Aus: Sie beschreibt alles frei. Im Protokoll steht jeweils, welches Muster lief - so lässt sich beides vergleichen.</p>
       <p class="hint">
         Beim zweiten Aufruf liest ein separater Schritt den fertigen Text und leitet die
         Werte daraus ab - verlässlich, aber sie treffen erst ein, wenn schon gesprochen wird.
@@ -1104,6 +1109,8 @@
         <select id="storyAddFigure" style="flex:1;"></select>
         <button class="btn-secondary" id="storyAddBtn" type="button">Hinzufügen</button>
       </div>
+      <label for="storyNarrator">Erzähler</label>
+      <select id="storyNarrator"></select>
 
       <label for="storyLength">Ungefähre Länge</label>
       <select id="storyLength">
@@ -1364,12 +1371,14 @@ const els = {
   storyPanel: document.getElementById('storyPanel'),
   storyIdea: document.getElementById('storyIdea'),
   motionMode: document.getElementById('motionMode'),
+  motionVocab: document.getElementById('motionVocab'),
   storyCastMode: document.getElementById('storyCastMode'),
   storyCastHint: document.getElementById('storyCastHint'),
   storyCast: document.getElementById('storyCast'),
   storyAddRow: document.getElementById('storyAddRow'),
   storyAddFigure: document.getElementById('storyAddFigure'),
   storyAddBtn: document.getElementById('storyAddBtn'),
+  storyNarrator: document.getElementById('storyNarrator'),
   storyLength: document.getElementById('storyLength'),
   genStoryBtn: document.getElementById('genStoryBtn'),
   storyStatus: document.getElementById('storyStatus'),
@@ -2070,12 +2079,21 @@ async function fetchWithRetry(url, options, attempts) {
   for (let attempt = 0; attempt < total; attempt++) {
     const control = new AbortController();
     inFlight.add(control);
-    const timer = setTimeout(() => control.abort(), REQUEST_TIMEOUT_MS);
+    const limit = (options && options.timeoutMs) || REQUEST_TIMEOUT_MS;
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; control.abort(); }, limit);
     try {
       return await fetch(url, Object.assign({}, options, { signal: control.signal }));
     } catch (err) {
+      // Ein Abbruch durch die App (neue Nachricht, Stopp) ist kein Fehler. Er
+      // wurde bisher als "Keine Antwort innerhalb von 120 Sekunden" gemeldet.
+      if (isAbort(err) && !timedOut) {
+        const quiet = new Error('abgebrochen');
+        quiet.aborted = true;
+        throw quiet;
+      }
       lastError = isAbort(err)
-        ? new Error(`Keine Antwort innerhalb von ${Math.round(REQUEST_TIMEOUT_MS / 1000)} Sekunden - Anfrage abgebrochen.`)
+        ? new Error(`Keine Antwort innerhalb von ${Math.round(limit / 1000)} Sekunden - Anfrage abgebrochen.`)
         : err;
       // Ein Abbruch ist kein Netzwerkaussetzer: noch einmal fragen hieße, noch
       // einmal genauso lange zu warten.
@@ -2093,8 +2111,29 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.72';
+const APP_VERSION = '0.76';
 const CHANGELOG = [
+  { v: '0.76', date: '2026-09-23', items: [
+    'Wiedererkennbare Figuren: Jede Figur bekommt einen festen Startwert für ihre Porträts und eine feste englische Kurzbeschreibung ihrer unveränderlichen Merkmale, die auf jedem Bild wörtlich wiederverwendet wird. Bisher schrieb das Textmodell das Aussehen vor jedem Bild neu um - und jede neue Formulierung gab ein anderes Gesicht.',
+    'Szenenbilder zeigen die Anatomie so, wie der Moment sie verlangt, und lassen keine beteiligte Person weg.',
+  ]},
+  { v: '0.75', date: '2026-09-23', items: [
+    'Zu einem Foto im Live-Gespräch antworten die Figuren ausführlich: sechs bis zehn Zeilen statt höchstens vier, mit konkreten Einzelheiten aus dem Bild, im Gespräch miteinander und mit dem, was sie am liebsten mit dir anstellen würden.',
+  ]},
+  { v: '0.74', date: '2026-09-23', items: [
+    'Kein Kriechen mehr beim Anlaufen: Aus dem Stillstand begann jede Bewegung mit einem vier Sekunden langen ersten Hub. Jetzt gilt das Zieltempo sofort.',
+    'Bewegungswortschatz (abschaltbar in den Einstellungen): erprobte Muster wie Spitze necken, Welle, Stottern, Rampe, Halbweg anhalten, die die KI beim Namen abrufen kann. Im Protokoll steht, welches lief.',
+    'Rampen: Hübe, die langsam beginnen und zum Umkehrpunkt hin immer schneller werden (Art "accel"), und einzelne beschleunigende Fahrten.',
+    'Abbrüche durch eine neue Nachricht oder Stopp werden nicht mehr als „Keine Antwort innerhalb von 120 Sekunden" gemeldet.',
+    'Verbindung: ein Lebenszeichen in Pausen, schnelleres Wiederverbinden (höchstens 5 statt 20 Sekunden Abstand, sofort beim Aufwachen des Handys) und keine dauerhafte Verlangsamung mehr nach einem Aussetzer in einer Pause.',
+  ]},
+  { v: '0.73', date: '2026-09-23', items: [
+    'Die Geschichte hat eine eigene Besetzung und einen eigenen Erzähler, unabhängig vom Live-Gespräch - mit ✕ zum Entfernen und Auswahl zum Hinzufügen. „Neu entwerfen" ersetzt nur noch die Besetzung der Geschichte.',
+    'Entwürfe mit großen Modellen haben fünf Minuten Zeit statt zwei; das Entwerfen von Szene und Besetzung brach vorher nach 120 Sekunden ab.',
+    'Nachdenkende Modelle werden an der Venice-Modellliste erkannt und bekommen den nötigen Spielraum auch ohne Haken bei „Denkt vor" - vorher liefen sie mit 2.000 Token leer.',
+    'Hat nur ein Teil der Geschichte Bewegungsmarker, gelten diese weiter; das Skript füllt nur die Lücken, statt alles zu ersetzen.',
+    'Eine blaue, grüne oder violette Haut im Aussehen reicht jetzt, um eine Figur als Fantasiewesen zu erkennen - auch ohne Art-Zeile.',
+  ]},
   { v: '0.72', date: '2026-09-22', items: [
     'Bewegungsfolgen: Ein Marker kann jetzt einmalige Schritte hintereinander enthalten - „zu 950 in 2s | zittern 900-950@200 3s | zu 500 in 1s | halten 2s | pendeln 300-800@40". Das Gerät spielt sie genau einmal ab; der letzte Schritt gilt weiter.',
     'Marker mitten im Satz: Sie starten genau bei dem Wort, vor dem sie stehen. Mit ElevenLabs aufs Zeichen genau über Zeitstempel, sonst anteilig geschätzt. Gilt im Live-Gespräch und in der Geschichte, jeweils im Betrieb „Derselbe Aufruf".',
@@ -2789,7 +2828,11 @@ const WS_SEND_GAP_STEP_MS = 40;
 // Retrying every 3s forever floods the transcript when a device is simply off.
 // Back off instead, and only say something on the first drop and on recovery.
 const WS_RECONNECT_MIN_MS = 1500;
-const WS_RECONNECT_MAX_MS = 20000;
+const WS_RECONNECT_MAX_MS = 5000;   // früher 20 s - nach einem Aussetzer dauerte es bis zu zwei Minuten
+// Lebenszeichen: nach dieser Stille eine Statusabfrage ("D0" - fragt nur die
+// Gerätekennung ab, bewegt nichts), damit Handy und ESP32 die Verbindung in
+// Pausen nicht schlafen legen.
+const WS_KEEPALIVE_MS = 8000;
 
 const MOTION_LIMITS = {
   minIntervalMs: 130,        // fastest command cadence the websocket link sustains
@@ -2904,7 +2947,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       // A drop is usually the device's websocket queue overflowing, so widen the
       // gap between commands before reconnecting - otherwise we'd reconnect and
       // immediately overrun it again, which is what produces an endless retry loop.
-      if (state.everConnected && state.sendGapMs < WS_SEND_GAP_MAX_MS) {
+      // Nur wenn gerade gesendet wurde, war es ein Überlauf. Eine Verbindung,
+      // die in einer Pause einschläft, soll das Gerät nicht dauerhaft bremsen.
+      if (state.everConnected && Date.now() - (state.lastMotionAt || 0) < 3000 && state.sendGapMs < WS_SEND_GAP_MAX_MS) {
         state.sendGapMs = Math.min(WS_SEND_GAP_MAX_MS, state.sendGapMs + WS_SEND_GAP_STEP_MS);
       }
 
@@ -2977,7 +3022,21 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // position is ever sent. Dropping a superseded command costs nothing - the
   // device was on its way to that position anyway and now simply heads to the
   // newer one - while queueing them would make the motion lag behind the story.
+  // Lebenszeichen und sofortiges Wiederverbinden, wenn das Handy aufwacht.
+  setInterval(() => {
+    if (!isOpen() || !state.socket) return;
+    if (Date.now() - (state.lastSendAt || 0) < WS_KEEPALIVE_MS) return;
+    try { state.socket.send('D0\n'); state.lastSendAt = Date.now(); } catch (e) {}
+  }, 2000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !state.wantConnected || isOpen()) return;
+    clearTimeout(state.reconnectTimer);
+    state.reconnectDelay = WS_RECONNECT_MIN_MS;
+    connect(false);
+  });
+
   function sendTCode(line) {
+    state.lastMotionAt = Date.now();
     updateMotionVisual(line);
     if (!isOpen()) return;
     state.pendingLine = line;
@@ -3039,10 +3098,33 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Tempolimit, Wegbegrenzung und Befehlstakt gelten für jeden Schritt, weil
   // alles durch sendMove bzw. applyState läuft.
   let seq = null;
+  // Eine Fahrt mit Beschleunigung: gleiche Zeitstücke, quadratisch wachsender
+  // Weg. Jedes Stück mindestens 140 ms, damit die Verbindung keinen Befehl
+  // verschluckt.
+  let easeToken = null;
+  function easedMove(targetDevicePos, totalMs) {
+    const token = {};
+    easeToken = token;
+    const start = state.motion.lastPos;
+    const segs = Math.max(1, Math.min(8, Math.floor(totalMs / 140)));
+    const slice = Math.round(totalMs / segs);
+    let k = 1;
+    const step = () => {
+      if (easeToken !== token) return;
+      const f = Math.pow(k / segs, 2);
+      sendMove(start + (targetDevicePos - start) * f, slice);
+      k++;
+      if (k <= segs) setTimeout(step, slice);
+    };
+    step();
+  }
+  function stopEase() { easeToken = null; }
+
   function cancelSequence() {
     if (seq) { clearTimeout(seq.timer); seq = null; }
   }
   function haltLoop() {
+    stopEase();
     const m = state.motion;
     clearTimeout(m.timer);
     m.timer = null;
@@ -3065,7 +3147,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       const later = (ms) => { if (seq && seq.token === token) seq.timer = setTimeout(next, Math.max(0, ms)); };
       if (step.type === 'move') {
         haltLoop();
-        const actual = sendMove(toDevice(step.to), step.ms);
+        let actual = step.ms;
+        if (step.ease) easedMove(toDevice(step.to), step.ms);
+        else actual = sendMove(toDevice(step.to), step.ms);
         m.texture = 'hold';
         m.requested = { low: step.to, high: step.to, bpm: 0, texture: 'hold' };
         setMotionStatus(true);
@@ -3093,6 +3177,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Von außen: ein neuer Zustand beendet eine laufende Folge.
   function setMotion(req) {
     cancelSequence();
+    stopEase();
     applyState(req);
   }
 
@@ -3157,7 +3242,11 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     if (!m.timer) {
       // Start from the current target's shape but at a standstill, so the first
       // strokes ease in rather than snapping to full pace.
-      m.current = { low, high, bpm: instant ? bpm : 0 };
+      // Früher begann die Bewegung hier mit Tempo 0 und regelte sich hoch - der
+      // allererste Hub wurde aber schon mit diesem Null-Tempo berechnet und
+      // dauerte vier Sekunden (L0558I4071). Jetzt gilt das Zieltempo sofort;
+      // weich überblendet wird nur die Lage.
+      m.current = { low, high, bpm };
       m.lastTickAt = Date.now();
       tick();
     }
@@ -3235,6 +3324,15 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
 
     const pos = m.goingUp ? c.high : c.low;
     m.goingUp = !m.goingUp;
+
+    // Rampe: jeder Hub beginnt langsam und wird bis zum Umkehrpunkt immer
+    // schneller. TCode kennt nur gleichförmige Fahrten - also wird der Hub in
+    // gleich lange Zeitstücke zerlegt, deren Weg quadratisch wächst.
+    if (m.texture === 'accel') {
+      easedMove(pos, stepMs);
+      m.timer = setTimeout(tick, stepMs);
+      return;
+    }
 
     // "pulse" reaches its turning point faster than the beat and then waits
     // there, which is what makes it read as a distinct thrust rather than a glide.
@@ -4264,6 +4362,7 @@ const TEXTURE_LABELS = {
   smooth: 'smooth (fließende, durchgehende Bewegung zwischen den beiden Punkten)',
   pulse: 'pulse (schneller Stoß zum Umkehrpunkt, dann kurz halten - deutlich abgesetzt)',
   hold: 'hold (Bewegung ruht an einer Stelle, kein Hub)',
+  accel: 'accel (Rampe: jeder Hub beginnt langsam und wird bis zum Umkehrpunkt immer schneller)',
   tremor: 'tremor (feines, schnelles Zittern auf kurzer Strecke; low und high legen Ort und Weite fest, 12 bis 90 Einheiten; bpm legt fest, wie schnell es zittert: 0 ist ein ruhiges Flattern, 230 so schnell das Gerät kann)',
   stop: 'stop (Gerät kommt zur Ruhe)',
 };
@@ -4272,6 +4371,7 @@ function allowedTexturesFor(prefix) {
   const list = ['smooth']; // always available - it's the baseline movement
   if (on('pulse')) list.push('pulse');
   if (on('tremor')) list.push('tremor');
+  list.push('accel');
   return list;
 }
 
@@ -4282,7 +4382,7 @@ function allowedTexturesFor(prefix) {
 const MOTION_PRIORITY = `DAS WICHTIGSTE: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
 - STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
 - TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
-- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor.
+- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe). Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
 - EINMALIGES bleibt einmalig: "einmal ganz hoch", "kurz innehalten", "dann zittern" sind Schritte einer Folge, kein Zustand, der sich wiederholt - wo das Format Folgen erlaubt, nutze sie.
 - VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.`;
 
@@ -4365,7 +4465,7 @@ low und high zusammen beschreiben BEIDES: wie lang der Hub ist (Abstand) und WO 
 
 ${textureLegend}
 
-${MOTION_PRIORITY}
+${MOTION_PRIORITY}${vocabBlock('json')}
 
 Beispiele zur Kalibrierung (so übersetzt du Text in Werte):
 - "fährt langsam über die ganze Länge nach unten und wieder hoch" -> {"low": 60, "high": 940, "bpm": 22, "texture": "smooth"}
@@ -4505,11 +4605,12 @@ function extractJson(raw) {
   return JSON.parse(clean);
 }
 
-async function callAnthropic(systemPrompt, messages, temperature, maxTokens, modelOverride) {
+async function callAnthropic(systemPrompt, messages, temperature, maxTokens, modelOverride, timeoutMs) {
   const apiKey = apiKeyFor('companion_apiKey_anthropic');
   if (!apiKey) throw new Error('Kein Anthropic-Schlüssel eingetragen.');
   const model = modelOverride || modelFor('companion_model_anthropic') || 'claude-sonnet-4-6';
   const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+    timeoutMs,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -4530,11 +4631,12 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens, mod
   return content;
 }
 
-async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, modelStorageKey, defaultModel, extraBody, messages, temperature, maxTokens, modelOverride) {
+async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, modelStorageKey, defaultModel, extraBody, messages, temperature, maxTokens, modelOverride, timeoutMs) {
   const apiKey = apiKeyFor(apiKeyStorageKey);
   if (!apiKey) throw new Error('Kein API-Schlüssel eingetragen.');
   const model = modelOverride || modelFor(modelStorageKey) || defaultModel;
   const res = await fetchWithRetry(endpoint, {
+    timeoutMs,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -4609,13 +4711,25 @@ const REASONING_HEADROOM = 1200;
 function taskModelName(task) {
   return (localStorage.getItem('companion_taskModel_' + task) || '').trim();
 }
+// Ob das für eine Aufgabe eingetragene Modell laut Venice-Modellliste
+// nachdenkt. Dann gibt es den Aufschlag auch ohne Haken - sonst läuft ein Modell
+// wie qwen-3-8 mit 2.000 Token leer, bevor es ein Wort schreibt.
+function taskModelReasons(task) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  if (provider !== 'venice' || typeof veniceModelCache === 'undefined') return false;
+  const id = taskModelName(task) || modelFor('companion_model_venice') || '';
+  const m = veniceModelCache.find(x => x.id === id);
+  const caps = (m && m.model_spec && m.model_spec.capabilities) || {};
+  return caps.supportsReasoning === true;
+}
+
 function taskThinks(task) {
   return localStorage.getItem('companion_taskThinks_' + task) === 'true';
 }
 function taskBudget(task, automatic) {
   const set = parseInt(localStorage.getItem('companion_taskBudget_' + task) || '', 10);
   const base = (isFinite(set) && set > 0) ? set : automatic;
-  return Math.max(200, base) + (taskThinks(task) ? REASONING_HEADROOM : 0);
+  return Math.max(200, base) + ((taskThinks(task) || taskModelReasons(task)) ? REASONING_HEADROOM * 2 : 0);
 }
 function taskLabel(task) {
   const entry = TASKS.find(t => t.id === task);
@@ -4661,17 +4775,20 @@ async function callProvider(provider, systemPrompt, messages, temperature, maxTo
 
 async function callProviderOnce(provider, systemPrompt, messages, temperature, maxTokens, opts) {
   const override = taskModelName((opts && opts.task) || 'chat');
+  // Entwürfe dürfen dauern - ein großes Denkmodell braucht für Szene samt
+  // Besetzung leicht mehr als zwei Minuten. Gespräch und Bewegung bleiben kurz.
+  const timeoutMs = (opts && opts.task) === 'draft' ? 300000 : undefined;
   if (provider === 'anthropic') {
-    return callAnthropic(systemPrompt, messages, temperature, maxTokens, override);
+    return callAnthropic(systemPrompt, messages, temperature, maxTokens, override, timeoutMs);
   } else if (provider === 'openai') {
     return callOpenAiCompatible(systemPrompt, 'https://api.openai.com/v1/chat/completions',
-      'companion_apiKey_openai', 'companion_model_openai', 'gpt-4o', null, messages, temperature, maxTokens, override);
+      'companion_apiKey_openai', 'companion_model_openai', 'gpt-4o', null, messages, temperature, maxTokens, override, timeoutMs);
   } else if (provider === 'deepseek') {
     return callOpenAiCompatible(systemPrompt, 'https://api.deepseek.com/chat/completions',
-      'companion_apiKey_deepseek', 'companion_model_deepseek', 'deepseek-chat', null, messages, temperature, maxTokens, override);
+      'companion_apiKey_deepseek', 'companion_model_deepseek', 'deepseek-chat', null, messages, temperature, maxTokens, override, timeoutMs);
   } else if (provider === 'openrouter') {
     return callOpenAiCompatible(systemPrompt, 'https://openrouter.ai/api/v1/chat/completions',
-      'companion_apiKey_openrouter', 'companion_model_openrouter', 'anthropic/claude-3.5-sonnet', null, messages, temperature, maxTokens, override);
+      'companion_apiKey_openrouter', 'companion_model_openrouter', 'anthropic/claude-3.5-sonnet', null, messages, temperature, maxTokens, override, timeoutMs);
   } else if (provider === 'venice') {
     // Hybride Modelle wie DeepSeek V4 Flash denken standardmäßig nach, auch
     // wenn niemand das braucht - bei der Bewegung verbrauchten sie so das ganze
@@ -4682,7 +4799,7 @@ async function callProviderOnce(provider, systemPrompt, messages, temperature, m
     if (els.veniceOwnPromptOnly.checked) veniceParams.include_venice_system_prompt = false;
     const veniceExtra = { venice_parameters: veniceParams };
     return callOpenAiCompatible(systemPrompt, 'https://api.venice.ai/api/v1/chat/completions',
-      'companion_apiKey_venice', 'companion_model_venice', 'venice-uncensored', veniceExtra, messages, temperature, maxTokens, override);
+      'companion_apiKey_venice', 'companion_model_venice', 'venice-uncensored', veniceExtra, messages, temperature, maxTokens, override, timeoutMs);
   }
   throw new Error('Unbekannter Anbieter: ' + provider);
 }
@@ -5067,7 +5184,38 @@ function dedupeCast() {
 
 function saveCharacters() {
   dedupeCast();
-  safeSet('companion_characters', JSON.stringify(characters));
+  safeSet(castKey(activeCastMode), JSON.stringify(characters));
+}
+
+// Live-Gespräch und Geschichte haben je eine eigene Besetzung und einen
+// eigenen Erzähler. Die übrige App arbeitet weiter mit "characters" und den
+// Erzähler-Schlüsseln - beim Wechsel des Bereichs wird einfach ausgetauscht,
+// was dort gerade gilt. Die Geschichte startet beim allerersten Mal mit einer
+// Kopie der Live-Besetzung.
+let activeCastMode = 'live';
+function castKey(mode) { return mode === 'story' ? 'companion_storyCast' : 'companion_characters'; }
+function narratorKey(mode, what) { return `companion_${mode}_narrator${what}`; }
+
+function activateCast(mode) {
+  if (mode === activeCastMode) return;
+  dedupeCast();
+  safeSet(castKey(activeCastMode), JSON.stringify(characters));
+  safeSet(narratorKey(activeCastMode, 'Figure'), localStorage.getItem('companion_narratorFigure') || '');
+  safeSet(narratorKey(activeCastMode, 'Enabled'), localStorage.getItem('companion_narratorEnabled') || 'false');
+
+  try {
+    const raw = localStorage.getItem(castKey(mode));
+    if (raw) characters = JSON.parse(raw);
+    else characters = JSON.parse(JSON.stringify(characters));   // erster Besuch: Kopie
+  } catch (e) { /* bleibt, wie es ist */ }
+  if (!Array.isArray(characters)) characters = [];
+  const fig = localStorage.getItem(narratorKey(mode, 'Figure'));
+  if (fig !== null) {
+    safeSet('companion_narratorFigure', fig);
+    safeSet('companion_narratorEnabled', localStorage.getItem(narratorKey(mode, 'Enabled')) || 'false');
+  }
+  activeCastMode = mode;
+  safeSet(castKey(mode), JSON.stringify(characters));
 }
 
 function aiCharacters() { return characters.filter(c => !c.isUser); }
@@ -5379,7 +5527,8 @@ function fallbackPortraitPrompt(c) {
 // genau dieses Bild zum Leben erwecken.
 let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
 
-function buildSceneImageRequest(momentText) {
+function buildSceneImageRequest(momentText, castOverride) {
+  const characters = castOverride || globalCast();
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 900);
   const people = characters.filter(c => !c.isNarrator).map(c => {
     const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : 'nicht festgelegt';
@@ -5389,7 +5538,7 @@ function buildSceneImageRequest(momentText) {
     const looksAll = (c.appearance || '').trim();
     const clothes = ((looksAll.match(/^\s*Kleidung\s*:\s*(.+)$/mi) || [])[1] || '').trim();
     const looks = looksAll.replace(/^\s*Kleidung\s*:.*$/mi, '').trim();
-    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
   }).join('\n');
   // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
   // Bild illustrieren soll.
@@ -5411,6 +5560,7 @@ ${recent || '(noch nichts)'}
 
 Regeln:
 - Zeige genau den letzten Moment: wer ist zu sehen, wo, in welcher Haltung, wer tut was mit wem, Blicke, Licht, Stimmung.
+- Anatomie wie im echten Moment: Sind Personen nackt oder geht es um sexuelle Handlungen, sind die beteiligten Körperteile ALLER beteiligten Personen so zu sehen und ausdrücklich zu benennen, wie es der Moment verlangt - beim Mann etwa sein Penis, erigiert wenn es passt, bei der Frau Brüste und Scham. Nichts ausblenden, was in diesem Moment sichtbar wäre, und keine Person weglassen, die beteiligt ist - auch nicht mich.
 - Kläre zuerst für jede Person, was sie in diesem Moment trägt - nach dem, was im Text bis hierher geschehen ist. Wurde etwas ausgezogen, ist es weg; ist jemand nackt, zeige ihn nackt und schreibe es ausdrücklich ("fully naked", "topless", "wearing only ..."). Die übliche Kleidung gilt nur, solange der Text nichts anderes sagt.
 - Jede Person mit ihrem Aussehen wie oben angegeben: zuerst Geschlecht und Alter ("a 28-year-old woman"), dann das Auffälligste - Haare, Gesicht, Augen, Statur, Figur, Haut mit Tattoos oder Besonderheiten -, dann der Kleidungszustand von eben. Bildmodelle gewichten die ersten Wörter am stärksten.
 - Alle abgebildeten Personen sind Erwachsene; schreibe ausdrücklich "adult". Keine realen Personen, keine bekannten Figuren aus Filmen, Spielen oder Büchern. Kein Text im Bild.
@@ -5470,21 +5620,29 @@ function addSceneImageMsg(dataUrl) {
 
 // Bildbeschreibung schreiben und malen lassen - gemeinsam für Live-Gespräch
 // und Geschichte.
-async function makeSceneImage(momentText) {
+// Die Bilder einer Geschichte laufen im Hintergrund weiter, auch wenn man
+// schon ins Live-Gespräch gewechselt ist - sie bekommen deshalb die Besetzung
+// mit, die beim Start galt.
+function globalCast() { return characters; }
+
+async function makeSceneImage(momentText, castOverride) {
+  const castForTags = (castOverride || characters).filter(x => !x.isNarrator);
+  for (const c of castForTags) { try { await ensureLookTag(c); } catch (e) {} }
   const key = apiKeyFor('companion_apiKey_venice');
   let model = modelFor('companion_imageModel') || 'venice-sd35';
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   let prompt = (await callProvider(
-    provider, buildSceneImageRequest(momentText),
+    provider, buildSceneImageRequest(momentText, castOverride),
     [{ role: 'user', content: 'Gib den Bild-Prompt zurück.' }],
     0.7, taskBudget('draft', 1200), { task: 'draft' }
   )).trim().replace(/^["'`]+|["'`]+$/g, '');
   if (!prompt) throw new Error('Die Bildbeschreibung war leer.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
+  prompt = withLookTags(prompt, castForTags);
   // Fantasiewesen in der Szene: ihre Hautfarbe wird ausdrücklich angehängt,
   // falls der Prompt sie verschluckt hat, und der Stil zieht nicht mehr zur
   // "natürlichen" Haut.
-  const infos = characters.filter(c => !c.isNarrator).map(c => ({ c, info: speciesInfo(c.appearance) }));
+  const infos = (castOverride || characters).filter(c => !c.isNarrator).map(c => ({ c, info: speciesInfo(c.appearance) }));
   const alien = infos.filter(x => x.info.nonHuman);
   const colors = [...new Set(alien.map(x => x.info.color).filter(Boolean))];
   alien.forEach(({ c, info }) => {
@@ -5888,6 +6046,7 @@ function speciesInfo(appearance) {
   const skin = ((text.match(/^\s*Haut\s*:\s*(.+)$/mi) || [])[1] || '').trim();
   const nonHuman = art
     ? !/^mensch\b/i.test(art)
+    : (skin && /(blau|grün|türkis|violett|lila|silber)/i.test(skin)) ? true
     : /\b(alien|außerirdisch\w*|elf\w*|dämon\w*|fantasiewesen|humanoid\w*|hörner|schwanz)\b|(blau|grün|türkis|violett|lila|silber|gold)häutig/i.test(text);
   let color = null;
   if (nonHuman) {
@@ -5910,7 +6069,7 @@ function speciesInfo(appearance) {
 const SPECIES_TRAITS = [
   [/spitz[\wäöüß]*\s+([\wäöüß-]+\s+)?ohren|elf[\wäöüß]*ohren|elf[\wäöüß]*\s+ohren/i, 'long pointed elf ears clearly visible'],
   [/augen\s+ohne\s+([\wäöüß]+\s+)?wei/i, 'solid black eyes without visible whites'],
-  [/leucht[\wäöüß]*\s*(punkt|muster|mal|streif)|biolumin/i, 'glowing bioluminescent markings on the skin'],
+  [/leucht[\wäöüß]*\s+([\wäöüß]+\s+)?(punkt|muster|mal|streif|fleck)|biolumin/i, 'glowing bioluminescent markings on the skin'],
   [/hörner|\bhorn\b/i, 'horns'],
   [/schwanz/i, 'a long tail'],
   [/flügel/i, 'wings'],
@@ -5971,6 +6130,77 @@ function negativeFor(anyNonHuman, colors, hairGuard) {
   return n;
 }
 
+// ---------- Wiedererkennbarkeit einer Figur ----------
+// Zwei feste Angaben je Figur, damit sie auf jedem Bild dieselbe Person bleibt:
+// 1. Ein fester Startwert (seed). Bildmodelle beginnen mit Zufallsrauschen;
+//    derselbe Startwert ergibt bei gleicher Beschreibung dasselbe Gesicht.
+//    Er gehört zur Figur, nicht zur Version - eine Überarbeitung behält ihn.
+// 2. Eine feste englische Kurzbeschreibung (lookTag) der unveränderlichen
+//    Merkmale. Bisher schrieb das Textmodell das Aussehen vor jedem Bild neu in
+//    eigenen Worten um - und jede neue Formulierung gab ein anderes Gesicht.
+//    Der lookTag entsteht einmal und wird dann wörtlich wiederverwendet; ändert
+//    sich das Aussehen, entsteht er neu.
+function figureSeed(c) {
+  const figure = c && c.figureId ? getFigure(c.figureId) : null;
+  if (!figure) return undefined;
+  if (!figure.seed) {
+    figure.seed = 1 + Math.floor(Math.random() * 2147483000);
+    try { saveArchive(); } catch (e) {}
+  }
+  return figure.seed;
+}
+
+function appearanceHash(text) {
+  let h = 0;
+  for (const ch of String(text || '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return String(h);
+}
+
+async function ensureLookTag(c) {
+  if (!c || c.isNarrator) return '';
+  const src = appearanceHash(c.appearance);
+  if (c.lookTag && c.lookTagSrc === src) return c.lookTag;
+  const figure = c.figureId ? getFigure(c.figureId) : null;
+  const version = figure ? findVersion(figure, c.version || latestVersion(figure).v) : null;
+  if (version && version.lookTag && version.lookTagSrc === src) {
+    c.lookTag = version.lookTag; c.lookTagSrc = src;
+    return c.lookTag;
+  }
+  if (!(c.appearance || '').trim()) return '';
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const gender = c.gender && c.gender !== 'offen' ? GENDER_TEXT[c.gender] : '';
+  const raw = await callProvider(provider,
+    `Schreibe für ein Bildmodell eine feste englische Kurzbeschreibung dieser Figur - sie wird auf JEDEM künftigen Bild wörtlich wiederverwendet, damit die Figur immer gleich aussieht.
+
+${gender ? 'Geschlecht: ' + gender + '\n' : ''}Aussehen: ${String(c.appearance).slice(0, APPEARANCE_MAX)}
+
+Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), Geschlecht und Alter ("adult 29-year-old woman"), dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
+Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
+    [{ role: 'user', content: 'Gib die Kurzbeschreibung zurück.' }],
+    0.2, taskBudget('draft', 400), { task: 'draft' });
+  let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
+  if (!tag) return '';
+  if (!/\badult/i.test(tag)) tag = 'adult ' + tag;
+  c.lookTag = tag; c.lookTagSrc = src;
+  if (version) {
+    version.lookTag = tag; version.lookTagSrc = src;
+    try { saveArchive(); } catch (e) {}
+  }
+  logEvent('msg', { role: 'system', text: `Feste Bildbeschreibung für ${c.name}: ${tag}` });
+  return tag;
+}
+
+// Sorgt dafür, dass jede Kurzbeschreibung wörtlich im Bild-Prompt steht.
+function withLookTags(prompt, cast) {
+  let p = prompt;
+  cast.forEach(c => {
+    if (!c.lookTag) return;
+    const probe = c.lookTag.slice(0, 40).toLowerCase();
+    if (!p.toLowerCase().includes(probe)) p += ` ${c.name}: ${c.lookTag}.`;
+  });
+  return p;
+}
+
 async function generateCharacterImage(c, button) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Profilbilder wird ein Venice-Schlüssel gebraucht.'); return; }
@@ -6002,6 +6232,11 @@ async function generateCharacterImage(c, button) {
     if (genderWord && !new RegExp(genderWord.replace(/^an? /, ''), 'i').test(imagePrompt)) {
       imagePrompt = `Portrait of ${genderWord}. ` + imagePrompt;
     }
+    // Die feste Kurzbeschreibung steht vorn - sie trägt das Gesicht.
+    try {
+      const tag = await ensureLookTag(c);
+      if (tag && !imagePrompt.toLowerCase().includes(tag.slice(0, 40).toLowerCase())) imagePrompt = `${tag}. ${imagePrompt}`;
+    } catch (e) { /* ohne festen Teil geht es auch */ }
     const species = speciesInfo(c.appearance);
     imagePrompt = shapeForSpecies(imagePrompt, species);
     const fantasyModel = (localStorage.getItem('companion_fantasyImageModel') || '').trim();
@@ -6016,6 +6251,7 @@ async function generateCharacterImage(c, button) {
       body: JSON.stringify({
         model,
         prompt: finalPrompt.slice(0, 1450),
+        seed: figureSeed(c),
         negative_prompt: negativeFor(species.nonHuman, colors,
           species.color && species.hair && species.hair !== species.color ? species.color : null),
         width: 1024,
@@ -7142,6 +7378,83 @@ function extractMotionMarker(line) {
   };
 }
 
+// ---------- Bewegungswortschatz ----------
+// Fertige, erprobte Abläufe, die die KI beim Namen abrufen kann. Jedes Muster
+// wird zu Schritten der Marker-Sprache ausgeklappt; der letzte Schritt läuft
+// dauerhaft weiter, bis etwas Neues kommt. Positionen auf der 0-999-Skala.
+function motionVocabOn() {
+  return (localStorage.getItem('companion_motionVocab') ?? 'true') === 'true';
+}
+
+const PATTERN_INFO = {
+  spitze_necken: 'kurze, schnelle Hübe nur ganz oben, kurz innehalten, weiter',
+  tief_langsam: 'lange, langsame Hübe bis ganz unten',
+  ganze_laenge: 'gleichmäßige Hübe über die ganze Länge',
+  welle: 'der Hub wird allmählich länger und wieder kürzer',
+  stottern: 'kurze harte Stöße und Stopps im Wechsel',
+  zittern_oben: 'feines Zittern an der Spitze',
+  zittern_unten: 'feines Zittern ganz unten',
+  halbweg_anhalten: 'in die Mitte fahren, zwei Sekunden verharren, weiter',
+  steigern: 'Tempo zieht in Stufen bis zum Höhepunkt an',
+  rampe: 'jeder Hub beginnt langsam und wird bis oben immer schneller',
+  hochfahren: 'einmal langsam beschleunigend ganz nach oben, dann oben weiter',
+};
+
+function expandPattern(name, tempo) {
+  const t = tempo === 'langsam' ? 0 : tempo === 'schnell' ? 2 : 1;
+  const pick = (a, b, c) => [a, b, c][t];
+  const osc = (low, high, bpm, texture, ms) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0 });
+  const hold = (ms) => ({ type: 'hold', ms });
+  const move = (to, ms, ease) => ({ type: 'move', to, ms, ease: !!ease });
+  const b = pick(30, 55, 90);
+  const patterns = {
+    spitze_necken: () => [osc(760, 950, pick(90, 140, 190), 'smooth', 2500), hold(900), osc(760, 950, pick(90, 140, 190), 'smooth', 2500), hold(700), osc(760, 950, pick(90, 140, 190))],
+    tief_langsam: () => [osc(50, 550, pick(14, 26, 42))],
+    ganze_laenge: () => [osc(50, 950, pick(20, 42, 75))],
+    welle: () => [osc(420, 580, b, 'smooth', 2000), osc(280, 720, b, 'smooth', 2000), osc(80, 920, b, 'smooth', 3000), osc(280, 720, b, 'smooth', 2000), osc(420, 580, b)],
+    stottern: () => [osc(200, 850, pick(60, 90, 130), 'pulse', 1500), hold(700), osc(200, 850, pick(60, 90, 130), 'pulse', 1500), hold(700), osc(200, 850, pick(60, 90, 130), 'pulse')],
+    zittern_oben: () => [osc(880, 950, pick(80, 150, 220), 'tremor')],
+    zittern_unten: () => [osc(50, 120, pick(80, 150, 220), 'tremor')],
+    halbweg_anhalten: () => [move(500, 1000), hold(2000), osc(250, 750, b)],
+    steigern: () => [osc(200, 800, pick(20, 30, 45), 'smooth', 3000), osc(200, 800, pick(40, 60, 80), 'smooth', 3000), osc(250, 850, pick(60, 100, 130), 'smooth', 3000), osc(300, 900, pick(90, 140, 190), 'pulse')],
+    rampe: () => [osc(50, 950, pick(18, 32, 55), 'accel')],
+    hochfahren: () => [move(950, pick(4000, 2500, 1500), true), osc(700, 950, b)],
+  };
+  const key = String(name || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z_]/g, '');
+  return patterns[key] ? patterns[key]() : null;
+}
+
+function vocabBlock(format) {
+  if (!motionVocabOn()) return '';
+  const list = Object.entries(PATTERN_INFO).map(([k, v]) => `${k} (${v})`).join('; ');
+  const how = format === 'marker'
+    ? 'Im Marker so: <<muster welle schnell>> - auch mitten in einer Folge: <<zu 500 in 1s | muster zittern_oben mittel>>.'
+    : 'Statt low/high/bpm/texture kannst du dann schreiben: {"muster": "welle", "tempo": "schnell"}.';
+  return `\n\nBEWEGUNGSWORTSCHATZ - fertige, erprobte Abläufe, die du beim Namen abrufen kannst, mit Tempo langsam, mittel oder schnell: ${list}. ${how} Nutze ein Muster, wenn es genau zur Situation passt; sonst beschreibe die Bewegung frei.`;
+}
+
+function patternLabel(item) {
+  return `Muster ${item.muster}${item.tempo ? ' ' + item.tempo : ''}`;
+}
+
+// Wendet einen Bewegungseintrag an - Zustand oder Muster.
+function applyMotionItem(num, item) {
+  const dev = num === 2 ? device2 : device1;
+  if (!item) return;
+  if (item.muster) {
+    const steps = expandPattern(item.muster, item.tempo);
+    if (steps) {
+      dev.runSequence(steps);
+      logEvent('msg', { role: 'system', text: `Gerät ${num} ${patternLabel(item)}` });
+      return;
+    }
+    logEvent('msg', { role: 'system', text: `Gerät ${num}: unbekanntes Muster "${item.muster}" - Bewegung läuft weiter wie bisher.` });
+    return;
+  }
+  dev.setMotion(item);
+  logMotionChoice(num, item);
+}
+
 // ---------- Marker-Sprache ----------
 // Ein Marker ist ein ZUSTAND (<<low-high@bpm art>>) oder eine FOLGE einmaliger
 // Schritte, durch | getrennt: "zu 950 in 2s | zittern 900-950@200 3s |
@@ -7167,16 +7480,23 @@ function parseMotionStep(raw) {
     let texture = m[5] && ['smooth', 'pulse', 'tremor', 'hold', 'stop'].includes(m[5]) ? m[5] : (/^(sto|pump)/.test(verb) ? 'pulse' : 'smooth');
     return { type: 'osc', low: pos999(m[2]), high: pos999(m[3]), bpm: parseInt(m[4], 10), texture, ms: m[6] ? clampMs(m[6], 300, 60000) : 0 };
   }
-  if ((m = t.match(/^(?:zu|zur|zum|auf|nach|bis|hoch(?:\s+(?:auf|zu|bis))?|runter(?:\s+(?:auf|zu|bis))?|hinauf|hinunter|fahr\w*|gleit\w*)?\s*(\d{1,3})\s*(?:in\s*)?(\d+(?:[.,]\d+)?)\s*s\w*$/))) {
-    return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000) };
+  if ((m = t.match(/^(?:zu|zur|zum|auf|nach|bis|hoch(?:\s+(?:auf|zu|bis))?|runter(?:\s+(?:auf|zu|bis))?|hinauf|hinunter|fahr\w*|gleit\w*)?\s*(\d{1,3})\s*(?:in\s*)?(\d+(?:[.,]\d+)?)\s*s\w*(?:\s+(beschleunigend|schneller\s+werdend|rampe|immer\s+schneller))?$/))) {
+    return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000), ease: !!m[3] };
+  }
+  // Ein Muster aus dem Bewegungswortschatz: "muster welle schnell"
+  if ((m = t.match(/^muster\s+([a-zäöüß_]+)(?:\s+(langsam|mittel|schnell))?$/))) {
+    const steps = expandPattern(m[1], m[2]);
+    return steps ? { type: 'pattern', steps } : null;
   }
   return null;
 }
 
 function parseMotionCue(content) {
   const parts = String(content).split(/\s*[|;]\s*/).filter(Boolean).slice(0, SEQ_MAX_STEPS);
-  const steps = parts.map(parseMotionStep);
+  let steps = parts.map(parseMotionStep);
   if (!steps.length || steps.some(x => !x)) return null;
+  // Muster werden zu ihren Schritten ausgeklappt.
+  steps = steps.flatMap(x => x.type === 'pattern' ? x.steps : [x]);
   if (steps.length === 1) {
     const st = steps[0];
     if (st.type === 'osc' && !st.ms) return { kind: 'state', motion: { low: st.low, high: st.high, bpm: st.bpm, texture: st.texture } };
@@ -7476,7 +7796,7 @@ function inlineMotionBlock() {
 
   return `
 
-${MOTION_PRIORITY}
+${MOTION_PRIORITY}${vocabBlock('marker')}
 
 BEWEGUNG DES GERÄTS - das ist der zweite Teil deiner Aufgabe, genauso wichtig wie der Text. Du steuerst das Gerät mit Markern in doppelten spitzen Klammern direkt im Text. Ein Marker gilt ab der Stelle, an der er steht: Setze ihn VOR die Worte, zu denen die Bewegung gehört - gern mitten im Satz. Die App startet ihn genau in dem Moment, in dem diese Worte gesprochen werden.
 
@@ -7533,7 +7853,15 @@ function ensembleFormatBlock() {
 - Eine Zeile pro Sprecher. Keine Anführungszeichen, keine Regieanweisungen in Klammern, keine Überschriften.`;
 }
 
-function buildEnsemblePrompt(autoStep, isRetry) {
+// Ein Foto von mir ist der Mittelpunkt der Antwort. Bisher galt auch dafür die
+// Regel "höchstens 4 Zeilen, gib mir den Zug zurück" - und die Figuren taten
+// es in einem Satz ab.
+const PHOTO_INSTRUCTION = `Ich habe euch gerade ein Foto geschickt - es hängt an meiner letzten Nachricht. Das ist diesmal der Mittelpunkt, also nicht in einem Satz abtun: Sprecht ausführlich darüber, sechs bis zehn Zeilen. Jede Figur reagiert auf ihre eigene Art, und ihr redet auch miteinander darüber - eine zeigt der anderen etwas, eine neckt, eine schwärmt.
+Nennt konkrete Einzelheiten, die wirklich zu sehen sind: Haltung, Blick, Gesichtsausdruck, Licht, Kleidung oder was ohne sie zu sehen ist, der Raum drumherum. Hebt hervor, was euch besonders gefällt oder reizt, und sagt es mir direkt.
+Sagt, was ihr jetzt am liebsten mit mir anstellen würdet - konkret, passend zu dem, was ihr seht.
+Beschreibt nur, was tatsächlich auf dem Foto ist, und erfindet nichts hinzu. Schließt mit einer Frage oder Aufforderung an mich.`;
+
+function buildEnsemblePrompt(autoStep, isRetry, photo) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
   // The tags only mean anything to ElevenLabs, and only for figures that are
   // set to speak emotionally - otherwise they would be read out as words.
@@ -7595,7 +7923,7 @@ Bleib strikt in der oben beschriebenen Szene: derselbe Ort, dieselben Figuren, k
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${autoStep ? '' : `Das hier ist ein Wechselgespräch: Halte dich kurz und gib mir den Zug zurück. Höchstens 4 Zeilen, und schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Halte dich kurz und gib mir den Zug zurück. Höchstens 4 Zeilen, und schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -7704,8 +8032,9 @@ async function askEnsemble(userText, options) {
   try {
     const replyText = await generateWithoutRepeat(
       provider,
-      (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry),
-      replyTokenBudget()
+      (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry, !!(options && options.image)),
+      // Zu einem Foto wird ausführlicher geantwortet - das Budget zieht mit.
+      options && options.image ? Math.round(replyTokenBudget() * 2.2) : replyTokenBudget()
     );
     // Superseded while the model was thinking: drop this answer entirely rather
     // than adding it to a conversation that has already moved on.
@@ -7738,9 +8067,11 @@ async function askEnsemble(userText, options) {
           { task: 'motion' }
         );
         const parsed = extractJson(raw);
-        return Array.isArray(parsed) ? addVariation(ensureMotionStarts(parsed), deviceNum) : null;
+        if (!Array.isArray(parsed)) return null;
+        // Mit Mustern keine nachträgliche Variation - die KI hat bewusst gewählt.
+        return parsed.some(x => x && x.muster) ? parsed : addVariation(ensureMotionStarts(parsed), deviceNum);
       } catch (err) {
-        addMsg('system', `Bewegungssteuerung Gerät ${deviceNum}: ` + err.message);
+        if (!err.aborted) addMsg('system', `Bewegungssteuerung Gerät ${deviceNum}: ` + err.message);
         return null;
       }
     }
@@ -7775,16 +8106,8 @@ async function askEnsemble(userText, options) {
 
       // Not there yet means the derivation is still running: leave the device
       // doing what it was doing rather than forcing it to a guessed value.
-      if (motions1) {
-        const m1 = motions1[i] || motions1[motions1.length - 1];
-        device1.setMotion(m1);
-        logMotionChoice(1, m1);
-      }
-      if (hasDevice2 && motions2) {
-        const m2 = motions2[i] || motions2[motions2.length - 1];
-        device2.setMotion(m2);
-        logMotionChoice(2, m2);
-      }
+      if (motions1) applyMotionItem(1, motions1[i] || motions1[motions1.length - 1]);
+      if (hasDevice2 && motions2) applyMotionItem(2, motions2[i] || motions2[motions2.length - 1]);
       const piece = pieces[i];
       let ctl = null;
       await current.play(inline && piece.cues && piece.cues.length
@@ -7795,7 +8118,7 @@ async function askEnsemble(userText, options) {
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
     return true;
   } catch (err) {
-    addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
+    if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
     return false;
   } finally {
     setThinking('');
@@ -7840,6 +8163,8 @@ els.storyIdea.oninput = () => safeSet('companion_storyIdea', els.storyIdea.value
 
 els.motionMode.value = localStorage.getItem('companion_motionMode') || 'zweit';
 els.motionMode.onchange = () => safeSet('companion_motionMode', els.motionMode.value);
+els.motionVocab.checked = motionVocabOn();
+els.motionVocab.onchange = () => safeSet('companion_motionVocab', els.motionVocab.checked ? 'true' : 'false');
 
 els.storyCastMode.value = localStorage.getItem('companion_storyCastMode') || 'bestehend';
 
@@ -7847,8 +8172,8 @@ function updateStoryCastHint() {
   const neu = els.storyCastMode.value === 'neu';
   safeSet('companion_storyCastMode', els.storyCastMode.value);
   els.storyCastHint.textContent = neu
-    ? 'Aus deiner Vorgabe werden zuerst Szene und Figuren entworfen, dann die Geschichte geschrieben. Die neuen Figuren landen im Archiv und ersetzen die Besetzung unten.'
-    : 'Es treten ausschließlich diese Figuren auf, es werden keine weiteren erfunden. Dieselbe Besetzung gilt auch im Live-Gespräch.';
+    ? 'Aus deiner Vorgabe werden zuerst Szene und Figuren entworfen, dann die Geschichte geschrieben. Die neuen Figuren landen im Archiv und ersetzen die Besetzung unten - die des Live-Gesprächs bleibt, wie sie ist.'
+    : 'Es treten ausschließlich diese Figuren auf, es werden keine weiteren erfunden. Die Besetzung der Geschichte ist unabhängig von der im Live-Gespräch.';
   renderStoryCast();
 }
 els.storyCastMode.onchange = updateStoryCastHint;
@@ -7919,6 +8244,7 @@ function showSettings() {
 function switchMode(mode) {
   const previous = currentMode;
   currentMode = mode;
+  activateCast(mode === 'story' ? 'story' : 'live');
   // Die Besetzung kann sich in der Figurenseite geändert haben (Bild, Name) -
   // beim Öffnen der Geschichte wird die Liste deshalb neu gezeichnet.
   if (mode === 'story') renderStoryCast();
@@ -8039,8 +8365,8 @@ function playableFigures() { return figureArchive.filter(f => !latestVersion(f).
 // deshalb dieselbe Liste, und eine Änderung in der einen erscheint sofort in
 // der anderen.
 function refreshCastViews() {
-  renderLivePanel();
-  renderStoryCast();
+  if (activeCastMode === 'story') renderStoryCast();
+  else renderLivePanel();
 }
 
 function renderLiveCast() { renderCastList(els.liveCast, true); }
@@ -8143,26 +8469,30 @@ function renderStoryCast() {
   renderCastList(els.storyCast, !neu);
   els.storyAddRow.style.display = neu ? 'none' : 'flex';
   if (!neu) fillAddOptions(els.storyAddFigure);
+  renderNarratorSelect(els.storyNarrator, 'Kein Erzähler - nur Dialog');
 }
 
-function renderLiveNarrator() {
-  els.liveNarrator.innerHTML = '';
+function renderLiveNarrator() { renderNarratorSelect(els.liveNarrator, 'Kein Erzähler - wie ein Telefonat'); }
+
+function renderNarratorSelect(sel, offText) {
+  if (!sel) return;
+  sel.innerHTML = '';
   const off = document.createElement('option');
   off.value = '';
-  off.textContent = 'Kein Erzähler - wie ein Telefonat';
-  els.liveNarrator.appendChild(off);
+  off.textContent = offText;
+  sel.appendChild(off);
 
   narratorFigures().forEach(f => {
     const opt = document.createElement('option');
     opt.value = f.id;
     opt.textContent = latestVersion(f).name;
-    els.liveNarrator.appendChild(opt);
+    sel.appendChild(opt);
   });
 
   const active = localStorage.getItem('companion_narratorEnabled') === 'true'
     ? (localStorage.getItem('companion_narratorFigure') || '')
     : '';
-  els.liveNarrator.value = narratorFigures().some(f => f.id === active) ? active : '';
+  sel.value = narratorFigures().some(f => f.id === active) ? active : '';
 }
 
 function renderLivePanel() {
@@ -8195,6 +8525,12 @@ els.loadVideoModelsBtn.onclick = () => loadVideoModels(false);
 els.sharedProfile.value = sharedProfile();
 els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
+
+els.storyNarrator.onchange = () => {
+  const id = els.storyNarrator.value;
+  safeSet('companion_narratorFigure', id);
+  safeSet('companion_narratorEnabled', id ? 'true' : 'false');
+};
 
 els.liveNarrator.onchange = () => {
   const id = els.liveNarrator.value;
@@ -8373,7 +8709,7 @@ Bewegungsarten: ${textureLegend}.
 
 MEHRERE PHASEN sind der eigentliche Zweck: Ein Abschnitt soll nicht durchgehend dasselbe tun. Typisch sind zwei bis drei Phasen, etwa ein langsamer Beginn, der in etwas Schnelleres übergeht, oder eine kurze Pause vor dem Wiedereinsetzen. Nur bei sehr kurzen Abschnitten reicht eine Phase.
 
-${MOTION_PRIORITY}
+${MOTION_PRIORITY}${vocabBlock('json')}
 
 Als grober Rahmen: ${scriptArcText()} Rückschritte sind ausdrücklich erwünscht - ein kurzes Zurücknehmen macht die folgende Steigerung wirksamer als stures Durchziehen.
 
@@ -8515,6 +8851,7 @@ let storyImageRun = 0;
 // den falschen Text gerät.
 async function generateStoryImages(minutes) {
   const run = ++storyImageRun;
+  const cast = characters.slice();
   const anchors = pickStoryImageAnchors(story.chunks.length, minutes);
   if (!anchors.length) return;
   const chunks = story.chunks;
@@ -8535,7 +8872,7 @@ async function generateStoryImages(minutes) {
     while (queue.length) {
       const { a, k } = queue.shift();
       try {
-        const { dataUrl } = await makeSceneImage(describe(a, k));
+        const { dataUrl } = await makeSceneImage(describe(a, k), cast);
         if (run !== storyImageRun) return;
         chunks[a].image = dataUrl;
         done++;
@@ -8631,14 +8968,15 @@ els.genStoryBtn.onclick = async () => {
       // Abschnitte ohne eigenen Marker führen einfach fort, was gerade läuft.
       const n = story.chunks.length;
       const marked = story.chunks.filter(c => c.cues.length).length;
-      if (n && marked >= Math.max(1, n * 0.35)) {
+      if (n && marked >= Math.max(1, n * 0.25)) {
         inlineStory = true;
         script1 = story.chunks.map(() => null);
         const seqs = story.chunks.reduce((k, c) => k + c.cues.filter(x => x.cue.kind === 'seq').length, 0);
         logEvent('msg', { role: 'system', text: `Geschichte: Bewegung aus demselben Aufruf - ${marked} von ${n} Abschnitten mit Markern, davon ${seqs} Folgen, kein zweiter Aufruf.` });
       } else {
-        story.chunks.forEach(c => { c.cues = []; });
-        addStoryNote(`Nur ${marked} von ${n} Abschnitten hatten einen Bewegungsmarker - das Skript wird deshalb separat erzeugt.`);
+        // Die vorhandenen Marker bleiben: Diese Abschnitte laufen genau so,
+        // wie die KI sie beschrieben hat, das Skript füllt nur die übrigen.
+        addStoryNote(`Nur ${marked} von ${n} Abschnitten hatten einen Bewegungsmarker - die übrigen bekommen ein separates Skript, die vorhandenen Marker gelten weiter.`);
       }
     } else {
       story.chunks.forEach(c => { c.cues = []; });
@@ -8752,8 +9090,7 @@ function schedulePhases(chunk, durationMs) {
       const at = elapsed;
       story.phaseTimers.push(setTimeout(() => {
         if (!story.playing) return;
-        dev.setMotion(ph);
-        logMotionChoice(num, ph);
+        applyMotionItem(num, ph);
       }, Math.round(at)));
       elapsed += (Math.max(0.2, ph.weight || 1) / totalWeight) * durationMs;
     });
