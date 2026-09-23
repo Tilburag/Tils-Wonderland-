@@ -2133,8 +2133,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.81';
+const APP_VERSION = '0.82';
 const CHANGELOG = [
+  { v: '0.82', date: '2026-09-23', items: [
+    'Schnellerer Sprechbeginn: Lange Zeilen werden zum Sprechen an Satzgrenzen geteilt - der erste Abschnitt ist nur ein Satz und daher schnell vertont, zwei weitere werden währenddessen vorbereitet. Angezeigt wird weiterhin die ganze Zeile.',
+    'Fließende Übergänge: ElevenLabs bekommt den Satz davor und danach mit, damit der Tonfall über die Schnittstelle weiterläuft (bei allen Modellen außer v3).',
+    'Im Protokoll steht jetzt, wie viele Sekunden nach dem Text die Stimme einsetzt.',
+    'Nach einer Fahrt oder einem Halten läuft die Bewegung dort weiter, wo die Folge endete - nicht an der alten Stelle.',
+    'Halbe Marker wie "<<zu 200 in 3s}}" oder ">>> lang und tief <<<" werden repariert oder entfernt und nie vorgelesen.',
+    'Neue Schreibweisen: "rampe 100-950@40-180 4s" (Rampe mit steigendem Tempo), "pendulum", Muster mit Dauer.',
+  ]},
   { v: '0.81', date: '2026-09-23', items: [
     'Sinnlichkeit vor Mechanik: Die Figuren erzählen, was sie tun und wie es sich anfühlt, statt Bewegungsbefehle auszusprechen. Die Mechanik steckt im Marker bzw. im zweiten Schritt.',
     'Neues Feld auf der Figurenseite: „So sollen die Figuren mit dir reden" - deine feste Vorgabe zu Wortwahl und Deutlichkeit, vorbelegt mit deinem Wunsch. „Erinnern" ändert sie nie.',
@@ -3188,18 +3196,28 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     const r = state.motion.requested || {};
     let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor'].includes(r.texture)
       ? { low: r.low, high: r.high, bpm: r.bpm, texture: r.texture } : null;
+    let endPos = null;
     const next = () => {
       if (!seq || seq.token !== token) return;
       const step = steps[k++];
       if (!step) {
         seq = null;
         if (resume) {
+          // Nach einer Fahrt oder einem Halten geht es DORT weiter, wo die Folge
+          // geendet hat - nicht an der alten Stelle. Vorher sprang das Gerät
+          // nach "zu 400" zurück zum Zittern ganz oben.
+          if (endPos !== null && (endPos < resume.low || endPos > resume.high)) {
+            const half = Math.max(20, Math.round((resume.high - resume.low) / 2));
+            const lo = Math.max(0, Math.min(999 - 2 * half, endPos - half));
+            resume = Object.assign({}, resume, { low: lo, high: lo + 2 * half });
+          }
           applyState(resume, true);
           logEvent('msg', { role: 'system', text: `${label}: Folge beendet - weiter mit ${resume.low}-${resume.high}@${resume.bpm} ${resume.texture}` });
         }
         return;
       }
-      if (step.type === 'osc') resume = { low: step.low, high: step.high, bpm: step.bpm, texture: step.texture };
+      if (step.type === 'osc') { resume = { low: step.low, high: step.high, bpm: step.bpm, texture: step.texture }; endPos = null; }
+      if (step.type === 'move') endPos = step.to;
       const m = state.motion;
       const { minPos, maxPos } = getSettings();
       const span = Math.max(1, maxPos - minPos);
@@ -3831,7 +3849,18 @@ function speakBrowser(text, role, onStart, onBoundary) {
 // is what removes the silent gap between sentences. The request goes out the
 // moment this is called - awaiting the returned object only waits for whatever
 // is left.
-function fetchElevenAudio(text, role) {
+// Satz davor und danach: damit Betonung und Tonfall über die Schnittstelle
+// zwischen zwei Abschnitten weiterlaufen. v3 unterstützt das nicht - dort
+// bleibt es weg.
+function continuityFields(ctx, modelId) {
+  if (!ctx || modelId === 'eleven_v3') return {};
+  const out = {};
+  if (ctx.previous) out.previous_text = stripAudioTags(ctx.previous).slice(-500);
+  if (ctx.next) out.next_text = stripAudioTags(ctx.next).slice(0, 500);
+  return out;
+}
+
+function fetchElevenAudio(text, role, ctx) {
   const key = apiKeyFor('companion_elevenKey');
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
@@ -3875,7 +3904,7 @@ function fetchElevenAudio(text, role) {
     const res = await fetchWithRetry(url, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, model_id: modelId, voice_settings: voiceSettings })
+      body: JSON.stringify(Object.assign({ text: text, model_id: modelId, voice_settings: voiceSettings }, continuityFields(ctx, modelId)))
     });
     if (!res.ok) {
       // The status code alone says nothing useful - the body names the actual
@@ -4047,7 +4076,7 @@ function hasMidCues(cues) {
 // Wie fetchElevenAudio, aber mit Zeitstempeln pro Zeichen. Nur für Stücke,
 // in denen ein Marker mitten im Satz steht - der Umweg über die Zeitstempel
 // braucht die ganze Antwort am Stück statt gestreamt.
-function fetchElevenAudioTimed(text, role) {
+function fetchElevenAudioTimed(text, role, ctx) {
   const key = apiKeyFor('companion_elevenKey');
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
@@ -4070,7 +4099,7 @@ function fetchElevenAudioTimed(text, role) {
     const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, model_id: modelId, voice_settings: voiceSettings }),
+      body: JSON.stringify(Object.assign({ text, model_id: modelId, voice_settings: voiceSettings }, continuityFields(ctx, modelId))),
     });
     if (!res.ok) {
       let detail = '';
@@ -4114,7 +4143,7 @@ function playElevenUrl(objectUrl, onStart, text, role, starts) {
 // Prepares a piece for playback and returns a handle. Everything that can be
 // done ahead of time (the network round trip) happens here; play() only starts
 // the sound. Browser TTS has nothing to prefetch, so it just defers.
-function prepareSpeech(text, role, timed) {
+function prepareSpeech(text, role, timed, ctx) {
   const estimate = () => makeTimeline(text, estimateSpeechMs(text, role), null);
   const browser = (onStart) => {
     const tl = estimate();
@@ -4128,7 +4157,7 @@ function prepareSpeech(text, role, timed) {
   }
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
   if (source !== 'elevenlabs') return { play: browser };
-  const pending = (timed && fetchElevenAudioTimed(text, role)) || fetchElevenAudio(text, role);
+  const pending = (timed && fetchElevenAudioTimed(text, role, ctx)) || fetchElevenAudio(text, role, ctx);
   if (!pending) {
     addMsg('system', 'ElevenLabs ist ausgewählt, aber Schlüssel oder Stimme fehlen - nutze stattdessen die Android-Stimme.');
     return { play: browser };
@@ -4874,12 +4903,13 @@ async function callProviderOnce(provider, systemPrompt, messages, temperature, m
 // Splits a text into sentence-sized pieces (~max chars each) for pacing -
 // used to both drive the beat-by-beat speech/motion loop and to build the
 // numbered list sent to the motion-derivation step.
-function splitIntoPieces(text, maxChars) {
+function splitIntoPieces(text, maxChars, firstMax) {
   const sentences = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
   const pieces = [];
   let group = '';
   for (const s of sentences) {
-    if ((group + s).length > maxChars && group) { pieces.push(group.trim()); group = s; }
+    const limit = pieces.length === 0 && firstMax ? firstMax : maxChars;
+    if ((group + s).length > limit && group) { pieces.push(group.trim()); group = s; }
     else { group += s; }
   }
   if (group.trim()) pieces.push(group.trim());
@@ -4908,14 +4938,14 @@ function splitIntoSegments(text) {
 
 // Same pacing split as before, but each resulting piece remembers which voice
 // should read it and whether it counts as action for the motion step.
-function splitSegmentsIntoPieces(segments, maxChars) {
+function splitSegmentsIntoPieces(segments, maxChars, firstMax) {
   const pieces = [];
-  segments.forEach(seg => {
+  segments.forEach((seg, segIndex) => {
     // A marker belongs to its whole line, so every piece cut from that line
     // carries it - the movement should not change mid-sentence.
     // Die Marker-Positionen werden auf die Stücke umgerechnet, in die die Zeile
     // zerlegt wird - ein Marker mitten im zweiten Satz gehört zum zweiten Stück.
-    const parts = splitIntoPieces(seg.text, maxChars);
+    const parts = splitIntoPieces(seg.text, maxChars, segIndex === 0 ? firstMax : 0);
     let from = 0;
     parts.forEach((text, k) => {
       const start = Math.max(0, seg.text.indexOf(text, from));
@@ -7608,7 +7638,25 @@ function parseMotionStep(raw) {
 // die ganze Folge mitzureißen.
 function parseMotionStepLoose(raw) {
   let t = String(raw).trim().toLowerCase().replace(/\s+/g, ' ')
-    .replace(/\blang\b/g, 'langsam').replace(/\bzügig\b/g, 'mittel').replace(/\bwild\b/g, 'schnell');
+    .replace(/\blang\b/g, 'langsam').replace(/\bzügig\b/g, 'mittel').replace(/\bwild\b/g, 'schnell')
+    .replace(/^pendulum\b/, 'pendeln').replace(/^(slittern|zittern_\b|zitter)\b/, 'zittern').replace(/^(mustern|muttern)\b/, 'muster');
+  // Rampe mit steigendem Tempo: "rampe 100-950@40-180 4s" - vier Stufen, jede
+  // mit beschleunigenden Hüben, das Tempo zieht von Stufe zu Stufe an.
+  let r = t.match(/^(?:rampe|beschleunigen|steigern)\s*(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*-\s*(\d{1,3})\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/);
+  if (r) {
+    const total = r[5] ? clampMs(r[5], 1000, 60000) : 6000;
+    const a = parseInt(r[3], 10), b = parseInt(r[4], 10);
+    const steps = [0, 1, 2, 3].map(k => ({ type: 'osc', low: pos999(r[1]), high: pos999(r[2]), bpm: Math.round(a + (b - a) * k / 3), texture: 'accel', ms: k < 3 ? Math.round(total / 4) : 0 }));
+    return { type: 'pattern', steps };
+  }
+  // Ein Muster mit Dauer ("zittern_oben langsam 2s"): die Dauer gilt dem Ganzen.
+  r = t.match(/^(?:muster\s+)?([a-zäöüß_]+)(?:\s+(langsam|mittel|schnell))?\s+(\d+(?:[.,]\d+)?)\s*s\w*$/);
+  if (r && expandPattern(r[1], r[2])) {
+    const steps = expandPattern(r[1], r[2]);
+    const last = steps[steps.length - 1];
+    if (last && last.type === 'osc' && !last.ms) last.ms = clampMs(r[3], 300, 60000);
+    return { type: 'pattern', steps };
+  }
   let step = parseMotionStep(t);
   if (step) return step;
   const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop)/.test(all) ? all : bpm + ' smooth' + end);
@@ -7687,6 +7735,24 @@ function looksTechnical(line) {
   return false;
 }
 
+// Bei langen Zeilen schreibt das Modell öfter halbe Marker: "<<zu 200 in 3s}}",
+// "<>>>", ">>> lang und tief <<<", "\; \;". Die gültigen werden gerettet, der
+// Rest verschwindet, bevor er angezeigt oder vorgelesen wird.
+function repairMarkers(line) {
+  return String(line)
+    .replace(/<<([^<>{}]{1,400})\}\}/g, '<<$1>>')          // "<<zu 200 in 3s}}"
+    .replace(/<<\s*>>|<\s*>+|<+\s*>/g, ' ')                 // leere Klammern
+    .replace(/>{3,}\s*([^<>]{0,80}?)\s*<{3,}/g, ' $1 ')     // ">>> lang und tief <<<" - nur mit drei Klammern, zwei schließen echte Marker
+    .replace(/\\;|::/g, ' ');
+}
+// Platzhalter der Marker gehören nicht in die Anzeige.
+function cleanDisplayText(text) {
+  return String(text).replace(/[\uE000-\uF76F]/g, '').replace(/[ \t]{2,}/g, ' ').trim();
+}
+function stripMarkerDebris(line) {
+  return String(line).replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
+}
+
 function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
   const out = [];
@@ -7696,7 +7762,7 @@ function parseEnsembleText(text) {
     // Alle Marker der Zeile - auch mitten im Satz - werden zu Platzhaltern.
     // Steht nur ein einziger am Zeilenende (die alte Schreibweise), gilt er wie
     // bisher für die ganze Zeile und rückt an ihren Anfang.
-    const trimmedLine = rawLine.trim();
+    const trimmedLine = repairMarkers(rawLine).trim();
     const found = [...trimmedLine.matchAll(MARKER_ANY)];
     let line = trimmedLine;
     let leadCue = '';
@@ -7704,12 +7770,18 @@ function parseEnsembleText(text) {
       const onlyAtEnd = found.length === 1 && trimmedLine.slice(found[0].index + found[0][0].length).trim() === '';
       line = trimmedLine.replace(MARKER_ANY, (all, inner) => {
         const cue = parseMotionCue(inner);
-        if (!cue) { logEvent('msg', { role: 'system', text: 'Bewegungsmarker nicht verstanden: ' + all.slice(0, 120) }); return ' '; }
+        if (!cue) {
+          logEvent('msg', { role: 'system', text: 'Bewegungsmarker nicht verstanden: ' + all.slice(0, 120) });
+          // Steht darin offensichtlich Sprache statt Bewegung ("<< für einen
+          // Moment fallen lasse >>"), bleibt der Text erhalten.
+          return /\d/.test(inner) ? ' ' : ' ' + inner.trim() + ' ';
+        }
         const ph = placeholderFor(cue);
         if (onlyAtEnd) { leadCue = ph; return ''; }
         return ph;
       }).replace(/[ \t]{2,}/g, ' ').trim();
     }
+    line = stripMarkerDebris(line).trim();
     // Platzhalter vor dem Namen würden die Zuordnung zur Figur verhindern.
     const lead = line.match(new RegExp('^[\\uE000-\\uF76F\\s]+'));
     if (lead) { leadCue = lead[0].replace(/\s/g, '') + leadCue; line = line.slice(lead[0].length); }
@@ -8190,11 +8262,16 @@ async function askEnsemble(userText, options) {
     history.push({ role: 'assistant', content: replyText });
     sceneStep += 1;
 
-    const pieces = parseEnsembleText(replyText);
-    pieces.forEach(pc => {
+    const lines = parseEnsembleText(replyText);
+    lines.forEach(pc => {
       if (isTagOnly(pc.text)) return;
-      addEnsembleMsg(pc.role, stripAudioTags(pc.text));
+      addEnsembleMsg(pc.role, stripAudioTags(cleanDisplayText(pc.text)));
     });
+    // Zum Sprechen werden lange Zeilen an Satzgrenzen geteilt - der erste
+    // Abschnitt ist nur ein Satz und daher schnell vertont, der Rest wird
+    // währenddessen vorbereitet. Angezeigt wird weiterhin die ganze Zeile.
+    const pieces = splitSegmentsIntoPieces(lines, 220, 90);
+    const replyShownAt = Date.now();
 
     const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
     async function getMotions(deviceNum) {
@@ -8242,13 +8319,22 @@ async function askEnsemble(userText, options) {
       ]);
     }
 
-    const prep = (p) => prepareSpeech(p.text, p.role, inline && hasMidCues(p.cues));
-    let upcoming = pieces.length ? prep(pieces[0]) : null;
+    const context = (i) => ({
+      previous: pieces.slice(Math.max(0, i - 2), i).filter(x => x.role === pieces[i].role).map(x => x.text).join(' '),
+      next: pieces[i + 1] && pieces[i + 1].role === pieces[i].role ? pieces[i + 1].text : '',
+    });
+    const prepared = [];
+    const prep = (i) => {
+      if (i >= pieces.length) return null;
+      if (!prepared[i]) prepared[i] = prepareSpeech(pieces[i].text, pieces[i].role, inline && hasMidCues(pieces[i].cues), context(i));
+      return prepared[i];
+    };
+    prep(0); prep(1);
     for (let i = 0; i < pieces.length; i++) {
       if (playbackGeneration !== generation) break; // user pressed stop
       if (!autoPlaying && silent) break;
-      const current = upcoming;
-      upcoming = (i + 1 < pieces.length) ? prep(pieces[i + 1]) : null;
+      const current = prep(i);
+      prep(i + 1); prep(i + 2);   // zwei Abschnitte Vorlauf
 
       // Not there yet means the derivation is still running: leave the device
       // doing what it was doing rather than forcing it to a guessed value.
@@ -8256,9 +8342,11 @@ async function askEnsemble(userText, options) {
       if (hasDevice2 && motions2) applyMotionItem(2, motions2[i] || motions2[motions2.length - 1]);
       const piece = pieces[i];
       let ctl = null;
-      await current.play(inline && piece.cues && piece.cues.length
-        ? (timeline) => { ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation); }
-        : null);
+      const firstOne = i === 0;
+      await current.play((timeline) => {
+        if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte).` });
+        if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
+      });
       if (ctl) ctl.flush();
     }
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
