@@ -799,11 +799,7 @@
         <label for="fantasyImageModel">Modell für Fantasiewesen (leer = dasselbe)</label>
         <select id="fantasyImageModel"><option value="">(dasselbe wie oben)</option></select>
         <p class="hint">Fotomodelle wie Lustify kennen fast nur echte Menschen und malen Hautfarben wie Blau lieber auf Haare und Kleidung. Für Figuren, deren Art nicht „Mensch" ist, nimmt die App dieses Modell - ein Allzweckmodell kann das meist besser.</p>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-          <input type="checkbox" id="onlySuitableImageModels" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Nur passende Bildmodelle zeigen</span>
-        </label>
-        <p class="hint">Wird nur für die Profilbilder der Figuren gebraucht. Die Modelle unterscheiden sich darin, was sie darstellen - wenn eines eine Anfrage ablehnt, hilft ein anderes. Für fotorealistische Porträts eignet sich etwa lustify-v8.</p>
+        <p class="hint">Beide Listen zeigen alle geladenen Bildmodelle. Oben stehen die empfohlenen, gekennzeichnet mit „unzensiert", wo das Modell auch explizite Bilder malt. Für Menschen: lustify-v8, alternativ z-image-turbo. Für Fantasiewesen: z-image-turbo oder chroma - beide unzensiert und besser bei nicht-menschlichen Merkmalen als Lustify.</p>
         <label for="videoModel">Modell für Videos aus Szenenbildern</label>
         <div class="text-input-row">
           <input type="text" id="videoModel" placeholder="z.B. wan-2.6-image-to-video">
@@ -1309,7 +1305,6 @@ const els = {
   loadImageModelsBtn: document.getElementById('loadImageModelsBtn'),
   imageModelSelect: document.getElementById('imageModelSelect'),
   fantasyImageModel: document.getElementById('fantasyImageModel'),
-  onlySuitableImageModels: document.getElementById('onlySuitableImageModels'),
   anthropicPanel: document.getElementById('anthropicPanel'),
   openaiPanel: document.getElementById('openaiPanel'),
   deepseekPanel: document.getElementById('deepseekPanel'),
@@ -1833,55 +1828,62 @@ function imageModelSuitability(model) {
   return score;
 }
 
-function renderImageModels() {
-  const list = els.onlySuitableImageModels.checked
-    ? imageModelCache.slice().sort((a, b) => imageModelSuitability(b) - imageModelSuitability(a)).slice(0, 10)
-    : imageModelCache;
+// Beide Auswahlen zeigen ALLE geladenen Bildmodelle. Früher waren es nur die
+// zehn "passendsten" - und der Schalter, der alle zeigte, war leicht zu
+// übersehen. Jetzt stehen die Empfehlungen oben in eigenen Gruppen.
+// Unzensiert laut Venice-Stand vom Sommer 2026: Z-Image Turbo, Lustify, Anime
+// (WAI), Chroma. Die übrigen lehnen explizite Inhalte in der Regel ab.
+const IMAGE_RECOMMENDED = {
+  human: [['lustify-v8', 'unzensiert, fotorealistisch - erste Wahl'], ['z-image-turbo', 'unzensiert, schnell'], ['lustify', 'unzensiert']],
+  fantasy: [['z-image-turbo', 'unzensiert, gut bei Fantasiewesen'], ['chroma', 'unzensiert, vielseitig'], ['flux-2', 'stark bei Details, zensiert'], ['qwen-image', 'hohe Qualität, zensiert'], ['hidream', 'zensiert']],
+};
+const UNCENSORED_IMAGE = /lustify|z-image|chroma|wai|anime/i;
 
-  els.imageModelSelect.innerHTML = '';
+function fillImageModelSelect(sel, kind, current, emptyText) {
+  sel.innerHTML = '';
   const none = document.createElement('option');
   none.value = '';
-  none.textContent = els.onlySuitableImageModels.checked
-    ? `(${list.length} von ${imageModelCache.length} - die passendsten)`
-    : `(${list.length} Bildmodelle - bitte wählen)`;
-  els.imageModelSelect.appendChild(none);
-
-  list.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.id;
-    els.imageModelSelect.appendChild(opt);
+  none.textContent = emptyText;
+  sel.appendChild(none);
+  const used = new Set();
+  const addGroup = (label, entries) => {
+    if (!entries.length) return;
+    const g = document.createElement('optgroup');
+    g.label = label;
+    entries.forEach(([id, note]) => {
+      used.add(id);
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = note ? `${id} - ${note}` : id;
+      g.appendChild(opt);
+    });
+    sel.appendChild(g);
+  };
+  // Empfehlungen: exakter Name zuerst, sonst das erste Modell, das so beginnt.
+  const rec = [];
+  IMAGE_RECOMMENDED[kind].forEach(([want, note]) => {
+    const hit = imageModelCache.find(m => m.id === want) || imageModelCache.find(m => m.id.startsWith(want));
+    if (hit && !rec.some(([id]) => id === hit.id)) rec.push([hit.id, note]);
   });
-
-  // Show what is actually in use, so opening the settings does not look like
-  // nothing is selected.
-  const current = els.imageModel.value.trim();
-  if (current && list.some(m => m.id === current)) els.imageModelSelect.value = current;
-
-  // Alle Modelle, nicht nur die vorsortierten - die "passendsten" sind hier
-  // ausgerechnet die Fotomodelle, die mit Fantasiewesen nicht zurechtkommen.
-  const fantasy = localStorage.getItem('companion_fantasyImageModel') || '';
-  els.fantasyImageModel.innerHTML = '';
-  const same = document.createElement('option');
-  same.value = '';
-  same.textContent = '(dasselbe wie oben)';
-  els.fantasyImageModel.appendChild(same);
-  imageModelCache.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.id;
-    els.fantasyImageModel.appendChild(opt);
-  });
-  if (fantasy && !imageModelCache.some(m => m.id === fantasy)) {
+  addGroup(kind === 'human' ? 'Empfohlen für Menschen' : 'Empfohlen für Fantasiewesen', rec);
+  const rest = imageModelCache.filter(m => !used.has(m.id)).map(m => [m.id, UNCENSORED_IMAGE.test(m.id) ? 'unzensiert' : '']);
+  addGroup(`Alle weiteren (${rest.length})`, rest);
+  if (current && !imageModelCache.some(m => m.id === current)) {
     const kept = document.createElement('option');
-    kept.value = fantasy;
-    kept.textContent = fantasy + ' (nicht in der geladenen Liste)';
-    els.fantasyImageModel.appendChild(kept);
+    kept.value = current;
+    kept.textContent = current + ' (nicht in der geladenen Liste)';
+    sel.appendChild(kept);
   }
-  els.fantasyImageModel.value = fantasy;
+  sel.value = current || '';
 }
 
-els.onlySuitableImageModels.onchange = renderImageModels;
+function renderImageModels() {
+  fillImageModelSelect(els.imageModelSelect, 'human', els.imageModel.value.trim(),
+    imageModelCache.length ? `(${imageModelCache.length} Bildmodelle - bitte wählen)` : '(noch nicht geladen)');
+  fillImageModelSelect(els.fantasyImageModel, 'fantasy', localStorage.getItem('companion_fantasyImageModel') || '',
+    '(dasselbe wie oben)');
+}
+
 
 async function loadImageModels(quiet) {
   const key = apiKeyFor('companion_apiKey_venice');
@@ -2111,8 +2113,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.76';
+const APP_VERSION = '0.77';
 const CHANGELOG = [
+  { v: '0.77', date: '2026-09-23', items: [
+    'Die Bildmodell-Auswahl zeigt alle geladenen Modelle - Empfehlungen für Menschen bzw. Fantasiewesen stehen oben, unzensierte Modelle sind gekennzeichnet. Vorher waren es nur die zehn „passendsten".',
+  ]},
   { v: '0.76', date: '2026-09-23', items: [
     'Wiedererkennbare Figuren: Jede Figur bekommt einen festen Startwert für ihre Porträts und eine feste englische Kurzbeschreibung ihrer unveränderlichen Merkmale, die auf jedem Bild wörtlich wiederverwendet wird. Bisher schrieb das Textmodell das Aussehen vor jedem Bild neu um - und jede neue Formulierung gab ein anderes Gesicht.',
     'Szenenbilder zeigen die Anatomie so, wie der Moment sie verlangt, und lassen keine beteiligte Person weg.',
