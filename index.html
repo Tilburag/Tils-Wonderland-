@@ -2128,8 +2128,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.79';
+const APP_VERSION = '0.80';
 const CHANGELOG = [
+  { v: '0.80', date: '2026-09-23', items: [
+    'Wenn ein Modell sein Nachdenken statt einer Antwort liefert ("The user wants ... Let me draft"), wird das erkannt: Es landet weder als feste Bildbeschreibung im Speicher noch als Prompt beim Bildmodell. Bereits so gespeicherte Beschreibungen werden verworfen und neu erzeugt.',
+    'Keine Schrift mehr im Bild: Anführungszeichen fliegen aus dem Prompt, und Beschriftungen stehen auf der Ausschlussliste.',
+  ]},
   { v: '0.79', date: '2026-09-23', items: [
     'Stimmen dürfen Akzente und Dialekte haben: französisch, italienisch, Wiener Schmäh, bei Fantasiewesen ein fremdartiger Klang - wenn es zur Figur passt. Vorher wurde akzentfreies Deutsch erzwungen.',
   ]},
@@ -5667,13 +5671,38 @@ function looksLikeRefusal(text) {
     || /(kann ich (dir )?(hier )?(keinen|keine|nicht)|ich kann (dir |hier |das |so )*(keinen|keine|nicht)|nicht verfassen|nicht erstellen|content polic|not able to (write|create|help)|cannot (write|create|help)|gerne erstelle ich dir stattdessen)/i.test(head);
 }
 
+// Manche nachdenkenden Modelle liefern ihr Nachdenken als Antwort mit - "The
+// user wants ... Let me draft: ..." - besonders, wenn das Budget mitten im
+// Denken endet. Das landete als feste Bildbeschreibung im Speicher und als
+// Prompt beim Bildmodell, das die Sätze dann als Schrift ins Bild malte.
+function looksLikeThinking(text) {
+  const t = String(text || '');
+  return /^(the user (wants|asks|is asking)|okay,? (so|the user|let me)|let me |we need to|i need to|first,? (i|let)|alright,? )/i.test(t.trim())
+    || /\b(let me draft|the user wants|draft:|i'll write|i will write)\b/i.test(t.slice(0, 400));
+}
+
+function cleanModelText(text) {
+  let t = String(text || '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^\s*(thinking|reasoning)\s*:[\s\S]*?\n\s*\n/i, '')
+    .trim();
+  if (looksLikeThinking(t)) {
+    // Steht ein fertiger Entwurf in Anführungszeichen darin, ist der brauchbar -
+    // aber nur, wenn er vollständig ist (mit schließendem Zeichen).
+    const meta = /\b(user|draft|words|comma-separated|order:|no clothing|let me)\b/i;
+    const drafts = [...t.matchAll(/"([^"\n]{60,600})"/g)].map(m => m[1]).filter(d => !meta.test(d) && !looksLikeThinking(d));
+    t = drafts.length ? drafts[drafts.length - 1] : '';
+  }
+  return t.replace(/^["'`„“]+|["'`“”]+$/g, '').trim();
+}
+
 async function writeImagePrompt(system, ask, temperature, baseBudget) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   let lastErr = null;
   for (const task of ['chat', 'draft']) {
     try {
-      const out = String(await callProvider(provider, system, [{ role: 'user', content: ask }],
-        temperature, taskBudget(task, baseBudget), { task })).trim().replace(/^["'`]+|["'`]+$/g, '');
+      const out = cleanModelText(await callProvider(provider, system, [{ role: 'user', content: ask }],
+        temperature, taskBudget(task, baseBudget), { task }));
       if (out && !looksLikeRefusal(out)) return out;
       logEvent('msg', { role: 'system', text: `Bildbeschreibung vom ${taskLabel(task)}-Modell abgelehnt oder leer${task === 'chat' ? ' - versuche das Entwurfsmodell' : ''}.` });
     } catch (err) {
@@ -5693,7 +5722,7 @@ async function makeSceneImage(momentText, castOverride) {
   let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride), 'Gib den Bild-Prompt zurück.', 0.7, 1200);
   if (!prompt) throw new Error('Die Bildbeschreibung wurde abgelehnt oder war leer - kein Bild erzeugt.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
-  prompt = withLookTags(prompt, castForTags);
+  prompt = withLookTags(prompt, castForTags).replace(/["„“”]/g, '');
   // Fantasiewesen in der Szene: ihre Hautfarbe wird ausdrücklich angehängt,
   // falls der Prompt sie verschluckt hat, und der Stil zieht nicht mehr zur
   // "natürlichen" Haut.
@@ -6164,7 +6193,7 @@ function styleSuffix(anyNonHuman, colors) {
 }
 
 function negativeFor(anyNonHuman, colors, hairGuard) {
-  let n = 'blurry, low quality, distorted anatomy, extra limbs, text, watermark, logo';
+  let n = 'blurry, low quality, distorted anatomy, extra limbs, text, caption, subtitles, letters, typography, watermark, logo';
   if (portraitStyle() === 'foto') {
     n += anyNonHuman ? ', illustration, painting, drawing, cartoon, anime' : ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed';
   }
@@ -6202,10 +6231,18 @@ function appearanceHash(text) {
 async function ensureLookTag(c) {
   if (!c || c.isNarrator) return '';
   const src = appearanceHash(c.appearance);
-  if (c.lookTag && c.lookTagSrc === src) return c.lookTag;
+  // Eine gespeicherte Kurzbeschreibung, die in Wahrheit Nachdenken des Modells
+  // ist, wird verworfen und neu erzeugt.
+  const valid = t => t && !looksLikeThinking(t) && !/let me|the user/i.test(t) && t.length <= 420;
+  if (c.lookTag && c.lookTagSrc === src && valid(c.lookTag)) return c.lookTag;
+  if (c.lookTag && !valid(c.lookTag)) { c.lookTag = ''; c.lookTagSrc = ''; }
   const figure = c.figureId ? getFigure(c.figureId) : null;
   const version = figure ? findVersion(figure, c.version || latestVersion(figure).v) : null;
-  if (version && version.lookTag && version.lookTagSrc === src) {
+  if (version && version.lookTag && !valid(version.lookTag)) {
+    version.lookTag = ''; version.lookTagSrc = '';
+    try { saveArchive(); } catch (e) {}
+  }
+  if (version && version.lookTag && version.lookTagSrc === src && valid(version.lookTag)) {
     c.lookTag = version.lookTag; c.lookTagSrc = src;
     return c.lookTag;
   }
@@ -6221,7 +6258,7 @@ Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst 
 Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
     'Gib die Kurzbeschreibung zurück.', 0.2, 400);
   let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
-  if (!tag) return '';
+  if (!tag || !valid(tag)) return '';
   if (!/\badult/i.test(tag)) tag = 'adult ' + tag;
   c.lookTag = tag; c.lookTagSrc = src;
   if (version) {
@@ -6277,7 +6314,9 @@ async function generateCharacterImage(c, button) {
     const fantasyModel = (localStorage.getItem('companion_fantasyImageModel') || '').trim();
     if (species.nonHuman && fantasyModel) model = fantasyModel;
     const colors = species.color ? [species.color] : [];
-    const finalPrompt = imagePrompt.slice(0, 1250) + styleSuffix(species.nonHuman, colors);
+    // Anführungszeichen im Prompt verleiten Bildmodelle, den Text als Schrift
+    // ins Bild zu setzen - sie fliegen raus.
+    const finalPrompt = imagePrompt.replace(/["„“”]/g, '').slice(0, 1250) + styleSuffix(species.nonHuman, colors) + ' No text, no captions.';
     logEvent('msg', { role: 'system', text: `Porträt ${c.name} (${model}${species.nonHuman ? ', Fantasiewesen' + (species.color ? ' ' + species.color : '') : ''}): ${finalPrompt.slice(0, 500)}` });
 
     const res = await fetch('https://api.venice.ai/api/v1/image/generate', {
