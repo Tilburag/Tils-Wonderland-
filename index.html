@@ -1067,6 +1067,10 @@
         <button class="btn-secondary" id="newFigureBtn">＋ Leere Figur</button>
       </div>
 
+      <label for="userStyle" style="margin-top:18px;">So sollen die Figuren mit dir reden</label>
+      <textarea id="userStyle" style="min-height:110px" placeholder="Was du magst: Wortwahl, Deutlichkeit, Ton. Gilt für alle Figuren, im Gespräch und in Geschichten."></textarea>
+      <p class="hint">Deine feste Vorgabe - „Erinnern" ändert sie nie. Was hier steht, geht bei jeder Antwort und jeder Geschichte an das Modell.</p>
+
       <label for="sharedProfile" style="margin-top:18px;">Was alle Figuren über dich wissen</label>
       <textarea id="sharedProfile" style="min-height:110px" placeholder="Wird beim Erinnern gefüllt: dein Name, was dir gefällt, was nicht. Du kannst hier auch selbst etwas eintragen oder streichen."></textarea>
       <p class="hint">Dieses Wissen teilen sich alle Figuren. Was eine Figur mit dir erlebt hat und wen sie kennt, steht dagegen bei ihr selbst, im Feld „Gedächtnis" im Figureneditor.</p>
@@ -1294,6 +1298,7 @@ const els = {
   videoModelSelect: document.getElementById('videoModelSelect'),
   loadVideoModelsBtn: document.getElementById('loadVideoModelsBtn'),
   sharedProfile: document.getElementById('sharedProfile'),
+  userStyle: document.getElementById('userStyle'),
   rememberBtn: document.getElementById('rememberBtn'),
   sceneImageBtn: document.getElementById('sceneImageBtn'),
   photoBtn: document.getElementById('photoBtn'),
@@ -2128,8 +2133,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.80';
+const APP_VERSION = '0.81';
 const CHANGELOG = [
+  { v: '0.81', date: '2026-09-23', items: [
+    'Sinnlichkeit vor Mechanik: Die Figuren erzählen, was sie tun und wie es sich anfühlt, statt Bewegungsbefehle auszusprechen. Die Mechanik steckt im Marker bzw. im zweiten Schritt.',
+    'Neues Feld auf der Figurenseite: „So sollen die Figuren mit dir reden" - deine feste Vorgabe zu Wortwahl und Deutlichkeit, vorbelegt mit deinem Wunsch. „Erinnern" ändert sie nie.',
+    'Mehr Raum im Gespräch: weiterhin höchstens vier Zeilen, aber jede darf zwei, drei Sätze lang sein.',
+    'Folgen laufen weiter: Endet eine Bewegungsfolge ohne ausdrückliches Stopp, geht die letzte Bewegung weiter, statt das Gerät stehen zu lassen.',
+    'Nachsichtigere Marker: Füllwörter werden überlesen, „lang" wird zu „langsam", und ein unverständlicher Schritt fällt allein weg.',
+  ]},
   { v: '0.80', date: '2026-09-23', items: [
     'Wenn ein Modell sein Nachdenken statt einer Antwort liefert ("The user wants ... Let me draft"), wird das erkannt: Es landet weder als feste Bildbeschreibung im Speicher noch als Prompt beim Bildmodell. Bereits so gespeicherte Beschreibungen werden verworfen und neu erzeugt.',
     'Keine Schrift mehr im Bild: Anführungszeichen fliegen aus dem Prompt, und Beschriftungen stehen auf der Ausschlussliste.',
@@ -3168,10 +3180,26 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     const token = {};
     seq = { token, timer: null };
     let k = 0;
+    // Was vorher lief - und die letzte Pendelbewegung der Folge. Endet eine
+    // Folge ohne ausdrückliches Stopp, geht es damit weiter. Vorher blieb das
+    // Gerät nach "zittern ... 1s" oder "zu 100 in 1.5s" einfach stehen - einmal
+    // dreieinhalb Minuten lang. Ein kurzes "halten 2s" bleibt eine echte Pause,
+    // danach geht es weiter.
+    const r = state.motion.requested || {};
+    let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor'].includes(r.texture)
+      ? { low: r.low, high: r.high, bpm: r.bpm, texture: r.texture } : null;
     const next = () => {
       if (!seq || seq.token !== token) return;
       const step = steps[k++];
-      if (!step) { seq = null; return; }
+      if (!step) {
+        seq = null;
+        if (resume) {
+          applyState(resume, true);
+          logEvent('msg', { role: 'system', text: `${label}: Folge beendet - weiter mit ${resume.low}-${resume.high}@${resume.bpm} ${resume.texture}` });
+        }
+        return;
+      }
+      if (step.type === 'osc') resume = { low: step.low, high: step.high, bpm: step.bpm, texture: step.texture };
       const m = state.motion;
       const { minPos, maxPos } = getSettings();
       const span = Math.max(1, maxPos - minPos);
@@ -4370,20 +4398,27 @@ function motionFeedbackBlock() {
   }
   if (inlineMotionEnabled()) {
     text += `\nDas ist deine eigene Bewegung - du lenkst das Gerät mit den Markern. Der letzte Stand war <<${s1.low}-${s1.high}@${s1.bpm} ${s1.texture}>>; deine erste Zeile knüpft daran an, statt neu anzufangen.`
-      + `\nDu darfst darauf eingehen, dass du es bist, die das Gerät bewegt, und dass du spürst oder merkst, was es gerade tut. Sprich darüber in Worten, nie in Zahlen.`;
+      + `\nDas bist du, die das tut - erzähl es als das, was du mit mir machst und wie es sich anfühlt, nicht als Bewegung eines Geräts.`;
   } else {
-    text += `\nDas ist die Folge dessen, was zuletzt beschrieben wurde. Ihr dürft euch darauf beziehen - als würdet ihr es spüren, sehen oder selbst lenken. Sprecht darüber in Worten, nie in Zahlen.`;
+    text += `\nDas ist die Folge dessen, was zuletzt beschrieben wurde. Greift es auf als das, was ihr mit mir macht und wie ich darauf reagiere - nicht als Bewegung eines Geräts.`;
   }
   return '\n\n' + text;
 }
 
 // Wie der Text das Gerät erreicht - damit das schreibende Modell weiß, was am
 // anderen Ende mit seinen Sätzen passiert.
+// Sinnlichkeit vor Mechanik. Die Anweisungen der letzten Versionen haben die
+// Figuren dazu gebracht, Bewegungsbefehle auszusprechen ("ganz nach oben zur
+// Spitze, dann rasant runter") - das hat den Gleichlauf verbessert und die
+// Sinnlichkeit verdrängt. Jetzt gilt: Der Text erzählt, was sie tut und wie es
+// sich anfühlt; die Mechanik steckt im Marker bzw. im zweiten Schritt.
+const SENSUAL_RULE = 'SO KLINGT ES: Sprich und erzähle, was du tust und wie es sich anfühlt - nicht, was das Gerät tut. Deine Hand, dein Mund, deine Zunge, deine Lippen, dein Körper, an welcher Stelle, und dazu Atem, Wärme, Geschmack, Geräusche, Blicke, Vorfreude und Lust. Tempo und Stelle dürfen anklingen, aber als Empfindung ("ich lasse mir Zeit, bis du bebst"), nie als Anweisung ("jetzt schnell an der Spitze"). Wörter wie "hoch", "runter", "Hub", "Tempo" oder "Gerät" gehören nicht in den gesprochenen Text.';
+
 function motionCouplingBlock() {
   if (inlineMotionEnabled()) {
-    return '\n\nDu schreibst den Text UND lenkst das Gerät. Was eine Zeile beschreibt und was ihr Marker sagt, muss dasselbe sein: steht im Text "ganz langsam, über die ganze Länge", steht im Marker ein langer, langsamer Hub. Keine Zeile beschreibt etwas anderes, als das Gerät in diesem Moment tut.';
+    return '\n\n' + SENSUAL_RULE + ' Die Mechanik steckt allein im Marker am Zeilenende: Er setzt um, was die Zeile beschreibt - leckt deine Zunge über die Spitze, fährt der Marker kurz und oben; nimmt sie ihn ganz in den Mund, geht der Marker über die ganze Länge.';
   }
-  return '\n\nAus eurem Text leitet ein zweiter Schritt die Bewegung ab, Zeile für Zeile. Damit sie genau passt, beschreibt Berührungen konkret: wie schnell, ob über die ganze Länge oder nur an einer Stelle, ob fließend oder in abgesetzten Stößen, wann es schneller oder langsamer wird und wann es innehält. Vage Sätze ergeben vage Bewegung. Nennt dabei nie Zahlen oder Werte.';
+  return '\n\n' + SENSUAL_RULE + ' Aus eurem Text leitet ein zweiter Schritt die Bewegung ab - beschreibt deshalb genau, was geschieht und wo: Hand am Schaft, Zunge an der Spitze, ganz tief in den Mund, langsam oder gierig. Nennt dabei nie Zahlen oder Werte.';
 }
 
 
@@ -4411,7 +4446,7 @@ function allowedTexturesFor(prefix) {
 // Live im selben Aufruf, Geschichte). Bisher stand der Spannungsbogen im
 // Vordergrund, und heraus kamen gleichförmige Treppen (24, 30, 28, 36 ...) -
 // ein Muster aus der Formel, nicht aus dem Text.
-const MOTION_PRIORITY = `DAS WICHTIGSTE: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
+const MOTION_PRIORITY = `FÜR DIE BEWEGUNGSWERTE (Marker bzw. Werte - nicht für den gesprochenen Text) GILT ALS WICHTIGSTES: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
 - STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
 - TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
 - ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe). Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
@@ -7567,10 +7602,32 @@ function parseMotionStep(raw) {
   return null;
 }
 
+// Nachsichtig: Füllwörter vorn werden überlesen ("sehr kurze spitze_necken"),
+// "lang" heißt "langsam", ein unbekanntes Wort hinter dem Tempo wird zu
+// "smooth" - und ein einzelner unverständlicher Schritt fällt allein weg, statt
+// die ganze Folge mitzureißen.
+function parseMotionStepLoose(raw) {
+  let t = String(raw).trim().toLowerCase().replace(/\s+/g, ' ')
+    .replace(/\blang\b/g, 'langsam').replace(/\bzügig\b/g, 'mittel').replace(/\bwild\b/g, 'schnell');
+  let step = parseMotionStep(t);
+  if (step) return step;
+  const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop)/.test(all) ? all : bpm + ' smooth' + end);
+  if (fixed !== t && (step = parseMotionStep(fixed))) return step;
+  const words = t.split(' ');
+  for (let k = 1; k < words.length && k <= 3; k++) {
+    step = parseMotionStep(words.slice(k).join(' '));
+    if (step) return step;
+  }
+  return null;
+}
+
 function parseMotionCue(content) {
   const parts = String(content).split(/\s*[|;]\s*/).filter(Boolean).slice(0, SEQ_MAX_STEPS);
-  let steps = parts.map(parseMotionStep);
-  if (!steps.length || steps.some(x => !x)) return null;
+  let steps = parts.map(parseMotionStepLoose);
+  const failed = parts.filter((p, k) => !steps[k]);
+  steps = steps.filter(Boolean);
+  if (!steps.length) return null;
+  if (failed.length) logEvent('msg', { role: 'system', text: 'Bewegungsschritt überlesen: ' + failed.join(' | ') });
   // Muster werden zu ihren Schritten ausgeklappt.
   steps = steps.flatMap(x => x.type === 'pattern' ? x.steps : [x]);
   if (steps.length === 1) {
@@ -7721,6 +7778,19 @@ function sharedProfile() {
   return (localStorage.getItem('companion_sharedProfile') || '').trim();
 }
 
+// Was ich an Sprache mag - meine eigene Vorgabe, getrennt vom Gedächtnis, das
+// "Erinnern" jederzeit umschreiben darf. Beim ersten Start mit dem vorbelegt,
+// was ich mir ausdrücklich gewünscht habe.
+const USER_STYLE_DEFAULT = 'Ich mag es deutlich und konkret. Sagt die Dinge beim Namen - Schwanz, Penis, Eichel, Hoden, Anus, Brüste, Nippel, Muschi - und beschreibt genau, was ihr tut, statt nur "hoch" und "runter" zu sagen. Zum Beispiel: "Ich fahre mit der Hand in deine Hose und packe deinen Schwanz." oder "Ich lecke mit meiner Zunge über deine Eichel." Beschreibt die Szene so, dass ich sie vor mir sehe.';
+function userStyleText() {
+  const v = localStorage.getItem('companion_userStyle');
+  return v === null ? USER_STYLE_DEFAULT : v;
+}
+function userStyleBlock() {
+  const t = userStyleText().trim();
+  return t ? `\n\nSO MAG ICH ES - meine eigene Vorgabe, sie gilt für jede Figur:\n${t}` : '';
+}
+
 function memoryBlock() {
   const parts = [];
   const profile = sharedProfile();
@@ -7823,7 +7893,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -7999,7 +8069,7 @@ Bleib strikt in der oben beschriebenen Szene: derselbe Ort, dieselben Figuren, k
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Halte dich kurz und gib mir den Zug zurück. Höchstens 4 Zeilen, und schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -8599,6 +8669,8 @@ els.videoModelSelect.onchange = () => {
 };
 els.loadVideoModelsBtn.onclick = () => loadVideoModels(false);
 els.sharedProfile.value = sharedProfile();
+els.userStyle.value = userStyleText();
+els.userStyle.oninput = () => safeSet('companion_userStyle', els.userStyle.value.slice(0, 1500));
 els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
 
