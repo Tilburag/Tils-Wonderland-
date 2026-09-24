@@ -2133,8 +2133,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.85';
+const APP_VERSION = '0.86';
 const CHANGELOG = [
+  { v: '0.86', date: '2026-09-24', items: [
+    'Neue Zeile „Typ" im Aussehen: das Erscheinungsbild der Herkunft nach (mediterran, skandinavisch, afrikanisch ...). Ohne sie malte z-image-turbo standardmäßig ostasiatische Gesichter, und verschiedene Figuren sahen sich ähnlich. Der Typ steht jetzt auch in der festen Bildbeschreibung ganz vorn.',
+  ]},
   { v: '0.85', date: '2026-09-24', items: [
     'Porträts scheiterten mit „seed ... less than or equal to 999999999": Der feste Startwert war zu groß für Venice. Neue Werte liegen im erlaubten Bereich, bereits gespeicherte werden automatisch angepasst.',
   ]},
@@ -6348,7 +6351,7 @@ async function ensureLookTag(c) {
 
 ${gender ? 'Geschlecht: ' + gender + '\n' : ''}Aussehen: ${String(c.appearance).slice(0, APPEARANCE_MAX)}
 
-Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), Geschlecht und Alter ("adult 29-year-old woman"), dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
+Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), dann Typ bzw. Herkunft, Geschlecht und Alter in einem Zug ("adult 29-year-old Mediterranean woman", "adult 35-year-old Scandinavian man") - der Typ gehört unbedingt dazu, sonst malen manche Bildmodelle standardmäßig ostasiatische Gesichter, dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
 Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
     'Gib die Kurzbeschreibung zurück.', 0.2, 400);
   let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
@@ -7380,6 +7383,7 @@ const APPEARANCE_MAX = 1100;
 const NONHUMAN_RULE = 'Ist eine Figur kein Mensch (andere Hautfarbe, besondere Ohren, Augen, Hörner, Schwanz, Leuchtmuster oder Ähnliches), gehört das GANZ AN DEN ANFANG und muss unübersehbar benannt sein, etwa "a tall blue-skinned humanoid alien woman with glowing freckles and a long tail" - sonst malt das Bildmodell einen Menschen. Fotorealistisch heißt dann: so, als hätte man dieses Wesen wirklich fotografiert.';
 const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
 Art: "Mensch" - oder bei einem Fantasiewesen die Art in eigenen Worten mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
+Typ: das Erscheinungsbild der Herkunft nach, etwa mitteleuropäisch, skandinavisch, osteuropäisch, mediterran, lateinamerikanisch, afrikanisch, arabisch, südasiatisch, ostasiatisch - oder eine Mischung. Wähle bewusst und abwechslungsreich: Fehlt die Angabe, malen manche Bildmodelle (etwa z-image-turbo) standardmäßig ostasiatische Gesichter, und verschiedene Figuren sehen sich dann ähnlich. Bei Fantasiewesen entfällt diese Zeile.
 Alter: eine konkrete Zahl, mindestens 21 - bei Fantasiewesen erwachsen und wie mindestens 21 Menschenjahre wirkend
 Haare: Farbe, Länge, Struktur, Frisur
 Gesicht: Form, Augenfarbe und -form, Brauen, Nase, Lippen, Haut im Gesicht
