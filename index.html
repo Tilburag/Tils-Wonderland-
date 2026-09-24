@@ -2133,8 +2133,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.84';
+const APP_VERSION = '0.85';
 const CHANGELOG = [
+  { v: '0.85', date: '2026-09-24', items: [
+    'Porträts scheiterten mit „seed ... less than or equal to 999999999": Der feste Startwert war zu groß für Venice. Neue Werte liegen im erlaubten Bereich, bereits gespeicherte werden automatisch angepasst.',
+  ]},
   { v: '0.84', date: '2026-09-24', items: [
     'Sofortreaktion: „langsamer", „schneller" oder „stopp" wirken sofort am Gerät, noch während die KI antwortet. Vorher lief das alte Tempo weiter, bis die Stimme den passenden Marker erreichte.',
     'Mehr und frühere Marker im Ein-Aufruf-Betrieb: der erste schon in der ersten Zeile, und jede Änderung von Stelle oder Tempo bekommt ihren eigenen Marker genau dort, wo sie im Satz passiert.',
@@ -6302,8 +6305,12 @@ function negativeFor(anyNonHuman, colors, hairGuard) {
 function figureSeed(c) {
   const figure = c && c.figureId ? getFigure(c.figureId) : null;
   if (!figure) return undefined;
-  if (!figure.seed) {
-    figure.seed = 1 + Math.floor(Math.random() * 2147483000);
+  // Venice nimmt höchstens 999.999.999. Früher wurden Werte bis gut zwei
+  // Milliarden erzeugt - die Anfrage scheiterte dann mit 400. Zu große
+  // gespeicherte Werte werden einmalig in den gültigen Bereich gebracht.
+  const MAX_SEED = 999999999;
+  if (!figure.seed || figure.seed > MAX_SEED) {
+    figure.seed = figure.seed ? (figure.seed % MAX_SEED) + 1 : 1 + Math.floor(Math.random() * (MAX_SEED - 1));
     try { saveArchive(); } catch (e) {}
   }
   return figure.seed;
