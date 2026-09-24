@@ -2133,8 +2133,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.86';
+const APP_VERSION = '0.88';
 const CHANGELOG = [
+  { v: '0.88', date: '2026-09-24', items: [
+    'Eigenschafts-Häkchen sind keine Pflicht mehr: Der Generator wählt nur, was wirklich passt, auch gar nichts - leere Gruppen werden nicht mehr automatisch aufgefüllt.',
+    'Im Prompt steht die eigene Beschreibung einer Figur jetzt vor den Häkchen; diese gelten nur noch als grobe Richtung, bei Widerspruch gewinnt der Text.',
+  ]},
+  { v: '0.87', date: '2026-09-24', items: [
+    'Geschlecht wird zuverlässig gesetzt: Schreibweisen wie „männlich", „female" oder „Frau" werden erkannt, und fehlt die Angabe, schließt die App sie aus deiner Vorgabe, dem Aussehen und den Notizen. Im Aussehen steht es jetzt ausdrücklich in der Art-Zeile - auch bei Fantasiewesen.',
+    'Leere Eigenschaftsgruppen beim Figuren-Generator werden aus den übrigen Angaben sinnvoll ergänzt statt leer zu bleiben; im Protokoll steht, was ergänzt wurde.',
+  ]},
   { v: '0.86', date: '2026-09-24', items: [
     'Neue Zeile „Typ" im Aussehen: das Erscheinungsbild der Herkunft nach (mediterran, skandinavisch, afrikanisch ...). Ohne sie malte z-image-turbo standardmäßig ostasiatische Gesichter, und verschiedene Figuren sahen sich ähnlich. Der Typ steht jetzt auch in der festen Bildbeschreibung ganz vorn.',
   ]},
@@ -5357,12 +5365,16 @@ function describeCharacter(c) {
   // Gekürzt: das Gespräch braucht das Auffälligste, nicht bei jeder Nachricht
   // die ganze Körperbeschreibung - die geht nur an die Bildmodelle.
   if ((c.appearance || '').trim()) parts.push(`Aussehen: ${appearanceShort(c.appearance.replace(/\s*\n\s*/g, '; '), 380)}`);
-  TRAIT_GROUPS.forEach(group => {
-    const picked = group.traits.filter(([id]) => c.traits.includes(id)).map(([, text]) => text);
-    if (picked.length) parts.push(`${group.label}: ${picked.join(', ')}`);
-  });
+  // Die eigene Beschreibung zuerst - sie ist maßgeblich. Die Häkchen folgen
+  // als grobe Richtung; bei einem Widerspruch gilt der Text.
   if (c.notes && c.notes.trim()) parts.push(c.notes.trim());
-  return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (parts.length ? parts.join('. ') + '.' : 'keine nähere Beschreibung.');
+  const picked = TRAIT_GROUPS.map(group => {
+    const t = group.traits.filter(([id]) => (c.traits || []).includes(id)).map(([, text]) => text);
+    return t.length ? `${group.label}: ${t.join(', ')}` : '';
+  }).filter(Boolean);
+  if (picked.length) parts.push(`Grobe Richtung (${picked.join('; ')}) - bei Widerspruch gilt die Beschreibung`);
+  const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
+  return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
 
 // ---------- Eigene Stimme entwerfen (ElevenLabs Voice Design) ----------
@@ -7016,7 +7028,7 @@ Liefere:
 Für jede Figur wählst du Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
 
-Aus JEDER der vier Gruppen wählst du etwas, sonst bleibt die Figur halb beschrieben: Wesen zwei bis drei, Sprechweise ein bis zwei, Rolle in der Szene genau eine, Verhältnis zu den anderen genau eine. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
+Wähle nur Eigenschaften, die wirklich passen - gern auch nur wenige oder aus manchen Gruppen gar keine. Sie sind nur eine grobe Richtung; was die Figur einzigartig macht, gehört in "notes" und in die Beispielzeilen. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
 ${voiceBlock}
 
 Dazu je ein Feld "gender" mit einem dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}, ein Feld "appearance" (siehe unten), ein Feld "styleExamples" mit zwei bis drei Beispielzeilen im Ton dieser Figur, ein Feld "replyLength" ("kurz", "mittel", "lang" oder "sehrlang") und ein Feld "temperature" zwischen 0.3 und 1.0.
@@ -7037,6 +7049,51 @@ Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown, beginnend mit "{" und e
 // The cast check insists on at least two figures and exactly one "me", which is
 // right for a whole cast and wrong for a single one. Reusing it for one figure
 // meant every generated figure was rejected before it was ever looked at.
+// Das Modell schreibt das Geschlecht gern als "männlich", "female" oder
+// "Frau" - bisher wurde alles außer der exakten Kennung zu "offen gelassen".
+// Jetzt wird es erkannt, und fehlt es ganz, aus Vorgabe, Aussehen und Notizen
+// geschlossen ("Kriegerin", "sie", "weibliches Wesen").
+function normalizeGender(raw, ...texts) {
+  const g = String(raw || '').toLowerCase().trim();
+  if (/^(w|f|weiblich|female|frau|woman|feminin)/.test(g)) return 'weiblich';
+  if (/^(m|männlich|maennlich|male|mann|man|maskulin)/.test(g)) return 'maennlich';
+  if (/^(d|divers|nicht.?binär|non.?binary|nonbinary)/.test(g)) return 'divers';
+  const all = ' ' + texts.map(t => String(t || '')).join(' ').toLowerCase() + ' ';
+  const fem = (all.match(/\b(weiblich\w*|frau|woman|female|sie|ihr|ihre|ihren|brüste|\w{3,}in)\b/g) || []).length;
+  const mal = (all.match(/\b(männlich\w*|mann|man|male|er|sein|seine|seinen)\b/g) || []).length;
+  if (fem > mal * 1.5 && fem >= 2) return 'weiblich';
+  if (mal > fem * 1.5 && mal >= 2) return 'maennlich';
+  return 'offen';
+}
+
+// Fehlt einer Eigenschaftsgruppe etwas, wird aus den übrigen Angaben ergänzt,
+// statt die Gruppe leer zu lassen.
+function fillTraitGroups(traits, notes) {
+  const out = traits.slice();
+  const has = ids => ids.some(id => out.includes(id));
+  const text = String(notes || '').toLowerCase();
+  const pick = (candidates, fallback) => {
+    const hit = candidates.find(([re]) => re.test(text));
+    return hit ? hit[1] : fallback;
+  };
+  const added = [];
+  if (!has(['knapp', 'redselig', 'bildhaft', 'deutlich', 'leise', 'humorvoll', 'fragend'])) {
+    const id = pick([[/flüster|leise|hauch/, 'leise'], [/lach|witz|humor/, 'humorvoll'], [/knapp|wenig worte|kurz angebunden/, 'knapp'], [/erzählt|beschreib|bildhaft/, 'bildhaft']],
+      out.includes('direkt') || out.includes('ungeduldig') || out.includes('selbstbewusst') ? 'deutlich' : 'bildhaft');
+    out.push(id); added.push(id);
+  }
+  if (!has(['fuehrt', 'folgt', 'wechselt', 'beobachtet'])) {
+    const id = pick([[/beobacht|zuschau/, 'beobachtet'], [/lässt sich führen|gehorch|unterwirft|devot/, 'folgt']],
+      out.some(t => ['selbstbewusst', 'direkt', 'ungeduldig'].includes(t)) ? 'fuehrt' : 'wechselt');
+    out.push(id); added.push(id);
+  }
+  if (!has(['vertraut', 'neu', 'spannung', 'rivalitaet'])) {
+    const id = pick([[/vertraut|seit jahren|lange/, 'vertraut'], [/rival|eifersüch/, 'rivalitaet'], [/fremd|erste mal|begegn/, 'neu']], 'spannung');
+    out.push(id); added.push(id);
+  }
+  return { traits: out, added };
+}
+
 function sanitizeSingleCharacter(draft) {
   const valid = new Set(Object.keys(TRAIT_TEXT));
   const clamp = (v, lo, hi, fallback) => {
@@ -7052,7 +7109,7 @@ function sanitizeSingleCharacter(draft) {
     isNarrator: false,
     traits: matchTraits(d.traits, d.name),
     notes: String(d.notes || '').slice(0, 1200),
-    gender: GENDER_TEXT[d.gender] ? d.gender : 'offen',
+    gender: GENDER_TEXT[d.gender] ? d.gender : normalizeGender(d.gender, d.appearance, d.notes),
     appearance: String(d.appearance || '').slice(0, APPEARANCE_MAX),
     voiceDescription: String(d.voiceDescription || '').slice(0, 800),
     // Everything the model was asked for is taken over, with the same clamping
@@ -7087,7 +7144,7 @@ function sanitizeDraftCharacters(list) {
     isUser: !!c.isUser,
     traits: matchTraits(c.traits, c.name),
     notes: String(c.notes || '').slice(0, 1200),
-    gender: GENDER_TEXT[c.gender] ? c.gender : 'offen',
+    gender: GENDER_TEXT[c.gender] ? c.gender : normalizeGender(c.gender, c.appearance, c.notes),
     appearance: String(c.appearance || '').slice(0, APPEARANCE_MAX),
     voiceDescription: String(c.voiceDescription || '').slice(0, 800),
     emotional: c.emotional === undefined ? true : !!c.emotional,
@@ -7382,7 +7439,7 @@ const APPEARANCE_MAX = 1100;
 // die Art vorn und ausdrücklich, malt es, was gemeint ist - auch fotorealistisch.
 const NONHUMAN_RULE = 'Ist eine Figur kein Mensch (andere Hautfarbe, besondere Ohren, Augen, Hörner, Schwanz, Leuchtmuster oder Ähnliches), gehört das GANZ AN DEN ANFANG und muss unübersehbar benannt sein, etwa "a tall blue-skinned humanoid alien woman with glowing freckles and a long tail" - sonst malt das Bildmodell einen Menschen. Fotorealistisch heißt dann: so, als hätte man dieses Wesen wirklich fotografiert.';
 const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
-Art: "Mensch" - oder bei einem Fantasiewesen die Art in eigenen Worten mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
+Art: "Mensch, Frau" bzw. "Mensch, Mann" - oder bei einem Fantasiewesen die Art MIT Geschlecht in eigenen Worten ("weibliches Dschungelwesen ...") und mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
 Typ: das Erscheinungsbild der Herkunft nach, etwa mitteleuropäisch, skandinavisch, osteuropäisch, mediterran, lateinamerikanisch, afrikanisch, arabisch, südasiatisch, ostasiatisch - oder eine Mischung. Wähle bewusst und abwechslungsreich: Fehlt die Angabe, malen manche Bildmodelle (etwa z-image-turbo) standardmäßig ostasiatische Gesichter, und verschiedene Figuren sehen sich dann ähnlich. Bei Fantasiewesen entfällt diese Zeile.
 Alter: eine konkrete Zahl, mindestens 21 - bei Fantasiewesen erwachsen und wie mindestens 21 Menschenjahre wirkend
 Haare: Farbe, Länge, Struktur, Frisur
@@ -7425,9 +7482,9 @@ Meine Vorgabe: ${idea}
 Wähle Eigenschaften NUR aus dieser Liste, als Kennungen:
 ${traitList}
 
-Aus JEDER der vier Gruppen wählst du etwas, sonst bleibt die Figur halb beschrieben: Wesen zwei bis drei, Sprechweise ein bis zwei, Rolle in der Szene genau eine, Verhältnis zu den anderen genau eine. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
+Wähle nur Eigenschaften, die wirklich passen - gern auch nur wenige oder aus manchen Gruppen gar keine. Sie sind nur eine grobe Richtung; was die Figur einzigartig macht, gehört in "notes" und in die Beispielzeilen. Schreibe nur die Kennungen in Anführungszeichen, genau wie oben - ohne Umlaute, ohne den erklärenden Text.
 
-"gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
+"gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}. Pflicht: Nennt die Vorgabe ein Geschlecht oder ergibt es sich ("Kriegerin", "weibliches Wesen"), trägst du es ein - auch bei Fantasiewesen. "offen" nur, wenn die Vorgabe es ausdrücklich offen lässt.
 ${APPEARANCE_SCHEMA}
 "notes" sind fünf bis acht Sätze: ihr Wesen, ein wenig Hintergrund, wie sie spricht, wie sie sich verhält, wie sie mit mir umgeht, was sie mag und was nicht.
 ${VOICE_SCHEMA}
@@ -7457,6 +7514,12 @@ els.genFigureBtn.onclick = async () => {
     const draft = extractJson(raw);
     const clean = sanitizeSingleCharacter(draft);
     clean.isNarrator = figureFilterNarrators;
+    if (!clean.gender || clean.gender === 'offen') {
+      clean.gender = normalizeGender(draft && draft.gender, idea, clean.appearance, clean.notes);
+    }
+    // Keine automatische Ergänzung leerer Eigenschaftsgruppen mehr: Leer heißt
+    // "keine Vorgabe" - die Figur ist dann über ihre Notizen beschrieben. Die
+    // Standardwerte machten die Figuren einander nur ähnlicher.
 
     const figure = addFigureToArchive(clean);
     saveArchive();
