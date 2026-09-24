@@ -2133,8 +2133,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.83';
+const APP_VERSION = '0.84';
 const CHANGELOG = [
+  { v: '0.84', date: '2026-09-24', items: [
+    'Sofortreaktion: „langsamer", „schneller" oder „stopp" wirken sofort am Gerät, noch während die KI antwortet. Vorher lief das alte Tempo weiter, bis die Stimme den passenden Marker erreichte.',
+    'Mehr und frühere Marker im Ein-Aufruf-Betrieb: der erste schon in der ersten Zeile, und jede Änderung von Stelle oder Tempo bekommt ihren eigenen Marker genau dort, wo sie im Satz passiert.',
+    '„Holding", „hold" und „halt" werden als „halten" verstanden; ein durch deine neue Nachricht unterbrochenes Erinnern meldet keinen Fehler mehr.',
+  ]},
   { v: '0.83', date: '2026-09-23', items: [
     'Lebendigere Erzählstimme: Die Handlungszeilen werden wie in einem Hörbuch erzählt - Rhythmus, Pausen, Spannung - statt als Protokoll, und nicht mehr jede beginnt mit dem vollen Namen („Fenja Sturm tritt ... Fenja Sturm öffnet ...").',
     'Die Erzählerin spricht mit mehr Ausdruck (mehr Stil, weniger Stabilität) und darf, wenn sie emotional spricht, sparsam Klangmarken wie [leise] oder [atemlos] nutzen.',
@@ -4461,7 +4466,8 @@ const SENSUAL_RULE = 'SO KLINGT ES: Sprich und erzähle, was du tust und wie es 
 
 function motionCouplingBlock() {
   if (inlineMotionEnabled()) {
-    return '\n\n' + SENSUAL_RULE + ' Die Mechanik steckt allein im Marker am Zeilenende: Er setzt um, was die Zeile beschreibt - leckt deine Zunge über die Spitze, fährt der Marker kurz und oben; nimmt sie ihn ganz in den Mund, geht der Marker über die ganze Länge.';
+    return '\n\n' + SENSUAL_RULE + ' Die Mechanik steckt allein in den Markern: Sie setzen um, was der Text beschreibt - leckt deine Zunge über die Spitze, fährt der Marker kurz und oben; nimmt sie ihn ganz in den Mund, geht der Marker über die ganze Länge.'
+      + '\nMARKER-DICHTE: Setze den ersten Marker schon in der ersten Zeile - er setzt sofort um, worum ich gerade gebeten habe (langsamer, schneller, eine andere Stelle). Und jede Handlungszeile, in der sich Stelle, Tempo oder Art ändert, bekommt ihren Marker genau an der Stelle im Satz, wo es passiert. Beschreibt eine Zeile drei Dinge nacheinander, stehen dort drei Marker. Lieber einer zu viel als zu wenig - ohne Marker läuft die alte Bewegung einfach weiter.';
   }
   return '\n\n' + SENSUAL_RULE + ' Aus eurem Text leitet ein zweiter Schritt die Bewegung ab - beschreibt deshalb genau, was geschieht und wo: Hand am Schaft, Zunge an der Spitze, ganz tief in den Mund, langsam oder gierig. Nennt dabei nie Zahlen oder Werte.';
 }
@@ -7655,7 +7661,7 @@ function parseMotionStep(raw) {
 function parseMotionStepLoose(raw) {
   let t = String(raw).trim().toLowerCase().replace(/\s+/g, ' ')
     .replace(/\blang\b/g, 'langsam').replace(/\bzügig\b/g, 'mittel').replace(/\bwild\b/g, 'schnell')
-    .replace(/^pendulum\b/, 'pendeln').replace(/^(slittern|zittern_\b|zitter)\b/, 'zittern').replace(/^(mustern|muttern)\b/, 'muster');
+    .replace(/^pendulum\b/, 'pendeln').replace(/^(holding|hold|halt|pausiere|pause)\b/, 'halten').replace(/^(slittern|zittern_\b|zitter)\b/, 'zittern').replace(/^(mustern|muttern)\b/, 'muster');
   // Rampe mit steigendem Tempo: "rampe 100-950@40-180 4s" - vier Stufen, jede
   // mit beschleunigenden Hüben, das Tempo zieht von Stufe zu Stufe an.
   let r = t.match(/^(?:rampe|beschleunigen|steigern)\s*(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*-\s*(\d{1,3})\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/);
@@ -7960,7 +7966,8 @@ async function rememberConversation() {
     addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
       + (profile ? ' Das gemeinsame Wissen über dich ist aktualisiert.' : ''));
   } catch (err) {
-    addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
+    // Unterbricht meine neue Nachricht das Erinnern, ist das kein Fehler.
+    if (!err.aborted) addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
   } finally {
     els.rememberBtn.disabled = false;
     els.rememberBtn.textContent = 'Erinnern';
@@ -8258,6 +8265,36 @@ if (els.thinkingCancel) {
   };
 }
 
+// Sofortreaktion: "langsamer", "schneller", "stopp" wirken sofort am Gerät,
+// noch während die KI antwortet. Bisher lief das alte Tempo weiter, bis die
+// Stimme beim ersten passenden Marker ankam - einmal 27 Sekunden lang. Die
+// Antwort der Figur verfeinert es danach.
+function quickTempoWish(text) {
+  const t = ' ' + String(text || '').toLowerCase() + ' ';
+  if (/\b(stopp|stop|hör auf|hör mal auf|halt an|aufhören|pause)\b/.test(t)) return 'stop';
+  if (/\b(nicht so schnell|langsamer|ruhiger|sanfter|gemächlicher|weniger tempo|mach langsam|ganz langsam)\b/.test(t)) return 'slower';
+  if (/\b(schneller|härter|fester|mehr tempo|tempo rauf|gib gas|schneller werden)\b/.test(t)) return 'faster';
+  return null;
+}
+
+function applyQuickTempo(wish) {
+  if (!wish) return;
+  const devs = [[1, device1], [2, device2]].filter(([, d]) => d && d.isConnected && d.isConnected());
+  devs.forEach(([num, dev]) => {
+    const st = dev.getState ? dev.getState() : null;
+    if (wish === 'stop') {
+      dev.setMotion({ texture: 'stop' });
+      logEvent('msg', { role: 'system', text: `Sofortreaktion Gerät ${num}: angehalten` });
+      return;
+    }
+    if (!st || !(st.bpm > 0) || st.texture === 'stop' || st.texture === 'hold') return;
+    const factor = wish === 'slower' ? 0.67 : 1.33;
+    const bpm = Math.max(8, Math.min(MOTION_LIMITS.maxBpm, Math.round(st.bpm * factor)));
+    dev.setMotion({ low: st.low, high: st.high, bpm, texture: st.texture });
+    logEvent('msg', { role: 'system', text: `Sofortreaktion Gerät ${num}: ${wish === 'slower' ? 'langsamer' : 'schneller'} (${st.bpm} → ${bpm})` });
+  });
+}
+
 async function askEnsemble(userText, options) {
   // Ohne Figur, die antworten kann, erfand das Modell eine - mit dem Namen aus
   // den Prompt-Beispielen, ohne Stimme und ohne Aussehen.
@@ -8273,6 +8310,7 @@ async function askEnsemble(userText, options) {
   // message wins: the older reply is cut off rather than layered underneath.
   interruptPlayback();
   const generation = playbackGeneration;
+  if (userText && !(options && (options.autoStep || options.silent))) applyQuickTempo(quickTempoWish(userText));
 
   // Unter dem Namen meiner Figur, damit das Modell weiß, wer da spricht -
   // sonst steht mein Satz namenlos im Verlauf und die Figuren reden über mich
