@@ -852,6 +852,11 @@
           <button class="btn-secondary" id="loadElevenVoicesBtn" type="button">Stimmen laden</button>
         </div>
         <p class="hint">Lädt deine Stimmenbibliothek, damit sie bei den Figuren zur Auswahl steht. Passiert beim Start automatisch, sobald ein Schlüssel vorliegt.</p>
+        <details style="margin-top:10px;">
+          <summary style="cursor:pointer; font-size:13.5px;">Stimmen beschreiben (für die Generatoren)</summary>
+          <p class="hint">Ein paar Worte je Stimme helfen den Figuren-Generatoren, die richtige zu wählen - besonders bei Stimmen ohne Beschreibung. Deine Notiz geht vor der von ElevenLabs.</p>
+          <div id="voiceNotesList"></div>
+        </details>
 
         <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
           <input type="checkbox" id="audioCacheEnabled" style="width:auto;">
@@ -1365,6 +1370,7 @@ const els = {
   elevenPanel: document.getElementById('elevenPanel'),
   elevenKey: document.getElementById('elevenKey'),
   loadElevenVoicesBtn: document.getElementById('loadElevenVoicesBtn'),
+  voiceNotesList: document.getElementById('voiceNotesList'),
   audioCacheEnabled: document.getElementById('audioCacheEnabled'),
   clearAudioCacheBtn: document.getElementById('clearAudioCacheBtn'),
   audioCacheInfo: document.getElementById('audioCacheInfo'),
@@ -1695,6 +1701,130 @@ function updateVoicePanels() {
 updateVoicePanels();
 els.ttsSource.onchange = updateVoicePanels;
 
+// ---------- Stimmenkatalog für die Generatoren ----------
+// Früher sahen die Generatoren nur die ersten 40 Stimmen, immer in derselben
+// Reihenfolge, oft nur als Namen - und wussten nicht, welche schon vergeben
+// sind. Jetzt: alle Stimmen, jedes Mal neu gemischt, mit Geschlecht, Alter,
+// Akzent, Zweck und Beschreibung (deine eigene Notiz vor der von ElevenLabs),
+// und mit Vermerk, welche Figur eine Stimme schon hat.
+function loadVoiceNotes() {
+  try { return JSON.parse(localStorage.getItem('companion_voiceNotes') || '{}') || {}; } catch (e) { return {}; }
+}
+function saveVoiceNote(id, text) {
+  const n = loadVoiceNotes();
+  if (text && text.trim()) n[id] = text.trim().slice(0, 300); else delete n[id];
+  safeSet('companion_voiceNotes', JSON.stringify(n));
+}
+
+function voiceFacts(v) {
+  const l = (v && v.labels && typeof v.labels === 'object') ? v.labels : {};
+  return [l.gender, l.age, l.accent, l.use_case || l['use case'] || l.usecase, l.descriptive, l.description]
+    .filter(Boolean).map(String).join(', ');
+}
+
+function voiceCatalog(skipFigureId) {
+  const used = new Map();
+  (typeof figureArchive !== 'undefined' ? figureArchive : []).forEach(f => {
+    if (skipFigureId && f.id === skipFigureId) return;
+    const v = latestVersion(f);
+    if (v && v.elevenVoice) {
+      if (!used.has(v.elevenVoice)) used.set(v.elevenVoice, []);
+      used.get(v.elevenVoice).push(v.name);
+    }
+  });
+  const notes = loadVoiceNotes();
+  const list = elevenVoiceCache.slice();
+  for (let k = list.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [list[k], list[r]] = [list[r], list[k]]; }
+  return list.map(v => {
+    const facts = voiceFacts(v);
+    const desc = String(notes[v.voice_id] || v.description || '').replace(/\s+/g, ' ').trim().slice(0, 170);
+    const taken = used.get(v.voice_id);
+    return `- "${v.name}"${facts ? ' [' + facts + ']' : ''}${desc ? ' - ' + desc : ''}${taken ? ` (bereits vergeben an ${taken.slice(0, 3).join(', ')})` : ''}`;
+  }).join('\n');
+}
+
+// Nachsichtige Zuordnung: Groß-/Kleinschreibung, Zusätze in Klammern,
+// Anführungszeichen und kleine Abweichungen werden toleriert.
+function matchVoiceName(name, who) {
+  const norm = t => String(t || '').toLowerCase().replace(/\([^)]*\)/g, '').replace(/["'„“”]/g, '').replace(/\s+/g, ' ').trim();
+  const want = norm(name);
+  if (!want) return '';
+  const cands = elevenVoiceCache.map(v => ({ v, n: norm(v.name) }));
+  const hit = cands.find(c => c.n === want)
+    || cands.find(c => c.n.startsWith(want) || want.startsWith(c.n))
+    || cands.find(c => c.n.includes(want) || want.includes(c.n));
+  logEvent('msg', { role: 'system', text: hit
+    ? `Stimme für ${who || 'die Figur'}: ${hit.v.name}`
+    : `Stimme "${name}" für ${who || 'die Figur'} nicht gefunden - bitte im Editor wählen.` });
+  return hit ? hit.v.voice_id : '';
+}
+
+function renderVoiceNotes() {
+  const box = els.voiceNotesList;
+  if (!box) return;
+  box.innerHTML = '';
+  if (!elevenVoiceCache.length) { box.textContent = 'Erst „Stimmen laden".'; return; }
+  const notes = loadVoiceNotes();
+  elevenVoiceCache.forEach(v => {
+    const row = document.createElement('div');
+    row.style.margin = '8px 0';
+    const lab = document.createElement('label');
+    lab.textContent = v.name + (voiceFacts(v) ? ` (${voiceFacts(v)})` : '');
+    lab.style.fontSize = '13px';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = notes[v.voice_id] || '';
+    inp.placeholder = v.description ? String(v.description).slice(0, 90) : 'z.B. rauchig, tief, verrucht, leichter französischer Akzent';
+    inp.onchange = () => saveVoiceNote(v.voice_id, inp.value);
+    row.appendChild(lab);
+    row.appendChild(inp);
+    box.appendChild(row);
+  });
+}
+
+// Stimme neu wählen lassen: für ältere Figuren, die vor dem vollständigen
+// Katalog entstanden sind. Das Gesprächsmodell liest die Figur und alle
+// Stimmen und schlägt die passendste vor, mit Begründung.
+async function suggestVoiceForFigure(c, button, onDone) {
+  if (!elevenVoiceCache.length) { addMsg('system', 'Erst die ElevenLabs-Stimmen laden (Einstellungen → Sprachausgabe).'); return; }
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const current = elevenVoiceCache.find(v => v.voice_id === c.elevenVoice);
+  const traits = TRAIT_GROUPS.flatMap(g => g.traits.filter(([id]) => (c.traits || []).includes(id)).map(([, t]) => t)).join(', ');
+  const sys = `Wähle aus meinen ElevenLabs-Stimmen die, die am besten zu dieser Figur passt.
+
+Figur: ${c.name}
+Geschlecht: ${GENDER_TEXT[c.gender] || 'offen'}
+Aussehen: ${String(c.appearance || '').replace(/\s*\n\s*/g, '; ').slice(0, 500)}
+Wesen: ${traits || '-'}
+Beschreibung: ${String(c.notes || '').slice(0, 700)}
+So soll sie klingen: ${String(c.voiceDescription || '-').slice(0, 400)}
+So spricht sie: ${String(c.styleExamples || '').slice(0, 300)}
+${current ? `Aktuelle Stimme: "${current.name}" - behalte sie nur, wenn wirklich keine besser passt.` : 'Sie hat noch keine Stimme.'}
+
+Stimmen:
+${voiceCatalog(c.figureId)}
+
+Achte zuerst auf Geschlecht und Alter, dann auf Klang und Wesen. Bevorzuge Stimmen, die noch nicht vergeben sind.
+Antworte NUR mit JSON: {"voiceName": "exakter Name", "reason": "ein kurzer deutscher Satz, warum"}`;
+  const label = button ? button.textContent : '';
+  if (button) { button.disabled = true; button.textContent = 'Suche Stimme...'; }
+  try {
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Welche Stimme passt?' }], 0.4, taskBudget('chat', 400), { task: 'chat' });
+    const pick = extractJson(raw) || {};
+    const id = matchVoiceName(pick.voiceName, c.name);
+    if (!id) { addMsg('system', `Keine passende Stimme gefunden für ${c.name}.`); return; }
+    const v = elevenVoiceCache.find(x => x.voice_id === id);
+    const same = id === c.elevenVoice;
+    c.elevenVoice = id;
+    if (onDone) onDone(id);
+    addMsg('system', `${same ? 'Die bisherige Stimme passt am besten' : 'Neue Stimme'} für ${c.name}: ${v ? v.name : id}${pick.reason ? ' - ' + String(pick.reason).slice(0, 200).replace(/[.!\s]+$/, '') : ''}${same ? '' : '. Mit ▶ anhören, mit Sichern festhalten.'}`);
+  } catch (err) {
+    if (!err.aborted) addMsg('system', 'Stimmenwahl fehlgeschlagen: ' + err.message);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = label; }
+  }
+}
+
 async function loadElevenVoices(quiet) {
   const key = apiKeyFor('companion_elevenKey');
   if (!key) { if (!quiet) addMsg('system', 'Bitte zuerst einen ElevenLabs-Schlüssel eintragen.'); return; }
@@ -1706,6 +1836,7 @@ async function loadElevenVoices(quiet) {
     if (!data.voices) throw new Error('Keine Stimmen erhalten - Schlüssel prüfen.');
     elevenVoiceCache = data.voices;
     if (typeof renderCharacters === 'function') renderCharacters();
+    renderVoiceNotes();
     // Die Stimmenauswahl sitzt bei der Figur - hier wird nur der Katalog gefüllt.
     if (!quiet) addMsg('system', `${data.voices.length} ElevenLabs-Stimmen geladen.`);
   } catch (err) {
@@ -2195,8 +2326,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.90';
+const APP_VERSION = '0.94';
 const CHANGELOG = [
+  { v: '0.94', date: '2026-09-25', items: [
+    'Spracherkennung auf dem Gerät: Die App prüft beide Varianten der Chrome-Schnittstelle und nennt jetzt den genauen Grund, wenn es nicht geht - zu alte Chrome-Version, Schnittstelle fehlt oder Deutsch nicht verfügbar. Im Protokoll steht dazu die Browserkennung.',
+  ]},
+  { v: '0.93', date: '2026-09-24', items: [
+    'Akzente und Dialekte: Der Figuren-Generator verteilt sie jetzt auf drei Stellen - Stimmbeschreibung (Klang), Notizen (Herkunft, Sprachfärbung) und Beispielzeilen (einzelne Wörter). Im Gespräch und in Geschichten bleibt der Text richtig geschriebenes Deutsch ohne Lautschrift, gefärbt nur durch einzelne Wörter.',
+  ]},
+  { v: '0.92', date: '2026-09-24', items: [
+    'Neuer Knopf im Figureneditor: „🎲 Passende Stimme wählen lassen" - das Modell liest die Figur und alle Stimmen und schlägt die passendste vor, mit kurzer Begründung. Gedacht für ältere Figuren.',
+  ]},
+  { v: '0.91', date: '2026-09-24', items: [
+    'Die Figuren-Generatoren sehen alle ElevenLabs-Stimmen statt nur der ersten 40, jedes Mal neu gemischt, mit Geschlecht, Alter, Akzent, Zweck und Beschreibung - und mit Vermerk, welche Figur eine Stimme schon hat. Unvergebene werden bevorzugt.',
+    'Neu in den Einstellungen unter ElevenLabs: „Stimmen beschreiben" - ein paar eigene Worte je Stimme, die die Generatoren mitlesen.',
+    'Stimmnamen werden nachsichtig zugeordnet (Groß-/Kleinschreibung, Klammerzusätze, kleine Abweichungen); im Protokoll steht, welche Stimme gewählt wurde.',
+  ]},
   { v: '0.90', date: '2026-09-24', items: [
     'Spracherkennung nur auf dem Gerät (neu, voreingestellt an): Vor jedem Anruf prüft die App, ob dein Handy Deutsch lokal erkennen kann, und lädt das Sprachpaket bei Bedarf einmalig. Dann gehen weder Ton noch Text an Google. Kann das Handy es nicht, hört die App nicht zu, statt still auf Google-Server auszuweichen.',
   ]},
@@ -3585,13 +3730,23 @@ function localSpeechOnly() {
 }
 
 let localSpeechState = 'unbekannt';   // lokal | cloud | nicht verfügbar | unbekannt
+let localSpeechReason = '';
+
+function chromeVersion() {
+  const m = String(navigator.userAgent || '').match(/Chrome\/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
 
 async function prepareSpeechMode() {
   if (!recognizer) return false;
   const strict = localSpeechOnly();
-  const api = SpeechRecognition;
-  const canAsk = api && typeof api.available === 'function';
-  if (!canAsk) {
+  // Die Abfrage steckt manchmal nur am unpräfixierten Konstruktor - beide prüfen.
+  const api = [window.SpeechRecognition, window.webkitSpeechRecognition].find(a => a && typeof a.available === 'function');
+  if (!api) {
+    const v = chromeVersion();
+    localSpeechReason = v && v < 139
+      ? `Chrome ${v} ist zu alt, die Erkennung auf dem Gerät gibt es ab Version 139`
+      : `Chrome${v ? ' ' + v : ''} bietet die Erkennung auf dem Gerät hier nicht an`;
     localSpeechState = strict ? 'nicht verfügbar' : 'cloud';
     recognizer.processLocally = false;
     return !strict;
@@ -3608,6 +3763,7 @@ async function prepareSpeechMode() {
       localSpeechState = 'lokal';
       return true;
     }
+    localSpeechReason = `Chrome${chromeVersion() ? ' ' + chromeVersion() : ''} meldet für Deutsch auf dem Gerät „${status}"`;
   } catch (e) {
     logEvent('msg', { role: 'system', text: 'Abfrage der Erkennung auf dem Gerät fehlgeschlagen: ' + e.message });
   }
@@ -3620,7 +3776,7 @@ function speechModeNote() {
   return {
     lokal: 'Spracherkennung: nur auf dem Gerät - nichts geht an Google.',
     cloud: 'Spracherkennung: über Chrome, dabei auch Google-Server.',
-    'nicht verfügbar': 'Dein Handy kann Deutsch nicht auf dem Gerät erkennen. Weil „Sprache nur auf dem Gerät erkennen" an ist, hört die App nicht zu - schreib einfach, oder schalte die Einstellung aus.',
+    'nicht verfügbar': `Dein Handy kann Deutsch nicht auf dem Gerät erkennen${localSpeechReason ? ' (' + localSpeechReason + ')' : ''}. Weil „Sprache nur auf dem Gerät erkennen" an ist, hört die App nicht zu - schreib einfach, oder schalte die Einstellung aus.`,
   }[localSpeechState] || '';
 }
 
@@ -3827,7 +3983,7 @@ els.talkBtn.onclick = () => {
   // lokal und kann es nicht, beginnt der Anruf gar nicht erst.
   prepareSpeechMode().then(ok => {
     addMsg('system', speechModeNote());
-    logEvent('msg', { role: 'system', text: 'Spracherkennung-Modus: ' + localSpeechState });
+    logEvent('msg', { role: 'system', text: 'Spracherkennung-Modus: ' + localSpeechState + (localSpeechReason ? ' - ' + localSpeechReason : '') + ` (${navigator.userAgent})` });
     if (!ok) return;
     beginCall();
   });
@@ -6985,6 +7141,18 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     fillVoiceOptions(elevenSel, c.elevenVoice, 'eleven');
     elevenSel.onchange = () => { c.elevenVoice = elevenSel.value; };
     card.appendChild(elevenSel);
+    if (!c.isUser) {
+      const pickBtn = document.createElement('button');
+      pickBtn.type = 'button';
+      pickBtn.className = 'btn-secondary';
+      pickBtn.textContent = '🎲 Passende Stimme wählen lassen';
+      pickBtn.style.marginTop = '6px';
+      pickBtn.onclick = () => suggestVoiceForFigure(c, pickBtn, (id) => {
+        fillVoiceOptions(elevenSel, id, 'eleven');
+        elevenSel.value = id;
+      });
+      card.appendChild(pickBtn);
+    }
     const previewRow = document.createElement('div');
     previewRow.className = 'btn-row';
     previewRow.appendChild(makePreviewButton(() => elevenSel.value));
@@ -7136,16 +7304,10 @@ function buildSceneDraftPrompt(idea) {
   // The voice catalogue carries labels - gender, age, accent, intended use -
   // and often a description. That is enough for the model to match a voice to a
   // temperament, which beats picking one at random and renaming it later.
-  const voiceOptions = elevenVoiceCache.slice(0, 40).map(v => {
-    const labels = v.labels && typeof v.labels === 'object'
-      ? Object.values(v.labels).filter(Boolean).join(', ')
-      : '';
-    const description = (v.description || '').slice(0, 90);
-    return `- "${v.name}"${labels ? ' [' + labels + ']' : ''}${description ? ': ' + description : ''}`;
-  }).join('\n');
+  const voiceOptions = voiceCatalog();
 
   const voiceBlock = voiceOptions
-    ? `\nVerfügbare Stimmen - wähle für jede Figur eine passende und gib ihren Namen exakt so in "voiceName" an. Nimm für die beiden Figuren deutlich verschiedene Stimmen:\n${voiceOptions}\n`
+    ? `\nVerfügbare Stimmen - wähle für jede Figur eine, die zu Geschlecht, Alter und Wesen passt, und gib ihren Namen exakt so in "voiceName" an. Nimm für die Figuren deutlich verschiedene Stimmen und bevorzuge solche, die noch nicht vergeben sind:\n${voiceOptions}\n`
     : '';
 
   return `Du entwirfst eine Szene mit Figuren für ein Rollenspiel zwischen mir und zwei erwachsenen Figuren. Meine Vorgabe ist knapp; mach daraus einen brauchbaren Entwurf, den ich anschließend selbst noch anpasse.
@@ -7254,12 +7416,7 @@ function sanitizeSingleCharacter(draft) {
     pitch: clamp(d.pitch, 0.5, 2, 1.0),
     rate: clamp(d.rate, 0.5, 1.5, 1.0),
     voice: '',
-    elevenVoice: (() => {
-      const wanted = String(d.voiceName || '').trim().toLowerCase();
-      if (!wanted) return '';
-      const hit = elevenVoiceCache.find(v => (v.name || '').toLowerCase() === wanted);
-      return hit ? hit.voice_id : '';
-    })(),
+    elevenVoice: matchVoiceName(d.voiceName, d.name),
   };
 }
 
@@ -7288,12 +7445,7 @@ function sanitizeDraftCharacters(list) {
     voice: '',
     // A name is matched back to an id; anything the model invented simply
     // resolves to nothing and leaves the voice unset rather than breaking.
-    elevenVoice: (() => {
-      const wanted = String(c.voiceName || '').trim().toLowerCase();
-      if (!wanted) return '';
-      const hit = elevenVoiceCache.find(v => (v.name || '').toLowerCase() === wanted);
-      return hit ? hit.voice_id : '';
-    })(),
+    elevenVoice: matchVoiceName(c.voiceName, c.name),
   }));
 
   if (out.length < 2) throw new Error('Der Entwurf enthielt zu wenige Figuren.');
@@ -7585,7 +7737,8 @@ Alles konkret und sichtbar - Farben, Formen, Größen -, keine Charakterbeschrei
 
 // Die Stimme als eigene Beschreibung - damit "Eigene Stimme entwerfen" sofort
 // weiß, wonach es suchen soll, und du vorher lesen und ändern kannst.
-const VOICE_SCHEMA = `"voiceDescription" beschreibt die Stimme auf Englisch, 2 bis 4 Sätze, für ElevenLabs Voice Design: Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar, samtig), Sprechtempo, Stimmung, Ausdruck, Atem. Die Figur spricht Deutsch - aber gern mit Akzent oder Dialekt, wenn er zu ihr passt: ein leichter französischer Akzent, italienische Melodie, russische Härte, schwedischer Singsang, Wiener Schmäh, Schweizer Färbung, bei Fantasiewesen ein fremdartiger, nicht zuzuordnender Klang. Schreib ihn dann ausdrücklich hinein, etwa "speaks German with a light French accent". Nicht jede Figur braucht einen, aber ruhig öfter als selten - das macht die Stimmen unterscheidbar. Ohne Akzent: "speaks German without an accent". Keine Namen realer Personen, keine bekannten Stimmen.`;
+const VOICE_SCHEMA = `"voiceDescription" beschreibt die Stimme auf Englisch, 2 bis 4 Sätze, für ElevenLabs Voice Design: Geschlecht, ungefähres Alter (erwachsen), Stimmlage, Klangfarbe (etwa warm, rau, hauchig, klar, samtig), Sprechtempo, Stimmung, Ausdruck, Atem. Die Figur spricht Deutsch - aber gern mit Akzent oder Dialekt, wenn er zu ihr passt: ein leichter französischer Akzent, italienische Melodie, russische Härte, schwedischer Singsang, Wiener Schmäh, Schweizer Färbung, bei Fantasiewesen ein fremdartiger, nicht zuzuordnender Klang. Schreib ihn dann ausdrücklich hinein, etwa "speaks German with a light French accent". Nicht jede Figur braucht einen, aber ruhig öfter als selten - das macht die Stimmen unterscheidbar. Ohne Akzent: "speaks German without an accent". Keine Namen realer Personen, keine bekannten Stimmen.
+Hat die Figur einen Akzent oder Dialekt, gehört er an DREI Stellen zusammen: (1) in "voiceDescription" - daraus entsteht der Klang; (2) in "notes" ihre Herkunft und Sprachfärbung, etwa "Stammt aus Lyon, streut ab und zu französische Wörter ein wie chéri oder voilà" bzw. "Wienerin, sagt gern oida und leiwand"; (3) in "styleExamples" ein, zwei Zeilen mit so einem Wort. Der Text selbst bleibt dabei normales, richtig geschriebenes Deutsch - KEINE Lautschrift wie "Isch 'abe disch": den Akzent macht die Stimme, eine zweite geschriebene Schicht klingt übertrieben und bringt die Sprachausgabe zum Stolpern. Bei Dialekten gilt dasselbe: einzelne Dialektwörter ja, ganze Sätze in Mundart nein.`;
 
 // Kürzt, ohne mitten im Wort abzubrechen - fürs Gesprächs-Prompt, das nicht bei
 // jeder Nachricht die volle Körperbeschreibung braucht.
@@ -7601,11 +7754,7 @@ function buildFigureDraftPrompt(idea) {
   const traitList = TRAIT_GROUPS
     .map(g => `${g.label}: ` + g.traits.map(([id, text]) => `"${id}" (${text})`).join(', '))
     .join('\n');
-  const voices = elevenVoiceCache.slice(0, 40).map(v => {
-    const labels = v.labels && typeof v.labels === 'object'
-      ? Object.values(v.labels).filter(Boolean).join(', ') : '';
-    return `- "${v.name}"${labels ? ' [' + labels + ']' : ''}`;
-  }).join('\n');
+  const voices = voiceCatalog();
 
   return `Entwirf genau eine Figur für ein Rollenspiel zwischen Erwachsenen${figureFilterNarrators ? ' - und zwar eine Erzählerstimme, die beschreibt, was geschieht, statt selbst mitzuspielen' : ''}.
 
@@ -7625,7 +7774,7 @@ ${VOICE_SCHEMA}
 "temperature" ist eine Zahl zwischen 0.3 und 1.0: niedrig für eine beherrschte, gleichmäßige Figur, hoch für eine sprunghafte.
 "emotional" ist true, wenn die Figur hörbar lacht, seufzt und atmet, sonst false.
 "pitch" und "rate" sind Zahlen zwischen 0.8 und 1.2.
-${voices ? `\nWähle eine passende Stimme und gib ihren Namen exakt so in "voiceName" an:\n${voices}\n` : ''}
+${voices ? `\nWähle eine Stimme, die zu Geschlecht, Alter und Wesen der Figur passt, und gib ihren Namen exakt so in "voiceName" an. Bevorzuge Stimmen, die noch nicht vergeben sind - jede Figur soll unverwechselbar klingen:\n${voices}\n` : ''}
 Antworte AUSSCHLIESSLICH mit diesem JSON, ohne Markdown:
 {"name": "...", "gender": "...", "appearance": "...", "voiceDescription": "...", "traits": ["..."], "notes": "...", "styleExamples": "...", "replyLength": "mittel", "temperature": 0.8, "emotional": true, "pitch": 1.0, "rate": 1.0, "voiceName": "..."}`;
 }
@@ -8194,7 +8343,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -8300,6 +8449,10 @@ Beispiele:
 
 Regeln: Setze Marker dort, wo sich am Gerät etwas ändert - Zeilen ohne Änderung brauchen keinen, dann läuft weiter, was gerade läuft. Ein Marker steht hinter dem Namen, nie davor. Was der Text in diesem Moment beschreibt und was der Marker tut, ist dasselbe. "stopp" nur, wenn ausdrücklich alles aufhört.`;
 }
+
+// Akzente und Dialekte macht die Stimme. Der Text bleibt richtig geschriebenes
+// Deutsch, gefärbt nur durch einzelne Wörter aus der Herkunft der Figur.
+const ACCENT_TEXT_RULE = 'Hat eine Figur laut ihrer Beschreibung einen Akzent oder Dialekt, hört man den über ihre Stimme. Schreib ihre Zeilen deshalb in normalem, richtig geschriebenem Deutsch - keine Lautschrift wie "Isch \'abe" -, und färbe sie nur mit einzelnen Wörtern aus ihrer Herkunft, sparsam, wie in ihren Beispielzeilen.';
 
 function ensembleFormatBlock() {
   // With no narrator chosen, action lines have nobody to read them - they were
