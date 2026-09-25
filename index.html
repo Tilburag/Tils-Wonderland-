@@ -1106,6 +1106,10 @@
       <h2>Geschichte erzeugen</h2>
       <label for="storyIdea">Worum soll es gehen?</label>
       <textarea id="storyIdea" style="min-height:100px" placeholder="Ausgangslage, Verlauf, worauf es hinauslaufen soll. Charakter und Szene aus der Einrichtung gelten weiterhin."></textarea>
+      <div class="btn-row">
+        <button class="btn-secondary" id="rollStoryIdeaBtn" type="button">🎲 Idee würfeln</button>
+      </div>
+      <p class="hint">Erfindet eine abwechslungsreiche Ausgangslage - jedes Mal eine andere. Steht in der Besetzung schon jemand, dreht sich die Idee um genau diese Figuren.</p>
 
       <label for="storyCastMode">Wer spielt mit</label>
       <select id="storyCastMode">
@@ -1155,7 +1159,11 @@
         <button class="btn-primary" id="genStoryBtn">Geschichte und Skript erzeugen</button>
       </div>
       <p class="hint" id="storyStatus">Noch keine Geschichte erzeugt.</p>
-      <div class="progress"><div class="progress-fill" id="storyProgress"></div></div>
+      <div class="progress" id="storyProgressBar" style="cursor:pointer;" title="Zum Anklicken springen"><div class="progress-fill" id="storyProgress"></div></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="storyPrevBtn" type="button">⏮ Zurück</button>
+        <button class="btn-secondary" id="storyNextBtn" type="button">Vor ⏭</button>
+      </div>
 
       <div class="btn-row">
         <button class="btn-primary" id="playStoryBtn" disabled>Abspielen</button>
@@ -1380,6 +1388,7 @@ const els = {
   motionTrackFill: document.getElementById('motionTrackFill'),
   storyPanel: document.getElementById('storyPanel'),
   storyIdea: document.getElementById('storyIdea'),
+  rollStoryIdeaBtn: document.getElementById('rollStoryIdeaBtn'),
   motionMode: document.getElementById('motionMode'),
   motionVocab: document.getElementById('motionVocab'),
   storyCastMode: document.getElementById('storyCastMode'),
@@ -1393,11 +1402,15 @@ const els = {
   genStoryBtn: document.getElementById('genStoryBtn'),
   storyStatus: document.getElementById('storyStatus'),
   storyProgress: document.getElementById('storyProgress'),
+  storyProgressBar: document.getElementById('storyProgressBar'),
+  storyPrevBtn: document.getElementById('storyPrevBtn'),
+  storyNextBtn: document.getElementById('storyNextBtn'),
   playStoryBtn: document.getElementById('playStoryBtn'),
   pauseStoryBtn: document.getElementById('pauseStoryBtn'),
   stopStoryBtn: document.getElementById('stopStoryBtn'),
   storyText: document.getElementById('storyText'),
   copyStoryBtn: document.getElementById('copyStoryBtn'),
+  toLiveBtn: document.getElementById('toLiveBtn'),
   savedStorySelect: document.getElementById('savedStorySelect'),
   loadStoryBtn: document.getElementById('loadStoryBtn'),
   saveStoryBtn: document.getElementById('saveStoryBtn'),
@@ -2327,8 +2340,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.97';
+const APP_VERSION = '1.0';
 const CHANGELOG = [
+  { v: '1.0', date: '2026-09-25', items: [
+    'Spulen in der Geschichte: auf eine beliebige Zeile im Text tippen, auf den Fortschrittsbalken tippen, oder mit „⏮ Zurück" / „Vor ⏭" abschnittsweise springen. Läuft die Geschichte gerade, geht es am neuen Abschnitt sofort weiter; steht sie still, wartet sie dort auf „Abspielen".',
+  ]},
+  { v: '0.99', date: '2026-09-25', items: [
+    'Neuer Knopf „→ Als Live-Gespräch fortsetzen" bei der Geschichte: übernimmt Besetzung, Erzähler und den bisherigen Text ins Live-Gespräch, das dort als Unterhaltung weitergeht. Geht jederzeit, auch mitten in der Geschichte.',
+  ]},
+  { v: '0.98', date: '2026-09-25', items: [
+    'Neuer Knopf „🎲 Idee würfeln" bei „Worum soll es gehen" in der Geschichte: erfindet eine abwechslungsreiche Ausgangslage, jedes Mal eine andere. Steht schon eine Besetzung, dreht sich die Idee um genau diese Figuren.',
+  ]},
   { v: '0.97', date: '2026-09-25', items: [
     'Neuer Reiter „Ich" auf der Figurenseite: Figuren, die dich darstellen - mit Aussehen, Porträt, Vorlieben und eigener Vorgabe, wie die Figuren mit diesem Ich reden sollen. Mit eigenem Generator: ein Satz genügt.',
     'Welches Ich gilt, bestimmt die Besetzung. Die bisherige allgemeine Stil-Vorgabe ist in deine vorhandenen Ichs gewandert; das gemeinsame Gedächtnis gilt weiterhin für alle und steht jetzt im Ich-Reiter.',
@@ -8939,6 +8961,7 @@ const story = {
   phaseTimers: [],
   audio: null,
   resolveCurrent: null,
+  gen: 0,   // erhöht sich bei jedem Start/Sprung - ein alter Durchlauf erkennt daran, dass er überholt ist
 };
 
 // Früher wurde bei jedem Start die Vorlage eingesetzt, weil das Feld nirgends
@@ -9418,6 +9441,58 @@ Schreib in der Gegenwart. Jede Figur bleibt bei ihrem eigenen Wesen und ihrer ei
 // Ich bin nicht Zuhörer, sondern mittendrin - das galt bisher nur zwischen den
 // Zeilen, und die Geschichten blieben entsprechend brav erzählt. Die Spielart
 // legt fest, wie die Figuren mit mir umgehen.
+// ---------- Idee würfeln ----------
+// Ein bunter Vorrat an Ausgangslagen und Wendungen, damit nicht immer
+// dieselbe Art Idee entsteht - das Modell wählt daraus, statt jedes Mal von
+// null zu erfinden, und mischt frei.
+const IDEA_SETTINGS = ['ein Fitnessstudio nach Ladenschluss', 'eine Zugfahrt im Nachtabteil', 'ein Fotoshooting, das aus dem Ruder läuft',
+  'ein verregnetes Wochenende in einer Berghütte', 'eine Firmenfeier, bei der alle schon gegangen sind', 'eine Sauna in einem Wellness-Hotel',
+  'ein Segelboot, das für die Nacht vor Anker liegt', 'ein Escape Room, kurz vor Zeitablauf', 'eine Kunstausstellung nach der Vernissage',
+  'eine WG-Küche spät in der Nacht', 'ein Tanzkurs, bei dem die Musik weiterläuft', 'eine Autopanne auf einer einsamen Landstraße',
+  'ein Poolbereich nach Mitternacht', 'ein Yoga-Retreat am letzten Abend', 'eine Kochshow, die privat weitergeht'];
+const IDEA_TWISTS = ['ein Geständnis, das lange fällig war', 'eine Wette, die außer Kontrolle gerät', 'ein Rollentausch für einen Abend',
+  'eine alte Anziehung, die plötzlich wieder da ist', 'ein Spiel mit Regeln, die sich unterwegs ändern', 'eine Situation, in der jemand die Führung übernimmt',
+  'ein Streit, der sich in etwas anderes verwandelt', 'eine Verabredung, die als Zufall getarnt ist', 'eine Herausforderung, sich nicht zu verraten',
+  'ein Geheimnis, das gerade jetzt herauskommt'];
+
+function ideaCastLine() {
+  const cast = characters.filter(c => !c.isUser && !c.isNarrator);
+  if (!cast.length) return '';
+  const desc = cast.map(c => describeCharacter(c)).join(' ');
+  return `\n\nEs spielen diese Figuren mit, dreh die Idee um SIE - ihr Wesen, wie sie beschrieben sind:\n${desc}`;
+}
+
+function buildStoryIdeaPrompt() {
+  const setting = IDEA_SETTINGS[Math.floor(Math.random() * IDEA_SETTINGS.length)];
+  const twist = Math.random() < 0.7 ? IDEA_TWISTS[Math.floor(Math.random() * IDEA_TWISTS.length)] : null;
+  return `Erfinde eine kurze, reizvolle Ausgangslage für eine erotische Geschichte zwischen Erwachsenen - zwei, drei Sätze, wie man sie ins Feld "Worum soll es gehen" schreiben würde: Ort, Situation, was die Spannung auslöst. Kein Titel, keine Überschrift, keine Anführungszeichen.
+
+Ungefährer Rahmen, den du frei ausgestalten darfst: ${setting}${twist ? ', mit ' + twist : ''}.${ideaCastLine()}
+
+Antworte NUR mit den zwei, drei Sätzen.`;
+}
+
+async function rollStoryIdea() {
+  const button = els.rollStoryIdeaBtn;
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Würfle...';
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const idea = (await callProvider(provider, buildStoryIdeaPrompt(),
+      [{ role: 'user', content: 'Gib die Idee zurück.' }],
+      1.0, taskBudget('draft', 300), { task: 'draft' }))
+      .trim().replace(/^["'„“]+|["'“”]+$/g, '');
+    if (idea) els.storyIdea.value = idea;
+  } catch (err) {
+    addMsg('system', 'Idee würfeln fehlgeschlagen: ' + err.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
+els.rollStoryIdeaBtn.onclick = rollStoryIdea;
+
 function storyPlayBlock() {
   const base = 'Ich bin mittendrin, nicht Zuschauer: Die Figuren tun es mit mir und sprechen mich direkt an - mit Fragen, kleinen Befehlen, Neckereien, Lob. Baue Spannung auf: Andeuten, Warten lassen, unerwartete Wechsel von Tempo und Stelle, bevor es weitergeht. Beschreibe konkret und sinnlich, was sie tun und was sie dabei sagen, statt es zusammenzufassen. Wer sich im Lauf der Geschichte auszieht, bleibt ausgezogen.';
   const play = {
@@ -9607,6 +9682,9 @@ function renderStory() {
     div.id = 'storyLine' + i;
     const named = c.role && c.role !== 'narrator' && c.role !== 'character';
     div.textContent = (named ? c.role + ': ' : '') + stripAudioTags(c.text);
+    div.style.cursor = 'pointer';
+    div.title = 'Hierher springen';
+    div.onclick = () => seekToChunk(i);
     els.storyText.appendChild(div);
   });
 }
@@ -9783,6 +9861,7 @@ els.genStoryBtn.onclick = async () => {
     if (fallbackCount) addStoryNote(`${fallbackCount} Abschnitte ohne eigenes Skript.`);
     setStoryStatus(`Fertig: ${story.chunks.length} Abschnitte, rund ${words} Wörter (etwa ${Math.round(words / STORY_WORDS_PER_MINUTE)} Minuten).`);
     els.playStoryBtn.disabled = false;
+    els.toLiveBtn.disabled = false;
   } catch (err) {
     setStoryStatus('Fehler: ' + err.message);
     setStoryProgress(0);
@@ -9887,12 +9966,14 @@ function schedulePhases(chunk, durationMs) {
 }
 
 async function runStory() {
+  const myGen = ++story.gen;
   // The next chunk's audio is fetched while the current one plays, so the
   // transition between chunks has no gap in it.
   const prepChunk = (c) => prepareTimedSpeech(c.text, c.role, hasMidCues(c.cues));
   let upcoming = await prepChunk(story.chunks[story.index]);
+  if (story.gen !== myGen) return;   // inzwischen woanders hingesprungen
 
-  while (story.playing && story.index < story.chunks.length) {
+  while (story.playing && story.gen === myGen && story.index < story.chunks.length) {
     const i = story.index;
     const chunk = story.chunks[i];
     const current = upcoming;
@@ -9912,6 +9993,7 @@ async function runStory() {
     }
 
     await current.play();
+    if (story.gen !== myGen) return;   // während der Wiedergabe woanders hingesprungen
     if (cueCtl && story.playing) cueCtl.flush();
     clearPhaseTimers();
 
@@ -9919,13 +10001,67 @@ async function runStory() {
     story.index = nextIndex;
     if (!nextPromise) break;
     upcoming = await nextPromise;
+    if (story.gen !== myGen) return;
   }
 
-  if (story.playing && story.index >= story.chunks.length) {
+  if (story.gen === myGen && story.playing && story.index >= story.chunks.length) {
     setStoryStatus('Geschichte zu Ende.');
     stopStory();
   }
 }
+
+// ---------- Geschichte im Live-Gespräch fortsetzen ----------
+// Besetzung, Erzähler und der bisherige Text werden übernommen; danach ist es
+// ein normales Gespräch, mit demselben Anfang. Geht jederzeit ab dem ersten
+// erzeugten Abschnitt, nicht erst nach dem Ende.
+function storyLineText(chunk) {
+  const text = stripAudioTags(cleanDisplayText(chunk.text || '')).trim();
+  if (!text) return '';
+  if (chunk.role === 'narrator') return `*${text}*`;
+  if (chunk.role && chunk.role !== 'character') return `${chunk.role}: ${text}`;
+  return text;
+}
+
+els.storyProgressBar.onclick = (e) => {
+  if (!story.chunks.length) return;
+  const rect = els.storyProgressBar.getBoundingClientRect();
+  const fraction = rect.width ? Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) : 0;
+  seekToChunk(Math.floor(fraction * story.chunks.length));
+};
+els.storyPrevBtn.onclick = () => seekToChunk(story.index - 1);
+els.storyNextBtn.onclick = () => seekToChunk(story.index + 1);
+
+els.toLiveBtn.onclick = () => {
+  if (!story.chunks.length) return;
+  if (story.playing) stopStory();
+
+  const cast = characters.slice();
+  const narratorFigure = localStorage.getItem('companion_narratorFigure') || '';
+  const narratorEnabled = localStorage.getItem('companion_narratorEnabled') || 'false';
+
+  switchMode('live');
+  characters = cast;
+  saveCharacters();
+  safeSet('companion_narratorFigure', narratorFigure);
+  safeSet('companion_narratorEnabled', narratorEnabled);
+  refreshCastViews();
+
+  // Als Gedächtnis für die KI reicht der Text der letzten Zeit - alles davor
+  // würde nur unnötig Budget kosten, ohne den nächsten Zug zu beeinflussen.
+  const lines = story.chunks.map(storyLineText).filter(Boolean);
+  let full = lines.join('\\n');
+  const MAX = 6000;
+  if (full.length > MAX) full = '[...]\\n' + full.slice(-MAX);
+  history = full ? [{ role: 'assistant', content: full }] : [];
+
+  els.transcript.innerHTML = '';
+  story.chunks.forEach(c => {
+    const text = stripAudioTags(cleanDisplayText(c.text || '')).trim();
+    if (!text || isTagOnly(c.text)) return;
+    addEnsembleMsg(c.role, text);
+  });
+  addMsg('system', 'Die Geschichte ist jetzt der Ausgangspunkt eures Gesprächs - Besetzung und Verlauf sind übernommen. Schreib einfach weiter.');
+};
 
 els.playStoryBtn.onclick = () => {
   if (!story.chunks.length) return;
@@ -9960,6 +10096,7 @@ els.pauseStoryBtn.onclick = () => {
 function stopStory() {
   story.playing = false;
   story.paused = false;
+  story.gen++;
   clearPhaseTimers();
   clearCueTimers();
   if (story.audio) { try { story.audio.pause(); } catch (e) {} }
@@ -9970,6 +10107,42 @@ function stopStory() {
   els.pauseStoryBtn.disabled = true;
   story.index = 0;
   setStoryProgress(0);
+}
+
+// ---------- Spulen ----------
+// Springt zu einem Abschnitt: per Zeile antippen, per Klick auf den
+// Fortschrittsbalken oder mit den Sprungtasten. Lief die Geschichte gerade,
+// geht es dort sofort weiter; stand sie still, wartet sie ab dem neuen
+// Abschnitt auf "Abspielen".
+function seekToChunk(i) {
+  if (!story.chunks.length) return;
+  i = Math.max(0, Math.min(story.chunks.length - 1, i));
+  const wasPlaying = story.playing;
+
+  story.playing = false;
+  story.paused = false;
+  story.gen++;   // macht jeden noch laufenden Durchlauf ungültig, ohne ihn abzuwarten
+  clearPhaseTimers();
+  clearCueTimers();
+  if (story.audio) { try { story.audio.pause(); } catch (e) {} }
+  if (story.resolveCurrent) { story.resolveCurrent(); story.resolveCurrent = null; }
+  speechSynthesis.cancel();
+
+  story.index = i;
+  highlightChunk(i);
+  setStoryProgress(i / story.chunks.length);
+
+  if (wasPlaying) {
+    story.playing = true;
+    els.pauseStoryBtn.disabled = false;
+    setStoryStatus('Läuft...');
+    runStory();
+  } else {
+    device1.setMotion({ texture: 'stop' });
+    device2.setMotion({ texture: 'stop' });
+    els.pauseStoryBtn.disabled = true;
+    setStoryStatus(`Bei Abschnitt ${i + 1} von ${story.chunks.length} - „Abspielen" setzt hier fort.`);
+  }
 }
 
 // Only text and motion script are stored here, never audio: the audio already
@@ -10032,6 +10205,7 @@ els.loadStoryBtn.onclick = async () => {
     story.index = 0;
     renderStory();
     els.playStoryBtn.disabled = false;
+    els.toLiveBtn.disabled = false;
     setStoryProgress(0);
     setStoryStatus(`"${entry.name}" geladen - ${story.chunks.length} Abschnitte. Abspielen kann losgehen.`);
   } catch (err) {
