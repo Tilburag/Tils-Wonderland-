@@ -1074,21 +1074,20 @@
       <div class="mode-switch" style="margin-bottom:12px;">
         <button class="mode-btn active" id="figFilterChars" type="button">Figuren</button>
         <button class="mode-btn" id="figFilterNarr" type="button">Erzähler</button>
+        <button class="mode-btn" id="figFilterMe" type="button">Ich</button>
       </div>
       <div id="figureList"></div>
       <div class="btn-row">
         <button class="btn-secondary" id="newFigureBtn">＋ Leere Figur</button>
       </div>
 
-      <label for="userStyle" style="margin-top:18px;">So sollen die Figuren mit dir reden</label>
-      <textarea id="userStyle" style="min-height:110px" placeholder="Was du magst: Wortwahl, Deutlichkeit, Ton. Gilt für alle Figuren, im Gespräch und in Geschichten."></textarea>
-      <p class="hint">Deine feste Vorgabe - „Erinnern" ändert sie nie. Was hier steht, geht bei jeder Antwort und jeder Geschichte an das Modell.</p>
+      <div id="sharedProfileBox" style="display:none">
+        <label for="sharedProfile" style="margin-top:18px;">Gemeinsames Gedächtnis - was alle Figuren über dich wissen</label>
+        <textarea id="sharedProfile" style="min-height:110px" placeholder="Wird beim Erinnern gefüllt: was dir gefällt, was nicht. Du kannst hier auch selbst etwas eintragen oder streichen."></textarea>
+        <p class="hint">Gilt für jedes Ich. Wie die Figuren mit einem bestimmten Ich reden sollen, steht dagegen bei diesem Ich im Editor. Was eine einzelne Figur erlebt hat, steht bei ihr selbst im Feld „Gedächtnis".</p>
+      </div>
 
-      <label for="sharedProfile" style="margin-top:18px;">Was alle Figuren über dich wissen</label>
-      <textarea id="sharedProfile" style="min-height:110px" placeholder="Wird beim Erinnern gefüllt: dein Name, was dir gefällt, was nicht. Du kannst hier auch selbst etwas eintragen oder streichen."></textarea>
-      <p class="hint">Dieses Wissen teilen sich alle Figuren. Was eine Figur mit dir erlebt hat und wen sie kennt, steht dagegen bei ihr selbst, im Feld „Gedächtnis" im Figureneditor.</p>
-
-      <label for="figureIdea">Figur beschreiben und erzeugen lassen</label>
+      <label for="figureIdea" id="figureIdeaLabel">Figur beschreiben und erzeugen lassen</label>
       <textarea id="figureIdea" style="min-height:70px" placeholder="Ein Satz genügt: wer ist das, wie ist sie drauf? Zum Beispiel: eine ruhige Heilerin, die wenig sagt und genau hinschaut."></textarea>
       <div class="btn-row">
         <button class="btn-primary" id="genFigureBtn">✨ Figur erzeugen</button>
@@ -1311,7 +1310,6 @@ const els = {
   videoModelSelect: document.getElementById('videoModelSelect'),
   loadVideoModelsBtn: document.getElementById('loadVideoModelsBtn'),
   sharedProfile: document.getElementById('sharedProfile'),
-  userStyle: document.getElementById('userStyle'),
   rememberBtn: document.getElementById('rememberBtn'),
   sceneImageBtn: document.getElementById('sceneImageBtn'),
   photoBtn: document.getElementById('photoBtn'),
@@ -1429,6 +1427,9 @@ const els = {
   figureEditor: document.getElementById('figureEditor'),
   figFilterChars: document.getElementById('figFilterChars'),
   figFilterNarr: document.getElementById('figFilterNarr'),
+  figFilterMe: document.getElementById('figFilterMe'),
+  sharedProfileBox: document.getElementById('sharedProfileBox'),
+  figureIdeaLabel: document.getElementById('figureIdeaLabel'),
   newFigureBtn: document.getElementById('newFigureBtn'),
   figureIdea: document.getElementById('figureIdea'),
   genFigureBtn: document.getElementById('genFigureBtn'),
@@ -2326,8 +2327,19 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.94';
+const APP_VERSION = '0.97';
 const CHANGELOG = [
+  { v: '0.97', date: '2026-09-25', items: [
+    'Neuer Reiter „Ich" auf der Figurenseite: Figuren, die dich darstellen - mit Aussehen, Porträt, Vorlieben und eigener Vorgabe, wie die Figuren mit diesem Ich reden sollen. Mit eigenem Generator: ein Satz genügt.',
+    'Welches Ich gilt, bestimmt die Besetzung. Die bisherige allgemeine Stil-Vorgabe ist in deine vorhandenen Ichs gewandert; das gemeinsame Gedächtnis gilt weiterhin für alle und steht jetzt im Ich-Reiter.',
+  ]},
+  { v: '0.96', date: '2026-09-25', items: [
+    'Abgekürzte Sprechernamen werden erkannt: „Fenja:" für Fenja Sturm, „Vela:" für Vela V2. Vorher blieb der Name im Text stehen und die Zeile lief mit der falschen Stimme.',
+  ]},
+  { v: '0.95', date: '2026-09-25', items: [
+    'Alter im Aussehen ist jetzt, wie alt eine Figur wirkt - meist junge Erwachsene zwischen 21 und 30, nie jünger. Bei langlebigen Fantasiewesen steht das scheinbare Alter dort, das wahre höchstens in den Notizen.',
+    'Feste Bildbeschreibungen mit einem wahren Alter wie „235-year-old" werden verworfen und neu erzeugt, damit die Figur nicht alt gemalt wird.',
+  ]},
   { v: '0.94', date: '2026-09-25', items: [
     'Spracherkennung auf dem Gerät: Die App prüft beide Varianten der Chrome-Schnittstelle und nennt jetzt den genauen Grund, wenn es nicht geht - zu alte Chrome-Version, Schnittstelle fehlt oder Deutsch nicht verfügbar. Im Protokoll steht dazu die Browserkennung.',
   ]},
@@ -5476,6 +5488,7 @@ function versionFromCharacter(c, versionNumber) {
     gender: c.gender || 'offen',
     appearance: c.appearance || '',
     voiceDescription: c.voiceDescription || '',
+    userStyle: c.userStyle || '',
     isNarrator: !!c.isNarrator,
     // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
     // dadurch, dass eine Figur gerade mitspielt oder nicht.
@@ -6630,7 +6643,10 @@ async function ensureLookTag(c) {
   const src = appearanceHash(c.appearance);
   // Eine gespeicherte Kurzbeschreibung, die in Wahrheit Nachdenken des Modells
   // ist, wird verworfen und neu erzeugt.
-  const valid = t => t && !looksLikeThinking(t) && !/let me|the user/i.test(t) && t.length <= 420;
+  // Auch verworfen: ein wahres Alter wie "235-year-old" - Bildmodelle malen
+  // dann eine alte Frau, obwohl die Figur jung wirken soll.
+  const valid = t => t && !looksLikeThinking(t) && !/let me|the user/i.test(t) && t.length <= 420
+    && !/\b(?:[7-9]\d|\d{3,})[- ]year[- ]old\b/i.test(t);
   if (c.lookTag && c.lookTagSrc === src && valid(c.lookTag)) return c.lookTag;
   if (c.lookTag && !valid(c.lookTag)) { c.lookTag = ''; c.lookTagSrc = ''; }
   const figure = c.figureId ? getFigure(c.figureId) : null;
@@ -6651,7 +6667,7 @@ async function ensureLookTag(c) {
 
 ${gender ? 'Geschlecht: ' + gender + '\n' : ''}Aussehen: ${String(c.appearance).slice(0, APPEARANCE_MAX)}
 
-Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), dann Typ bzw. Herkunft, Geschlecht und Alter in einem Zug ("adult 29-year-old Mediterranean woman", "adult 35-year-old Scandinavian man") - der Typ gehört unbedingt dazu, sonst malen manche Bildmodelle standardmäßig ostasiatische Gesichter, dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
+Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), dann Typ bzw. Herkunft, Geschlecht und das Alter, wie die Figur WIRKT, in einem Zug ("adult 26-year-old Mediterranean woman", "adult 29-year-old Scandinavian man") - bei langlebigen Fantasiewesen nie ihr wahres Alter, sondern das scheinbare in Menschenjahren - der Typ gehört unbedingt dazu, sonst malen manche Bildmodelle standardmäßig ostasiatische Gesichter, dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
 Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
     'Gib die Kurzbeschreibung zurück.', 0.2, 400);
   let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
@@ -7065,6 +7081,18 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     notes.oninput = () => { c.notes = notes.value; };
     card.appendChild(notes);
 
+    if (c.isUser) {
+      const usLabel = document.createElement('label');
+      usLabel.textContent = 'So sollen die Figuren mit mir reden';
+      card.appendChild(usLabel);
+      const us = document.createElement('textarea');
+      us.value = c.userStyle || '';
+      us.style.minHeight = '90px';
+      us.placeholder = 'Wortwahl, Deutlichkeit, Ton - gilt, wenn dieses Ich in der Besetzung ist. Leer: die allgemeine Vorgabe.';
+      us.oninput = () => { c.userStyle = us.value; };
+      card.appendChild(us);
+    }
+
     const styleLabel = document.createElement('label');
     styleLabel.textContent = 'Tonfall - Beispielzeilen in deinen Worten';
     card.appendChild(styleLabel);
@@ -7406,6 +7434,7 @@ function sanitizeSingleCharacter(draft) {
     gender: GENDER_TEXT[d.gender] ? d.gender : normalizeGender(d.gender, d.appearance, d.notes),
     appearance: String(d.appearance || '').slice(0, APPEARANCE_MAX),
     voiceDescription: String(d.voiceDescription || '').slice(0, 800),
+    userStyle: String(d.userStyle || '').slice(0, 1500),
     // Everything the model was asked for is taken over, with the same clamping
     // as the manual fields - a draft that ignores the bounds must not be able
     // to set values the sliders could never produce.
@@ -7605,11 +7634,35 @@ async function introduceFigure(v, figureId, button, force) {
 }
 
 let figureFilterNarrators = false;
+// Dritter Reiter: Figuren, die mich darstellen. Mehrere Ichs mit eigenen
+// Vorlieben und eigener Ansprache lassen sich so leicht ausprobieren.
+let figureFilterMe = false;
+
+function figureModeMatches(v) {
+  if (figureFilterMe) return !!v.isUser;
+  if (v.isUser) return false;
+  return !!v.isNarrator === figureFilterNarrators;
+}
+
+function applyFigureModeUi() {
+  els.figFilterChars.classList.toggle('active', !figureFilterNarrators && !figureFilterMe);
+  els.figFilterNarr.classList.toggle('active', figureFilterNarrators && !figureFilterMe);
+  els.figFilterMe.classList.toggle('active', figureFilterMe);
+  els.sharedProfileBox.style.display = figureFilterMe ? 'block' : 'none';
+  els.figureIdeaLabel.textContent = figureFilterMe ? 'Dich beschreiben und ein Ich erzeugen lassen'
+    : figureFilterNarrators ? 'Erzählerstimme beschreiben und erzeugen lassen' : 'Figur beschreiben und erzeugen lassen';
+  els.figureIdea.placeholder = figureFilterMe
+    ? 'Ein Satz genügt: wie bist du in dieser Variante? Zum Beispiel: ich als ruhiger, zurückhaltender Typ, der gern geführt wird und es sanft mag.'
+    : 'Ein Satz genügt: wer ist das, wie ist sie drauf? Zum Beispiel: eine ruhige Heilerin, die wenig sagt und genau hinschaut.';
+  els.genFigureInfo.textContent = figureFilterMe
+    ? 'Aussehen, Vorlieben und wie die Figuren mit dir reden sollen werden ausgefüllt. Danach kannst du alles ändern.'
+    : 'Eigenschaften, Geschlecht, Beschreibung und eine passende Stimme werden automatisch gewählt. Danach kannst du alles ändern.';
+  if (!els.genFigureBtn.disabled) els.genFigureBtn.textContent = figureFilterMe ? '✨ Ich erzeugen' : '✨ Figur erzeugen';
+}
 
 function renderFigureList() {
   els.figureList.innerHTML = '';
-  els.figFilterChars.classList.toggle('active', !figureFilterNarrators);
-  els.figFilterNarr.classList.toggle('active', figureFilterNarrators);
+  applyFigureModeUi();
   if (!figureArchive.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
@@ -7618,11 +7671,13 @@ function renderFigureList() {
     return;
   }
 
-  const shown = figureArchive.filter(f => !!latestVersion(f).isNarrator === figureFilterNarrators);
+  const shown = figureArchive.filter(f => figureModeMatches(latestVersion(f)));
   if (!shown.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
-    empty.textContent = figureFilterNarrators
+    empty.textContent = figureFilterMe
+      ? 'Noch kein Ich angelegt. Beschreib dich unten in einem Satz und lass eins erzeugen.'
+      : figureFilterNarrators
       ? 'Noch keine Erzählerstimme angelegt. Leg eine neue Figur an und setz den Haken „Ist eine Erzählerstimme".'
       : 'Noch keine Figuren angelegt.';
     els.figureList.appendChild(empty);
@@ -7693,12 +7748,16 @@ function openFigureEditor(figure) {
   setTimeout(() => els.figureEditor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 
-els.figFilterChars.onclick = () => { figureFilterNarrators = false; renderFigureList(); };
-els.figFilterNarr.onclick = () => { figureFilterNarrators = true; renderFigureList(); };
+els.figFilterChars.onclick = () => { figureFilterNarrators = false; figureFilterMe = false; renderFigureList(); };
+els.figFilterNarr.onclick = () => { figureFilterNarrators = true; figureFilterMe = false; renderFigureList(); };
+// Erst nach dem vollständigen Laden - die Vorgabe-Konstanten stehen weiter
+// unten im Skript; ein früherer Aufruf brach den Start ab.
+setTimeout(migrateUserStyleToMe, 0);
+els.figFilterMe.onclick = () => { figureFilterMe = true; figureFilterNarrators = false; renderFigureList(); };
 
 els.newFigureBtn.onclick = () => {
   const fresh = {
-    id: 'c' + Date.now(), name: 'Neue Figur', isUser: false, isNarrator: figureFilterNarrators,
+    id: 'c' + Date.now(), name: figureFilterMe ? 'Ich' : 'Neue Figur', isUser: figureFilterMe, isNarrator: figureFilterNarrators && !figureFilterMe,
     traits: ['warm'], notes: '', gender: 'offen',
     pitch: 1.0, rate: 1.0, voice: '', elevenVoice: '',
   };
@@ -7725,7 +7784,7 @@ const NONHUMAN_RULE = 'Ist eine Figur kein Mensch (andere Hautfarbe, besondere O
 const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
 Art: "Mensch, Frau" bzw. "Mensch, Mann" - oder bei einem Fantasiewesen die Art MIT Geschlecht in eigenen Worten ("weibliches Dschungelwesen ...") und mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
 Typ: das Erscheinungsbild der Herkunft nach, etwa mitteleuropäisch, skandinavisch, osteuropäisch, mediterran, lateinamerikanisch, afrikanisch, arabisch, südasiatisch, ostasiatisch - oder eine Mischung. Wähle bewusst und abwechslungsreich: Fehlt die Angabe, malen manche Bildmodelle (etwa z-image-turbo) standardmäßig ostasiatische Gesichter, und verschiedene Figuren sehen sich dann ähnlich. Bei Fantasiewesen entfällt diese Zeile.
-Alter: eine konkrete Zahl, mindestens 21 - bei Fantasiewesen erwachsen und wie mindestens 21 Menschenjahre wirkend
+Alter: wie alt die Figur WIRKT, als Zahl - meist junge Erwachsene zwischen 21 und 30, gelegentlich älter, nie jünger als 21. Bei Fantasiewesen das scheinbare Alter in Menschenjahren (etwa "wirkt wie 26"); ihr wahres Alter als langlebige Art ("235 Jahre") gehört höchstens in die Notizen, nie in diese Zeile
 Haare: Farbe, Länge, Struktur, Frisur
 Gesicht: Form, Augenfarbe und -form, Brauen, Nase, Lippen, Haut im Gesicht
 Haut: Ton, Besonderheiten wie Sommersprossen, Muttermale, Narben, Tattoos, Piercings - mit Stelle
@@ -7748,6 +7807,21 @@ function appearanceShort(text, max) {
   const cut = t.slice(0, max);
   const lastBreak = Math.max(cut.lastIndexOf('\n'), cut.lastIndexOf('. '), cut.lastIndexOf(', '));
   return (lastBreak > max * 0.6 ? cut.slice(0, lastBreak) : cut).trim() + ' …';
+}
+
+function buildMeDraftPrompt(idea) {
+  return `Entwirf eine Figur, die MICH darstellt - den Menschen, der mit den anderen Figuren spricht. Sie spricht nicht selbst; sie beschreibt, wer ich in dieser Variante bin, wie ich aussehe, was ich mag und wie die anderen mit mir umgehen sollen. Erwachsen.
+
+Meine Vorgabe: ${idea}
+
+${APPEARANCE_SCHEMA}
+
+"notes" sind vier bis sechs Sätze: wie ich in dieser Variante bin, was ich mag und was nicht, wie ich auf Nähe, Führung und Tempo reagiere.
+"userStyle" sind drei bis fünf Sätze in der Ich-Form an die Figuren: wie sie mit mir reden sollen - Wortwahl, Deutlichkeit, Ton, was sie tun und lassen sollen, gern mit ein, zwei Beispielsätzen.
+"gender" ist einer dieser Werte: ${GENDERS.map(([v]) => `"${v}"`).join(', ')}.
+
+Antworte NUR mit JSON:
+{"name": "...", "gender": "...", "appearance": "...", "notes": "...", "userStyle": "..."}`;
 }
 
 function buildFigureDraftPrompt(idea) {
@@ -7787,14 +7861,20 @@ els.genFigureBtn.onclick = async () => {
   els.genFigureBtn.disabled = true;
   els.genFigureBtn.textContent = 'Erzeuge...';
   try {
+    const asMe = figureFilterMe;
     const raw = await callProvider(
-      provider, buildFigureDraftPrompt(idea),
+      provider, asMe ? buildMeDraftPrompt(idea) : buildFigureDraftPrompt(idea),
       [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
       0.8, taskBudget('draft', 4500), { persona: true, task: 'draft' }
     );
     const draft = extractJson(raw);
     const clean = sanitizeSingleCharacter(draft);
-    clean.isNarrator = figureFilterNarrators;
+    clean.isNarrator = asMe ? false : figureFilterNarrators;
+    if (asMe) {
+      clean.isUser = true;
+      clean.userStyle = String((draft && draft.userStyle) || '').slice(0, 1500);
+      clean.elevenVoice = ''; clean.voice = '';
+    }
     if (!clean.gender || clean.gender === 'offen') {
       clean.gender = normalizeGender(draft && draft.gender, idea, clean.appearance, clean.notes);
     }
@@ -7812,7 +7892,7 @@ els.genFigureBtn.onclick = async () => {
     els.genFigureInfo.textContent = 'Erzeugen fehlgeschlagen: ' + err.message;
   }
   els.genFigureBtn.disabled = false;
-  els.genFigureBtn.textContent = '✨ Figur erzeugen';
+  els.genFigureBtn.textContent = figureFilterMe ? '✨ Ich erzeugen' : '✨ Figur erzeugen';
 };
 // Microphone, clipboard and local network access all hang on the same
 // criterion, and when it isn't met the browser refuses silently - no prompt, no
@@ -8130,6 +8210,17 @@ function stripMarkerDebris(line) {
   return String(line).replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
 }
 
+function matchSpeakerName(raw, names) {
+  const want = String(raw || '').trim().toLowerCase();
+  if (!want) return null;
+  const exact = names.find(n => n.toLowerCase() === want);
+  if (exact) return exact;
+  // Ohne Versionszusatz ("V2", "2.0", "(neu)") und nur der Vorname.
+  const base = n => n.toLowerCase().replace(/\([^)]*\)/g, '').replace(/\s+(v\d+|\d+(\.\d+)?)$/i, '').trim();
+  const hits = names.filter(n => base(n) === want || base(n).split(/\s+/)[0] === want);
+  return hits.length === 1 ? hits[0] : null;   // bei Mehrdeutigkeit lieber nichts raten
+}
+
 function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
   const out = [];
@@ -8174,7 +8265,10 @@ function parseEnsembleText(text) {
     }
 
     const m = line.match(/^([^:*\n]{1,24}):\s*(.+)$/);
-    const matchedName = m ? names.find(n => n.toLowerCase() === m[1].trim().toLowerCase()) : null;
+    // Das Modell kürzt Namen gern ab: "Fenja:" für "Fenja Sturm", "Vela:" für
+    // "Vela V2". Bisher blieb so eine Zeile unerkannt - der Name stand dann im
+    // Text und wurde mit der falschen Stimme vorgelesen.
+    const matchedName = m ? matchSpeakerName(m[1], names) : null;
     const body = leadCue + (matchedName ? m[2] : line);
     const speaker = matchedName || 'character';
 
@@ -8235,8 +8329,26 @@ function userStyleText() {
   const v = localStorage.getItem('companion_userStyle');
   return v === null ? USER_STYLE_DEFAULT : v;
 }
+// Einmalig: Die bisher allgemeine Vorgabe wandert in jedes vorhandene Ich,
+// das noch keine eigene hat. Die allgemeine bleibt als Rückfall erhalten.
+function migrateUserStyleToMe() {
+  if (localStorage.getItem('companion_userStyleMoved') === 'true') return;
+  const global = userStyleText();
+  let moved = 0;
+  (typeof figureArchive !== 'undefined' ? figureArchive : []).forEach(f => {
+    const v = latestVersion(f);
+    if (v && v.isUser && !(v.userStyle || '').trim()) { v.userStyle = global; moved++; }
+  });
+  (typeof characters !== 'undefined' ? characters : []).forEach(c => { if (c.isUser && !(c.userStyle || '').trim()) c.userStyle = global; });
+  try { if (moved) saveArchive(); saveCharacters(); } catch (e) {}
+  safeSet('companion_userStyleMoved', 'true');
+}
+
 function userStyleBlock() {
-  const t = userStyleText().trim();
+  // Das Ich in der Besetzung bringt seine eigene Vorgabe mit; ohne Ich gilt
+  // die bisherige allgemeine.
+  const me = typeof userCharacter === 'function' ? userCharacter() : null;
+  const t = (me && me.userStyle && me.userStyle.trim() ? me.userStyle : userStyleText()).trim();
   return t ? `\n\nSO MAG ICH ES - meine eigene Vorgabe, sie gilt für jede Figur:\n${t}` : '';
 }
 
@@ -9199,8 +9311,7 @@ els.videoModelSelect.onchange = () => {
 };
 els.loadVideoModelsBtn.onclick = () => loadVideoModels(false);
 els.sharedProfile.value = sharedProfile();
-els.userStyle.value = userStyleText();
-els.userStyle.oninput = () => safeSet('companion_userStyle', els.userStyle.value.slice(0, 1500));
+
 els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
 
