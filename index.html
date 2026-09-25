@@ -868,6 +868,12 @@
         <p class="hint" id="audioCacheInfo">&nbsp;</p>
       </div>
 
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 4px 0;">
+        <input type="checkbox" id="localSpeechOnly" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Sprache nur auf dem Gerät erkennen</span>
+      </label>
+      <p class="hint" id="localSpeechInfo">An: Deine Stimme wird ausschließlich auf dem Handy in Text umgewandelt - weder Ton noch Text gehen an Google. Kann das Handy das für Deutsch nicht, hört die App im Anruf nicht zu; du schreibst dann. Aus: Chrome darf dafür auch Google-Server nutzen.</p>
+
       <label for="callMode">Verhalten im Sprachanruf</label>
       <select id="callMode">
         <option value="lautsprecher">Lautsprecher - abwechselnd sprechen</option>
@@ -899,6 +905,7 @@
       <input type="text" id="d1Ip" placeholder="z.B. 192.168.178.68">
       <details style="margin-top:8px;">
         <summary>Technische Einstellungen</summary>
+<p class="hint">Ist das Gerät verbunden, fährt es beim Verstellen zur Probe mit: an die Grenze, die du gerade einstellst, beim Tempo zweimal über die ganze Strecke so schnell wie erlaubt, beim Zittern kurz in der Mitte. Die Werte gelten dabei sofort.</p>
         <label for="d1MinPos">Min. Position (untere Sicherheitsgrenze): <span id="d1MinPosVal">50</span></label>
         <input type="range" id="d1MinPos" min="0" max="400" step="10" value="50">
         <label for="d1MaxPos">Max. Position (obere Sicherheitsgrenze): <span id="d1MaxPosVal">950</span></label>
@@ -927,6 +934,7 @@
       <input type="text" id="d2Ip" placeholder="Nur nötig, wenn du ein zweites Gerät nutzt">
       <details style="margin-top:8px;">
         <summary>Technische Einstellungen</summary>
+<p class="hint">Ist das Gerät verbunden, fährt es beim Verstellen zur Probe mit: an die Grenze, die du gerade einstellst, beim Tempo zweimal über die ganze Strecke so schnell wie erlaubt, beim Zittern kurz in der Mitte. Die Werte gelten dabei sofort.</p>
         <label for="d2MinPos">Min. Position (untere Sicherheitsgrenze): <span id="d2MinPosVal">50</span></label>
         <input type="range" id="d2MinPos" min="0" max="400" step="10" value="50">
         <label for="d2MaxPos">Max. Position (obere Sicherheitsgrenze): <span id="d2MaxPosVal">950</span></label>
@@ -1361,6 +1369,8 @@ const els = {
   clearAudioCacheBtn: document.getElementById('clearAudioCacheBtn'),
   audioCacheInfo: document.getElementById('audioCacheInfo'),
   callMode: document.getElementById('callMode'),
+  localSpeechOnly: document.getElementById('localSpeechOnly'),
+  localSpeechInfo: document.getElementById('localSpeechInfo'),
   micSenseEnabled: document.getElementById('micSenseEnabled'),
   veniceOwnPromptOnly: document.getElementById('veniceOwnPromptOnly'),
   motionTrackFill: document.getElementById('motionTrackFill'),
@@ -1481,6 +1491,56 @@ els.device2Desc.value = localStorage.getItem('companion_device2Desc') || '';
 els.d1Ip.value = localStorage.getItem('companion_d1_ip') || '';
 els.d2Ip.value = localStorage.getItem('companion_d2_ip') || '';
 
+function numSetting(key, fallback) {
+  const n = parseInt(localStorage.getItem(key), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+// ---------- Probefahrt beim Einstellen ----------
+// Beim Verstellen der Grenzen fährt das Gerät an genau diese Stelle, beim
+// Tempolimit fährt es zweimal über die ganze Strecke so schnell, wie erlaubt,
+// beim Zittern-Takt zittert es kurz in der Mitte. So ist sofort spürbar, was
+// ein Wert in Wirklichkeit bedeutet. Die Werte gelten dafür sofort.
+function previewDevice(num, kind) {
+  const dev = num === 2 ? device2 : device1;
+  const P = `d${num}`;
+  safeSet(`companion_${P}_minPos`, els[P + 'MinPos'].value);
+  safeSet(`companion_${P}_maxPos`, els[P + 'MaxPos'].value);
+  safeSet(`companion_${P}_speedCap`, els[P + 'SpeedCap'].value);
+  safeSet(`companion_${P}_fastGap`, els[P + 'FastGap'].value);
+  if (!dev || !dev.isConnected()) {
+    if (!previewDevice.hinted) { previewDevice.hinted = true; addMsg('system', `Gerät ${num} ist nicht verbunden - die Probefahrt beim Einstellen braucht eine Verbindung.`); }
+    return;
+  }
+  const steps = {
+    min: [{ type: 'move', to: 0, ms: 700 }, { type: 'hold', ms: 2500 }, { type: 'stop' }],
+    max: [{ type: 'move', to: 999, ms: 700 }, { type: 'hold', ms: 2500 }, { type: 'stop' }],
+    // 130 ms ist kürzer als jede erlaubte Fahrt - die Steuerung dehnt sie auf
+    // genau das Tempo, das die Begrenzung zulässt.
+    speed: [{ type: 'move', to: 0, ms: 700 }, { type: 'hold', ms: 300 },
+      { type: 'move', to: 999, ms: 130 }, { type: 'move', to: 0, ms: 130 },
+      { type: 'move', to: 999, ms: 130 }, { type: 'move', to: 0, ms: 130 }, { type: 'stop' }],
+    tremor: [{ type: 'move', to: 500, ms: 600 }, { type: 'osc', low: 475, high: 525, bpm: MOTION_LIMITS.maxBpm, texture: 'tremor', ms: 2500 }, { type: 'stop' }],
+  }[kind];
+  if (!steps) return;
+  dev.runSequence(steps);
+  const what = { min: `untere Grenze ${els[P + 'MinPos'].value}`, max: `obere Grenze ${els[P + 'MaxPos'].value}`,
+    speed: `volles Tempo bei Begrenzung ${els[P + 'SpeedCap'].value}`, tremor: `Zittern mit ${els[P + 'FastGap'].value} ms Takt` }[kind];
+  logEvent('msg', { role: 'system', text: `Probefahrt Gerät ${num}: ${what}` });
+}
+
+function wirePreview(num) {
+  const P = `d${num}`;
+  let t = null;
+  const soon = (kind) => { clearTimeout(t); t = setTimeout(() => previewDevice(num, kind), 350); };
+  // Die Grenzen folgen schon beim Ziehen, kurz verzögert; Tempo und Zittern
+  // erst beim Loslassen - eine Probefahrt pro Einstellung genügt.
+  els[P + 'MinPos'].addEventListener('input', () => soon('min'));
+  els[P + 'MaxPos'].addEventListener('input', () => soon('max'));
+  els[P + 'SpeedCap'].addEventListener('change', () => previewDevice(num, 'speed'));
+  els[P + 'FastGap'].addEventListener('change', () => previewDevice(num, 'tremor'));
+}
+
 function loadDeviceSetting(input, valEl, key, fallback) {
   const v = localStorage.getItem(key);
   input.value = v !== null ? v : fallback;
@@ -1494,7 +1554,9 @@ loadDeviceSetting(els.d2MinPos, els.d2MinPosVal, 'companion_d2_minPos', 50);
 loadDeviceSetting(els.d2MaxPos, els.d2MaxPosVal, 'companion_d2_maxPos', 950);
 loadDeviceSetting(els.d2SpeedCap, els.d2SpeedCapVal, 'companion_d2_speedCap', 1);
 loadDeviceSetting(els.d1FastGap, els.d1FastGapVal, 'companion_d1_fastGap', 70);
+wirePreview(1);
 loadDeviceSetting(els.d2FastGap, els.d2FastGapVal, 'companion_d2_fastGap', 70);
+wirePreview(2);
 
 // Only one optional texture remains: everything else is now expressed through
 // the stroke's end points and rate rather than through named patterns.
@@ -2133,8 +2195,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '0.88';
+const APP_VERSION = '0.90';
 const CHANGELOG = [
+  { v: '0.90', date: '2026-09-24', items: [
+    'Spracherkennung nur auf dem Gerät (neu, voreingestellt an): Vor jedem Anruf prüft die App, ob dein Handy Deutsch lokal erkennen kann, und lädt das Sprachpaket bei Bedarf einmalig. Dann gehen weder Ton noch Text an Google. Kann das Handy es nicht, hört die App nicht zu, statt still auf Google-Server auszuweichen.',
+  ]},
+  { v: '0.89', date: '2026-09-24', items: [
+    'Probefahrt beim Einstellen: Beim Verstellen der unteren oder oberen Grenze fährt das Gerät genau dorthin, beim Tempolimit zweimal über die ganze Strecke so schnell wie erlaubt, beim Zittern-Takt zittert es kurz in der Mitte.',
+    'Eine untere Grenze von 0 wurde bisher stillschweigend zu 50.',
+  ]},
   { v: '0.88', date: '2026-09-24', items: [
     'Eigenschafts-Häkchen sind keine Pflicht mehr: Der Generator wählt nur, was wirklich passt, auch gar nichts - leere Gruppen werden nicht mehr automatisch aufgefüllt.',
     'Im Prompt steht die eigene Beschreibung einer Figur jetzt vor den Häkchen; diese gelten nur noch als grobe Richtung, bei Widerspruch gewinnt der Text.',
@@ -2960,8 +3029,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
 
   function getSettings() {
     return {
-      minPos: parseInt(localStorage.getItem(`companion_${settingsPrefix}_minPos`), 10) || 50,
-      maxPos: parseInt(localStorage.getItem(`companion_${settingsPrefix}_maxPos`), 10) || 950,
+      // "|| 50" machte aus einer eingestellten 0 stillschweigend 50.
+      minPos: numSetting(`companion_${settingsPrefix}_minPos`, 50),
+      maxPos: numSetting(`companion_${settingsPrefix}_maxPos`, 950),
       speedCap: parseFloat(localStorage.getItem(`companion_${settingsPrefix}_speedCap`)) || 1,
       // Kürzester Abstand zwischen zwei Befehlen beim Zittern. Der erste Test am
       // Gerät lief mit 130 ms über hundert Sekunden ohne einen einzigen Abbruch.
@@ -3503,6 +3573,57 @@ if (SpeechRecognition) {
   addMsg('system', 'Dieser Browser unterstützt keine Spracherkennung. Bitte Chrome auf Android nutzen.');
 }
 
+// ---------- Spracherkennung nur auf dem Gerät ----------
+// Chrome kann seit Version 139 die Spracherkennung vollständig auf dem Gerät
+// ausführen ("processLocally"). Dann gehen weder Ton noch Text an Google. Ob
+// das für Deutsch auf diesem Handy geht, fragt die App vor jedem Anruf ab;
+// fehlt nur das Sprachpaket, wird es einmalig geladen. Geht es gar nicht und
+// ist "nur auf dem Gerät" eingestellt, hört die App nicht zu - sie weicht
+// nicht still zur Cloud aus.
+function localSpeechOnly() {
+  return (localStorage.getItem('companion_localSpeechOnly') ?? 'true') === 'true';
+}
+
+let localSpeechState = 'unbekannt';   // lokal | cloud | nicht verfügbar | unbekannt
+
+async function prepareSpeechMode() {
+  if (!recognizer) return false;
+  const strict = localSpeechOnly();
+  const api = SpeechRecognition;
+  const canAsk = api && typeof api.available === 'function';
+  if (!canAsk) {
+    localSpeechState = strict ? 'nicht verfügbar' : 'cloud';
+    recognizer.processLocally = false;
+    return !strict;
+  }
+  try {
+    let status = await api.available({ langs: ['de-DE'], processLocally: true });
+    if (status === 'downloadable' || status === 'downloading') {
+      addMsg('system', 'Lade das deutsche Sprachpaket für die Erkennung auf dem Gerät - einmalig ...');
+      const ok = typeof api.install === 'function' ? await api.install({ langs: ['de-DE'], processLocally: true }) : false;
+      status = ok ? 'available' : status;
+    }
+    if (status === 'available') {
+      recognizer.processLocally = true;
+      localSpeechState = 'lokal';
+      return true;
+    }
+  } catch (e) {
+    logEvent('msg', { role: 'system', text: 'Abfrage der Erkennung auf dem Gerät fehlgeschlagen: ' + e.message });
+  }
+  recognizer.processLocally = false;
+  localSpeechState = strict ? 'nicht verfügbar' : 'cloud';
+  return !strict;
+}
+
+function speechModeNote() {
+  return {
+    lokal: 'Spracherkennung: nur auf dem Gerät - nichts geht an Google.',
+    cloud: 'Spracherkennung: über Chrome, dabei auch Google-Server.',
+    'nicht verfügbar': 'Dein Handy kann Deutsch nicht auf dem Gerät erkennen. Weil „Sprache nur auf dem Gerät erkennen" an ist, hört die App nicht zu - schreib einfach, oder schalte die Einstellung aus.',
+  }[localSpeechState] || '';
+}
+
 function setMicStatus(on) {
   els.micStatus.textContent = 'Mikrofon: ' + (on ? 'an' : 'aus');
   els.micStatus.className = 'pill ' + (on ? 'on' : 'off');
@@ -3702,6 +3823,17 @@ els.talkBtn.onclick = () => {
     return;
   }
   autoPlaying = false; setAutoStatus(false); // a call always interrupts auto-continue
+  // Erst klären, ob die Erkennung auf dem Gerät laufen kann. Darf sie nur
+  // lokal und kann es nicht, beginnt der Anruf gar nicht erst.
+  prepareSpeechMode().then(ok => {
+    addMsg('system', speechModeNote());
+    logEvent('msg', { role: 'system', text: 'Spracherkennung-Modus: ' + localSpeechState });
+    if (!ok) return;
+    beginCall();
+  });
+};
+
+function beginCall() {
   callActive = true;
   callBusy = false;
   setCallButton();
@@ -8553,6 +8685,8 @@ els.storyIdea.oninput = () => safeSet('companion_storyIdea', els.storyIdea.value
 els.motionMode.value = localStorage.getItem('companion_motionMode') || 'zweit';
 els.motionMode.onchange = () => safeSet('companion_motionMode', els.motionMode.value);
 els.motionVocab.checked = motionVocabOn();
+els.localSpeechOnly.checked = localSpeechOnly();
+els.localSpeechOnly.onchange = () => safeSet('companion_localSpeechOnly', els.localSpeechOnly.checked ? 'true' : 'false');
 els.motionVocab.onchange = () => safeSet('companion_motionVocab', els.motionVocab.checked ? 'true' : 'false');
 
 els.storyCastMode.value = localStorage.getItem('companion_storyCastMode') || 'bestehend';
