@@ -1172,7 +1172,9 @@
       </div>
       <div class="btn-row">
         <button class="btn-secondary" id="copyStoryBtn">Nur den Text kopieren</button>
+        <button class="btn-secondary" id="toLiveBtn" disabled>→ Als Live-Gespräch fortsetzen</button>
       </div>
+      <p class="hint">Übernimmt Besetzung, Erzähler und den bisherigen Verlauf ins Live-Gespräch - dort geht es dann als Unterhaltung weiter. Geht jederzeit, auch mitten in der Geschichte.</p>
 
       <label for="savedStorySelect">Aufbewahrte Geschichten</label>
       <select id="savedStorySelect"><option value="">(keine)</option></select>
@@ -1468,6 +1470,23 @@ const els = {
   d2LimitMax: document.getElementById('d2LimitMax'),
 };
 
+// Fehlt ein Element im HTML, wurde bisher beim ersten Zugriff darauf das
+// ganze Skript abgebrochen - und alles, was danach eingerichtet wird, lief nie
+// (in 1.0: der Knopf "Als Live-Gespräch fortsetzen" fehlte, dadurch reagierte
+// "Abspielen" nicht mehr). Jetzt springt ein unsichtbarer Platzhalter ein, und
+// das Protokoll nennt das fehlende Element.
+const missingElements = [];
+Object.keys(els).forEach(key => {
+  if (!els[key]) {
+    missingElements.push(key);
+    const stand = document.createElement('div');
+    stand.style.display = 'none';
+    els[key] = stand;
+  }
+});
+setTimeout(() => {
+  if (missingElements.length) logEvent('msg', { role: 'system', text: 'Interner Fehler - im Seitenaufbau fehlen: ' + missingElements.join(', ') });
+}, 0);
 els.apiKeyAnthropic.value = localStorage.getItem('companion_apiKey_anthropic') || '';
 // Filled-in starting points so the app is usable before writing anything. The
 // device text is deliberately written in the same units the motion step works
@@ -2340,8 +2359,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.01';
 const CHANGELOG = [
+  { v: '1.01', date: '2026-09-25', items: [
+    'Behoben: „Abspielen" in der Geschichte reagierte nicht. Der Knopf „Als Live-Gespräch fortsetzen" fehlte im Seitenaufbau, und der Zugriff darauf brach das Skript beim Start ab - alles danach Eingerichtete lief nicht mehr.',
+    'Ein fehlendes Element legt künftig nicht mehr die ganze App lahm; das Protokoll nennt es stattdessen.',
+    'Unverständliche Marker wie <<schnell_oben>> werden nicht mehr vorgelesen, und Zeilen, die das Modell für dich schreibt („Til: …"), fallen weg.',
+  ]},
   { v: '1.0', date: '2026-09-25', items: [
     'Spulen in der Geschichte: auf eine beliebige Zeile im Text tippen, auf den Fortschrittsbalken tippen, oder mit „⏮ Zurück" / „Vor ⏭" abschnittsweise springen. Läuft die Geschichte gerade, geht es am neuen Abschnitt sofort weiter; steht sie still, wartet sie dort auf „Abspielen".',
   ]},
@@ -8264,7 +8288,11 @@ function parseEnsembleText(text) {
           logEvent('msg', { role: 'system', text: 'Bewegungsmarker nicht verstanden: ' + all.slice(0, 120) });
           // Steht darin offensichtlich Sprache statt Bewegung ("<< für einen
           // Moment fallen lasse >>"), bleibt der Text erhalten.
-          return /\d/.test(inner) ? ' ' : ' ' + inner.trim() + ' ';
+          // Nur echte Sprache bleibt stehen ("für einen Moment fallen lasse").
+          // Einzelwörter mit Unterstrich ("schnell_oben") sind verunglückte
+          // Musternamen und wurden sonst vorgelesen.
+          const looksSpoken = !/\d/.test(inner) && !/_/.test(inner) && /\S\s+\S/.test(inner.trim());
+          return looksSpoken ? ' ' + inner.trim() + ' ' : ' ';
         }
         const ph = placeholderFor(cue);
         if (onlyAtEnd) { leadCue = ph; return ''; }
@@ -8291,6 +8319,13 @@ function parseEnsembleText(text) {
     // "Vela V2". Bisher blieb so eine Zeile unerkannt - der Name stand dann im
     // Text und wurde mit der falschen Stimme vorgelesen.
     const matchedName = m ? matchSpeakerName(m[1], names) : null;
+    // Das Modell schreibt manchmal auch Zeilen für mich ("Til: Was meinst du
+    // damit?"). Die spreche ich selbst - sie fliegen raus.
+    const meName = (characters.find(c => c.isUser) || {}).name;
+    if (m && meName && matchSpeakerName(m[1], [meName])) {
+      logEvent('msg', { role: 'system', text: 'Zeile für dich verworfen: ' + line.slice(0, 100) });
+      return;
+    }
     const body = leadCue + (matchedName ? m[2] : line);
     const speaker = matchedName || 'character';
 
