@@ -2390,8 +2390,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.08';
+const APP_VERSION = '1.09';
 const CHANGELOG = [
+  { v: '1.09', date: '2026-09-28', items: [
+    'Behoben: Einige Füll-Laute bestanden nur aus einer Regieanweisung ohne Text. v3 Conversational lehnt das ab, und die App schaltete deshalb fälschlich dauerhaft auf das teurere Modell zurück. Alle Laute haben jetzt hörbaren Text, und ein Fehler am Inhalt führt nicht mehr zum Modellwechsel.',
+  ]},
   { v: '1.08', date: '2026-09-28', items: [
     'ElevenLabs-Modell wählbar (Einstellungen → Stimme & Sprachausgabe): wie bisher, v3 Conversational für emotionale Figuren oder für alle. v3 Conversational ist laut Preisliste halb so teuer und schneller. Lehnt ElevenLabs es ab, spricht die App automatisch mit dem bisherigen Modell weiter und meldet das einmal.',
   ]},
@@ -4279,6 +4282,12 @@ function isV3(modelId) {
 function convFailed(modelId, status, detail) {
   if (modelId !== ELEVEN_CONV || convBroken) return false;
   if (![400, 403, 404, 422].includes(status)) return false;
+  // Ein Fehler am Inhalt (z. B. nur Regieanweisungen, kein Text) sagt nichts
+  // über das Modell - dafür nicht dauerhaft umschalten.
+  if (/empty text|non-empty text/i.test(String(detail || ''))) {
+    logEvent('msg', { role: 'system', text: 'ElevenLabs: Abschnitt ohne sprechbaren Text übersprungen.' });
+    return false;
+  }
   convBroken = true;
   const msg = 'ElevenLabs hat v3 Conversational abgelehnt (' + status + (detail ? ': ' + String(detail).slice(0, 120) : '') + ') - ab jetzt wieder mit dem bisherigen Modell.';
   logEvent('msg', { role: 'system', text: msg });
@@ -4344,10 +4353,12 @@ function dynamicPrefix(modelId, level) {
 // Sekunden Stille - das reißt am stärksten heraus. Kurze Laute der Figuren
 // füllen die Lücke. Sie werden einmal erzeugt und dauerhaft gespeichert.
 const FILLERS = {
+  // Jeder Eintrag braucht gesprochenen Text neben dem Tag: v3 Conversational
+  // entfernt die Tags vorab und lehnt einen dann leeren Text mit 400 ab.
   v3: [
-    ['[softly] Mhm…', '[curious] Hm?', '[giggles softly]', '[sighs contentedly]'],
-    ['[breathes in] Mhm…', '[giggles]', '[sighs] Ja…', '[hums] Hmm…'],
-    ['[breathing heavily]', '[moans softly]', '[gasps] Ah…', '[breathless] Mhm…'],
+    ['[softly] Mhm…', '[curious] Hm?', '[giggles softly] Hihi…', '[sighs contentedly] Hach…'],
+    ['[breathes in] Mhm…', '[giggles] Hihi…', '[sighs] Ja…', '[hums] Hmm…'],
+    ['[breathing heavily] Hah… hah…', '[moans softly] Mmh…', '[gasps] Ah…', '[breathless] Mhm…'],
   ],
   v2: [
     ['Mhm…', 'Hm?', 'Hmm…'],
@@ -4373,6 +4384,7 @@ async function fillerUrl(voiceId, modelId, text, fetchIfMissing) {
   let blob = null;
   try { blob = await dbGet(STORE_AUDIO, k); } catch (e) {}
   if (!blob && fetchIfMissing) {
+    if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
     const key = apiKeyFor('companion_elevenKey');
     if (!key) return null;
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
