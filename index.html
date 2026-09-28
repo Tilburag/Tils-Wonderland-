@@ -932,6 +932,11 @@
         <input type="range" id="d1MaxPos" min="600" max="999" step="10" value="950">
         <label for="d1SpeedCap">Geschwindigkeitsbegrenzung: <span id="d1SpeedCapVal">1.0</span></label>
         <input type="range" id="d1SpeedCap" min="0.2" max="1" step="0.1" value="1">
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+          <input type="checkbox" id="smoothMotion" style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Weiche Bewegung (TCode v0.4, Gradienten-Modus)</span>
+        </label>
+        <p class="hint">Das Gerät rechnet selbst runde Kurven: weiche Umkehrpunkte und fließende Übergänge, wenn sich Tempo oder Bereich ändern. Braucht TCode v0.4 in der Firmware. Gilt für beide Geräte. Die Spitzengeschwindigkeit wird weiter durch das Tempolimit begrenzt, schnelle Takte werden dadurch etwas langsamer.</p>
         <label for="d1FastGap">Schnellster Takt fürs Zittern: <span id="d1FastGapVal">70</span> ms</label>
         <input type="range" id="d1FastGap" min="30" max="140" step="5" value="70">
         <p class="hint">Wie oft pro Sekunde beim Zittern ein neuer Befehl ans Gerät geht. Kleiner ist schneller. Kappt das Gerät die Verbindung, verlangsamt die App von selbst - dann hier einen Schritt zurück.</p>
@@ -1244,6 +1249,9 @@
     <span id="thinkingText">Antwort wird geschrieben</span>
     <button class="thinking-cancel" id="thinkingCancel">Abbrechen</button>
   </div>
+  <div id="readyRow" style="display:none; padding:6px 0;">
+    <button class="btn-primary" id="readyBtn" type="button" style="width:100%;">✓ Bereit - los geht's</button>
+  </div>
   <div class="text-input-row">
     <input type="text" id="textInput" placeholder="Nachricht schreiben...">
     <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken" style="flex:0 0 auto; padding:10px 12px;">📷</button>
@@ -1378,6 +1386,8 @@ const els = {
   talkBtn: document.getElementById('talkBtn'),
   autoBtn: document.getElementById('autoBtn'),
   textInput: document.getElementById('textInput'),
+  readyRow: document.getElementById('readyRow'),
+  readyBtn: document.getElementById('readyBtn'),
   sendTextBtn: document.getElementById('sendTextBtn'),
   stopBtn: document.getElementById('stopBtn'),
   connectBtn: document.getElementById('connectBtn'),
@@ -1467,6 +1477,7 @@ const els = {
   liveReadyCheck: document.getElementById('liveReadyCheck'),
   liveVoiceMotion: document.getElementById('liveVoiceMotion'),
   elevenModel: document.getElementById('elevenModel'),
+  smoothMotion: document.getElementById('smoothMotion'),
   liveFillers: document.getElementById('liveFillers'),
   fillerPreview: document.getElementById('fillerPreview'),
   fillerPreviewList: document.getElementById('fillerPreviewList'),
@@ -2407,8 +2418,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.15';
 const CHANGELOG = [
+  { v: '1.15', date: '2026-09-28', items: [
+    'Weiche Bewegung (Einstellungen → Geräte): nutzt den Gradienten-Modus von TCode v0.4. Das Gerät rechnet selbst runde Kurven - weiche Umkehrpunkte, und wechselt die Bewegung mitten in einer Fahrt, geht das Tempo fließend über statt abrupt. Jede Fahrt endet im Stillstand, damit ein WLAN-Aussetzer das Gerät nie über die Grenzen hinaustragen kann. Tempolimit und Grenzen prüft die App vor jedem Befehl gegen die berechnete Kurve.',
+  ]},
+  { v: '1.14', date: '2026-09-28', items: [
+    'Behoben: „Bin soweit" oder „du kannst mein Gerät jetzt bedienen" wurden nicht als Bereitschaft erkannt - das Gerät blieb stehen. Die Erkennung ist jetzt deutlich breiter.',
+    'Solange die Figur auf dein „bereit" wartet, erscheint über dem Eingabefeld ein Knopf „✓ Bereit - los geht\'s" als sicherer Weg.',
+  ]},
   { v: '1.13', date: '2026-09-28', items: [
     'Anruf: Erkannte Füllwörter wie „hm", „äh" oder „mhm" - oft aus einem Räuspern oder Atmen entstanden - unterbrechen die Figur nicht mehr und werden nicht geschickt. Unterbrochen wird erst bei einem echten Wort; kurze wie „ja" oder „stopp" wirken weiterhin sofort.',
   ]},
@@ -3519,10 +3537,8 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Wo das Gerät vermutlich gerade ist: TCode fährt gleichförmig vom aktuellen
   // Ort zum Ziel, also genügt die zuletzt gesendete Fahrt. null = unbekannt.
   function estimatedPos(now) {
-    const s = state.sent;
-    if (!s) return null;
-    const f = s.ms > 0 ? Math.min(1, (now - s.at) / s.ms) : 1;
-    return s.from + (s.to - s.from) * f;
+    const st = segmentState(state.sent, now);
+    return st ? st.pos : null;
   }
 
   // Beim Zittern darf der Abstand bis auf den eingestellten schnellsten Takt
@@ -3539,6 +3555,21 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     if (state.flushTimer) return;
     const wait = Math.max(0, state.lastSendAt + currentGap() - Date.now());
     state.flushTimer = setTimeout(flushTCode, wait);
+  }
+
+  // Weiche Bewegung: siehe planSmoothMove. Sonst gerade Fahrt wie bisher.
+  function buildLine(job, now, settings) {
+    const { speedCap, minPos, maxPos } = settings;
+    const ups = Math.max(80, MOTION_LIMITS.maxUnitsPerSec * speedCap);
+    const cur = segmentState(state.sent, now);
+    // Unbekannte Lage: vom ungünstigeren Ende des erlaubten Bereichs aus rechnen.
+    const from = cur ? cur.pos : (Math.abs(job.pos - minPos) > Math.abs(maxPos - job.pos) ? minPos : maxPos);
+    if (smoothMotionEnabled()) {
+      const plan = planSmoothMove(from, cur ? cur.vel : 0, job.pos, job.ms, ups / 1000, minPos, maxPos);
+      return { line: 'L0' + tcodePos(job.pos) + 'I' + plan.ms + plan.suffix, sent: { from, to: job.pos, at: now, ms: plan.ms, v0: plan.v0, kind: 'herm' } };
+    }
+    const ms = Math.max(job.ms, Math.round((Math.abs(job.pos - from) / ups) * 1000));
+    return { line: 'L0' + tcodePos(job.pos) + 'I' + ms, sent: { from, to: job.pos, at: now, ms, v0: 0, kind: 'lin' } };
   }
 
   function flushTCode() {
@@ -3560,19 +3591,13 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // fiel so etwa jeder zweite Befehl weg, und das Gerät fuhr bis zum Doppelten
     // des eingestellten Limits.
     const now = Date.now();
-    const { speedCap, minPos, maxPos } = getSettings();
-    const ups = Math.max(80, MOTION_LIMITS.maxUnitsPerSec * speedCap);
-    const here = estimatedPos(now);
-    // Unbekannte Lage: vom ungünstigeren Ende des erlaubten Bereichs aus rechnen.
-    const from = here === null ? (Math.abs(job.pos - minPos) > Math.abs(maxPos - job.pos) ? minPos : maxPos) : here;
-    const minMs = Math.round((Math.abs(job.pos - from) / ups) * 1000);
-    const ms = Math.max(job.ms, minMs);
-    const line = 'L0' + tcodePos(job.pos) + 'I' + ms;
+    const built = buildLine(job, now, getSettings());
+    const line = built.line;
     try {
       state.socket.send(line + '\n');
       logEvent('tcode', { device: label, line });
       state.lastSendAt = now;
-      state.sent = { from, to: job.pos, at: now, ms };
+      state.sent = built.sent;
     } catch (e) {
       // onclose handles the retry
     }
@@ -4282,6 +4307,12 @@ function sendTypedMessage() {
   });
 }
 els.sendTextBtn.onclick = sendTypedMessage;
+els.readyBtn.onclick = () => {
+  els.readyRow.style.display = 'none';
+  forceReadyNext = true;
+  els.textInput.value = 'Bin bereit.';
+  sendTypedMessage();
+};
 els.textInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -4342,6 +4373,70 @@ let currentElevenResolve = null;
 // provider choice: whichever output is selected simply gets a different
 // voice/pitch per role, and falls back to the character voice if the narrator
 // one was never configured.
+// ---------- Weiche Bewegung (TCode v0.4, Gradienten-Modus) ----------
+// Aus der Firmware (Tempests TCode-v0.4-Bibliothek, in jcfain v0.57b enthalten):
+// "L0<pos>I<ms>G<g>" fährt eine kubische Hermite-Kurve. Startgeschwindigkeit =
+// die aktuelle des Geräts, Endgeschwindigkeit = g. Die App sendet immer G0:
+// Jede Fahrt endet im Stillstand. Das ist wichtig - endet eine Gradienten-Fahrt
+// mit Tempo und kommt kein neuer Befehl (WLAN-Aussetzer), lässt die Firmware die
+// Achse weiterlaufen und zurückfedern, bis an das Ende der Schiene und damit an
+// den Grenzen der App vorbei. Mit G0 bleibt sie einfach stehen.
+// Gewinn trotzdem: weiche Umkehrpunkte, und ein neuer Befehl mitten in einer
+// Fahrt übernimmt deren Tempo, statt abrupt umzuschalten.
+function smoothMotionEnabled() {
+  return localStorage.getItem('companion_smoothMotion') === 'true';
+}
+// Lage und Tempo (Einheiten/ms) einer gesendeten Fahrt zum Zeitpunkt t.
+function segmentState(seg, t) {
+  if (!seg) return null;
+  const e = Math.max(0, t - seg.at);
+  if (!(seg.ms > 0) || e >= seg.ms) return { pos: seg.to, vel: 0 };
+  const u = e / seg.ms;
+  if (seg.kind !== 'herm') return { pos: seg.from + (seg.to - seg.from) * u, vel: (seg.to - seg.from) / seg.ms };
+  const m0 = (seg.v0 || 0) * seg.ms;
+  const u2 = u * u, u3 = u2 * u;
+  const pos = (2 * u3 - 3 * u2 + 1) * seg.from + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * seg.to;
+  const dpdu = (6 * u2 - 6 * u) * seg.from + (3 * u2 - 4 * u + 1) * m0 + (-6 * u2 + 6 * u) * seg.to;
+  return { pos, vel: dpdu / seg.ms };
+}
+// Spitzentempo und Ausschlag einer Hermite-Fahrt, abgetastet.
+function hermiteBounds(p0, v0, p1, ms) {
+  const m0 = v0 * ms;
+  let peak = 0, lo = Math.min(p0, p1), hi = Math.max(p0, p1);
+  for (let k = 0; k <= 24; k++) {
+    const u = k / 24, u2 = u * u, u3 = u2 * u;
+    const pos = (2 * u3 - 3 * u2 + 1) * p0 + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * p1;
+    const dpdu = (6 * u2 - 6 * u) * p0 + (3 * u2 - 4 * u + 1) * m0 + (-6 * u2 + 6 * u) * p1;
+    peak = Math.max(peak, Math.abs(dpdu / ms));
+    lo = Math.min(lo, pos); hi = Math.max(hi, pos);
+  }
+  return { peak, lo, hi };
+}
+// Wählt Dauer und Form so, dass Spitzentempo und Grenzen eingehalten werden.
+// Würde das mitgenommene Tempo über eine Grenze hinaustragen (z. B. bei einer
+// Umkehr mitten in der Fahrt), fährt die App diese Strecke aus dem Stand an
+// ("<>": weich an- und abfahren) statt mit Gradient.
+const SMOOTH_MARGIN = 20; // Sicherheitsabstand, weil das Gerät sein eigenes Tempo nimmt
+function planSmoothMove(from, v0, to, wantMs, capPerMs, minPos, maxPos) {
+  const within = b => b.lo >= minPos - 1 + (b.lo < Math.min(from, to) ? SMOOTH_MARGIN : 0)
+                   && b.hi <= maxPos + 1 - (b.hi > Math.max(from, to) ? SMOOTH_MARGIN : 0);
+  let ms = Math.max(1, Math.round(wantMs));
+  // 1) mit mitgenommenem Tempo
+  if (Math.abs(v0) > 1e-6) {
+    let t = ms;
+    for (let i = 0; i < 8; i++) {
+      const b = hermiteBounds(from, v0, to, t);
+      if (!within(b)) break;
+      if (b.peak <= capPerMs) return { ms: t, suffix: 'G0', v0 };
+      t = Math.round(t * 1.25);
+    }
+  }
+  // 2) aus dem Stand: weiche S-Kurve, Spitze = 1,5 x Mittel
+  const minMs = Math.round((1.5 * Math.abs(to - from)) / capPerMs);
+  ms = Math.max(ms, minMs);
+  return { ms, suffix: '<>', v0: 0 };
+}
+
 // ---------- ElevenLabs-Modell ----------
 // v3 Conversational: auf v3 aufgebaut, für Echtzeit-Dialog, halber Preis.
 // Welche Einstellungen es genau annimmt, ist nicht dokumentiert - es wird
@@ -5162,11 +5257,21 @@ function anyDeviceConnected() {
 function saysReady(text) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
   if (/\b(nicht|noch nicht|warte|wart mal|moment|gleich|sekunde|kurz noch)\b/.test(t)) return false;
-  return /\b(bereit|fertig|angelegt|dran|drin|sitzt|startklar|kann losgehen|los geht'?s|leg los|fang an|los|ja|jep|jo|okay|ok|passt|alles klar)\b/.test(t);
+  // Breiter als vorher: "bin soweit" und "du kannst mein Gerät jetzt bedienen"
+  // wurden nicht erkannt, und das Gerät blieb stehen, obwohl ich bereit war.
+  return /\b(bereit|fertig|soweit|so weit|angelegt|angezogen|drauf|dran|drin|sitzt|startklar|erledigt|kann losgehen|kann's losgehen|los geht'?s|leg los|fang an|mach los|mach schon|los|ja|jep|jo|okay|ok|passt|alles klar)\b/.test(t)
+    || /\bkannst\b.*(loslegen|anfangen|starten|beginnen|bedienen|steuern|übernehmen|weitermachen)/.test(t)
+    || /\b(hab|habe|hab's|habs) (es|ihn|das (ding|teil|gerät)) ?(jetzt )?(an|um|drauf|dran)\b/.test(t)
+    || /\b(bedien|steuer|start)\w* (es|mich|das gerät|mein gerät)/.test(t);
 }
 function readyHoldActive() {
   return readyGate === 'asking';
 }
+// Knopf als sicherer Weg, falls meine Worte nicht als Bereitschaft erkannt werden.
+function updateReadyButton() {
+  if (els.readyRow) els.readyRow.style.display = readyGate === 'asking' ? '' : 'none';
+}
+let forceReadyNext = false;
 function readyBlock() {
   if (readyJustConfirmed) return '\n\nICH BIN JETZT BEREIT: Ich habe gerade bestätigt, dass das Gerät angelegt ist. Die Figur reagiert erleichtert und gierig - endlich - und dann geht es los, zu Beginn sanft.';
   if (readyGate !== 'asking') return '';
@@ -9589,7 +9694,7 @@ async function askEnsemble(userText, options) {
     // Gerät gleich nach dem Kennenlernen los, mitten im Spaziergang.
     if (!readyCheckEnabled() || !deviceAware() || unattended) {
       if (unattended && readyGate === 'asking') readyGate = 'ready';
-    } else if (readyGate === 'asking' && saysReady(userText)) {
+    } else if (readyGate === 'asking' && (forceReadyNext || saysReady(userText))) {
       readyGate = 'ready';
       readyJustConfirmed = true;
       logEvent('msg', { role: 'system', text: 'Bereit bestätigt - Bewegung freigegeben.' });
@@ -9597,6 +9702,8 @@ async function askEnsemble(userText, options) {
       readyGate = 'asking';
     }
   }
+  forceReadyNext = false;
+  updateReadyButton();
   const holdNow = introNow || readyHoldActive();
   if (userText && !(options && (options.autoStep || options.silent))) applyQuickTempo(quickTempoWish(userText));
 
@@ -9977,6 +10084,7 @@ els.navNewChat.onclick = () => {
   history = [];
   sceneStep = 0;
   readyGate = 'off';
+  updateReadyButton();
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
@@ -10195,6 +10303,8 @@ els.liveDeviceAware.onchange = () => {
   els.liveReadyCheck.disabled = !els.liveDeviceAware.checked;
 };
 els.liveReadyCheck.onchange = () => safeSet('companion_readyCheck', els.liveReadyCheck.checked ? 'true' : 'false');
+els.smoothMotion.checked = smoothMotionEnabled();
+els.smoothMotion.onchange = () => safeSet('companion_smoothMotion', els.smoothMotion.checked ? 'true' : 'false');
 els.elevenModel.value = elevenModelChoice();
 els.elevenModel.onchange = () => {
   safeSet('companion_elevenModel', els.elevenModel.value);
