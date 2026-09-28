@@ -858,8 +858,10 @@
           <option value="classic">Wie bisher: v3 für emotionale Figuren, Multilingual v2 für die übrigen</option>
           <option value="convEmotional">v3 Conversational für emotionale Figuren, Multilingual v2 für die übrigen</option>
           <option value="convAll">v3 Conversational für alle Figuren</option>
+          <option value="v4turbo">v4 Turbo für alle Figuren (neu, am günstigsten)</option>
+          <option value="v4">v4 für alle Figuren (neu, höchste Qualität)</option>
         </select>
-        <p class="hint">v3 Conversational kostet laut ElevenLabs-Preisliste die Hälfte und antwortet schneller. Lehnt ElevenLabs es ab, spricht die App für den Rest der Sitzung automatisch mit dem bisherigen Modell weiter. Schon gespeicherte Vertonungen gelten nur für das Modell, mit dem sie entstanden sind.</p>
+        <p class="hint">v3 Conversational kostet laut ElevenLabs-Preisliste die Hälfte und antwortet schneller. v4 und v4 Turbo sind seit dem 28.9.2026 verfügbar und sollen Regieanweisungen noch genauer umsetzen. Lehnt ElevenLabs ein Modell ab, spricht die App für den Rest der Sitzung automatisch mit dem nächsten weiter (v4 → v3 Conversational → bisheriges Modell). Schon gespeicherte Vertonungen gelten nur für das Modell, mit dem sie entstanden sind.</p>
         <details style="margin-top:10px;">
           <summary style="cursor:pointer; font-size:13.5px;">Stimmen beschreiben (für die Generatoren)</summary>
           <p class="hint">Ein paar Worte je Stimme helfen den Figuren-Generatoren, die richtige zu wählen - besonders bei Stimmen ohne Beschreibung. Deine Notiz geht vor der von ElevenLabs.</p>
@@ -1058,6 +1060,36 @@
       <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen. Bis dahin bleibt die Bewegung aus.</p>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveAmbience" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Geräuschkulisse</span>
+      </label>
+      <p class="hint">Leise Geräusche passend zum Ort - Barmurmeln, Wellen, Regen, Kaminfeuer. Die App erkennt den Ort aus Szene und Gespräch und blendet beim Ortswechsel über. Jede Kulisse wird einmal bei ElevenLabs erzeugt und dann gespeichert.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:2px 0 0 0;">
+        <span style="font-size:13px;">Lautstärke</span>
+        <input type="range" id="ambVol" min="5" max="60" step="1" value="25" style="flex:1; margin:0;">
+        <span id="ambNow" style="font-size:12px; min-width:90px; text-align:right;">-</span>
+        <button class="btn-secondary" id="ambRedo" type="button" title="Aktuelle Kulisse neu erzeugen" style="width:auto; padding:2px 10px;">↻</button>
+      </div>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveArousal" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Nähe-Regler</span>
+      </label>
+      <p class="hint">Über dem Eingabefeld erscheint ein Regler: Wie nah bist du dran? Du kannst ihn jederzeit verschieben, die nächste Antwort richtet sich danach. „🔥 Kurz davor" meldet es sofort - auch per Sprache („kurz davor", „gleich komm ich").</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:6px 0 0 18px;">
+        <input type="checkbox" id="liveEdging" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Die Figur hält dich hin</span>
+      </label>
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0 0 18px;">
+        <span style="font-size:13px;">Kommen erlaubt nach</span>
+        <select id="liveEdgeGoal" style="width:auto;">
+          <option value="1">1 Mal</option><option value="2">2 Mal</option><option value="3">3 Mal</option><option value="4">4 Mal</option><option value="5">5 Mal</option>
+        </select>
+        <span style="font-size:13px;">kurz davor</span>
+      </div>
+      <p class="hint" style="margin-left:18px;">Sobald du „kurz davor" meldest oder der Regler über 85 geht, bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt - und die Figur lässt dich zappeln. Erst nach der eingestellten Zahl darf es weitergehen bis zum Ende.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveVoiceMotion" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Stimme folgt der Bewegung</span>
       </label>
@@ -1249,6 +1281,12 @@
     <span id="thinkingText">Antwort wird geschrieben</span>
     <button class="thinking-cancel" id="thinkingCancel">Abbrechen</button>
   </div>
+  <div id="arousalRow" style="display:none; padding:4px 0; align-items:center; gap:8px;">
+    <span style="font-size:12px; color:var(--muted, #888);">Nähe</span>
+    <input type="range" id="arousalSlider" min="0" max="100" step="1" value="0" style="flex:1; margin:0;">
+    <span id="arousalVal" style="font-size:12px; min-width:58px; text-align:right;">0</span>
+    <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:0 0 auto; padding:6px 10px;">🔥 Kurz davor</button>
+  </div>
   <div id="readyRow" style="display:none; padding:6px 0;">
     <button class="btn-primary" id="readyBtn" type="button" style="width:100%;">✓ Bereit - los geht's</button>
   </div>
@@ -1387,6 +1425,17 @@ const els = {
   autoBtn: document.getElementById('autoBtn'),
   textInput: document.getElementById('textInput'),
   readyRow: document.getElementById('readyRow'),
+  arousalRow: document.getElementById('arousalRow'),
+  arousalSlider: document.getElementById('arousalSlider'),
+  arousalVal: document.getElementById('arousalVal'),
+  edgeBtn: document.getElementById('edgeBtn'),
+  liveArousal: document.getElementById('liveArousal'),
+  liveAmbience: document.getElementById('liveAmbience'),
+  ambVol: document.getElementById('ambVol'),
+  ambNow: document.getElementById('ambNow'),
+  ambRedo: document.getElementById('ambRedo'),
+  liveEdging: document.getElementById('liveEdging'),
+  liveEdgeGoal: document.getElementById('liveEdgeGoal'),
   readyBtn: document.getElementById('readyBtn'),
   sendTextBtn: document.getElementById('sendTextBtn'),
   stopBtn: document.getElementById('stopBtn'),
@@ -2418,8 +2467,19 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.15';
+const APP_VERSION = '1.18';
 const CHANGELOG = [
+  { v: '1.18', date: '2026-09-28', items: [
+    'Geräuschkulisse: Passend zum Ort laufen leise Barmurmeln, Wellen, Regen, Kaminfeuer, Vögel im Park und mehr. Die App erkennt den Ort aus Szene und Gespräch und blendet beim Ortswechsel weich über. Jede Kulisse wird einmal bei ElevenLabs erzeugt und gespeichert; Lautstärke und Neu-Erzeugen im Live-Bereich.',
+  ]},
+  { v: '1.17', date: '2026-09-28', items: [
+    'Nähe-Regler: Über dem Eingabefeld meldest du jederzeit, wie nah du dran bist. Die nächste Antwort richtet Tempo und Intensität danach. „🔥 Kurz davor" meldet es sofort, ebenso Worte wie „kurz davor" oder „gleich komm ich".',
+    'Hinhalte-Spiel: Die Figur bringt dich immer wieder an die Kante und hält dich hin. Meldest du „kurz davor", bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt. Erst nach der eingestellten Zahl darf es bis zum Ende gehen. Der Balken zeigt, wie oft du schon kurz davor warst.',
+    'Jede Meldung steht mit Zeitstempel im Protokoll.',
+  ]},
+  { v: '1.16', date: '2026-09-28', items: [
+    'ElevenLabs v4 und v4 Turbo in der Modellwahl (Einstellungen → Stimme & Sprachausgabe). v4 Turbo ist das günstigste und schnellste Modell, v4 das ausdrucksstärkste. Lehnt ElevenLabs eines ab, übernimmt automatisch v3 Conversational, danach das bisherige Modell.',
+  ]},
   { v: '1.15', date: '2026-09-28', items: [
     'Weiche Bewegung (Einstellungen → Geräte): nutzt den Gradienten-Modus von TCode v0.4. Das Gerät rechnet selbst runde Kurven - weiche Umkehrpunkte, und wechselt die Bewegung mitten in einer Fahrt, geht das Tempo fließend über statt abrupt. Jede Fahrt endet im Stillstand, damit ein WLAN-Aussetzer das Gerät nie über die Grenzen hinaustragen kann. Tempolimit und Grenzen prüft die App vor jedem Befehl gegen die berechnete Kurve.',
   ]},
@@ -3002,9 +3062,11 @@ function buildSessionExport() {
     `Modus: ${MODE_LABELS[currentMode] || currentMode}`,
     `KI-Anbieter: ${provider}`,
     `Modell: ${model}`,
-    `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${convBroken ? ', Conversational abgelehnt' : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
+    `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${brokenModels.size ? ', abgelehnt: ' + [...brokenModels].map(m => MODEL_NAMES[m] || m).join(', ') : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
     `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
+    `Geräuschkulisse: ${ambienceEnabled() ? (amb.key ? AMBIENCES[amb.key].label : 'an, noch kein Ort') + ', Lautstärke ' + Math.round(ambVolume() * 100) + ' %' : 'aus'}`,
+    `Nähe-Regler: ${arousalEnabled() ? `an (jetzt ${arousal}, Höchstwert ${arousalPeak}, ${edgeCount}x kurz davor)` : 'aus'}; Hinhalten: ${edgingEnabled() ? `an, Ziel ${edgeGoal()}` : 'aus'}`,
     `Anruf: ${headphoneMode() ? 'Kopfhörer' : 'Lautsprecher'}; Sprechpause ${speechGapMs()} ms; Mikrofonauswertung: ${micSenseEnabled() ? 'an' : 'aus'}`,
     `Figuren: ${characters.map(c => c.name + (c.isUser ? ' [ich]' : '')).join(', ')}`,
     deviceInfo(1),
@@ -3736,6 +3798,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   }
 
   function applyState(req, instant) {
+    req = edgeCapRequest(req);
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
     const span = Math.max(1, maxPos - minPos);
@@ -3910,6 +3973,7 @@ els.stopBtn.onclick = () => {
   device1.setMotion({ texture: 'stop' });
   device2.setMotion({ texture: 'stop' });
   stopFillers(true);
+  setAmbience(null);
   speechSynthesis.cancel();
   if (currentElevenAudio) {
     currentElevenAudio.pause();
@@ -4307,6 +4371,38 @@ function sendTypedMessage() {
   });
 }
 els.sendTextBtn.onclick = sendTypedMessage;
+els.arousalSlider.addEventListener('input', () => setArousal(parseInt(els.arousalSlider.value, 10), 'Regler', true));
+els.arousalSlider.addEventListener('change', () => setArousal(parseInt(els.arousalSlider.value, 10), 'Regler'));
+els.edgeBtn.onclick = () => {
+  setArousal(Math.max(arousal, 90), 'Knopf');
+  els.textInput.value = 'Ich bin kurz davor!';
+  sendTypedMessage();
+};
+els.liveAmbience.checked = localStorage.getItem('companion_ambience') === 'true';
+els.ambVol.value = localStorage.getItem('companion_ambVol') || '25';
+els.liveAmbience.onchange = () => {
+  safeSet('companion_ambience', els.liveAmbience.checked ? 'true' : 'false');
+  amb.key = null;
+  if (els.liveAmbience.checked) updateAmbience(); else setAmbience(null);
+};
+els.ambVol.oninput = () => {
+  safeSet('companion_ambVol', els.ambVol.value);
+  const a = amb.players[amb.players.length - 1];
+  if (a) { try { a.volume = ambVolume(); } catch (e) {} }
+};
+els.ambRedo.onclick = () => { if (amb.key) setAmbience(amb.key, true); };
+els.liveArousal.checked = arousalEnabled();
+els.liveEdging.checked = localStorage.getItem('companion_edging') === 'true';
+els.liveEdgeGoal.value = String(edgeGoal());
+els.liveEdging.disabled = els.liveEdgeGoal.disabled = !els.liveArousal.checked;
+els.liveArousal.onchange = () => {
+  safeSet('companion_arousal', els.liveArousal.checked ? 'true' : 'false');
+  els.liveEdging.disabled = els.liveEdgeGoal.disabled = !els.liveArousal.checked;
+  updateArousalUI();
+};
+els.liveEdging.onchange = () => { safeSet('companion_edging', els.liveEdging.checked ? 'true' : 'false'); updateArousalUI(); };
+els.liveEdgeGoal.onchange = () => { safeSet('companion_edgeGoal', els.liveEdgeGoal.value); updateArousalUI(); };
+// updateArousalUI() erst im Start-Timeout: die Zustandsvariablen stehen weiter unten.
 els.readyBtn.onclick = () => {
   els.readyRow.style.display = 'none';
   forceReadyNext = true;
@@ -4442,23 +4538,44 @@ function planSmoothMove(from, v0, to, wantMs, capPerMs, minPos, maxPos) {
 // Welche Einstellungen es genau annimmt, ist nicht dokumentiert - es wird
 // deshalb wie v3 behandelt (feste Stabilitätsstufen, kein previous_text).
 // Lehnt ElevenLabs es ab, gilt für den Rest der Sitzung wieder das bisherige.
+// v4 / v4 Turbo (seit 28.9.2026): ebenfalls mit Regieanweisungen. Welche
+// Einstellungen sie annehmen und ob die normale Sprachausgabe-Schnittstelle sie
+// schon kennt, war beim Einbau nicht dokumentiert - deshalb dieselbe
+// vorsichtige Behandlung wie v3, und eine Rückfall-Kette: Lehnt ElevenLabs ein
+// Modell ab, übernimmt das nächste in der Kette für den Rest der Sitzung.
 const ELEVEN_CONV = 'eleven_v3_conversational';
-let convBroken = false;
+const ELEVEN_V4 = 'eleven_v4';
+const ELEVEN_V4T = 'eleven_v4_turbo';
+const MODEL_NAMES = {
+  [ELEVEN_V4T]: 'v4 Turbo', [ELEVEN_V4]: 'v4', [ELEVEN_CONV]: 'v3 Conversational',
+  eleven_v3: 'v3', eleven_multilingual_v2: 'Multilingual v2',
+};
+const brokenModels = new Set();
 function elevenModelChoice() {
   const v = localStorage.getItem('companion_elevenModel');
-  return v === 'convEmotional' || v === 'convAll' ? v : 'classic';
+  return ['convEmotional', 'convAll', 'v4', 'v4turbo'].includes(v) ? v : 'classic';
+}
+function elevenModelChain(emotional) {
+  const base = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
+  switch (elevenModelChoice()) {
+    case 'v4turbo': return [ELEVEN_V4T, ELEVEN_CONV, base];
+    case 'v4': return [ELEVEN_V4, ELEVEN_CONV, base];
+    case 'convAll': return [ELEVEN_CONV, base];
+    case 'convEmotional': return emotional ? [ELEVEN_CONV, base] : [base];
+    default: return [base];
+  }
 }
 function elevenModelFor(emotional) {
-  const choice = convBroken ? 'classic' : elevenModelChoice();
-  if (emotional) return choice === 'classic' ? 'eleven_v3' : ELEVEN_CONV;
-  return choice === 'convAll' ? ELEVEN_CONV : 'eleven_multilingual_v2';
+  const chain = elevenModelChain(emotional);
+  return chain.find(m => !brokenModels.has(m)) || chain[chain.length - 1];
 }
+// Modelle mit Regieanweisungen in eckigen Klammern (v3-Familie und v4).
 function isV3(modelId) {
-  return typeof modelId === 'string' && modelId.startsWith('eleven_v3');
+  return typeof modelId === 'string' && (modelId.startsWith('eleven_v3') || modelId.startsWith('eleven_v4'));
 }
 // true, wenn der Fehler das Modell betraf und neu versucht werden soll.
 function convFailed(modelId, status, detail) {
-  if (modelId !== ELEVEN_CONV || convBroken) return false;
+  if (![ELEVEN_V4T, ELEVEN_V4, ELEVEN_CONV].includes(modelId) || brokenModels.has(modelId)) return false;
   if (![400, 403, 404, 422].includes(status)) return false;
   // Ein Fehler am Inhalt (z. B. nur Regieanweisungen, kein Text) sagt nichts
   // über das Modell - dafür nicht dauerhaft umschalten.
@@ -4466,8 +4583,9 @@ function convFailed(modelId, status, detail) {
     logEvent('msg', { role: 'system', text: 'ElevenLabs: Abschnitt ohne sprechbaren Text übersprungen.' });
     return false;
   }
-  convBroken = true;
-  const msg = 'ElevenLabs hat v3 Conversational abgelehnt (' + status + (detail ? ': ' + String(detail).slice(0, 120) : '') + ') - ab jetzt wieder mit dem bisherigen Modell.';
+  brokenModels.add(modelId);
+  const next = elevenModelFor(true);
+  const msg = 'ElevenLabs hat ' + (MODEL_NAMES[modelId] || modelId) + ' abgelehnt (' + status + (detail ? ': ' + String(detail).slice(0, 120) : '') + ') - ab jetzt mit ' + (MODEL_NAMES[next] || next) + '.';
   logEvent('msg', { role: 'system', text: msg });
   addMsg('system', msg);
   return true;
@@ -4709,6 +4827,7 @@ els.muteBtn.onclick = () => {
   isMuted = !isMuted;
   els.muteBtn.textContent = isMuted ? '🔇 Stumm' : '🔊 Ton an';
   els.muteBtn.className = 'pill ' + (isMuted ? 'off' : 'on');
+  if (isMuted) setAmbience(null); else { amb.key = null; updateAmbience(); }
   if (isMuted) {
     stopFillers(true);
     speechSynthesis.cancel(); // stop Android TTS if it's currently speaking
@@ -5243,6 +5362,229 @@ const INTRO_STEPS = 6;
 function introPhase(step) {
   return pace('live') === 'langsam' && step < INTRO_STEPS;
 }
+// ---------- Geräuschkulisse ----------
+// Der Ort wird aus Szene und den letzten Nachrichten erkannt (die jüngste
+// Erwähnung zählt). Ohne neuen Ort bleibt die bisherige Kulisse. Erzeugt wird
+// über die Geräusch-Schnittstelle von ElevenLabs, nicht über die Stimme - sonst
+// würde die Figur die Beschreibung vorlesen. Gespeichert wird dauerhaft.
+const AMBIENCES = {
+  bar:    { label: 'Bar',          re: /\b(bar|pub|kneipe|lounge|café|cafe|restaurant|theke|tresen)\b/g, prompt: 'Cozy bar ambience, quiet unintelligible background chatter, soft clinking glasses, distant muffled music' },
+  club:   { label: 'Club',         re: /\b(club|disco|tanzfläche)\b/g, prompt: 'Muffled nightclub bass from the next room, low crowd murmur' },
+  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
+  lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
+  rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
+  fire:   { label: 'Kaminfeuer',   re: /\b(kamin|kaminfeuer|lagerfeuer)\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
+  shower: { label: 'Dusche / Bad', re: /\b(dusche|duschen|badewanne|whirlpool)\b/g, prompt: 'Warm shower running steadily in a tiled bathroom' },
+  city:   { label: 'Stadt',        re: /\b(straße|hinterhof|balkon|dachterrasse)\b/g, prompt: 'Distant city at night, faint traffic hum, calm' },
+  room:   { label: 'Zimmer',       re: /\b(schlafzimmer|bett|hotelzimmer|zimmer|wohnung|sofa|couch)\b/g, prompt: 'Quiet intimate bedroom at night, soft room tone, very faint distant city hum' },
+};
+const amb = { key: null, players: [], loopTimer: null, busy: false };
+function ambienceEnabled() { return localStorage.getItem('companion_ambience') === 'true'; }
+function ambVolume() {
+  const v = parseInt(localStorage.getItem('companion_ambVol') || '25', 10);
+  return Math.max(0.05, Math.min(0.6, (Number.isFinite(v) ? v : 25) / 100));
+}
+function detectAmbience() {
+  const texts = [];
+  for (let i = history.length - 1; i >= 0 && texts.length < 8; i--) {
+    if (typeof history[i].content === 'string') texts.push(history[i].content);
+  }
+  texts.push(localStorage.getItem('companion_sceneDesc') || '');
+  for (const raw of texts) {
+    const t = raw.toLowerCase();
+    let best = null, bestAt = -1;
+    for (const [key, a] of Object.entries(AMBIENCES)) {
+      a.re.lastIndex = 0;
+      let m;
+      while ((m = a.re.exec(t))) { if (m.index > bestAt) { bestAt = m.index; best = key; } }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+async function ambienceBlob(key, fresh) {
+  const dbKey = 'amb_v1_' + key;
+  if (fresh) { try { await dbDelete(STORE_AUDIO, dbKey); } catch (e) {} }
+  else { try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {} }
+  const apiKey = apiKeyFor('companion_elevenKey');
+  if (!apiKey) return null;
+  const body = { text: AMBIENCES[key].prompt, duration_seconds: 22, prompt_influence: 0.4, loop: true, model_id: 'eleven_text_to_sound_v2' };
+  const send = b => fetch('https://api.elevenlabs.io/v1/sound-generation', {
+    method: 'POST', headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify(b),
+  });
+  let res = await send(body);
+  if (!res.ok && (res.status === 400 || res.status === 422)) {
+    // Ältere Schnittstelle ohne Schleife/Modellwahl: dann blendet die App selbst über.
+    delete body.loop; delete body.model_id;
+    res = await send(body);
+  }
+  if (!res.ok) {
+    logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ElevenLabs-Fehler ' + res.status });
+    return null;
+  }
+  const blob = await res.blob();
+  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+  logEvent('msg', { role: 'system', text: 'Geräuschkulisse erzeugt: ' + AMBIENCES[key].label });
+  return blob;
+}
+function fadeAudio(a, target, ms, done) {
+  const start = a.volume, t0 = Date.now();
+  const iv = setInterval(() => {
+    const f = Math.min(1, (Date.now() - t0) / ms);
+    try { a.volume = Math.max(0, Math.min(1, start + (target - start) * f)); } catch (e) {}
+    if (f >= 1) { clearInterval(iv); if (done) done(); }
+  }, 60);
+}
+function stopAmbiencePlayers(ms) {
+  clearTimeout(amb.loopTimer);
+  const old = amb.players;
+  amb.players = [];
+  old.forEach(a => fadeAudio(a, 0, ms, () => { try { a.pause(); } catch (e) {} }));
+}
+// Spielt die Kulisse in Dauerschleife, mit Überblendung an der Nahtstelle.
+function loopAmbience(url, key) {
+  if (amb.key !== key) return;
+  const a = new Audio(url);
+  a.volume = 0;
+  a.play().catch(() => {});
+  amb.players.push(a);
+  fadeAudio(a, ambVolume(), 2500);
+  const schedule = () => {
+    const d = a.duration && isFinite(a.duration) ? a.duration : 20;
+    amb.loopTimer = setTimeout(() => {
+      if (amb.key !== key) return;
+      fadeAudio(a, 0, 2500, () => { try { a.pause(); } catch (e) {} amb.players = amb.players.filter(x => x !== a); });
+      loopAmbience(url, key);
+    }, Math.max(4000, (d - 2.5) * 1000));
+  };
+  if (a.readyState >= 1) schedule(); else a.addEventListener('loadedmetadata', schedule, { once: true });
+}
+async function setAmbience(key, fresh) {
+  if (key === amb.key && !fresh) return;
+  amb.key = key;
+  stopAmbiencePlayers(3000);
+  updateAmbienceUI();
+  if (!key || !ambienceEnabled() || isMuted) return;
+  const blob = await ambienceBlob(key, fresh).catch(() => null);
+  if (!blob || amb.key !== key) return;
+  loopAmbience(URL.createObjectURL(blob), key);
+}
+function updateAmbience() {
+  if (!ambienceEnabled() || isMuted) { if (amb.key) setAmbience(null); return; }
+  const key = detectAmbience();
+  if (key && key !== amb.key) {
+    logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ' + AMBIENCES[key].label });
+    setAmbience(key);
+  }
+}
+function updateAmbienceUI() {
+  if (els.ambNow) els.ambNow.textContent = amb.key ? 'jetzt: ' + AMBIENCES[amb.key].label : '-';
+}
+
+// ---------- Nähe-Regler und Hinhalten ----------
+// Ich melde live, wie nah ich dran bin. Die Figur richtet die nächste Antwort
+// danach, und beim Hinhalten bremst die App das Gerät selbst - sofort und
+// unabhängig vom Modell, das sich nicht immer an solche Regeln hält.
+const AROUSAL_DANGER = 85;   // ab hier "kurz davor"
+const AROUSAL_SAFE = 70;     // darunter ist die Kante überstanden
+const EDGE_CAP_BPM = 18;
+let arousal = 0;
+let arousalPeak = 0;
+let arousalHistory = [];     // { t, v }
+let edgeCount = 0;           // wie oft ich an die Kante kam
+let inDanger = false;
+function arousalEnabled() { return localStorage.getItem('companion_arousal') === 'true'; }
+function edgingEnabled() { return arousalEnabled() && localStorage.getItem('companion_edging') === 'true'; }
+function edgeGoal() {
+  const n = parseInt(localStorage.getItem('companion_edgeGoal') || '3', 10);
+  return Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : 3;
+}
+// Nach der eingestellten Zahl Kanten ist das nächste Mal das erlaubte.
+function releaseAllowed() { return edgeCount > edgeGoal(); }
+function edgeCapActive() { return edgingEnabled() && inDanger && !releaseAllowed(); }
+// Wird in applyState jedes Geräts angewendet - also auch auf Folgen und Marker.
+function edgeCapRequest(req) {
+  if (!edgeCapActive() || !req) return req;
+  const tex = req.texture || 'smooth';
+  if (tex === 'stop' || tex === 'hold') return req;
+  const mid = ((req.low ?? 350) + (req.high ?? 650)) / 2;
+  return Object.assign({}, req, {
+    texture: 'smooth',
+    bpm: Math.min(req.bpm || 0, EDGE_CAP_BPM) || EDGE_CAP_BPM,
+    low: Math.max(0, mid - 120), high: Math.min(999, mid + 120),
+  });
+}
+function applyEdgeCapNow() {
+  [device1, device2].forEach(d => { try { d.setMotion(d.getState()); } catch (e) {} });
+}
+function arousalTrend() {
+  const now = Date.now();
+  const past = arousalHistory.filter(e => now - e.t >= 20000).pop();
+  if (!past) return 'gerade erst gemeldet';
+  const d = arousal - past.v;
+  return d > 5 ? 'steigend' : d < -5 ? 'fallend' : 'gleichbleibend';
+}
+function setArousal(v, source, quiet) {
+  v = Math.max(0, Math.min(100, Math.round(v)));
+  arousal = v;
+  arousalPeak = Math.max(arousalPeak, v);
+  if (!quiet) {
+    arousalHistory.push({ t: Date.now(), v });
+    if (arousalHistory.length > 300) arousalHistory.shift();
+    logEvent('msg', { role: 'system', text: `Nähe ${v}/100 (${source})` });
+  }
+  if (!inDanger && v >= AROUSAL_DANGER) {
+    inDanger = true;
+    edgeCount += 1;
+    logEvent('msg', { role: 'system', text: releaseAllowed()
+      ? `Kurz davor (${edgeCount}. Mal) - jetzt erlaubt.`
+      : `Kurz davor (${edgeCount}. Mal)${edgingEnabled() ? ' - Gerät gebremst.' : ''}` });
+    if (edgeCapActive()) applyEdgeCapNow();
+  } else if (inDanger && v < AROUSAL_SAFE) {
+    inDanger = false;
+    logEvent('msg', { role: 'system', text: 'Kante überstanden.' });
+  }
+  updateArousalUI();
+}
+function updateArousalUI() {
+  if (!els.arousalRow) return;
+  els.arousalRow.style.display = arousalEnabled() ? 'flex' : 'none';
+  if (document.activeElement !== els.arousalSlider) els.arousalSlider.value = String(arousal);
+  const hue = Math.round(120 - arousal * 1.2);
+  els.arousalSlider.style.accentColor = `hsl(${hue}, 75%, 45%)`;
+  els.arousalVal.textContent = edgingEnabled()
+    ? `${arousal} · ${Math.min(edgeCount, edgeGoal())}/${edgeGoal()}${releaseAllowed() ? ' ✓' : ''}`
+    : String(arousal);
+}
+function resetArousal() {
+  arousal = 0; arousalPeak = 0; arousalHistory = []; edgeCount = 0; inDanger = false;
+  updateArousalUI();
+}
+// Aus meinen Worten: "kurz davor" usw. setzen den Regler hoch.
+function arousalFromText(text) {
+  if (!arousalEnabled()) return;
+  const t = String(text || '').toLowerCase();
+  if (/\b(ich komme|ich komm)\b(?! gleich)/.test(t) && !/gleich|fast|kurz/.test(t)) setArousal(100, 'gesagt');
+  else if (/kurz davor|gleich komm|komm gleich|fast so ?weit|bin fast|nicht mehr lange/.test(t)) setArousal(Math.max(arousal, 90), 'gesagt');
+}
+function arousalBlock() {
+  if (!arousalEnabled()) return '';
+  let t = `\n\nMEINE NÄHE ZUM HÖHEPUNKT (live von mir gemeldet): ${arousal}/100, ${arousalTrend()}. Höchster Wert bisher: ${arousalPeak}. Das ist die Wahrheit über meinen Zustand - richte Tempo und Intensität danach, sprich es aber nicht als Zahl aus.`;
+  if (edgingEnabled()) {
+    const goal = edgeGoal();
+    if (releaseAllowed()) {
+      t += ` HINHALTEN - ZIEL ERREICHT: Du hast mich ${goal} Mal an die Kante gebracht und zurückgehalten. Jetzt erlaubst du es mir ausdrücklich, lobst mich, dass ich so lange durchgehalten habe, und bringst mich darüber.`;
+    } else if (inDanger) {
+      t += ` ICH BIN KURZ DAVOR (${edgeCount}. von ${goal} Mal): Du nimmst SOFORT zurück - hältst inne, wirst ganz langsam, neckst mich, verbietest mir zu kommen, lässt mich zappeln. Erwähne, wie oft ich schon kurz davor war. Erst wenn ich mich beruhigt habe, geht es wieder aufwärts.`;
+    } else {
+      t += ` HINHALTE-SPIEL: Du bringst mich immer wieder an die Kante und hältst mich dann hin. Bisher ${edgeCount} von ${goal} Mal kurz davor. Steigere, bis ich nah dran bin - spiele mit mir, trainiere mich, genieße deine Kontrolle.`;
+    }
+  } else if (arousal >= AROUSAL_DANGER) {
+    t += ' Ich bin kurz davor - wenn du mich kommen lassen willst, jetzt; sonst nimm bewusst zurück.';
+  }
+  return t;
+}
+
 // ---------- Bereitmachen vor der ersten Bewegung ----------
 // 'off': noch nicht gefragt, 'asking': Figur hat gefragt und wartet,
 // 'ready': bestätigt - ab jetzt normal. Gilt pro Gespräch.
@@ -8711,6 +9053,7 @@ els.genFigureBtn.onclick = async () => {
 updateTrackVisibility();
 renderTaskModels();
 setTimeout(() => {
+  try { updateArousalUI(); } catch (e) {}
   try { migrateProfilesToMe(); } catch (e) {}
   try {
     figureArchive.forEach(f => {
@@ -9555,7 +9898,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -9684,6 +10027,7 @@ async function askEnsemble(userText, options) {
   // message wins: the older reply is cut off rather than layered underneath.
   interruptPlayback();
   const generation = playbackGeneration;
+  arousalFromText(userText);
   const introNow = introPhase(sceneStep);
   // Bereitmachen: erst nach dem Kennenlernen, nur wenn die Figuren vom Gerät
   // wissen und eines verbunden ist. Im Selbstlauf ohne mich wird nicht gewartet.
@@ -9732,6 +10076,7 @@ async function askEnsemble(userText, options) {
     setThinking('');
 
     history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
+    try { updateAmbience(); } catch (e) {}
     sceneStep += 1;
 
     const lines = parseEnsembleText(replyText);
@@ -9755,7 +10100,7 @@ async function askEnsemble(userText, options) {
       try {
         const raw = await callProvider(
           provider,
-          buildMotionPromptForDevice(pieces, deviceNum),
+          buildMotionPromptForDevice(pieces, deviceNum) + arousalBlock(),
           [{ role: 'user', content: 'Gib die Bewegungsdaten für die oben angegebenen Textabschnitte zurück.' }],
           0.3,
           // Short JSON, but a reasoning model still thinks first - and an empty
@@ -10085,6 +10430,8 @@ els.navNewChat.onclick = () => {
   sceneStep = 0;
   readyGate = 'off';
   updateReadyButton();
+  resetArousal();
+  setAmbience(null);
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
@@ -10308,7 +10655,7 @@ els.smoothMotion.onchange = () => safeSet('companion_smoothMotion', els.smoothMo
 els.elevenModel.value = elevenModelChoice();
 els.elevenModel.onchange = () => {
   safeSet('companion_elevenModel', els.elevenModel.value);
-  convBroken = false; // neue Wahl, neuer Versuch
+  brokenModels.clear(); // neue Wahl, neuer Versuch
   fillerUrls.clear();
   if (fillersEnabled()) prewarmFillers();
 };
@@ -10387,6 +10734,7 @@ els.liveStartBtn.onclick = () => {
   // should have the screen to itself.
   els.liveSetup.open = false;
   prewarmFillers();
+  try { updateAmbience(); } catch (e) {}
   if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
   els.textInput.focus();
 };
