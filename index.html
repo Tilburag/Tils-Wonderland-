@@ -2467,8 +2467,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.18';
+const APP_VERSION = '1.19';
 const CHANGELOG = [
+  { v: '1.19', date: '2026-09-28', items: [
+    'Antwortlänge wirkt jetzt auch im Live-Gespräch: „kurz" heißt ein, zwei knappe Zeilen. Schreibt das Modell trotzdem mehr, kürzt die App an einer Satzgrenze.',
+    'Schreibt das Modell eine Zeile für dich, endet die Antwort dort - vorher antwortete die Figur danach auf etwas, das du nie gesagt hast.',
+    'Geräuschkulisse: Fehlt dem ElevenLabs-Schlüssel die Berechtigung für Soundeffekte, sagt die App das einmal klar, statt es bei jeder Antwort erneut zu versuchen.',
+    'Mehr und längere Mundgeräusche: Beschreibt die Figur Mund, Hand oder Sex, folgt zwischen den Abschnitten oft ein passender Laut. Neue, längere Schmatz- und Sauglaute; die Figur darf beim Sprechen mit vollem Mund mehr Tags setzen.',
+  ]},
   { v: '1.18', date: '2026-09-28', items: [
     'Geräuschkulisse: Passend zum Ort laufen leise Barmurmeln, Wellen, Regen, Kaminfeuer, Vögel im Park und mehr. Die App erkennt den Ort aus Szene und Gespräch und blendet beim Ortswechsel weich über. Jede Kulisse wird einmal bei ElevenLabs erzeugt und gespeichert; Lautstärke und Neu-Erzeugen im Live-Bereich.',
   ]},
@@ -4383,6 +4389,7 @@ els.ambVol.value = localStorage.getItem('companion_ambVol') || '25';
 els.liveAmbience.onchange = () => {
   safeSet('companion_ambience', els.liveAmbience.checked ? 'true' : 'false');
   amb.key = null;
+  amb.blocked = false; // neuer Versuch, z. B. nach geänderter Berechtigung
   if (els.liveAmbience.checked) updateAmbience(); else setAmbience(null);
 };
 els.ambVol.oninput = () => {
@@ -4390,7 +4397,7 @@ els.ambVol.oninput = () => {
   const a = amb.players[amb.players.length - 1];
   if (a) { try { a.volume = ambVolume(); } catch (e) {} }
 };
-els.ambRedo.onclick = () => { if (amb.key) setAmbience(amb.key, true); };
+els.ambRedo.onclick = () => { amb.blocked = false; if (amb.key) setAmbience(amb.key, true); };
 els.liveArousal.checked = arousalEnabled();
 els.liveEdging.checked = localStorage.getItem('companion_edging') === 'true';
 els.liveEdgeGoal.value = String(edgeGoal());
@@ -4658,8 +4665,10 @@ const FILLER_SETS = {
   talk1:  ['[breathes in] Mhm…', '[giggles] Hihi…', '[sighs] Ja…', '[hums] Hmm…'],
   talk2:  ['[breathing heavily] Hah… hah…', '[moans softly] Mmh…', '[gasps] Ah…', '[breathless] Mhm…'],
   kiss:   ['[kissing sounds] Mmh… mwah… mmh…', '[soft kiss] Mmh… komm her…', '[kisses] Mhm… mmh… mwah…', '[breathes between kisses] Mmh… deine Lippen…'],
-  oral1:  ['[slurping] Mmh… mmh…', '[wet sucking sounds] Mhm… mmh… mmh…', '[sucking] Mmmh… hm…', '[muffled] Mhm… mmh…'],
-  oral2:  ['[slurping loudly] Mmh! Mmh… mmh…', '[gagging softly] Mmh… hah… mmh…', '[muffled moan] Mmmh… mmh!', '[sucking greedily] Mmh… so gut… mmh…'],
+  oral1:  ['[slurping] Mmh… mmh…', '[wet sucking sounds] Mhm… mmh… mmh…', '[sucking] Mmmh… hm…', '[muffled] Mhm… mmh…',
+           '[slow wet sucking sounds] Mmh… mmh… [slurps softly] mmmh… [wet smacking] mhm…', '[sucking, muffled] Mhm… mhm… [wet smacking sounds] mmh… [slurps] mmmh…'],
+  oral2:  ['[slurping loudly] Mmh! Mmh… mmh…', '[gagging softly] Mmh… hah… mmh…', '[muffled moan] Mmmh… mmh!', '[sucking greedily] Mmh… so gut… mmh…',
+           '[slurping loudly and wetly] Mmh! Mmh… [gags softly] hah… [sucks again] mmh… mmh…', '[fast wet sucking and smacking sounds] Mmh… mmh… mmh… [muffled moan] mmmh! [slurps] mmh…'],
   hand1:  ['[wet rhythmic sounds] Mhm… so…', '[breathes] Ja… so… ganz langsam…', '[soft moan] Mmh… gefällt dir das…', '[rhythmic stroking sounds] Hm… hm… hm…'],
   hand2:  ['[wet rhythmic sounds, faster] Ja… ja… ja…', '[panting] Hah… schneller… hah…', '[moans] Mmh… komm schon…', '[breathless] Ja… so hart…'],
   sex1:   ['[moans softly] Ahh… ja…', '[breathing heavily] Hah… hah… mmh…', '[sighs with pleasure] Oh… so tief…', '[soft moan] Mmh… genau so…'],
@@ -4675,6 +4684,50 @@ const FILLER_LABELS = {
 function fillerSpoken(t, modelId) {
   return isV3(modelId) ? t : stripAudioTags(t).replace(/\s+/g, ' ').trim();
 }
+// Ordnet einen Text grob einer Laut-Gruppe zu (Reihenfolge = Vorrang).
+function classifyFillerText(t) {
+  t = String(t || '').toLowerCase();
+  if (/\b(ich komme|komm für mich|höhepunkt|orgasmus|spritz\w*|explodier\w*|abspritz\w*)\b/.test(t)) return 'climax';
+  if (/\b(mund|lippen|zunge|lutsch\w*|saug\w*|blas\w*|leck\w*|schluck\w*|schmatz\w*)\b/.test(t)) return 'oral';
+  if (/\b(hand|hände|händen|finger\w*|reib\w*|wichs\w*|runterhol\w*|umfass\w*|streichel\w*)\b/.test(t)) return 'hand';
+  if (/\b(reite\w*|stoß\w*|stöß\w*|eindring\w*|in mir|in dich|in mich)\b/.test(t)) return 'sex';
+  if (/\b(kuss|küss\w*|knutsch\w*)\b/.test(t)) return 'kiss';
+  return 'talk';
+}
+function fillerSetForContext(c, level) {
+  const lv = level === null || level === undefined ? 1 : level;
+  if (c === 'talk') return 'talk' + lv;
+  if (c === 'kiss' || c === 'climax') return c;
+  return c + (lv >= 2 ? '2' : '1');
+}
+// Zwischenlaut nach einem gesprochenen Abschnitt: Beschreibt die Figur gerade
+// Mund, Hand oder Sex, folgt oft ein passender Laut, bevor sie weiterspricht.
+async function interludeFiller(pieceText, generation) {
+  if (!fillersEnabled() || isMuted) return;
+  if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') return;
+  if (introPhase(sceneStep) || readyHoldActive()) return;
+  const c = classifyFillerText(pieceText);
+  const chance = { oral: 0.85, climax: 0.6, hand: 0.5, sex: 0.5, kiss: 0.35 }[c] || 0;
+  if (!chance || Math.random() > chance) return;
+  const who = aiCharacters().filter(x => !x.isNarrator);
+  if (!who.length) return;
+  const fv = fillerVoice(who[Math.floor(Math.random() * who.length)].name);
+  if (!fv) return;
+  const list = FILLER_SETS[fillerSetForContext(c, currentMotionLevel())].slice().sort(() => Math.random() - 0.5);
+  let url = null;
+  for (const t of list) { url = await fillerUrl(fv.voiceId, fv.modelId, t, false).catch(() => null); if (url) break; }
+  if (!url) url = await fillerUrl(fv.voiceId, fv.modelId, list[0], true).catch(() => null);
+  if (!url || playbackGeneration !== generation || isMuted) return;
+  const a = new Audio(url);
+  fillerAudio = a;
+  await new Promise(res => {
+    const done = () => { if (fillerAudio === a) fillerAudio = null; res(); };
+    a.onended = a.onerror = done;
+    setTimeout(done, 9000);
+    a.play().catch(done);
+  });
+}
+
 // Was gerade passiert - bewusst grob, Reihenfolge = Vorrang.
 function fillerContext() {
   if (introPhase(sceneStep) || readyHoldActive()) return 'talk';
@@ -5325,6 +5378,54 @@ const REPLY_LENGTHS = {
 // mid-thought reads worse than a brief figure saying a little more.
 const LENGTH_ORDER = ['kurz', 'mittel', 'lang', 'sehrlang'];
 
+// Live-Gespräch: Umfang je Längenstufe. Vorher galten dort unabhängig von der
+// Einstellung "höchstens 4 Zeilen à zwei, drei Sätze" - auch "kurz" wurde lang.
+const LIVE_SHAPE = {
+  kurz:     { lines: 2, words: 45,  desc: 'Eine, höchstens zwei kurze Zeilen mit je ein, zwei Sätzen - knapp, direkt, auf den Punkt.' },
+  mittel:   { lines: 3, words: 90,  desc: 'Höchstens 3 Zeilen, jede ein bis drei Sätze.' },
+  lang:     { lines: 4, words: 140, desc: 'Höchstens 4 Zeilen, jede darf zwei, drei Sätze lang sein - koste den Moment aus.' },
+  sehrlang: { lines: 6, words: 220, desc: 'Bis zu 6 Zeilen, ausführlich und genussvoll.' },
+};
+function replyLengthKey() {
+  const playing = (typeof characters !== 'undefined') ? characters.filter(c => !c.isUser) : [];
+  let best = 'kurz';
+  if (!playing.length) return 'mittel';
+  playing.forEach(c => {
+    const key = LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel';
+    if (LENGTH_ORDER.indexOf(key) > LENGTH_ORDER.indexOf(best)) best = key;
+  });
+  return best;
+}
+function liveShape() { return LIVE_SHAPE[replyLengthKey()] || LIVE_SHAPE.mittel; }
+
+// Nach dem Erzeugen: (1) Schreibt das Modell eine Zeile für mich, endet die
+// Antwort dort - alles danach reagiert auf etwas, das ich nie gesagt habe.
+// (2) Hält es sich nicht an den Umfang, wird an einer Zeilen- bzw. Satzgrenze
+// gekürzt. Marker und Audio-Tags zählen nicht als Wörter.
+function tidyReply(text, maxWords) {
+  const meName = (characters.find(c => c.isUser) || {}).name;
+  const lines = String(text || '').split(/\n+/).filter(l => l.trim());
+  const out = [];
+  let words = 0, cut = '';
+  const count = l => l.replace(/<<[^>]*>>/g, ' ').replace(/\[[^\]]*\]/g, ' ').replace(/^[^:\n]{1,24}:/, ' ').split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+  for (const l of lines) {
+    const m = l.replace(/<<[^>]*>>/g, '').trim().match(/^([^:*\n]{1,24}):/);
+    if (m && meName && matchSpeakerName(m[1], [meName])) { cut = 'Zeile für dich'; break; }
+    const n = count(l);
+    if (out.length && maxWords && words + n > maxWords * 1.25) { cut = 'Umfang'; break; }
+    if (!out.length && maxWords && n > maxWords * 1.6) {
+      // Erste Zeile allein viel zu lang: am Satzende kürzen.
+      const sentences = l.match(/[^.!?…]+[.!?…]+["“”»«)]*\s*/g) || [l];
+      let acc = '', w = 0;
+      for (const sent of sentences) { const k = count(sent); if (acc && w + k > maxWords * 1.25) break; acc += sent; w += k; }
+      out.push(acc.trim()); words += w; cut = 'Umfang (Satz)'; break;
+    }
+    out.push(l); words += n;
+  }
+  if (!out.length) return { text, cut: '' };
+  return { text: out.join('\n'), cut };
+}
+
 function replyLength() {
   const playing = (typeof characters !== 'undefined')
     ? characters.filter(c => !c.isUser)
@@ -5404,6 +5505,10 @@ function detectAmbience() {
 }
 async function ambienceBlob(key, fresh) {
   const dbKey = 'amb_v1_' + key;
+  if (amb.blocked && !fresh) {
+    try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {}
+    return null;
+  }
   if (fresh) { try { await dbDelete(STORE_AUDIO, dbKey); } catch (e) {} }
   else { try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {} }
   const apiKey = apiKeyFor('companion_elevenKey');
@@ -5419,7 +5524,15 @@ async function ambienceBlob(key, fresh) {
     res = await send(body);
   }
   if (!res.ok) {
-    logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ElevenLabs-Fehler ' + res.status });
+    let detail = '';
+    try { const b = await res.clone().json(); detail = b?.detail?.message || b?.detail?.status || ''; } catch (e) {}
+    logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ElevenLabs-Fehler ' + res.status + (detail ? ' - ' + String(detail).slice(0, 150) : '') });
+    if (res.status === 401 || res.status === 403) {
+      // Fehlende Berechtigung ändert sich nicht von allein - nicht bei jeder
+      // Antwort erneut versuchen, sondern einmal verständlich sagen, was fehlt.
+      amb.blocked = true;
+      addMsg('system', 'Geräuschkulisse: Dein ElevenLabs-Schlüssel darf keine Soundeffekte erzeugen (' + res.status + '). Die Stimmen gehen trotzdem, weil das eine eigene Berechtigung ist. Bei ElevenLabs in den Einstellungen des API-Schlüssels die Berechtigung für Soundeffekte (Sound Effects) einschalten - oder einen neuen Schlüssel mit allen Rechten anlegen und hier eintragen.');
+    }
     return null;
   }
   const blob = await res.blob();
@@ -9862,7 +9975,7 @@ function buildEnsemblePrompt(autoStep, isRetry, photo) {
     + '\n\n' + noValues;
 
   const emotionalInstruction = emotional
-    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile - vor allem in gesprochenen Zeilen.`
+    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile - vor allem in gesprochenen Zeilen. Hat die Figur gerade etwas im Mund, dürfen es mehr sein und mitten im Satz stehen: [schmatzt], [saugt], [schlürft], [stöhnt mit vollem Mund], [würgt leise] - die Worte dazwischen dann gedämpft und abgehackt.`
     : '';
 
   const autoInstruction = autoStep
@@ -9898,7 +10011,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -10064,7 +10177,7 @@ async function askEnsemble(userText, options) {
   setThinking('Antwort wird geschrieben');
   if (!(options && options.silent)) startFillers(generation);
   try {
-    const replyText = await generateWithoutRepeat(
+    let replyText = await generateWithoutRepeat(
       provider,
       (isRetry) => buildEnsemblePrompt(options && options.autoStep, isRetry, !!(options && options.image)),
       // Zu einem Foto wird ausführlicher geantwortet - das Budget zieht mit.
@@ -10079,6 +10192,11 @@ async function askEnsemble(userText, options) {
     try { updateAmbience(); } catch (e) {}
     sceneStep += 1;
 
+    {
+      const tidy = tidyReply(replyText, (options && (options.autoStep || options.image)) ? 0 : liveShape().words);
+      if (tidy.cut) logEvent('msg', { role: 'system', text: `Antwort gekürzt (${tidy.cut}): ${replyText.length} → ${tidy.text.length} Zeichen.` });
+      replyText = tidy.text;
+    }
     const lines = parseEnsembleText(replyText);
     lines.forEach(pc => {
       if (isTagOnly(pc.text)) return;
@@ -10197,6 +10315,7 @@ async function askEnsemble(userText, options) {
         if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
       });
       if (ctl) ctl.flush();
+      if (i < pieces.length - 1 && playbackGeneration === generation) await interludeFiller(piece.text, generation);
     }
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
     return true;
