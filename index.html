@@ -852,6 +852,14 @@
           <button class="btn-secondary" id="loadElevenVoicesBtn" type="button">Stimmen laden</button>
         </div>
         <p class="hint">Lädt deine Stimmenbibliothek, damit sie bei den Figuren zur Auswahl steht. Passiert beim Start automatisch, sobald ein Schlüssel vorliegt.</p>
+
+        <label for="elevenModel">Modell</label>
+        <select id="elevenModel">
+          <option value="classic">Wie bisher: v3 für emotionale Figuren, Multilingual v2 für die übrigen</option>
+          <option value="convEmotional">v3 Conversational für emotionale Figuren, Multilingual v2 für die übrigen</option>
+          <option value="convAll">v3 Conversational für alle Figuren</option>
+        </select>
+        <p class="hint">v3 Conversational kostet laut ElevenLabs-Preisliste die Hälfte und antwortet schneller. Lehnt ElevenLabs es ab, spricht die App für den Rest der Sitzung automatisch mit dem bisherigen Modell weiter. Schon gespeicherte Vertonungen gelten nur für das Modell, mit dem sie entstanden sind.</p>
         <details style="margin-top:10px;">
           <summary style="cursor:pointer; font-size:13.5px;">Stimmen beschreiben (für die Generatoren)</summary>
           <p class="hint">Ein paar Worte je Stimme helfen den Figuren-Generatoren, die richtige zu wählen - besonders bei Stimmen ohne Beschreibung. Deine Notiz geht vor der von ElevenLabs.</p>
@@ -1031,9 +1039,27 @@
       </label>
       <p class="hint" id="liveDeviceAwareHint">Aus: Es wird weiterhin gesteuert, aber im Gespräch kommt das Gerät nicht vor - die Figuren beschreiben Hände, Mund und Körper.</p>
 
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveReadyCheck" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Vor der ersten Bewegung Bescheid geben</span>
+      </label>
+      <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen und eines verbunden ist.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveVoiceMotion" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Stimme folgt der Bewegung</span>
+      </label>
+      <p class="hint">Bei ruhiger Bewegung spricht die Figur gelassener, bei hohem Tempo schneller und atemloser.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveFillers" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Wartezeit mit Lauten füllen</span>
+      </label>
+      <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - ein Atmen, ein „mhm", ein Kichern. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
+
       <label for="livePace">Aufbau</label>
       <select id="livePace">
-        <option value="langsam">Langsam - viel Zeit für den Anfang</option>
+        <option value="langsam">Langsam - erst kennenlernen, dann behutsam</option>
         <option value="zuegig">Zügig - kurze Einführung, dann geht es los</option>
         <option value="direkt">Direkt - sofort zur Sache</option>
       </select>
@@ -1082,9 +1108,9 @@
       </div>
 
       <div id="sharedProfileBox" style="display:none">
-        <label for="sharedProfile" style="margin-top:18px;">Gemeinsames Gedächtnis - was alle Figuren über dich wissen</label>
+        <label for="sharedProfile" style="margin-top:18px;">Gedächtnis ohne Ich - was die Figuren über dich wissen, wenn kein Ich mitspielt</label>
         <textarea id="sharedProfile" style="min-height:110px" placeholder="Wird beim Erinnern gefüllt: was dir gefällt, was nicht. Du kannst hier auch selbst etwas eintragen oder streichen."></textarea>
-        <p class="hint">Gilt für jedes Ich. Wie die Figuren mit einem bestimmten Ich reden sollen, steht dagegen bei diesem Ich im Editor. Was eine einzelne Figur erlebt hat, steht bei ihr selbst im Feld „Gedächtnis".</p>
+        <p class="hint">Jedes Ich hat sein eigenes Gedächtnis - es steht im Editor des Ichs. Dieses hier gilt nur, wenn kein Ich in der Besetzung ist. Was eine einzelne Figur erlebt hat, steht bei ihr selbst im Feld „Gedächtnis".</p>
       </div>
 
       <label for="figureIdea" id="figureIdeaLabel">Figur beschreiben und erzeugen lassen</label>
@@ -1270,9 +1296,10 @@
 //  steht, wird beim Öffnen automatisch übernommen, wenn das Feld in der App
 //  noch leer ist.
 //
-//  Achtung: Diese Datei liegt auf Netlify. Jeder, der die Adresse kennt, kann
-//  den Quelltext ansehen und damit auch diese Schlüssel. Setz bei jedem
-//  Anbieter ein Ausgabenlimit, dann bleibt der mögliche Schaden begrenzt.
+//  ACHTUNG: Diese Datei liegt in einem öffentlichen GitHub-Repository. Ein hier
+//  eingetragener Schlüssel ist für jeden lesbar und bleibt in der
+//  Versionsgeschichte, auch wenn er später gelöscht wird. In der hochgeladenen
+//  Fassung hier NIE etwas eintragen - Schlüssel nur in der App eingeben.
 // ============================================================================
 const PRESET_KEYS = {
   anthropic:  '',   // sk-ant-...
@@ -1424,6 +1451,10 @@ const els = {
   liveSetup: document.getElementById('liveSetup'),
   liveScene: document.getElementById('liveScene'),
   liveDeviceAware: document.getElementById('liveDeviceAware'),
+  liveReadyCheck: document.getElementById('liveReadyCheck'),
+  liveVoiceMotion: document.getElementById('liveVoiceMotion'),
+  elevenModel: document.getElementById('elevenModel'),
+  liveFillers: document.getElementById('liveFillers'),
   livePace: document.getElementById('livePace'),
   storyPace: document.getElementById('storyPace'),
   storyImages: document.getElementById('storyImages'),
@@ -2359,8 +2390,39 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.01';
+const APP_VERSION = '1.08';
 const CHANGELOG = [
+  { v: '1.08', date: '2026-09-28', items: [
+    'ElevenLabs-Modell wählbar (Einstellungen → Stimme & Sprachausgabe): wie bisher, v3 Conversational für emotionale Figuren oder für alle. v3 Conversational ist laut Preisliste halb so teuer und schneller. Lehnt ElevenLabs es ab, spricht die App automatisch mit dem bisherigen Modell weiter und meldet das einmal.',
+  ]},
+  { v: '1.07', date: '2026-09-28', items: [
+    'Stimme folgt der Bewegung: Bei ruhiger Bewegung spricht die Figur gelassener, bei hohem Tempo schneller und atemloser. Drei Stufen, für ElevenLabs und die Android-Stimme. Abschaltbar bei Szene und Besetzung.',
+    'Wartezeit mit Lauten füllen: Während die Antwort entsteht, hört man kurze Laute der Figuren - passend zur aktuellen Intensität. Nur mit ElevenLabs; jeder Laut wird einmal erzeugt und gespeichert, beim Start eines Gesprächs im Hintergrund vorbereitet.',
+  ]},
+  { v: '1.06', date: '2026-09-28', items: [
+    'Jedes Ich hat jetzt sein eigenes Gedächtnis: was die Figuren über dich in dieser Variante wissen. Es steht im Editor des Ichs, „Erinnern" schreibt in das Ich, das gerade mitspielt. Das bisherige gemeinsame Wissen wurde jedem vorhandenen Ich einmalig als Ausgangspunkt mitgegeben.',
+    'Beim Bereitmachen sind die Figuren jetzt gierig und betteln darum, dass es losgeht.',
+  ]},
+  { v: '1.05', date: '2026-09-28', items: [
+    'Neuer Haken „Vor der ersten Bewegung Bescheid geben" unter „Die Figuren wissen vom Gerät": Vor der ersten Bewegung fordert dich die Figur auf, das Gerät anzulegen, und wartet, bis du „bereit", „fertig" oder „los" sagst. Bis dahin steht das Gerät still. Bei „Langsam" kommt die Aufforderung nach dem Kennenlernen.',
+  ]},
+  { v: '1.04', date: '2026-09-28', items: [
+    'Aufbau „Langsam" im Live-Gespräch heißt jetzt: erst kennenlernen. Die ersten sechs Wechsel wird nur geredet, die Figur ist bei zu schnellem Vorpreschen skeptisch und lässt sich bitten, ein Ortswechsel ist erlaubt. Das Gerät bleibt in dieser Zeit stehen. Danach geht es behutsam weiter wie bisher.',
+    'Ohne eingetragene Szene wählt die Figur beim Kennenlernen selbst einen alltäglichen Treffpunkt.',
+    'Wer es schneller will, stellt den Aufbau mitten im Gespräch auf „Zügig" oder „Direkt" - das gilt ab der nächsten Antwort.',
+  ]},
+  { v: '1.03', date: '2026-09-28', items: [
+    'Mindestalter 21 für alle Figuren, von der App selbst geprüft statt nur im Prompt verlangt: beim Erzeugen (ein zweiter Versuch, dann Abbruch ohne Speichern), beim Sichern im Editor, beim Entwerfen von Szene und Figuren, vor jedem Gespräch und jeder Geschichte.',
+    'Vorhandene Figuren, die die Regel verletzen, werden beim Start gemeldet und dürfen nicht mitspielen.',
+    'Porträts schließen jugendliches Aussehen jetzt auch im Negativ-Prompt aus.',
+  ]},
+  { v: '1.02', date: '2026-09-27', items: [
+    'Behoben: Das Tempolimit konnte überschritten werden. Wurden Befehle beim Senden zusammengefasst, rechnete die App ab einem Ziel, das nie gesendet wurde - nach Verbindungsabbrüchen fuhr das Gerät so bis zum Doppelten des Limits. Geprüft wird jetzt beim Senden, gegen die geschätzte tatsächliche Lage.',
+    'Behoben: Bei voller Sendewarteschlange ging der Befehl verloren, etwa ein Stopp. Er wird jetzt kurz darauf erneut versucht.',
+    'Behoben: Beim Wiederverbinden konnten zwei Verbindungen gleichzeitig entstehen, und der Status zeigte „getrennt", obwohl das Gerät verbunden war.',
+    'Behoben: Bewegungswerte, die erst während des letzten Abschnitts eintrafen, wurden nie angewendet. Jetzt gelten sie sofort.',
+    'Verständlichere Fehlermeldungen, wenn ein Anbieter eine Fehlerseite statt einer Antwort liefert. Bei Anthropic wird die Temperatur auf 1,0 begrenzt.',
+  ]},
   { v: '1.01', date: '2026-09-25', items: [
     'Behoben: „Abspielen" in der Geschichte reagierte nicht. Der Knopf „Als Live-Gespräch fortsetzen" fehlte im Seitenaufbau, und der Zugriff darauf brach das Skript beim Start ab - alles danach Eingerichtete lief nicht mehr.',
     'Ein fehlendes Element legt künftig nicht mehr die ganze App lahm; das Protokoll nennt es stattdessen.',
@@ -3214,7 +3276,12 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     dropAnnounced: false,
     everConnected: false,
     // outbound throttle
-    pendingLine: null, lastSendAt: 0, flushTimer: null,
+    pending: null, lastSendAt: 0, flushTimer: null,
+    // Zuletzt tatsächlich gesendete Fahrt (von, nach, Start, Dauer). Daraus wird
+    // geschätzt, wo das Gerät gerade steht - die Grundlage für das Tempolimit.
+    // null heißt: Lage unbekannt (nach dem Verbinden), dann gilt der ungünstigste Fall.
+    sent: null,
+    connecting: false,
     sendGapMs: WS_SEND_GAP_START_MS,
     // Motion is held as a *target* the device continuously eases toward, rather
     // than as a pattern that gets torn down and rebuilt on every new sentence.
@@ -3252,7 +3319,12 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       addMsg('system', label + ': bitte zuerst die IP-Adresse eintragen und speichern.');
       return;
     }
+    // Auch während des HTTP-Anklopfens gilt die Verbindung als "im Aufbau" - vorher
+    // konnte ein zweiter Aufruf (Aufwachen des Handys, Wiederverbindungs-Timer)
+    // in dieser Lücke einen zweiten Socket öffnen.
+    if (state.connecting) return;
     if (state.socket && state.socket.readyState <= WebSocket.OPEN) return; // already connecting or connected
+    state.connecting = true;
 
     // Chrome gates access to devices on the local network behind a permission
     // prompt. Opening a WebSocket alone does not reliably surface that prompt -
@@ -3260,13 +3332,17 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // or closed again right away, which is indistinguishable from a flaky
     // device, so we always knock on the HTTP door first.
     try {
-      await fetch('http://' + ip + '/', { mode: 'no-cors', cache: 'no-store' });
+      // Frist, damit ein ausgeschaltetes Gerät den Aufbau nicht lange blockiert.
+      await fetch('http://' + ip + '/', { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(3000) });
     } catch (e) {
       // Not fatal on its own - the device may simply not answer the way we
       // expect. The websocket attempt below decides whether it really worked.
+    } finally {
+      state.connecting = false;
     }
     // The user may have pressed disconnect while the request was in flight.
     if (!state.wantConnected) return;
+    if (state.socket && state.socket.readyState <= WebSocket.OPEN) return;
 
     const url = 'ws://' + ip + WS_PATH;
     let ws;
@@ -3279,6 +3355,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     state.socket = ws;
 
     ws.onopen = () => {
+      // Ein überholter Socket darf den Zustand nicht mehr anfassen.
+      if (state.socket !== ws) { try { ws.close(); } catch (e) {} return; }
+      state.sent = null; // Lage des Geräts ist nach dem Verbinden unbekannt
       setConnStatus(true);
       state.reconnectDelay = WS_RECONNECT_MIN_MS;
       if (announce) addMsg('system', label + ' verbunden (' + url + ').');
@@ -3287,8 +3366,12 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       state.everConnected = true;
     };
     ws.onclose = () => {
+      // Das Schließen eines alten Sockets setzte vorher den neuen, offenen auf
+      // null und meldete "getrennt", obwohl die Verbindung stand.
+      if (state.socket !== ws) return;
       state.socket = null;
-      state.pendingLine = null;
+      state.pending = null;
+      state.sent = null;
       clearTimeout(state.flushTimer);
       state.flushTimer = null;
       setConnStatus(false);
@@ -3323,7 +3406,8 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     clearTimeout(state.reconnectTimer);
     clearTimeout(state.flushTimer);
     state.flushTimer = null;
-    state.pendingLine = null;
+    state.pending = null;
+    state.sent = null;
     state.dropAnnounced = false;
     state.reconnectDelay = WS_RECONNECT_MIN_MS;
     if (state.socket) { try { state.socket.close(); } catch (e) {} }
@@ -3384,12 +3468,23 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     connect(false);
   });
 
-  function sendTCode(line) {
+  // Übergeben wird Ziel und gewünschte Dauer, nicht die fertige Zeile: Die
+  // endgültige Dauer steht erst beim Senden fest (siehe flushTCode).
+  function sendTCode(pos, ms) {
     state.lastMotionAt = Date.now();
-    updateMotionVisual(line);
+    updateMotionVisual('L0' + tcodePos(pos) + 'I' + ms);
     if (!isOpen()) return;
-    state.pendingLine = line;
+    state.pending = { pos, ms };
     scheduleFlush();
+  }
+
+  // Wo das Gerät vermutlich gerade ist: TCode fährt gleichförmig vom aktuellen
+  // Ort zum Ziel, also genügt die zuletzt gesendete Fahrt. null = unbekannt.
+  function estimatedPos(now) {
+    const s = state.sent;
+    if (!s) return null;
+    const f = s.ms > 0 ? Math.min(1, (now - s.at) / s.ms) : 1;
+    return s.from + (s.to - s.from) * f;
   }
 
   // Beim Zittern darf der Abstand bis auf den eingestellten schnellsten Takt
@@ -3410,15 +3505,36 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
 
   function flushTCode() {
     state.flushTimer = null;
-    const line = state.pendingLine;
-    state.pendingLine = null;
-    if (line === null || !isOpen()) return;
+    const job = state.pending;
+    state.pending = null;
+    if (!job || !isOpen()) return;
     // Local backpressure as a second line of defence, e.g. on a weak WLAN.
-    if (state.socket.bufferedAmount > WS_MAX_BUFFER) return;
+    // Die Fahrt wird zurückgelegt statt verworfen - sonst ging z. B. ein Stopp
+    // verloren und das Gerät blieb, wo es war.
+    if (state.socket.bufferedAmount > WS_MAX_BUFFER) {
+      state.pending = job;
+      state.flushTimer = setTimeout(flushTCode, 50);
+      return;
+    }
+    // Das Tempolimit wird HIER geprüft, gegen die geschätzte tatsächliche Lage.
+    // Vorher rechnete sendMove ab dem Ziel des vorigen Befehls - auch wenn der
+    // beim Zusammenfassen nie gesendet wurde. Nach Abbrüchen (Abstand bis 260 ms)
+    // fiel so etwa jeder zweite Befehl weg, und das Gerät fuhr bis zum Doppelten
+    // des eingestellten Limits.
+    const now = Date.now();
+    const { speedCap, minPos, maxPos } = getSettings();
+    const ups = Math.max(80, MOTION_LIMITS.maxUnitsPerSec * speedCap);
+    const here = estimatedPos(now);
+    // Unbekannte Lage: vom ungünstigeren Ende des erlaubten Bereichs aus rechnen.
+    const from = here === null ? (Math.abs(job.pos - minPos) > Math.abs(maxPos - job.pos) ? minPos : maxPos) : here;
+    const minMs = Math.round((Math.abs(job.pos - from) / ups) * 1000);
+    const ms = Math.max(job.ms, minMs);
+    const line = 'L0' + tcodePos(job.pos) + 'I' + ms;
     try {
       state.socket.send(line + '\n');
       logEvent('tcode', { device: label, line });
-      state.lastSendAt = Date.now();
+      state.lastSendAt = now;
+      state.sent = { from, to: job.pos, at: now, ms };
     } catch (e) {
       // onclose handles the retry
     }
@@ -3645,7 +3761,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // was die KI verlangte.
     const ms = Math.max(floorMs || MOTION_LIMITS.minIntervalMs, Math.round(desiredMs), minMsForSpeed);
     m.lastPos = p;
-    sendTCode('L0' + tcodePos(p) + 'I' + ms);
+    sendTCode(p, ms);
     return ms;
   }
 
@@ -3730,6 +3846,7 @@ els.stopBtn.onclick = () => {
   clearCueTimers();
   device1.setMotion({ texture: 'stop' });
   device2.setMotion({ texture: 'stop' });
+  stopFillers(true);
   speechSynthesis.cancel();
   if (currentElevenAudio) {
     currentElevenAudio.pause();
@@ -3971,6 +4088,7 @@ function headphoneMode() {
 // effect immediately instead of at the end of the current sentence.
 function interruptPlayback() {
   playbackGeneration += 1;
+  if (typeof stopFillers === 'function') stopFillers(true);
   if (typeof clearCueTimers === 'function') clearCueTimers();
   // Auch die laufenden Anfragen, sonst arbeitet im Hintergrund eine Antwort
   // weiter, die niemand mehr hören will - und die Anzeige bliebe stehen.
@@ -4138,6 +4256,212 @@ let currentElevenResolve = null;
 // provider choice: whichever output is selected simply gets a different
 // voice/pitch per role, and falls back to the character voice if the narrator
 // one was never configured.
+// ---------- ElevenLabs-Modell ----------
+// v3 Conversational: auf v3 aufgebaut, für Echtzeit-Dialog, halber Preis.
+// Welche Einstellungen es genau annimmt, ist nicht dokumentiert - es wird
+// deshalb wie v3 behandelt (feste Stabilitätsstufen, kein previous_text).
+// Lehnt ElevenLabs es ab, gilt für den Rest der Sitzung wieder das bisherige.
+const ELEVEN_CONV = 'eleven_v3_conversational';
+let convBroken = false;
+function elevenModelChoice() {
+  const v = localStorage.getItem('companion_elevenModel');
+  return v === 'convEmotional' || v === 'convAll' ? v : 'classic';
+}
+function elevenModelFor(emotional) {
+  const choice = convBroken ? 'classic' : elevenModelChoice();
+  if (emotional) return choice === 'classic' ? 'eleven_v3' : ELEVEN_CONV;
+  return choice === 'convAll' ? ELEVEN_CONV : 'eleven_multilingual_v2';
+}
+function isV3(modelId) {
+  return typeof modelId === 'string' && modelId.startsWith('eleven_v3');
+}
+// true, wenn der Fehler das Modell betraf und neu versucht werden soll.
+function convFailed(modelId, status, detail) {
+  if (modelId !== ELEVEN_CONV || convBroken) return false;
+  if (![400, 403, 404, 422].includes(status)) return false;
+  convBroken = true;
+  const msg = 'ElevenLabs hat v3 Conversational abgelehnt (' + status + (detail ? ': ' + String(detail).slice(0, 120) : '') + ') - ab jetzt wieder mit dem bisherigen Modell.';
+  logEvent('msg', { role: 'system', text: msg });
+  addMsg('system', msg);
+  return true;
+}
+async function errorDetail(res) {
+  try {
+    const b = await res.clone().json();
+    return b?.detail?.message || b?.detail?.[0]?.msg || JSON.stringify(b).slice(0, 200);
+  } catch (e) { return ''; }
+}
+
+// ---------- Stimme folgt der Bewegung ----------
+// Drei Stufen statt eines stufenlosen Werts: So bleibt der Audio-Speicher
+// nützlich (derselbe Satz in derselben Stufe kostet nur einmal), und die
+// Unterschiede sind deutlich hörbar statt nur messbar.
+function voiceFollowsMotion() {
+  return (localStorage.getItem('companion_voiceMotion') ?? 'true') === 'true';
+}
+function motionLevelOf(st) {
+  if (!st || st.texture === 'stop' || !(st.bpm > 0)) return 0;
+  const stroke = Math.abs((st.high ?? 0) - (st.low ?? 0)) / 999;
+  const x = Math.min(1, st.bpm / 140) * (0.6 + 0.4 * stroke) + (st.texture === 'pulse' ? 0.1 : 0);
+  return x < 0.3 ? 0 : x < 0.62 ? 1 : 2;
+}
+// null = aus; dann klingt alles wie bisher.
+function currentMotionLevel() {
+  if (!voiceFollowsMotion()) return null;
+  return Math.max(0, ...[device1, device2].map(d => motionLevelOf(d && d.getState && d.getState())));
+}
+// Lehnt ElevenLabs die Zusatzwerte ab, wird für den Rest der Sitzung ohne
+// sie gesprochen, statt jedes Mal auf die Android-Stimme auszuweichen.
+let voiceDynamicsBroken = false;
+const V2_DYNAMICS = [
+  { stability: +0.12, style: -0.15, speed: 0.94 },
+  { stability: 0,     style: 0,     speed: 1.0 },
+  { stability: -0.2,  style: +0.25, speed: 1.08 },
+];
+function dynamicVoiceSettings(base, modelId, level) {
+  if (level === null || level === undefined || voiceDynamicsBroken) return base;
+  const s = Object.assign({}, base);
+  if (isV3(modelId)) {
+    // v3 kennt nur 0.0 / 0.5 / 1.0.
+    if (level === 2) s.stability = 0.0;
+    else if (level === 0) s.stability = Math.max(0.5, base.stability || 0);
+    return s;
+  }
+  const d = V2_DYNAMICS[level];
+  s.stability = Math.max(0.1, Math.min(0.9, (base.stability ?? 0.5) + d.stability));
+  s.style = Math.max(0, Math.min(1, (base.style || 0) + d.style));
+  if (s.style > 0) s.use_speaker_boost = true;
+  s.speed = d.speed;
+  return s;
+}
+// v3 versteht Regieanweisungen - bei hoher Intensität wird der Abschnitt atemlos.
+function dynamicPrefix(modelId, level) {
+  return isV3(modelId) && level === 2 && !voiceDynamicsBroken ? '[breathless] ' : '';
+}
+
+// ---------- Laute in der Wartezeit ----------
+// Zwischen meiner Nachricht und der ersten Silbe der Antwort liegen einige
+// Sekunden Stille - das reißt am stärksten heraus. Kurze Laute der Figuren
+// füllen die Lücke. Sie werden einmal erzeugt und dauerhaft gespeichert.
+const FILLERS = {
+  v3: [
+    ['[softly] Mhm…', '[curious] Hm?', '[giggles softly]', '[sighs contentedly]'],
+    ['[breathes in] Mhm…', '[giggles]', '[sighs] Ja…', '[hums] Hmm…'],
+    ['[breathing heavily]', '[moans softly]', '[gasps] Ah…', '[breathless] Mhm…'],
+  ],
+  v2: [
+    ['Mhm…', 'Hm?', 'Hmm…'],
+    ['Mhm…', 'Ahh…', 'Hmm… ja…'],
+    ['Ahh…', 'Oh… mhm…', 'Hah…'],
+  ],
+};
+function fillersEnabled() {
+  return localStorage.getItem('companion_fillers') === 'true';
+}
+const fillerUrls = new Map();
+let fillerAudio = null, fillerTimer = null, fillerActive = false, fillerDone = null;
+
+function fillerVoice(role) {
+  const v = resolveVoice(role);
+  if (!v.eleven) return null;
+  const modelId = elevenModelFor(v.emotional);
+  return { voiceId: v.eleven, modelId, texts: FILLERS[isV3(modelId) ? 'v3' : 'v2'] };
+}
+async function fillerUrl(voiceId, modelId, text, fetchIfMissing) {
+  const k = 'filler_' + audioKey(voiceId, modelId, text);
+  if (fillerUrls.has(k)) return fillerUrls.get(k);
+  let blob = null;
+  try { blob = await dbGet(STORE_AUDIO, k); } catch (e) {}
+  if (!blob && fetchIfMissing) {
+    const key = apiKeyFor('companion_elevenKey');
+    if (!key) return null;
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, model_id: modelId, voice_settings: isV3(modelId)
+        ? { stability: 0.0, similarity_boost: 0.75 }
+        : { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true } }),
+    });
+    if (!res.ok) { convFailed(modelId, res.status, await errorDetail(res)); return null; }
+    blob = await res.blob();
+    dbPut(STORE_AUDIO, k, blob).catch(() => {});
+  }
+  if (!blob) return null;
+  const url = URL.createObjectURL(blob);
+  fillerUrls.set(k, url);
+  return url;
+}
+// Im Hintergrund alle Laute der mitspielenden Figuren bereitlegen, einer nach
+// dem anderen. Schon Gespeichertes kostet nichts.
+let prewarmRunning = false;
+async function prewarmFillers() {
+  if (prewarmRunning || !fillersEnabled()) return;
+  if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') return;
+  prewarmRunning = true;
+  try {
+    for (const c of aiCharacters().filter(c => !c.isNarrator)) {
+      const fv = fillerVoice(c.name);
+      if (!fv) continue;
+      for (const level of fv.texts) for (const t of level) {
+        try { await fillerUrl(fv.voiceId, fv.modelId, t, true); } catch (e) {}
+      }
+    }
+  } finally { prewarmRunning = false; }
+}
+async function pickFiller(level) {
+  const who = aiCharacters().filter(c => !c.isNarrator);
+  if (!who.length) return null;
+  const c = who[Math.floor(Math.random() * who.length)];
+  const fv = fillerVoice(c.name);
+  if (!fv) return null;
+  const list = fv.texts[level].slice().sort(() => Math.random() - 0.5);
+  // Zuerst Gespeichertes - das spielt sofort.
+  for (const t of list) {
+    const u = await fillerUrl(fv.voiceId, fv.modelId, t, false);
+    if (u) return u;
+  }
+  return fillerUrl(fv.voiceId, fv.modelId, list[0], true);
+}
+function startFillers(generation) {
+  stopFillers(true);
+  if (!fillersEnabled() || isMuted) return;
+  if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') return;
+  fillerActive = true;
+  let count = 0;
+  const schedule = (delay) => {
+    fillerTimer = setTimeout(async () => {
+      if (!fillerActive || playbackGeneration !== generation || count >= 3) return;
+      const lvl = currentMotionLevel();
+      const url = await pickFiller(lvl === null ? 1 : lvl).catch(() => null);
+      if (!url || !fillerActive || playbackGeneration !== generation || isMuted) return;
+      count += 1;
+      const a = new Audio(url);
+      a.volume = 0.85;
+      fillerAudio = a;
+      fillerDone = new Promise(res => {
+        a.onended = a.onerror = () => { if (fillerAudio === a) fillerAudio = null; res(); };
+      });
+      a.play().catch(() => { if (fillerAudio === a) fillerAudio = null; });
+      await fillerDone;
+      if (fillerActive) schedule(2500 + Math.random() * 2500);
+    }, delay);
+  };
+  schedule(1200 + Math.random() * 600);
+}
+function stopFillers(hard) {
+  fillerActive = false;
+  clearTimeout(fillerTimer);
+  if (hard && fillerAudio) { try { fillerAudio.pause(); } catch (e) {} fillerAudio = null; }
+}
+// Vor der ersten Silbe der Antwort: keinen neuen Laut mehr, einen laufenden
+// ausklingen lassen (höchstens 2,5 s), damit nichts abgehackt wirkt.
+async function settleFillers() {
+  fillerActive = false;
+  clearTimeout(fillerTimer);
+  if (fillerAudio && fillerDone) await Promise.race([fillerDone, new Promise(r => setTimeout(r, 2500))]);
+  if (fillerAudio) { try { fillerAudio.pause(); } catch (e) {} fillerAudio = null; }
+}
+
 function speak(text, role) {
   if (isMuted) return Promise.resolve(); // skip TTS entirely - saves cloud costs too, not just silences it
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
@@ -4153,6 +4477,7 @@ els.muteBtn.onclick = () => {
   els.muteBtn.textContent = isMuted ? '🔇 Stumm' : '🔊 Ton an';
   els.muteBtn.className = 'pill ' + (isMuted ? 'off' : 'on');
   if (isMuted) {
+    stopFillers(true);
     speechSynthesis.cancel(); // stop Android TTS if it's currently speaking
     if (currentElevenAudio) {
       currentElevenAudio.pause();
@@ -4194,8 +4519,12 @@ function resolveVoice(role) {
   return first ? fromVersion(first) : fallback;
 }
 
-function speakBrowser(text, role, onStart, onBoundary) {
-  const picked = resolveVoice(role);
+function speakBrowser(text, role, onStart, onBoundary, level) {
+  const picked = Object.assign({}, resolveVoice(role));
+  if (level !== null && level !== undefined) {
+    picked.rate *= [0.93, 1, 1.1][level];
+    picked.pitch *= [0.98, 1, 1.05][level];
+  }
   return new Promise((resolve) => {
     const utter = new SpeechSynthesisUtterance(text);
     if (onStart) utter.onstart = () => onStart();
@@ -4228,13 +4557,13 @@ function speakBrowser(text, role, onStart, onBoundary) {
 // statt der ganz freien: lebendig, aber ohne auszubrechen.
 function narratorVoiceSettings(role, modelId) {
   if (role !== 'narrator') return null;
-  return modelId === 'eleven_v3'
+  return isV3(modelId)
     ? { stability: 0.5, similarity_boost: 0.8 }
     : { stability: 0.35, similarity_boost: 0.75, style: 0.45, use_speaker_boost: true };
 }
 
 function continuityFields(ctx, modelId) {
-  if (!ctx || modelId === 'eleven_v3') return {};
+  if (!ctx || isV3(modelId)) return {};
   const out = {};
   if (ctx.previous) out.previous_text = stripAudioTags(ctx.previous).slice(-500);
   if (ctx.next) out.next_text = stripAudioTags(ctx.next).slice(0, 500);
@@ -4254,13 +4583,13 @@ function fetchElevenAudio(text, role, ctx) {
   // and laugh while a narrator stays even, which was impossible with a single
   // switch for the whole app.
   const emotional = resolveVoice(role).emotional;
-  const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
+  const modelId = elevenModelFor(emotional);
 
   // v3 accepts only three discrete stability values (0.0 / 0.5 / 1.0) and
   // rejects anything in between with a 400, so the expressive setting has to be
   // the lowest of those rather than a freely chosen number. The older model
   // does take a continuous value plus a style weight.
-  const voiceSettings = narratorVoiceSettings(role, modelId) || (modelId === 'eleven_v3'
+  const voiceSettings = narratorVoiceSettings(role, modelId) || (isV3(modelId)
     ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
@@ -4269,10 +4598,21 @@ function fetchElevenAudio(text, role, ctx) {
   // The streaming endpoint starts sending audio before the whole clip is
   // rendered, so the first sound arrives sooner. No latency parameter here:
   // it's deprecated and v3 refuses it.
+  const level = ctx && ctx.level !== undefined ? ctx.level : currentMotionLevel();
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
-  const cacheKey = audioKey(voiceId, modelId, text);
+  const baseSettings = voiceSettings;
+  const request = () => {
+    const prefix = dynamicPrefix(modelId, level);
+    return {
+      text: prefix + text,
+      settings: dynamicVoiceSettings(baseSettings, modelId, level),
+      key: audioKey(voiceId, modelId, prefix + text) + (level !== null && !voiceDynamicsBroken ? '|L' + level : ''),
+    };
+  };
 
   return (async () => {
+    let rq = request();
+    const cacheKey = rq.key;
     if (audioCacheEnabled()) {
       try {
         const cached = await dbGet(STORE_AUDIO, cacheKey);
@@ -4282,11 +4622,22 @@ function fetchElevenAudio(text, role, ctx) {
       }
     }
 
-    const res = await fetchWithRetry(url, {
+    const send = (r) => fetchWithRetry(url, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({ text: text, model_id: modelId, voice_settings: voiceSettings }, continuityFields(ctx, modelId)))
+      body: JSON.stringify(Object.assign({ text: r.text, model_id: modelId, voice_settings: r.settings }, continuityFields(ctx, modelId)))
     });
+    let res = await send(rq);
+    if (!res.ok && convFailed(modelId, res.status, await errorDetail(res))) {
+      const again = fetchElevenAudio(text, role, ctx);
+      if (again) return again;
+    }
+    if (!res.ok && (res.status === 400 || res.status === 422) && level !== null && !voiceDynamicsBroken) {
+      voiceDynamicsBroken = true;
+      logEvent('msg', { role: 'system', text: 'ElevenLabs lehnt die Bewegungs-Anpassung der Stimme ab (' + res.status + ') - ab jetzt ohne.' });
+      rq = request();
+      res = await send(rq);
+    }
     if (!res.ok) {
       // The status code alone says nothing useful - the body names the actual
       // offending field, which is the difference between a fix and a guess.
@@ -4298,7 +4649,7 @@ function fetchElevenAudio(text, role, ctx) {
       throw new Error('ElevenLabs ' + res.status + (detail ? ': ' + detail : ''));
     }
     const blob = await res.blob();
-    if (audioCacheEnabled()) dbPut(STORE_AUDIO, cacheKey, blob).catch(() => {});
+    if (audioCacheEnabled()) dbPut(STORE_AUDIO, rq.key, blob).catch(() => {});
     return URL.createObjectURL(blob);
   })();
 }
@@ -4463,25 +4814,46 @@ function fetchElevenAudioTimed(text, role, ctx) {
   if (!key || !voiceId) return null;
   if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
   const emotional = resolveVoice(role).emotional;
-  const modelId = emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
-  const voiceSettings = narratorVoiceSettings(role, modelId) || (modelId === 'eleven_v3'
-    ? { stability: 0.0, similarity_boost: 0.75 }
+  const modelId = elevenModelFor(emotional);
+  const voiceSettings = narratorVoiceSettings(role, modelId) || (isV3(modelId)
+    ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
       : { stability: 0.5, similarity_boost: 0.75 });
-  const cacheKey = audioKey(voiceId, modelId, text) + '|ts';
+  const level = ctx && ctx.level !== undefined ? ctx.level : currentMotionLevel();
+  const request = () => {
+    const prefix = dynamicPrefix(modelId, level);
+    return {
+      prefix,
+      text: prefix + text,
+      settings: dynamicVoiceSettings(voiceSettings, modelId, level),
+      key: audioKey(voiceId, modelId, prefix + text) + '|ts' + (level !== null && !voiceDynamicsBroken ? '|L' + level : ''),
+    };
+  };
   return (async () => {
+    let rq = request();
     if (audioCacheEnabled()) {
       try {
-        const cached = await dbGet(STORE_AUDIO, cacheKey);
+        const cached = await dbGet(STORE_AUDIO, rq.key);
         if (cached && cached.blob) return { url: URL.createObjectURL(cached.blob), starts: cached.starts || null };
       } catch (e) {}
     }
-    const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
+    const send = (r) => fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({ text, model_id: modelId, voice_settings: voiceSettings }, continuityFields(ctx, modelId))),
+      body: JSON.stringify(Object.assign({ text: r.text, model_id: modelId, voice_settings: r.settings }, continuityFields(ctx, modelId))),
     });
+    let res = await send(rq);
+    if (!res.ok && convFailed(modelId, res.status, await errorDetail(res))) {
+      const again = fetchElevenAudioTimed(text, role, ctx);
+      if (again) return again;
+    }
+    if (!res.ok && (res.status === 400 || res.status === 422) && level !== null && !voiceDynamicsBroken) {
+      voiceDynamicsBroken = true;
+      logEvent('msg', { role: 'system', text: 'ElevenLabs lehnt die Bewegungs-Anpassung der Stimme ab (' + res.status + ') - ab jetzt ohne.' });
+      rq = request();
+      res = await send(rq);
+    }
     if (!res.ok) {
       let detail = '';
       try { const b = await res.json(); detail = b?.detail?.message || JSON.stringify(b).slice(0, 200); } catch (e) {}
@@ -4490,14 +4862,16 @@ function fetchElevenAudioTimed(text, role, ctx) {
     const data = await res.json();
     const blob = base64ToBlob(data.audio_base64 || '', 'audio/mpeg');
     const al = data.alignment || data.normalized_alignment || {};
-    const aStarts = Array.isArray(al.character_start_times_seconds) ? al.character_start_times_seconds : [];
+    let aStarts = Array.isArray(al.character_start_times_seconds) ? al.character_start_times_seconds : [];
+    // Die vorangestellte Regieanweisung gehört nicht zum Text der Marker.
+    if (rq.prefix && aStarts.length === rq.text.length) aStarts = aStarts.slice(rq.prefix.length);
     let starts = null;
     if (aStarts.length === text.length) starts = aStarts;
     else if (aStarts.length > 1) {
       // Weicht die Zeichenzahl ab, wird die Zeitachse anteilig umgelegt.
       starts = Array.from({ length: text.length }, (_, k) => aStarts[Math.round(k * (aStarts.length - 1) / Math.max(1, text.length - 1))]);
     }
-    if (audioCacheEnabled()) dbPut(STORE_AUDIO, cacheKey, { blob, starts }).catch(() => {});
+    if (audioCacheEnabled()) dbPut(STORE_AUDIO, rq.key, { blob, starts }).catch(() => {});
     return { url: URL.createObjectURL(blob), starts };
   })();
 }
@@ -4525,10 +4899,12 @@ function playElevenUrl(objectUrl, onStart, text, role, starts) {
 // done ahead of time (the network round trip) happens here; play() only starts
 // the sound. Browser TTS has nothing to prefetch, so it just defers.
 function prepareSpeech(text, role, timed, ctx) {
+  const level = ctx && ctx.level !== undefined ? ctx.level : currentMotionLevel();
+  ctx = Object.assign({}, ctx || {}, { level });
   const estimate = () => makeTimeline(text, estimateSpeechMs(text, role), null);
   const browser = (onStart) => {
     const tl = estimate();
-    return speakBrowser(stripAudioTags(text), role, onStart ? () => onStart(tl) : null, (at) => { if (tl.reach) tl.reach(at); });
+    return speakBrowser(stripAudioTags(text), role, onStart ? () => onStart(tl) : null, (at) => { if (tl.reach) tl.reach(at); }, level);
   };
   if (isMuted) return { play: (onStart) => { if (onStart) onStart(estimate()); return Promise.resolve(); } };
   // Nur Klangmarken, nichts Sprechbares: still - und keine irreführende Meldung
@@ -4553,7 +4929,7 @@ function prepareSpeech(text, role, timed, ctx) {
       if (result && result.error && timed) {
         // Ohne Zeitstempel weiter - die Marker laufen dann auf der Schätzung.
         logEvent('msg', { role: 'system', text: 'Zeitstempel nicht verfügbar (' + result.error.message + ') - Marker laufen auf Schätzung.' });
-        const plain = fetchElevenAudio(text, role);
+        const plain = fetchElevenAudio(text, role, { level });
         result = plain ? await plain.catch((err) => ({ error: err })) : result;
       }
       if (result && result.error) {
@@ -4620,11 +4996,62 @@ let sceneStep = 0;
 // Modell. Jetzt wird die Anweisung selbst ausgetauscht.
 function pace(where) {
   const v = localStorage.getItem('companion_pace_' + where);
+  // Der Kennenlern-Teil gehört zum Live-Gespräch; die Geschichte behält ihren
+  // eigenen langsamen Aufbau.
   return v === 'zuegig' || v === 'direkt' ? v : 'langsam';
+}
+
+// Kennenlernen: Bei "langsam" wird in den ersten Ausschnitten nur geredet.
+// Vorher war "langsam" nur ein Satz im Prompt für zwei Ausschnitte - und
+// gleichzeitig verlangte ein fester Absatz, der Fokus liege "durchgehend auf
+// dem, was körperlich geschieht", und eine Nachbearbeitung startete das Gerät
+// ab der ersten Antwort. Beides ist in dieser Phase jetzt abgeschaltet.
+const INTRO_STEPS = 6;
+function introPhase(step) {
+  return pace('live') === 'langsam' && step < INTRO_STEPS;
+}
+// ---------- Bereitmachen vor der ersten Bewegung ----------
+// 'off': noch nicht gefragt, 'asking': Figur hat gefragt und wartet,
+// 'ready': bestätigt - ab jetzt normal. Gilt pro Gespräch.
+let readyGate = 'off';
+let readyJustConfirmed = false;
+function readyCheckEnabled() {
+  return localStorage.getItem('companion_readyCheck') === 'true';
+}
+function anyDeviceConnected() {
+  return [device1, device2].some(d => d && d.isConnected && d.isConnected());
+}
+function saysReady(text) {
+  const t = ' ' + String(text || '').toLowerCase() + ' ';
+  if (/\b(nicht|noch nicht|warte|wart mal|moment|gleich|sekunde|kurz noch)\b/.test(t)) return false;
+  return /\b(bereit|fertig|angelegt|dran|drin|sitzt|startklar|kann losgehen|los geht'?s|leg los|fang an|los|ja|jep|jo|okay|ok|passt|alles klar)\b/.test(t);
+}
+function readyHoldActive() {
+  return readyGate === 'asking';
+}
+function readyBlock() {
+  if (readyJustConfirmed) return '\n\nICH BIN JETZT BEREIT: Ich habe gerade bestätigt, dass das Gerät angelegt ist. Die Figur reagiert erleichtert und gierig - endlich - und dann geht es los, zu Beginn sanft.';
+  if (readyGate !== 'asking') return '';
+  const asked = history.some(m => m.role === 'assistant' && m.readyAsk);
+  return asked
+    ? '\n\nWARTEN AUFS BEREITSEIN: Die Figur hat mich schon gebeten, das Gerät anzulegen, und ich habe noch nicht bestätigt. Sie hält es kaum aus: Sie bettelt, drängelt und quengelt, dass ich endlich soweit sein soll, und fleht mich an, Bescheid zu sagen - jedes Mal etwas gieriger und mit anderen Worten. Körperlich passiert noch nichts, wofür das Gerät nötig wäre.'
+    : '\n\nBEREITMACHEN: Bevor es körperlich losgeht, fordert mich die Figur auf, das Gerät jetzt anzulegen und ihr Bescheid zu geben, sobald ich bereit bin. Ton: gierig und ungeduldig - sie kann es kaum erwarten, bettelt darum, dass ich mich beeile, und sagt mir, wie sehr sie es will. Kein technisches Erklären. Die Antwort endet mit dieser Aufforderung. Noch keine Handlung, für die das Gerät nötig wäre.';
+}
+
+function introHint(step) {
+  const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
+  const where = scene ? '' : ' Es gibt noch keinen festen Ort: Wähle einen alltäglichen Treffpunkt - eine Bar, ein Café, ein Spaziergang, eine Party - und beschreibe ihn kurz.';
+  if (step <= 1) return 'KENNENLERNEN. Ihr begegnet euch gerade erst bzw. fangt ganz von vorn an. Es wird geredet: Neugier, Witz, Necken, Fragen, kleine Geschichten. Noch kein Körperkontakt über eine zufällige Berührung hinaus, nichts Sexuelles. Die Figur ist bei zu schnellem Vorpreschen skeptisch - sie weicht mit Charme aus, zieht auf, lässt sich bitten, statt gleich mitzugehen.' + where;
+  if (step <= 3) return 'KENNENLERNEN, Fortsetzung. Das Gespräch wird persönlicher, es knistert, aber die Figur hält noch Abstand und bestimmt selbst das Tempo. Ein Ortswechsel ist erlaubt und oft gut - etwa woanders hingehen, wo es ruhiger ist.';
+  return 'KENNENLERNEN, letzte Runde. Die Spannung ist deutlich spürbar. Erste Annäherung - ein Blick, eine Berührung an der Hand, ein Zögern -, aber noch nicht mehr. Die Figur lässt erkennen, dass sie bereit wird.';
 }
 
 function arcHint(step) {
   const p = pace('live');
+  if (p === 'langsam') {
+    if (step < INTRO_STEPS) return introHint(step);
+    step -= INTRO_STEPS;
+  }
   if (p === 'direkt') {
     if (step <= 8) return 'Ihr seid schon mitten im Geschehen. Keine Einführung, kein Vorgeplänkel - es geht sofort zur Sache und bleibt auf hohem Niveau. Auf und Ab ist erwünscht, Abflachen nicht.';
     if (step <= 14) return 'Die Szene nähert sich ihrem Höhepunkt. Keine Umwege, konsequent darauf zu.';
@@ -4679,7 +5106,7 @@ async function generateWithoutRepeat(provider, buildPrompt, maxTokens) {
     maxTokens,
     { persona: true, task: 'chat' }
   )).trim();
-  return isVerbatimRepeat(retry) ? retry : retry;
+  return retry;
 }
 
 function replyTokenBudget() {
@@ -5083,6 +5510,18 @@ function extractJson(raw) {
   return JSON.parse(clean);
 }
 
+// Liest die Fehlermeldung einer Anbieterantwort, egal ob JSON oder HTML.
+async function apiErrorText(res) {
+  let raw = '';
+  try { raw = await res.text(); } catch (e) {}
+  try {
+    const d = JSON.parse(raw);
+    const e = d && d.error;
+    if (e) return typeof e === 'string' ? e : (e.message || JSON.stringify(e)).slice(0, 300);
+  } catch (e) {}
+  return res.statusText || (raw ? 'Server lieferte keine lesbare Fehlermeldung' : 'ohne Inhalt');
+}
+
 async function callAnthropic(systemPrompt, messages, temperature, maxTokens, modelOverride, timeoutMs) {
   const apiKey = apiKeyFor('companion_apiKey_anthropic');
   if (!apiKey) throw new Error('Kein Anthropic-Schlüssel eingetragen.');
@@ -5096,8 +5535,11 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens, mod
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: messages || toApiMessages(history, 'anthropic'), temperature: temperature ?? 1 })
+    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: messages || toApiMessages(history, 'anthropic'), temperature: Math.min(1, temperature ?? 1) })
   });
+  // Anthropic erlaubt höchstens Temperatur 1,0 (oben begrenzt). Und: eine
+  // Fehlerseite in HTML ergab vorher ein rätselhaftes "Unexpected token <".
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await apiErrorText(res)}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   const content = (data.content || []).map(c => c.text || '').join('').trim();
@@ -5128,6 +5570,7 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
       ...(extraBody || {})
     })
   });
+  if (!res.ok) throw new Error(`${res.status}: ${await apiErrorText(res)}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
@@ -5601,6 +6044,50 @@ function demoteOtherUserFigures(keepFigureId) {
   if (changed) saveArchive();
 }
 
+// ---------- Mindestalter ----------
+// Jede Figur ist mindestens 21. Die Vorgabe im Prompt allein reichte nicht:
+// Ein Entwurf kam mit 17 zurück. Deshalb prüft die App jetzt selbst - beim
+// Erzeugen, beim Sichern, beim Entwerfen einer Szene und vor jedem Gespräch
+// oder jeder Geschichte. Im Zweifel wird abgelehnt, nicht umgeschrieben: Eine
+// geänderte Zahl ließe den übrigen Text (Notizen, Beispielzeilen) unberührt.
+const MIN_AGE = 21;
+const UNDERAGE_WORDS = /\b(minderj[aä]hrig\w*|teen\w*|jugendlich\w*|sch[uü]lerin\w*|schulm[aä]dchen|gymnasiast\w*|pubert\w*|kindlich\w*|underage|minor|schoolgirl|highschool|high school)\b/i;
+const AGE_PATTERNS = [
+  /alter\s*:\s*(?:wirkt\s+(?:wie\s+)?)?(?:etwa\s+|ca\.?\s*|um\s+die\s+)?(\d{1,3})/gi,
+  /wirkt\s+wie\s+(\d{1,3})\b/gi,
+  /(\d{1,3})\s*(?:-\s*)?j[aä]hrig/gi,
+  /(\d{1,3})\s+jahre?\s+alt/gi,
+  /(\d{1,3})\s*(?:-\s*)?years?(?:\s*-\s*|\s+)old/gi,
+  /\bage[d]?\s*:?\s*(\d{1,3})\b/gi,
+];
+function ageIssue(c) {
+  if (!c) return null;
+  const text = [c.name, c.appearance, c.notes, c.styleExamples, c.voiceDescription, c.userStyle]
+    .map(x => String(x || '')).join('\n');
+  for (const re of AGE_PATTERNS) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text))) {
+      const n = parseInt(m[1], 10);
+      if (n < MIN_AGE) return `Alter ${n}`;
+    }
+  }
+  if (UNDERAGE_WORDS.test(text)) return 'wirkt nicht erwachsen';
+  return null;
+}
+function ageErrorText(c, issue) {
+  return `${c && c.name ? c.name : 'Die Figur'} wurde nicht übernommen (${issue}). Alle Figuren müssen mindestens ${MIN_AGE} Jahre alt sein und so beschrieben werden.`;
+}
+// Figuren der aktuellen Besetzung, die die Regel verletzen - vor Gespräch und
+// Geschichte geprüft, damit auch ältere Archiv-Einträge nicht mitspielen.
+function ageGuard(c) {
+  const issue = ageIssue(c);
+  if (issue) throw new Error(ageErrorText(c, issue));
+}
+function castAgeProblems() {
+  return characters.map(c => ({ c, issue: ageIssue(c) })).filter(x => x.issue);
+}
+
 function addFigureToArchive(c) {
   const figure = { id: newFigureId(), versions: [versionFromCharacter(c, 1)] };
   figureArchive.push(figure);
@@ -5611,6 +6098,8 @@ function addFigureToArchive(c) {
 // new one is appended - the choice is the user's, made at the moment they save
 // rather than being asked on every keystroke.
 function storeCharacterVersion(c, asNewVersion) {
+  const issue = ageIssue(c);
+  if (issue) throw new Error(ageErrorText(c, issue));
   let figure = getFigure(c.figureId);
   if (!figure) {
     figure = addFigureToArchive(c);
@@ -5986,7 +6475,7 @@ ${(c.appearance || '').trim()
   ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Gesicht, Augen, Haut, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Nenne das Auffälligste zuerst (Haare, Gesicht, Augen), denn Bildmodelle gewichten die ersten Wörter am stärksten. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
   : 'Übersetze das Wesen ins Sichtbare: Gesicht, Ausdruck, Blick, Haltung, Haare, Kleidung, Licht und Hintergrund passend zur Szene. Eine ruhige Figur schaut anders als eine ungeduldige - das soll man sehen.'}
 
-${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Figur, bekleidet, Blick zur Kamera. Keine realen Personen und keine Namen von Filmen, Spielen oder Büchern - beschreibe eine eigenständige Gestalt mit eigenen Worten. Kein Text und keine Schrift im Bild.
+${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Figur von mindestens ${MIN_AGE} Jahren - schreibe ausdrücklich \"adult\" -, bekleidet, Blick zur Kamera. Keine realen Personen und keine Namen von Filmen, Spielen oder Büchern - beschreibe eine eigenständige Gestalt mit eigenen Worten. Kein Text und keine Schrift im Bild.
 
 Antworte NUR mit dem englischen Prompt, ein bis drei Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
@@ -6645,7 +7134,7 @@ function styleSuffix(anyNonHuman, colors) {
 }
 
 function negativeFor(anyNonHuman, colors, hairGuard) {
-  let n = 'blurry, low quality, distorted anatomy, extra limbs, text, caption, subtitles, letters, typography, watermark, logo';
+  let n = 'child, teen, minor, young-looking, childlike, blurry, low quality, distorted anatomy, extra limbs, text, caption, subtitles, letters, typography, watermark, logo';
   if (portraitStyle() === 'foto') {
     n += anyNonHuman ? ', illustration, painting, drawing, cartoon, anime' : ', illustration, painting, drawing, cartoon, anime, 3d render, cgi, plastic skin, airbrushed';
   }
@@ -7137,6 +7626,19 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       us.placeholder = 'Wortwahl, Deutlichkeit, Ton - gilt, wenn dieses Ich in der Besetzung ist. Leer: die allgemeine Vorgabe.';
       us.oninput = () => { c.userStyle = us.value; };
       card.appendChild(us);
+
+      // Gehört zum Ich, nicht zu einer Version - sofort gesichert.
+      if (c.figureId) {
+        const pmLabel = document.createElement('label');
+        pmLabel.textContent = 'Gedächtnis - was die Figuren über dieses Ich wissen';
+        card.appendChild(pmLabel);
+        const pm = document.createElement('textarea');
+        pm.value = sharedProfile(c.figureId);
+        pm.style.minHeight = '90px';
+        pm.placeholder = 'Leer. Füllt sich, wenn du mit diesem Ich im Gespräch auf „Erinnern" tippst. Du kannst hier auch selbst etwas eintragen oder streichen.';
+        pm.oninput = () => setSharedProfile(pm.value, c.figureId);
+        card.appendChild(pm);
+      }
     }
 
     const styleLabel = document.createElement('label');
@@ -7337,6 +7839,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     saveVersion.textContent = 'Sichern';
     saveVersion.title = 'Die aktuelle Version im Archiv überschreiben';
     saveVersion.onclick = () => {
+      try { ageGuard(c); } catch (e) { addMsg('system', e.message); return; }
       storeCharacterVersion(c, false);
       syncCastFromEdit(c);
       renderCharacters();
@@ -7350,6 +7853,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     newVersion.textContent = '+ Version';
     newVersion.title = 'Als neue Version sichern, die alte bleibt erhalten';
     newVersion.onclick = () => {
+      try { ageGuard(c); } catch (e) { addMsg('system', e.message); return; }
       const version = storeCharacterVersion(c, true);
       syncCastFromEdit(c);
       renderCharacters();
@@ -7589,8 +8093,8 @@ Keine Anführungszeichen, keine Erklärung - nur der gesprochene Text.`;
 
 async function elevenIntroAudio(text, v) {
   const key = apiKeyFor('companion_elevenKey');
-  const modelId = v.emotional ? 'eleven_v3' : 'eleven_multilingual_v2';
-  const voiceSettings = modelId === 'eleven_v3'
+  const modelId = elevenModelFor(v.emotional);
+  const voiceSettings = isV3(modelId)
     ? { stability: 0.0, similarity_boost: 0.75 }
     : { stability: 0.5, similarity_boost: 0.75 };
   const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${v.elevenVoice}`, {
@@ -7598,6 +8102,7 @@ async function elevenIntroAudio(text, v) {
     headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, model_id: modelId, voice_settings: voiceSettings }),
   });
+  if (!res.ok && convFailed(modelId, res.status, await errorDetail(res))) return elevenIntroAudio(text, v);
   if (!res.ok) {
     let detail = '';
     try { const b = await res.json(); detail = b?.detail?.message || JSON.stringify(b).slice(0, 200); } catch (e) {}
@@ -7830,7 +8335,7 @@ const NONHUMAN_RULE = 'Ist eine Figur kein Mensch (andere Hautfarbe, besondere O
 const APPEARANCE_SCHEMA = `"appearance" ist eine ausführliche, bildhafte Beschreibung des Aussehens, 90 bis 160 Wörter, als Stichzeilen in genau dieser Reihenfolge, jede Zeile mit ihrem Kennwort, Zeilen durch \\n getrennt:
 Art: "Mensch, Frau" bzw. "Mensch, Mann" - oder bei einem Fantasiewesen die Art MIT Geschlecht in eigenen Worten ("weibliches Dschungelwesen ...") und mit ALLEN nicht-menschlichen Merkmalen: Hautfarbe und -muster, Ohren, Augen, Nase, Hörner, Schwanz, Flügel, Leuchtpunkte, Körpergröße
 Typ: das Erscheinungsbild der Herkunft nach, etwa mitteleuropäisch, skandinavisch, osteuropäisch, mediterran, lateinamerikanisch, afrikanisch, arabisch, südasiatisch, ostasiatisch - oder eine Mischung. Wähle bewusst und abwechslungsreich: Fehlt die Angabe, malen manche Bildmodelle (etwa z-image-turbo) standardmäßig ostasiatische Gesichter, und verschiedene Figuren sehen sich dann ähnlich. Bei Fantasiewesen entfällt diese Zeile.
-Alter: wie alt die Figur WIRKT, als Zahl - meist junge Erwachsene zwischen 21 und 30, gelegentlich älter, nie jünger als 21. Bei Fantasiewesen das scheinbare Alter in Menschenjahren (etwa "wirkt wie 26"); ihr wahres Alter als langlebige Art ("235 Jahre") gehört höchstens in die Notizen, nie in diese Zeile
+Alter: wie alt die Figur WIRKT, als Zahl - meist junge Erwachsene zwischen 21 und 30, gelegentlich älter, NIEMALS jünger als ${MIN_AGE} - auch nicht, wenn die Vorgabe es nahelegt. Bei Fantasiewesen das scheinbare Alter in Menschenjahren (etwa "wirkt wie 26"); ihr wahres Alter als langlebige Art ("235 Jahre") gehört höchstens in die Notizen, nie in diese Zeile
 Haare: Farbe, Länge, Struktur, Frisur
 Gesicht: Form, Augenfarbe und -form, Brauen, Nase, Lippen, Haut im Gesicht
 Haut: Ton, Besonderheiten wie Sommersprossen, Muttermale, Narben, Tattoos, Piercings - mit Stelle
@@ -7908,13 +8413,21 @@ els.genFigureBtn.onclick = async () => {
   els.genFigureBtn.textContent = 'Erzeuge...';
   try {
     const asMe = figureFilterMe;
-    const raw = await callProvider(
-      provider, asMe ? buildMeDraftPrompt(idea) : buildFigureDraftPrompt(idea),
-      [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
-      0.8, taskBudget('draft', 4500), { persona: true, task: 'draft' }
-    );
-    const draft = extractJson(raw);
-    const clean = sanitizeSingleCharacter(draft);
+    let draft = null, clean = null, issue = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const extra = attempt === 0 ? '' : `\n\nPFLICHT: Die Figur ist mindestens ${MIN_AGE} Jahre alt und wird durchgehend als erwachsen beschrieben - in Aussehen, Notizen und Beispielzeilen.`;
+      const raw = await callProvider(
+        provider, (asMe ? buildMeDraftPrompt(idea) : buildFigureDraftPrompt(idea)) + extra,
+        [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
+        0.8, taskBudget('draft', 4500), { persona: true, task: 'draft' }
+      );
+      draft = extractJson(raw);
+      clean = sanitizeSingleCharacter(draft);
+      issue = ageIssue(clean);
+      if (!issue) break;
+      logEvent('msg', { role: 'system', text: `Entwurf verworfen (${issue}), Versuch ${attempt + 1}.` });
+    }
+    if (issue) throw new Error(ageErrorText(clean, issue) + ' Bitte die Vorgabe anpassen.');
     clean.isNarrator = asMe ? false : figureFilterNarrators;
     if (asMe) {
       clean.isUser = true;
@@ -7954,6 +8467,16 @@ els.genFigureBtn.onclick = async () => {
 
 updateTrackVisibility();
 renderTaskModels();
+setTimeout(() => {
+  try { migrateProfilesToMe(); } catch (e) {}
+  try {
+    figureArchive.forEach(f => {
+      const v = f.versions[f.versions.length - 1];
+      const issue = ageIssue(v);
+      if (issue) addMsg('system', `Hinweis: ${v.name || 'Eine Figur'} im Archiv verletzt das Mindestalter von ${MIN_AGE} (${issue}) und kann nicht mitspielen. Bitte ändern oder löschen.`);
+    });
+  } catch (e) {}
+}, 0);
 
 loadCharacters();
 loadArchive();
@@ -8374,8 +8897,47 @@ function setFigureMemory(figureId, text) {
   if (clean) map[figureId] = clean; else delete map[figureId];
   safeSet('companion_figureMemory', JSON.stringify(map));
 }
-function sharedProfile() {
+// Das gemeinsame Wissen gehört zum Ich: Jedes Ich hat sein eigenes, damit die
+// Figuren auf verschiedene Ichs unterschiedlich reagieren. Ist kein Ich in der
+// Besetzung, gilt das allgemeine (früher das einzige).
+function loadMeProfiles() {
+  try { return JSON.parse(localStorage.getItem('companion_meProfiles') || '{}') || {}; }
+  catch (e) { return {}; }
+}
+function globalProfile() {
   return (localStorage.getItem('companion_sharedProfile') || '').trim();
+}
+function meProfileKey() {
+  const me = typeof userCharacter === 'function' ? userCharacter() : null;
+  return me && me.figureId ? me.figureId : null;
+}
+function sharedProfile(figId) {
+  const key = figId === undefined ? meProfileKey() : figId;
+  if (!key) return globalProfile();
+  return String(loadMeProfiles()[key] || '').trim();
+}
+function setSharedProfile(text, figId) {
+  const key = figId === undefined ? meProfileKey() : figId;
+  const clean = String(text || '').trim().slice(0, MEMORY_MAX_PROFILE);
+  if (!key) { safeSet('companion_sharedProfile', clean); return; }
+  const map = loadMeProfiles();
+  if (clean) map[key] = clean; else delete map[key];
+  safeSet('companion_meProfiles', JSON.stringify(map));
+}
+// Einmalig: Das bisherige gemeinsame Wissen bekommt jedes vorhandene Ich als
+// Ausgangspunkt mit - danach entwickeln sie sich getrennt.
+function migrateProfilesToMe() {
+  if (localStorage.getItem('companion_meProfilesMoved') === 'true') return;
+  const global = globalProfile();
+  if (global) {
+    const map = loadMeProfiles();
+    figureArchive.forEach(f => {
+      const v = latestVersion(f);
+      if (v && v.isUser && !map[f.id]) map[f.id] = global;
+    });
+    safeSet('companion_meProfiles', JSON.stringify(map));
+  }
+  safeSet('companion_meProfilesMoved', 'true');
 }
 
 // Was ich an Sprache mag - meine eigene Vorgabe, getrennt vom Gedächtnis, das
@@ -8430,7 +8992,7 @@ function buildRememberPrompt(figures, transcript) {
 
 Ich bin der Nutzer. ${me ? `Im Gespräch war ich die Figur ${me.name}; Zeilen von ${me.name} stammen von mir.` : 'Ich hatte keine eigene Figur; meine Zeilen stehen ohne Namen.'}
 
-1. "profil" - was ALLE Figuren über mich wissen sollen: wie ich angesprochen werden will, was mir gefällt und was nicht, meine Wünsche und Grenzen, auch zu Tempo, Stelle und Art der Bewegung. Nur, was ich gesagt oder deutlich gezeigt habe - nichts erfinden, nichts über die Figuren. Kurze Stichpunkte, höchstens 12.
+1. "profil" - was ALLE Figuren über mich wissen sollen${me ? ` - und zwar über mich als ${me.name}; dieses Wissen gilt nur für diese Variante von mir` : ''}: wie ich angesprochen werden will, was mir gefällt und was nicht, meine Wünsche und Grenzen, auch zu Tempo, Stelle und Art der Bewegung. Nur, was ich gesagt oder deutlich gezeigt habe - nichts erfinden, nichts über die Figuren. Kurze Stichpunkte, höchstens 12.
 
 2. "figuren" - für jede dieser Figuren (${figures.map(c => c.name).join(', ')}) aus IHRER Sicht: was zwischen ihr und mir geschehen ist, das Wichtigste in Kürze; welche anderen Figuren dabei waren und wie sie zu ihnen steht. Höchstens 8 Stichpunkte je Figur.
 
@@ -8475,7 +9037,8 @@ async function rememberConversation() {
     if (!data || typeof data !== 'object') throw new Error('Die Antwort war nicht verwertbar.');
 
     const profile = memoryText(data.profil).slice(0, MEMORY_MAX_PROFILE);
-    if (profile) safeSet('companion_sharedProfile', profile);
+    const meNow = userCharacter();
+    if (profile) setSharedProfile(profile);
 
     const byName = data.figuren && typeof data.figuren === 'object' ? data.figuren : {};
     const updated = [];
@@ -8485,10 +9048,10 @@ async function rememberConversation() {
       if (text) { setFigureMemory(c.figureId, text); updated.push(c.name); }
     });
 
-    if (els.sharedProfile) els.sharedProfile.value = sharedProfile();
+    if (els.sharedProfile) els.sharedProfile.value = globalProfile();
     logEvent('msg', { role: 'system', text: 'Gedächtnis: ' + JSON.stringify({ profil: profile, figuren: byName }).slice(0, 1500) });
     addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
-      + (profile ? ' Das gemeinsame Wissen über dich ist aktualisiert.' : ''));
+      + (profile ? (meNow ? ` Das Wissen über dich als ${meNow.name} ist aktualisiert.` : ' Das gemeinsame Wissen über dich ist aktualisiert.') : ''));
   } catch (err) {
     // Unterbricht meine neue Nachricht das Erinnern, ist das kein Fehler.
     if (!err.aborted) addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
@@ -8504,6 +9067,8 @@ function buildCastBlock() {
   const others = aiCharacters().map(c => c.name).join(', ');
   return `Die Figuren in dieser Szene:
 ${cast}
+
+Alle Figuren sind Erwachsene, mindestens ${MIN_AGE} Jahre alt, und werden durchgehend so dargestellt - auch in Rückblenden und Erinnerungen.
 
 ${me ? `${me.name} bin ich. Sprich mich als ${me.name} an - die anderen Figuren reden mit mir, nicht über mich, und nennen mich bei diesem Namen. Wenn ich selbst etwas schreibe, steht es im Verlauf als Zeile von ${me.name}; behandle es als das, was ich gesagt oder getan habe.
 
@@ -8577,6 +9142,7 @@ function exampleName() {
 
 function inlineMotionBlock() {
   if (!inlineMotionEnabled()) return '';
+  if (introPhase(sceneStep) || readyHoldActive()) return '';
   const device = (localStorage.getItem('companion_device1Desc') || '').trim();
   const textures = allowedTexturesFor('d1');
   const enum_ = ['stop', 'hold', ...textures].join('|');
@@ -8652,6 +9218,14 @@ Nennt konkrete Einzelheiten, die wirklich zu sehen sind: Haltung, Blick, Gesicht
 Sagt, was ihr jetzt am liebsten mit mir anstellen würdet - konkret, passend zu dem, was ihr seht.
 Beschreibt nur, was tatsächlich auf dem Foto ist, und erfindet nichts hinzu. Schließt mit einer Frage oder Aufforderung an mich.`;
 
+function placeRule() {
+  if (introPhase(sceneStep)) {
+    return 'Es spielen nur die oben genannten Figuren mit - keine neuen. Ein Ortswechsel ist erlaubt, wenn er sich aus dem Gespräch ergibt; beschreibe dann kurz den neuen Ort. Der Fokus liegt auf dem Gespräch und der wachsenden Spannung zwischen uns, nicht auf Körperlichem.';
+  }
+  const moved = pace('live') === 'langsam' ? ' - bzw. an dem Ort, an dem ihr im Verlauf zuletzt wart' : '';
+  return `Bleib strikt in der Szene${moved}: dieselben Figuren, keine neue Rahmenhandlung, keine Gegenstände oder Rollen, die vorher nicht da waren. Der Fokus liegt durchgehend auf dem, was körperlich zwischen uns geschieht - nicht auf Plänen, Vorschlägen oder Ortswechseln. Wenn du nicht weiterweißt, beschreibe genauer, was gerade passiert, statt etwas Neues zu erfinden.`;
+}
+
 function buildEnsemblePrompt(autoStep, isRetry, photo) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
   // The tags only mean anything to ElevenLabs, and only for figures that are
@@ -8668,7 +9242,9 @@ function buildEnsemblePrompt(autoStep, isRetry, photo) {
   const noValues = inlineMotionEnabled()
     ? 'Zahlen und Werte stehen ausschließlich im Marker am Zeilenende. Im gesprochenen oder erzählten Text selbst stehen nie Werte, Positionen, JSON oder Code.'
     : 'Schreibe niemals Steuerwerte, Positionen, Zahlen für Geschwindigkeit, JSON oder Code in deine Antwort. Die Steuerung übernimmt ein anderer Teil des Programms; du schreibst nur, was gesagt und getan wird.';
-  const deviceBlock = (deviceAware()
+  const deviceBlock = introPhase(sceneStep)
+    ? 'Von technischen Geräten ist in dieser Szene keine Rede.'
+    : (deviceAware()
     ? deviceStatus
     : inlineMotionEnabled()
       ? 'Im gesprochenen und erzählten Text ist von technischen Geräten keine Rede. Beschreibe Berührungen als das, was Hände, Mund und Körper tun. Die Marker am Zeilenende steuern das Gerät unsichtbar im Hintergrund.'
@@ -8710,11 +9286,11 @@ Schreibe den nächsten Ausschnitt dieses Gesprächs. Es soll klingen wie in eine
 
 ${ensembleFormatBlock()}${inlineMotionBlock()}${styleBlock()}
 
-Bleib strikt in der oben beschriebenen Szene: derselbe Ort, dieselben Figuren, keine neue Rahmenhandlung, keine Gegenstände oder Rollen, die vorher nicht da waren. Der Fokus liegt durchgehend auf dem, was körperlich zwischen uns geschieht - nicht auf Plänen, Vorschlägen oder Ortswechseln. Wenn du nicht weiterweißt, beschreibe genauer, was gerade passiert, statt etwas Neues zu erfinden.
+${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${readyBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -8830,6 +9406,11 @@ async function askEnsemble(userText, options) {
     addMsg('system', 'Niemand in der Besetzung, der antworten kann. Füge im Live-Bereich unter „Wer spricht mit" eine Figur hinzu.');
     return false;
   }
+  const tooYoung = castAgeProblems();
+  if (tooYoung.length) {
+    tooYoung.forEach(x => addMsg('system', ageErrorText(x.c, x.issue).replace('wurde nicht übernommen', 'kann nicht mitspielen') + ' Bitte ändern oder aus der Besetzung nehmen.'));
+    return false;
+  }
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
 
@@ -8838,6 +9419,23 @@ async function askEnsemble(userText, options) {
   // message wins: the older reply is cut off rather than layered underneath.
   interruptPlayback();
   const generation = playbackGeneration;
+  const introNow = introPhase(sceneStep);
+  // Bereitmachen: erst nach dem Kennenlernen, nur wenn die Figuren vom Gerät
+  // wissen und eines verbunden ist. Im Selbstlauf ohne mich wird nicht gewartet.
+  readyJustConfirmed = false;
+  const unattended = !!(options && (options.autoStep || options.silent));
+  if (!introNow && readyGate !== 'ready') {
+    if (!readyCheckEnabled() || !deviceAware() || !anyDeviceConnected() || unattended) {
+      if (unattended && readyGate === 'asking') readyGate = 'ready';
+    } else if (readyGate === 'asking' && saysReady(userText)) {
+      readyGate = 'ready';
+      readyJustConfirmed = true;
+      logEvent('msg', { role: 'system', text: 'Bereit bestätigt - Bewegung freigegeben.' });
+    } else {
+      readyGate = 'asking';
+    }
+  }
+  const holdNow = introNow || readyHoldActive();
   if (userText && !(options && (options.autoStep || options.silent))) applyQuickTempo(quickTempoWish(userText));
 
   // Unter dem Namen meiner Figur, damit das Modell weiß, wer da spricht -
@@ -8851,6 +9449,7 @@ async function askEnsemble(userText, options) {
   if (history.length > 24) history = history.slice(-24);
 
   setThinking('Antwort wird geschrieben');
+  if (!(options && options.silent)) startFillers(generation);
   try {
     const replyText = await generateWithoutRepeat(
       provider,
@@ -8863,7 +9462,7 @@ async function askEnsemble(userText, options) {
     if (playbackGeneration !== generation) { setThinking(''); return false; }
     setThinking('');
 
-    history.push({ role: 'assistant', content: replyText });
+    history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
     sceneStep += 1;
 
     const lines = parseEnsembleText(replyText);
@@ -8914,21 +9513,46 @@ async function askEnsemble(userText, options) {
     // whichever piece it arrives at, usually the first or second.
     // With inline markers the values are already here, so there is nothing to
     // wait for and the movement applies from the very first piece.
-    const inline = inlineMotionEnabled() && pieces.some(p => p.cues && p.cues.length);
+    const inline = !holdNow && inlineMotionEnabled() && pieces.some(p => p.cues && p.cues.length);
     let motions1 = null, motions2 = null;
     let motionReady = Promise.resolve();
+    // Welcher Abschnitt gerade spricht. Kommen die Werte erst während eines
+    // Abschnitts an, gelten sie sofort - vorher wurden sie erst zu Beginn des
+    // nächsten geprüft und bei kurzen Antworten nie angewendet.
+    let playIndex = 0;
+    const applyLate = (num, list) => {
+      if (!list || !list.length || playbackGeneration !== generation) return;
+      logEvent('msg', { role: 'system', text: `Bewegung Gerät ${num} eingetroffen bei Abschnitt ${playIndex + 1}/${pieces.length}.` });
+      applyMotionItem(num, list[playIndex] || list[list.length - 1]);
+    };
 
-    if (inline) {
+    if (holdNow) {
+      // Kennenlernen oder Warten aufs Bereitsein: kein Bewegungsaufruf, das Gerät bleibt stehen.
+      device1.setMotion({ texture: 'stop' });
+      device2.setMotion({ texture: 'stop' });
+      logEvent('msg', { role: 'system', text: introNow
+        ? `Kennenlernen (Ausschnitt ${sceneStep}/${INTRO_STEPS}): keine Bewegung.`
+        : 'Warte auf „bereit" - keine Bewegung.' });
+    } else if (inline) {
       // Die Marker laufen während des Sprechens (siehe unten), nicht vorab.
       logEvent('msg', { role: 'system', text: `Bewegung aus demselben Aufruf: ${pieces.reduce((n, p) => n + (p.cues || []).length, 0)} Marker in ${pieces.length} Zeilen.` });
     } else {
       motionReady = Promise.all([
-        getMotions(1).then(m => { motions1 = m; }),
-        hasDevice2 ? getMotions(2).then(m => { motions2 = m; }) : Promise.resolve(),
+        getMotions(1).then(m => { motions1 = m; applyLate(1, m); }),
+        hasDevice2 ? getMotions(2).then(m => { motions2 = m; applyLate(2, m); }) : Promise.resolve(),
       ]);
     }
 
+    // Stufe der Stimme je Abschnitt: aus seinen eigenen Bewegungswerten, wenn
+    // sie schon da sind, sonst aus dem, was das Gerät gerade tut.
+    const pieceLevel = (i) => {
+      if (!voiceFollowsMotion()) return null;
+      if (holdNow) return 0;
+      const item = motions1 && (motions1[i] || motions1[motions1.length - 1]);
+      return item && !item.muster ? motionLevelOf(item) : currentMotionLevel();
+    };
     const context = (i) => ({
+      level: pieceLevel(i),
       previous: pieces.slice(Math.max(0, i - 2), i).filter(x => x.role === pieces[i].role).map(x => x.text).join(' '),
       next: pieces[i + 1] && pieces[i + 1].role === pieces[i].role ? pieces[i + 1].text : '',
     });
@@ -8942,6 +9566,7 @@ async function askEnsemble(userText, options) {
     for (let i = 0; i < pieces.length; i++) {
       if (playbackGeneration !== generation) break; // user pressed stop
       if (!autoPlaying && silent) break;
+      playIndex = i;
       const current = prep(i);
       prep(i + 1); prep(i + 2);   // zwei Abschnitte Vorlauf
 
@@ -8952,6 +9577,7 @@ async function askEnsemble(userText, options) {
       const piece = pieces[i];
       let ctl = null;
       const firstOne = i === 0;
+      if (firstOne) await settleFillers();
       await current.play((timeline) => {
         if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte).` });
         if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
@@ -8964,6 +9590,7 @@ async function askEnsemble(userText, options) {
     if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
     return false;
   } finally {
+    stopFillers(false);
     setThinking('');
   }
 }
@@ -9158,7 +9785,8 @@ async function refreshNavStories() {
       const item = document.createElement('button');
       item.className = 'drawer-item';
       const date = entry.saved ? new Date(entry.saved).toLocaleDateString('de-DE') : '';
-      item.innerHTML = `<span class="glyph">📄</span><span>${entry.name}<span class="sub">${entry.chunks.length} Abschnitte${date ? ' · ' + date : ''}</span></span>`;
+      item.innerHTML = `<span class="glyph">📄</span><span><span class="storyName"></span><span class="sub">${entry.chunks.length} Abschnitte${date ? ' · ' + date : ''}</span></span>`;
+      item.querySelector('.storyName').textContent = entry.name;
       item.onclick = async () => {
         setDrawer(false);
         switchMode('story');
@@ -9186,6 +9814,7 @@ els.navNewChat.onclick = () => {
   if (history.length && !confirm('Den bisherigen Verlauf verwerfen und neu beginnen?')) return;
   history = [];
   sceneStep = 0;
+  readyGate = 'off';
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
@@ -9344,6 +9973,10 @@ function renderNarratorSelect(sel, offText) {
 function renderLivePanel() {
   els.liveScene.value = localStorage.getItem('companion_sceneDesc') || '';
   els.liveDeviceAware.checked = (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
+  els.liveReadyCheck.checked = readyCheckEnabled();
+  els.liveReadyCheck.disabled = !els.liveDeviceAware.checked;
+  els.liveVoiceMotion.checked = voiceFollowsMotion();
+  els.liveFillers.checked = fillersEnabled();
   els.livePace.value = pace('live');
   renderLiveCast();
   renderLiveAddOptions();
@@ -9368,9 +10001,9 @@ els.videoModelSelect.onchange = () => {
   safeSet('companion_videoModel', els.videoModel.value);
 };
 els.loadVideoModelsBtn.onclick = () => loadVideoModels(false);
-els.sharedProfile.value = sharedProfile();
+els.sharedProfile.value = globalProfile();
 
-els.sharedProfile.oninput = () => safeSet('companion_sharedProfile', els.sharedProfile.value.slice(0, MEMORY_MAX_PROFILE));
+els.sharedProfile.oninput = () => setSharedProfile(els.sharedProfile.value, null);
 els.storyAddBtn.onclick = () => addFigureToCast(els.storyAddFigure.value);
 
 els.storyNarrator.onchange = () => {
@@ -9397,6 +10030,20 @@ els.storyPace.onchange = () => safeSet('companion_pace_story', els.storyPace.val
 
 els.liveDeviceAware.onchange = () => {
   safeSet('companion_deviceAware', els.liveDeviceAware.checked ? 'true' : 'false');
+  els.liveReadyCheck.disabled = !els.liveDeviceAware.checked;
+};
+els.liveReadyCheck.onchange = () => safeSet('companion_readyCheck', els.liveReadyCheck.checked ? 'true' : 'false');
+els.elevenModel.value = elevenModelChoice();
+els.elevenModel.onchange = () => {
+  safeSet('companion_elevenModel', els.elevenModel.value);
+  convBroken = false; // neue Wahl, neuer Versuch
+  fillerUrls.clear();
+  if (fillersEnabled()) prewarmFillers();
+};
+els.liveVoiceMotion.onchange = () => safeSet('companion_voiceMotion', els.liveVoiceMotion.checked ? 'true' : 'false');
+els.liveFillers.onchange = () => {
+  safeSet('companion_fillers', els.liveFillers.checked ? 'true' : 'false');
+  if (els.liveFillers.checked) prewarmFillers();
 };
 
 els.liveStartBtn.onclick = () => {
@@ -9405,6 +10052,7 @@ els.liveStartBtn.onclick = () => {
   // Folded away once things are under way: from here on the conversation
   // should have the screen to itself.
   els.liveSetup.open = false;
+  prewarmFillers();
   if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
   els.textInput.focus();
 };
@@ -9539,6 +10187,8 @@ function storyPlayBlock() {
 }
 
 async function generateStoryText(provider, idea, minutes) {
+  const tooYoung = castAgeProblems();
+  if (tooYoung.length) throw new Error(ageErrorText(tooYoung[0].c, tooYoung[0].issue).replace('wurde nicht übernommen', 'kann nicht mitspielen'));
   const sectionCount = Math.max(1, Math.ceil(minutes / STORY_SECTION_MINUTES));
   const wordsPerSection = Math.round((minutes * STORY_WORDS_PER_MINUTE) / sectionCount);
   // Deutsch braucht grob 1,6 bis 2 Token je Wort, dazu Namen, Handlungszeilen
@@ -9808,7 +10458,10 @@ async function draftSceneAndCast(provider, idea) {
   const draft = extractJson(raw);
   if (!draft || typeof draft !== 'object') throw new Error('Der Entwurf war nicht verwertbar.');
 
-  characters = sanitizeDraftCharacters(draft.characters);
+  const drafted = sanitizeDraftCharacters(draft.characters);
+  const bad = drafted.map(c => ({ c, issue: ageIssue(c) })).find(x => x.issue);
+  if (bad) throw new Error('Entwurf verworfen: ' + ageErrorText(bad.c, bad.issue) + ' Bitte noch einmal erzeugen.');
+  characters = drafted;
   characters.forEach(c => {
     const figure = addFigureToArchive(c);
     c.figureId = figure.id;
