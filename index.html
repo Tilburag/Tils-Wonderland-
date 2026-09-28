@@ -2467,8 +2467,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 const CHANGELOG = [
+  { v: '1.20', date: '2026-09-28', items: [
+    'Eine Zeile, die nur aus Regieanweisungen besteht (etwa „[schmatzt]"), bleibt nicht mehr stumm: Die Stimme bekommt einen Laut dazu und setzt die Anweisung hörbar um.',
+  ]},
   { v: '1.19', date: '2026-09-28', items: [
     'Antwortlänge wirkt jetzt auch im Live-Gespräch: „kurz" heißt ein, zwei knappe Zeilen. Schreibt das Modell trotzdem mehr, kürzt die App an einer Satzgrenze.',
     'Schreibt das Modell eine Zeile für dich, endet die Antwort dort - vorher antwortete die Figur danach auf etwas, das du nie gesagt hast.',
@@ -4452,6 +4455,14 @@ els.textInput.addEventListener('keydown', (e) => {
 // ---------- Text-to-speech ----------
 // Used for the transcript and for the Android voice, which can't interpret
 // tags and would otherwise read the bracket contents out as words.
+// Eine Zeile nur aus Regieanweisungen ("[schmatzt] [stöhnt]") bekommt einen
+// Laut angehängt, den das Modell dann entsprechend formt.
+function soundableTagLine(text, tagModel) {
+  const t = String(text || '');
+  if (!tagModel || !/\[[^\]]+\]/.test(t) || /[\p{L}\p{N}]/u.test(stripAudioTags(t))) return t;
+  return t.trim() + ' Mmh… mmh…';
+}
+
 function stripAudioTags(text) {
   return text.replace(/\[[^\]]+\]/g, '').replace(/\s{2,}/g, ' ').trim();
 }
@@ -4982,6 +4993,9 @@ function fetchElevenAudio(text, role, ctx) {
   // Ein Abschnitt, der nach dem Entfernen der Klangmarken nichts Sprechbares
   // mehr enthält, wird von ElevenLabs mit 400 abgelehnt ("empty text"). Solche
   // Abschnitte sind still - das ist kein Fehler und braucht keine Meldung.
+  // Ausnahme: nur Regieanweisungen wie "[schmatzt]". Die sollen hörbar sein,
+  // also bekommt v3/v4 einen Laut zum Formen dazu - sonst blieb es still.
+  text = soundableTagLine(text, resolveVoice(role).emotional || elevenModelChoice() !== 'classic');
   if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
 
   // Emotional delivery is a property of the figure now: one character can sigh
@@ -5217,6 +5231,7 @@ function fetchElevenAudioTimed(text, role, ctx) {
   const key = apiKeyFor('companion_elevenKey');
   const voiceId = resolveVoice(role).eleven;
   if (!key || !voiceId) return null;
+  text = soundableTagLine(text, resolveVoice(role).emotional || elevenModelChoice() !== 'classic');
   if (!/[\p{L}\p{N}]/u.test(stripAudioTags(text))) return null;
   const emotional = resolveVoice(role).emotional;
   const modelId = elevenModelFor(emotional);
