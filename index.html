@@ -1043,7 +1043,7 @@
         <input type="checkbox" id="liveReadyCheck" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Vor der ersten Bewegung Bescheid geben</span>
       </label>
-      <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen und eines verbunden ist.</p>
+      <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen. Bis dahin bleibt die Bewegung aus.</p>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveVoiceMotion" style="width:auto;">
@@ -1055,7 +1055,12 @@
         <input type="checkbox" id="liveFillers" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Wartezeit mit Lauten füllen</span>
       </label>
-      <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - ein Atmen, ein „mhm", ein Kichern. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
+      <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - passend zu dem, was gerade passiert (Gespräch, Küssen, Mund, Hand, Sex, Höhepunkt) und zur Intensität. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
+      <details id="fillerPreview" style="margin-top:6px;">
+        <summary style="cursor:pointer; font-size:13.5px;">Laute anhören und neu erzeugen</summary>
+        <p class="hint">▶ spielt den Laut (erzeugt ihn beim ersten Mal). ↻ verwirft ihn und erzeugt eine neue Fassung - ElevenLabs klingt jedes Mal etwas anders.</p>
+        <div id="fillerPreviewList"></div>
+      </details>
 
       <label for="livePace">Aufbau</label>
       <select id="livePace">
@@ -1455,6 +1460,8 @@ const els = {
   liveVoiceMotion: document.getElementById('liveVoiceMotion'),
   elevenModel: document.getElementById('elevenModel'),
   liveFillers: document.getElementById('liveFillers'),
+  fillerPreview: document.getElementById('fillerPreview'),
+  fillerPreviewList: document.getElementById('fillerPreviewList'),
   livePace: document.getElementById('livePace'),
   storyPace: document.getElementById('storyPace'),
   storyImages: document.getElementById('storyImages'),
@@ -2390,8 +2397,18 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.09';
+const APP_VERSION = '1.11';
 const CHANGELOG = [
+  { v: '1.11', date: '2026-09-28', items: [
+    'Füll-Laute passend zum Kontext: Die App erkennt aus der letzten Antwort, was gerade passiert - Gespräch, Küssen, Mund, Hand, Sex oder Höhepunkt - und wählt dazu Laute, bei Mund, Hand und Sex zusätzlich nach Tempo. Die Laute sind länger und ausdrucksstärker als bisher.',
+    'Laute anhören und neu erzeugen: unter „Wartezeit mit Lauten füllen". Gefällt ein Laut nicht, erzeugt ↻ eine neue Fassung.',
+  ]},
+  { v: '1.10', date: '2026-09-28', items: [
+    'Die Aufforderung, das Gerät anzulegen, kommt jetzt auch ohne verbundenes Gerät, sobald beide Haken gesetzt sind. Bis zum „bereit" bleibt die Bewegung aus - vorher lief sie direkt nach dem Kennenlernen los, auch mitten im Spaziergang.',
+    'Anrede: Bietest du das Du an, duzt die Figur ab sofort. Ohne Angebot ist das Du Standard, außer eine Figur ist ausdrücklich als siezend beschrieben.',
+    'Mehr Initiative: Nach dem Kennenlernen führt die Figur, macht eigene Vorschläge und lenkt die Szene. Nach zwei Antworten mit Rückfrage folgt eine Handlung statt einer weiteren Frage.',
+    'Protokoll-Kopf zeigt jetzt Modellwahl, Füll-Laute, Stimme-folgt-Bewegung und den Stand des Bereitmachens.',
+  ]},
   { v: '1.09', date: '2026-09-28', items: [
     'Behoben: Einige Füll-Laute bestanden nur aus einer Regieanweisung ohne Text. v3 Conversational lehnt das ab, und die App schaltete deshalb fälschlich dauerhaft auf das teurere Modell zurück. Alle Laute haben jetzt hörbaren Text, und ein Fehler am Inhalt führt nicht mehr zum Modellwechsel.',
   ]},
@@ -2950,9 +2967,9 @@ function buildSessionExport() {
     `Modus: ${MODE_LABELS[currentMode] || currentMode}`,
     `KI-Anbieter: ${provider}`,
     `Modell: ${model}`,
-    `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? (emotional ? ' (v3, emotionale Tags an)' : ' (multilingual v2)') : ''}`,
+    `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${convBroken ? ', Conversational abgelehnt' : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
-    `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}`,
+    `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
     `Figuren: ${characters.map(c => c.name + (c.isUser ? ' [ich]' : '')).join(', ')}`,
     deviceInfo(1),
     deviceInfo(2),
@@ -4352,20 +4369,58 @@ function dynamicPrefix(modelId, level) {
 // Zwischen meiner Nachricht und der ersten Silbe der Antwort liegen einige
 // Sekunden Stille - das reißt am stärksten heraus. Kurze Laute der Figuren
 // füllen die Lücke. Sie werden einmal erzeugt und dauerhaft gespeichert.
-const FILLERS = {
-  // Jeder Eintrag braucht gesprochenen Text neben dem Tag: v3 Conversational
-  // entfernt die Tags vorab und lehnt einen dann leeren Text mit 400 ab.
-  v3: [
-    ['[softly] Mhm…', '[curious] Hm?', '[giggles softly] Hihi…', '[sighs contentedly] Hach…'],
-    ['[breathes in] Mhm…', '[giggles] Hihi…', '[sighs] Ja…', '[hums] Hmm…'],
-    ['[breathing heavily] Hah… hah…', '[moans softly] Mmh…', '[gasps] Ah…', '[breathless] Mhm…'],
-  ],
-  v2: [
-    ['Mhm…', 'Hm?', 'Hmm…'],
-    ['Mhm…', 'Ahh…', 'Hmm… ja…'],
-    ['Ahh…', 'Oh… mhm…', 'Hah…'],
-  ],
+// Laute nach Kontext: Was gerade passiert (aus der letzten Antwort und meiner
+// letzten Nachricht erkannt) bestimmt die Gruppe, die Bewegung die Stufe.
+// Jeder Eintrag braucht gesprochenen Text neben dem Tag: v3 Conversational
+// entfernt die Tags vorab und lehnt einen dann leeren Text ab. Für
+// Multilingual v2 werden die Tags weggelassen, dort bleibt nur der Text.
+const FILLER_SETS = {
+  talk0:  ['[softly] Mhm…', '[curious] Hm?', '[giggles softly] Hihi…', '[sighs contentedly] Hach…'],
+  talk1:  ['[breathes in] Mhm…', '[giggles] Hihi…', '[sighs] Ja…', '[hums] Hmm…'],
+  talk2:  ['[breathing heavily] Hah… hah…', '[moans softly] Mmh…', '[gasps] Ah…', '[breathless] Mhm…'],
+  kiss:   ['[kissing sounds] Mmh… mwah… mmh…', '[soft kiss] Mmh… komm her…', '[kisses] Mhm… mmh… mwah…', '[breathes between kisses] Mmh… deine Lippen…'],
+  oral1:  ['[slurping] Mmh… mmh…', '[wet sucking sounds] Mhm… mmh… mmh…', '[sucking] Mmmh… hm…', '[muffled] Mhm… mmh…'],
+  oral2:  ['[slurping loudly] Mmh! Mmh… mmh…', '[gagging softly] Mmh… hah… mmh…', '[muffled moan] Mmmh… mmh!', '[sucking greedily] Mmh… so gut… mmh…'],
+  hand1:  ['[wet rhythmic sounds] Mhm… so…', '[breathes] Ja… so… ganz langsam…', '[soft moan] Mmh… gefällt dir das…', '[rhythmic stroking sounds] Hm… hm… hm…'],
+  hand2:  ['[wet rhythmic sounds, faster] Ja… ja… ja…', '[panting] Hah… schneller… hah…', '[moans] Mmh… komm schon…', '[breathless] Ja… so hart…'],
+  sex1:   ['[moans softly] Ahh… ja…', '[breathing heavily] Hah… hah… mmh…', '[sighs with pleasure] Oh… so tief…', '[soft moan] Mmh… genau so…'],
+  sex2:   ['[moaning loudly] Ahh! Ja! Ahh…', '[panting] Hah… hah… nicht aufhören…', '[moans] Ja… ja… fester…', '[breathless moan] Oh… oh Gott…'],
+  climax: ['[moaning loudly] Ahh… ja… ja!', '[gasps] Oh… oh Gott… ahh…', '[breathless] Komm… komm für mich…', '[moans] Mmh… ja… alles…'],
 };
+const FILLER_LABELS = {
+  talk0: 'Gespräch, ruhig', talk1: 'Gespräch, lebhaft', talk2: 'Gespräch, erregt',
+  kiss: 'Küssen', oral1: 'Mund, langsam', oral2: 'Mund, schnell',
+  hand1: 'Hand, langsam', hand2: 'Hand, schnell', sex1: 'Sex, langsam', sex2: 'Sex, schnell',
+  climax: 'Höhepunkt',
+};
+function fillerSpoken(t, modelId) {
+  return isV3(modelId) ? t : stripAudioTags(t).replace(/\s+/g, ' ').trim();
+}
+// Was gerade passiert - bewusst grob, Reihenfolge = Vorrang.
+function fillerContext() {
+  if (introPhase(sceneStep) || readyHoldActive()) return 'talk';
+  const last = role => {
+    for (let i = history.length - 1; i >= 0; i--) {
+      const m = history[i];
+      if (m.role === role && typeof m.content === 'string') return m.content;
+    }
+    return '';
+  };
+  const t = (last('assistant') + ' ' + last('user')).toLowerCase();
+  if (/\b(ich komme|komm für mich|höhepunkt|orgasmus|spritz\w*|explodier\w*|abspritz\w*)\b/.test(t)) return 'climax';
+  if (/\b(mund|lippen|zunge|lutsch\w*|saug\w*|blas\w*|leck\w*|schluck\w*)\b/.test(t)) return 'oral';
+  if (/\b(hand|hände|händen|finger\w*|reib\w*|wichs\w*|runterhol\w*|umfass\w*|streichel\w*)\b/.test(t)) return 'hand';
+  if (/\b(reite\w*|stoß\w*|stöß\w*|eindring\w*|in mir|in dich|in mich)\b/.test(t)) return 'sex';
+  if (/\b(kuss|küss\w*|knutsch\w*)\b/.test(t)) return 'kiss';
+  return 'talk';
+}
+function fillerSetFor(level) {
+  const lv = level === null || level === undefined ? 1 : level;
+  const c = fillerContext();
+  if (c === 'talk') return 'talk' + lv;
+  if (c === 'kiss' || c === 'climax') return c;
+  return c + (lv >= 2 ? '2' : '1');
+}
 function fillersEnabled() {
   return localStorage.getItem('companion_fillers') === 'true';
 }
@@ -4375,11 +4430,14 @@ let fillerAudio = null, fillerTimer = null, fillerActive = false, fillerDone = n
 function fillerVoice(role) {
   const v = resolveVoice(role);
   if (!v.eleven) return null;
-  const modelId = elevenModelFor(v.emotional);
-  return { voiceId: v.eleven, modelId, texts: FILLERS[isV3(modelId) ? 'v3' : 'v2'] };
+  return { voiceId: v.eleven, modelId: elevenModelFor(v.emotional) };
 }
-async function fillerUrl(voiceId, modelId, text, fetchIfMissing) {
-  const k = 'filler_' + audioKey(voiceId, modelId, text);
+function fillerCacheKey(voiceId, modelId, text) {
+  return 'filler_' + audioKey(voiceId, modelId, fillerSpoken(text, modelId));
+}
+async function fillerUrl(voiceId, modelId, rawText, fetchIfMissing) {
+  const text = fillerSpoken(rawText, modelId);
+  const k = fillerCacheKey(voiceId, modelId, rawText);
   if (fillerUrls.has(k)) return fillerUrls.get(k);
   let blob = null;
   try { blob = await dbGet(STORE_AUDIO, k); } catch (e) {}
@@ -4414,7 +4472,9 @@ async function prewarmFillers() {
     for (const c of aiCharacters().filter(c => !c.isNarrator)) {
       const fv = fillerVoice(c.name);
       if (!fv) continue;
-      for (const level of fv.texts) for (const t of level) {
+      // Gesprächslaute zuerst - die braucht es am frühesten.
+      for (const set of Object.keys(FILLER_SETS)) for (const t of FILLER_SETS[set]) {
+        if (!fillersEnabled()) return;
         try { await fillerUrl(fv.voiceId, fv.modelId, t, true); } catch (e) {}
       }
     }
@@ -4426,7 +4486,7 @@ async function pickFiller(level) {
   const c = who[Math.floor(Math.random() * who.length)];
   const fv = fillerVoice(c.name);
   if (!fv) return null;
-  const list = fv.texts[level].slice().sort(() => Math.random() - 0.5);
+  const list = FILLER_SETS[fillerSetFor(level)].slice().sort(() => Math.random() - 0.5);
   // Zuerst Gespeichertes - das spielt sofort.
   for (const t of list) {
     const u = await fillerUrl(fv.voiceId, fv.modelId, t, false);
@@ -4444,7 +4504,7 @@ function startFillers(generation) {
     fillerTimer = setTimeout(async () => {
       if (!fillerActive || playbackGeneration !== generation || count >= 3) return;
       const lvl = currentMotionLevel();
-      const url = await pickFiller(lvl === null ? 1 : lvl).catch(() => null);
+      const url = await pickFiller(lvl).catch(() => null);
       if (!url || !fillerActive || playbackGeneration !== generation || isMuted) return;
       count += 1;
       const a = new Audio(url);
@@ -5047,7 +5107,7 @@ function readyBlock() {
   const asked = history.some(m => m.role === 'assistant' && m.readyAsk);
   return asked
     ? '\n\nWARTEN AUFS BEREITSEIN: Die Figur hat mich schon gebeten, das Gerät anzulegen, und ich habe noch nicht bestätigt. Sie hält es kaum aus: Sie bettelt, drängelt und quengelt, dass ich endlich soweit sein soll, und fleht mich an, Bescheid zu sagen - jedes Mal etwas gieriger und mit anderen Worten. Körperlich passiert noch nichts, wofür das Gerät nötig wäre.'
-    : '\n\nBEREITMACHEN: Bevor es körperlich losgeht, fordert mich die Figur auf, das Gerät jetzt anzulegen und ihr Bescheid zu geben, sobald ich bereit bin. Ton: gierig und ungeduldig - sie kann es kaum erwarten, bettelt darum, dass ich mich beeile, und sagt mir, wie sehr sie es will. Kein technisches Erklären. Die Antwort endet mit dieser Aufforderung. Noch keine Handlung, für die das Gerät nötig wäre.';
+    : '\n\nBEREITMACHEN: Bevor es körperlich losgeht, fordert mich die Figur auf, das Gerät jetzt anzulegen und ihr Bescheid zu geben, sobald ich bereit bin - passend eingebettet in die Situation, als Übergang zu dem, was gleich kommt. Ton: gierig und ungeduldig - sie kann es kaum erwarten, bettelt darum, dass ich mich beeile, und sagt mir, wie sehr sie es will. Kein technisches Erklären. Die Antwort endet mit dieser Aufforderung. Noch keine Handlung, für die das Gerät nötig wäre.';
 }
 
 function introHint(step) {
@@ -9230,6 +9290,28 @@ Nennt konkrete Einzelheiten, die wirklich zu sehen sind: Haltung, Blick, Gesicht
 Sagt, was ihr jetzt am liebsten mit mir anstellen würdet - konkret, passend zu dem, was ihr seht.
 Beschreibt nur, was tatsächlich auf dem Foto ist, und erfindet nichts hinzu. Schließt mit einer Frage oder Aufforderung an mich.`;
 
+// Anrede: Das Du wird ausdrücklich verlangt, sobald ich es angeboten habe -
+// sonst siezte eine Figur ein ganzes Gespräch lang weiter. Ohne Angebot gilt
+// ebenfalls das Du, außer die Figur ist ausdrücklich als siezend beschrieben.
+function addressRule() {
+  const text = m => typeof m.content === 'string' ? m.content : '';
+  const offered = history.some(m => m.role === 'user' && /\b(duz\w*|du sagen|per du|das du)\b/i.test(text(m)));
+  const formalFigure = aiCharacters().some(c => /\bsiez\w*/i.test(String(c.notes || '') + ' ' + String(c.styleExamples || '')));
+  if (!offered && formalFigure) return '';
+  return '\n\nANREDE: Du duzt mich - "du", "dich", "dir", "dein". Sprich mich nie mit "Sie" an.'
+    + (offered ? ' Ich habe dir das Du ausdrücklich angeboten.' : '');
+}
+// Initiative: Nach dem Kennenlernen (bzw. bei zügig/direkt von Anfang an)
+// führt die Figur. Vorher endete fast jede Antwort mit einer Rückfrage, und
+// alle Schritte kamen von mir.
+function initiativeRule() {
+  if (introPhase(sceneStep)) return '';
+  const recent = history.filter(m => m.role === 'assistant' && typeof m.content === 'string').slice(-2);
+  const askedTwice = recent.length === 2 && recent.every(m => /\?\s*$/.test(m.content.trim()));
+  return '\n\nINITIATIVE: Du führst. Mach selbst Vorschläge, ergreif die Initiative und handle, statt mich zu fragen, was ich will. Höchstens jede dritte Antwort endet mit einer Frage. Zeige ich Interesse, lenkst du die Szene entschlossen in die erotische Richtung und gehst den nächsten Schritt selbst.'
+    + (askedTwice ? ' Deine letzten beiden Antworten endeten mit einer Frage - diesmal KEINE Frage, sondern eine Handlung oder eine Ansage.' : '');
+}
+
 function placeRule() {
   if (introPhase(sceneStep)) {
     return 'Es spielen nur die oben genannten Figuren mit - keine neuen. Ein Ortswechsel ist erlaubt, wenn er sich aus dem Gespräch ergibt; beschreibe dann kurz den neuen Ort. Der Fokus liegt auf dem Gespräch und der wachsenden Spannung zwischen uns, nicht auf Körperlichem.';
@@ -9302,7 +9384,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${readyBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch: Höchstens 4 Zeilen, aber jede darf zwei, drei Sätze lang sein - koste den Moment aus, statt zum nächsten zu eilen. Schließe so, dass ich antworten kann - mit einer Frage, einer Aufforderung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : autoStep ? replyLength().lines : Math.min(4, replyLength().lines)} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter. Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -9437,7 +9519,9 @@ async function askEnsemble(userText, options) {
   readyJustConfirmed = false;
   const unattended = !!(options && (options.autoStep || options.silent));
   if (!introNow && readyGate !== 'ready') {
-    if (!readyCheckEnabled() || !deviceAware() || !anyDeviceConnected() || unattended) {
+    // Nicht mehr an ein verbundenes Gerät geknüpft: Sonst lief die Bewegung ohne
+    // Gerät gleich nach dem Kennenlernen los, mitten im Spaziergang.
+    if (!readyCheckEnabled() || !deviceAware() || unattended) {
       if (unattended && readyGate === 'asking') readyGate = 'ready';
     } else if (readyGate === 'asking' && saysReady(userText)) {
       readyGate = 'ready';
@@ -10053,6 +10137,68 @@ els.elevenModel.onchange = () => {
   if (fillersEnabled()) prewarmFillers();
 };
 els.liveVoiceMotion.onchange = () => safeSet('companion_voiceMotion', els.liveVoiceMotion.checked ? 'true' : 'false');
+let fillerPreviewAudio = null;
+function playFillerPreview(url) {
+  if (fillerPreviewAudio) { try { fillerPreviewAudio.pause(); } catch (e) {} }
+  fillerPreviewAudio = new Audio(url);
+  fillerPreviewAudio.play().catch(() => {});
+}
+function renderFillerPreview() {
+  const box = els.fillerPreviewList;
+  box.innerHTML = '';
+  const note = t => { const p = document.createElement('p'); p.className = 'hint'; p.textContent = t; box.appendChild(p); };
+  if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') { note('Nur mit ElevenLabs als Sprachausgabe.'); return; }
+  const who = aiCharacters().filter(c => !c.isNarrator);
+  if (!who.length) { note('Keine Figur in der Besetzung.'); return; }
+  who.forEach(c => {
+    const fv = fillerVoice(c.name);
+    const h = document.createElement('div');
+    h.style.cssText = 'font-weight:600; margin:10px 0 4px;';
+    h.textContent = c.name + (fv ? '' : ' - keine ElevenLabs-Stimme gewählt');
+    box.appendChild(h);
+    if (!fv) return;
+    Object.keys(FILLER_SETS).forEach(set => {
+      const g = document.createElement('div');
+      g.style.cssText = 'font-size:12.5px; color:var(--muted, #888); margin:6px 0 2px;';
+      g.textContent = FILLER_LABELS[set];
+      box.appendChild(g);
+      FILLER_SETS[set].forEach(t => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:6px; margin:2px 0;';
+        const play = document.createElement('button');
+        play.type = 'button'; play.className = 'btn-secondary'; play.textContent = '▶';
+        play.style.cssText = 'width:auto; padding:2px 10px;';
+        const redo = document.createElement('button');
+        redo.type = 'button'; redo.className = 'btn-secondary'; redo.textContent = '↻';
+        redo.style.cssText = 'width:auto; padding:2px 10px;';
+        const label = document.createElement('span');
+        label.style.cssText = 'font-size:12.5px; flex:1;';
+        label.textContent = fillerSpoken(t, fv.modelId);
+        play.onclick = async () => {
+          play.disabled = true;
+          try {
+            const url = await fillerUrl(fv.voiceId, fv.modelId, t, true);
+            if (url) playFillerPreview(url); else label.textContent += '  (Fehler)';
+          } finally { play.disabled = false; }
+        };
+        redo.onclick = async () => {
+          redo.disabled = true;
+          try {
+            const k = fillerCacheKey(fv.voiceId, fv.modelId, t);
+            const old = fillerUrls.get(k);
+            if (old) { URL.revokeObjectURL(old); fillerUrls.delete(k); }
+            try { await dbDelete(STORE_AUDIO, k); } catch (e) {}
+            const url = await fillerUrl(fv.voiceId, fv.modelId, t, true);
+            if (url) playFillerPreview(url); else label.textContent += '  (Fehler)';
+          } finally { redo.disabled = false; }
+        };
+        row.append(play, redo, label);
+        box.appendChild(row);
+      });
+    });
+  });
+}
+els.fillerPreview.addEventListener('toggle', () => { if (els.fillerPreview.open) renderFillerPreview(); });
 els.liveFillers.onchange = () => {
   safeSet('companion_fillers', els.liveFillers.checked ? 'true' : 'false');
   if (els.liveFillers.checked) prewarmFillers();
