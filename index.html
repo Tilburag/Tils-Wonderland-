@@ -1072,6 +1072,12 @@
       </div>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveSfx" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Geräusche zur Handlung</span>
+      </label>
+      <p class="hint">Einzelne Geräusche, wenn der Text sie nahelegt - ein Klopfen an der Tür, ein knarrendes Bett, raschelnde Kleidung, klirrende Gläser, ein Klaps. Sie erklingen genau in dem Satz, der sie beschreibt, und nicht bei jeder Erwähnung. Jedes Geräusch wird einmal bei ElevenLabs erzeugt und gespeichert.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveArousal" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Nähe-Regler</span>
       </label>
@@ -1275,6 +1281,25 @@
 
 </div>
 
+<div id="padOverlay" style="display:none; position:fixed; inset:0; z-index:2000; background:#000; touch-action:none; user-select:none; -webkit-user-select:none;">
+  <div id="padArea" style="position:absolute; inset:calc(env(safe-area-inset-top, 0px) + 56px) 18px calc(env(safe-area-inset-bottom, 0px) + 86px) 18px; border:1px solid #111; border-radius:18px;">
+    <span style="position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">schneller ↑</span>
+    <span style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">↓ langsamer</span>
+    <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#2a2a2a; font-size:12px;">← kurz</span>
+    <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#2a2a2a; font-size:12px;">lang →</span>
+    <div id="padDot" style="position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; background:#5a1020; box-shadow:0 0 18px 6px rgba(160,20,50,.35); left:50%; top:50%; opacity:.45;"></div>
+  </div>
+  <button id="padClose" type="button" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 12px); right:14px; background:none; border:none; color:#333; font-size:22px;">✕</button>
+  <div id="padInfo" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 16px); left:18px; color:#2e2e2e; font-size:12px;"></div>
+  <div style="position:absolute; left:18px; right:18px; bottom:calc(env(safe-area-inset-bottom, 0px) + 18px); display:flex; gap:10px;">
+    <button id="padStop" type="button" style="flex:1; padding:14px; border-radius:12px; border:1px solid #2a0a0a; background:#140404; color:#6a2a2a; font-size:15px;">Stopp</button>
+    <button id="padEdge" type="button" style="flex:1; padding:14px; border-radius:12px; border:1px solid #1a1a1a; background:#0a0a0a; color:#5a3a2a; font-size:15px;">🔥 Kurz davor</button>
+  </div>
+</div>
+<style>
+  @keyframes padPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.28); } }
+</style>
+
 <div class="bottom-bar" id="bottomBar">
   <div class="thinking" id="thinkingRow" style="display:none;">
     <span class="thinking-dot"></span>
@@ -1292,6 +1317,7 @@
   </div>
   <div class="text-input-row">
     <input type="text" id="textInput" placeholder="Nachricht schreiben...">
+    <button class="btn-secondary" id="padBtn" type="button" title="Augen zu - dunkler Bildschirm mit Steuerfläche" style="flex:0 0 auto; padding:10px 12px;">🌙</button>
     <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken" style="flex:0 0 auto; padding:10px 12px;">📷</button>
     <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
     <button class="btn-primary" id="sendTextBtn">Senden</button>
@@ -1424,6 +1450,14 @@ const els = {
   talkBtn: document.getElementById('talkBtn'),
   autoBtn: document.getElementById('autoBtn'),
   textInput: document.getElementById('textInput'),
+  padBtn: document.getElementById('padBtn'),
+  padOverlay: document.getElementById('padOverlay'),
+  padArea: document.getElementById('padArea'),
+  padDot: document.getElementById('padDot'),
+  padInfo: document.getElementById('padInfo'),
+  padClose: document.getElementById('padClose'),
+  padStop: document.getElementById('padStop'),
+  padEdge: document.getElementById('padEdge'),
   readyRow: document.getElementById('readyRow'),
   arousalRow: document.getElementById('arousalRow'),
   arousalSlider: document.getElementById('arousalSlider'),
@@ -1431,6 +1465,7 @@ const els = {
   edgeBtn: document.getElementById('edgeBtn'),
   liveArousal: document.getElementById('liveArousal'),
   liveAmbience: document.getElementById('liveAmbience'),
+  liveSfx: document.getElementById('liveSfx'),
   ambVol: document.getElementById('ambVol'),
   ambNow: document.getElementById('ambNow'),
   ambRedo: document.getElementById('ambRedo'),
@@ -2467,8 +2502,30 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.20';
+const APP_VERSION = '1.26';
 const CHANGELOG = [
+  { v: '1.26', date: '2026-09-28', items: [
+    '🌙 Augen zu: Ein Tipp auf den Mond neben dem Eingabefeld macht den Bildschirm schwarz. Ein Punkt pulsiert im Takt der Bewegung; ziehst du ihn, wünschst du dir ein Tempo (oben schneller, unten langsamer) und eine Hublänge (links kurz, rechts lang). Der Wunsch wirkt ab der nächsten Antwort und allmählich - die Figur leitet die Handlung dorthin. Doppeltipp auf den Punkt hebt den Wunsch auf. Stopp und „Kurz davor" sind unten erreichbar, der Bildschirm bleibt an.',
+  ]},
+  { v: '1.25', date: '2026-09-28', items: [
+    'Geräusche zur Handlung: Beschreibt die Figur ein Klopfen, eine Tür, raschelnde Kleidung, Gläser, ein knarrendes Bett, einen Klaps oder nasse Geräusche, erklingt das passende Geräusch genau in diesem Satz. Höchstens eines alle 20 Sekunden, dasselbe höchstens einmal pro Minute. Jedes wird einmal erzeugt und gespeichert.',
+  ]},
+  { v: '1.24', date: '2026-09-28', items: [
+    'Die Figur spricht zu Ende: Schickst du etwas ab oder tippst auf „▶ Geschichte", wird die laufende Antwort nicht mehr abgeschnitten. Die nächste entsteht währenddessen im Hintergrund und folgt direkt. Nur „Stopp" und Dazwischenreden mit Kopfhörern brechen ab.',
+    'Geschichte (Selbstlauf): Die nächste Fortsetzung wird schon erzeugt, während der letzte Abschnitt gesprochen wird - kaum noch Pausen dazwischen.',
+    'Behoben: Die gekürzte Antwort landet jetzt im Verlauf, nicht die ungekürzte mit den erfundenen Zeilen für dich.',
+  ]},
+  { v: '1.23', date: '2026-09-28', items: [
+    'Protokoll: fasst jetzt mehrere Stunden. Ist es voll, fallen zuerst alte TCODE-Zeilen weg - Text und Bewegungswerte bleiben vollständig, auch der Gesprächsanfang.',
+    'Protokoll: „Erinnern" erzeugt nur noch eine kurze Zeile statt des kompletten Gedächtnisses.',
+  ]},
+  { v: '1.22', date: '2026-09-28', items: [
+    'Protokoll: Die vielen TCODE-Zeilen werden zusammengefasst, und bei Überlänge fällt der älteste Teil weg statt des neuesten. Vorher war das Protokoll nach dem Verbinden des Geräts so lang, dass es beim Einfügen ausgerechnet am Ende abgeschnitten wurde.',
+  ]},
+  { v: '1.21', date: '2026-09-28', items: [
+    'Selbstlauf gibt die Bewegung nicht mehr frei: Ist „Vor der ersten Bewegung Bescheid geben" an, hält der Selbstlauf an, bis du „bereit" sagst. Vorher konnte das Gerät loslegen, ohne dass du je zugestimmt hattest.',
+    'Fremdsprachige Einsprengsel (kyrillisch, chinesisch …), die kleine Modelle manchmal in deutsche Sätze mischen, werden entfernt statt vorgelesen. Zeilen, die nur aus einer Zahl bestehen, ebenso.',
+  ]},
   { v: '1.20', date: '2026-09-28', items: [
     'Eine Zeile, die nur aus Regieanweisungen besteht (etwa „[schmatzt]"), bleibt nicht mehr stumm: Die Stimme bekommt einen Laut dazu und setzt die Anweisung hörbar um.',
   ]},
@@ -3026,11 +3083,20 @@ async function storageStats() {
 // followed the text or drifted away from it - which is impossible to tell from
 // the chat bubbles alone.
 const sessionLog = [];
-const SESSION_LOG_MAX = 6000; // a long story can produce thousands of lines
+// Genug für mehrere Stunden. Bei schnellen Bewegungen entstehen bis zu 20
+// TCODE-Zeilen pro Sekunde - ist der Speicher voll, fallen deshalb zuerst die
+// ältesten TCODE-Zeilen weg, nicht Text und Bewegungswerte. Vorher verdrängten
+// sie nach 40 Minuten den gesamten Gesprächsanfang.
+const SESSION_LOG_MAX = 20000;
 const sessionStart = Date.now();
 
+let sessionLogTrimmed = false;
 function logEvent(kind, data) {
-  if (sessionLog.length >= SESSION_LOG_MAX) sessionLog.shift();
+  if (sessionLog.length >= SESSION_LOG_MAX) {
+    const i = sessionLog.findIndex(e => e.kind === 'tcode');
+    sessionLog.splice(i >= 0 ? i : 0, 1);
+    sessionLogTrimmed = true;
+  }
   sessionLog.push(Object.assign({ t: Date.now() - sessionStart, kind }, data));
 }
 
@@ -3074,6 +3140,7 @@ function buildSessionExport() {
     `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${brokenModels.size ? ', abgelehnt: ' + [...brokenModels].map(m => MODEL_NAMES[m] || m).join(', ') : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
     `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
+    `Geräusche zur Handlung: ${sfxEnabled() ? 'an' : 'aus'}; Steuerfläche: ${motionWish.active ? wishWords().sp + ', ' + wishWords().st : 'nicht benutzt'}`,
     `Geräuschkulisse: ${ambienceEnabled() ? (amb.key ? AMBIENCES[amb.key].label : 'an, noch kein Ort') + ', Lautstärke ' + Math.round(ambVolume() * 100) + ' %' : 'aus'}`,
     `Nähe-Regler: ${arousalEnabled() ? `an (jetzt ${arousal}, Höchstwert ${arousalPeak}, ${edgeCount}x kurz davor)` : 'aus'}; Hinhalten: ${edgingEnabled() ? `an, Ziel ${edgeGoal()}` : 'aus'}`,
     `Anruf: ${headphoneMode() ? 'Kopfhörer' : 'Lautsprecher'}; Sprechpause ${speechGapMs()} ms; Mikrofonauswertung: ${micSenseEnabled() ? 'an' : 'aus'}`,
@@ -3089,13 +3156,41 @@ function buildSessionExport() {
     '',
   ];
 
-  const lines = sessionLog.map(e => {
+  // TCODE-Zeilen kommen bis zu zehnmal pro Sekunde. Einzeln aufgeführt machten
+  // sie das Protokoll so lang, dass es beim Einfügen in einen Chat abgeschnitten
+  // wurde - und zwar das Ende, also genau der neueste Teil. Deshalb: Folgen von
+  // TCODE-Zeilen zusammenfassen (die ersten zwei bleiben wörtlich stehen).
+  const lines = [];
+  let run = null;
+  const flushRun = () => {
+    if (!run) return;
+    const r = run; run = null;
+    if (r.items.length <= 3) { r.items.forEach(e => lines.push(`[${formatOffset(e.t)}] TCODE ${e.device}: ${e.line}`)); return; }
+    const pos = r.items.map(e => parseInt((e.line.match(/^L0(\d+)/) || [])[1], 10)).filter(Number.isFinite);
+    const ms = r.items.map(e => parseInt((e.line.match(/I(\d+)/) || [])[1], 10)).filter(Number.isFinite);
+    const ends = [...new Set(r.items.map(e => (e.line.match(/(G-?\d+|<>|<|>)$/) || ['linear'])[0]))].join('/');
+    lines.push(`[${formatOffset(r.items[0].t)}] TCODE ${r.device}: ${r.items[0].line}, ${r.items[1].line} … (${r.items.length} Befehle in ${((r.items[r.items.length - 1].t - r.items[0].t) / 1000).toFixed(1)} s, Lage ${Math.min(...pos)}-${Math.max(...pos)}, Dauer ${Math.min(...ms)}-${Math.max(...ms)} ms, Form ${ends})`);
+  };
+  sessionLog.forEach(e => {
+    if (e.kind === 'tcode') {
+      if (run && run.device === e.device && e.t - run.items[run.items.length - 1].t < 3000) { run.items.push(e); return; }
+      flushRun();
+      run = { device: e.device, items: [e] };
+      return;
+    }
+    flushRun();
     const at = '[' + formatOffset(e.t) + ']';
-    if (e.kind === 'msg') return `${at} TEXT ${e.role}: ${e.text}`;
-    if (e.kind === 'motion') return `${at} BEWEGUNG ${e.device}: ${e.low}-${e.high} @ ${e.bpm} (${e.texture})`;
-    if (e.kind === 'tcode') return `${at} TCODE ${e.device}: ${e.line}`;
-    return `${at} ${e.kind}: ${JSON.stringify(e)}`;
+    if (e.kind === 'msg') lines.push(`${at} TEXT ${e.role}: ${e.text}`);
+    else if (e.kind === 'motion') lines.push(`${at} BEWEGUNG ${e.device}: ${e.low}-${e.high} @ ${e.bpm} (${e.texture})`);
+    else lines.push(`${at} ${e.kind}: ${JSON.stringify(e)}`);
   });
+  flushRun();
+  // Obergrenze: Wird es trotzdem zu lang, fällt der ÄLTESTE Teil weg - der
+  // neueste ist fast immer der, um den es gerade geht.
+  const EXPORT_MAX_CHARS = 45000;
+  let total = lines.reduce((n, l) => n + l.length + 1, 0), dropped = 0;
+  while (total > EXPORT_MAX_CHARS && lines.length > 50) { total -= lines.shift().length + 1; dropped++; }
+  if (dropped) lines.unshift(`(… ${dropped} ältere Zeilen ausgelassen, damit das Protokoll beim Einfügen nicht abgeschnitten wird)`);
 
   const counts = sessionLog.reduce((acc, e) => { acc[e.kind] = (acc[e.kind] || 0) + 1; return acc; }, {});
   const tail = [
@@ -3103,7 +3198,7 @@ function buildSessionExport() {
     '## Zusammenfassung',
     `Dauer: ${formatOffset(Date.now() - sessionStart)}`,
     `Einträge: ${Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(', ') || 'keine'}`,
-    sessionLog.length >= SESSION_LOG_MAX ? 'Hinweis: Der Anfang wurde gekürzt, das Protokoll hat seine Höchstlänge erreicht.' : '',
+    sessionLogTrimmed ? 'Hinweis: Das Protokoll hat seine Höchstlänge erreicht - die ältesten TCODE-Zeilen wurden entfernt, Text und Bewegungswerte sind vollständig.' : '',
   ];
 
   return head.concat(lines).concat(tail).join('\n');
@@ -3807,7 +3902,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   }
 
   function applyState(req, instant) {
-    req = edgeCapRequest(req);
+    req = edgeCapRequest(wishRequest(req));
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
     const span = Math.max(1, maxPos - minPos);
@@ -3977,6 +4072,8 @@ const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, el
 const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2, els.motionTrackFill2, 'Gerät 2', 'd2');
 
 els.stopBtn.onclick = () => {
+  chainEpoch += 1;
+  if (typeof abortAllRequests === 'function') abortAllRequests();
   playbackGeneration += 1;
   clearCueTimers();
   device1.setMotion({ texture: 'stop' });
@@ -4223,7 +4320,17 @@ function headphoneMode() {
 
 // Cuts the reply short without ending the call, so speaking over the app takes
 // effect immediately instead of at the end of the current sentence.
+// Warteschlange der Antworten: Eine neue Antwort unterbricht die laufende
+// nicht mehr, sondern wird im Hintergrund erzeugt und startet, sobald die
+// vorige zu Ende gesprochen ist. Ein harter Abbruch (Stopp, Dazwischenreden
+// mit Kopfhörern, neues Gespräch) erhöht die Epoche - wartende Antworten
+// verfallen dann.
+let playbackChain = Promise.resolve();
+let chainEpoch = 0;
+let activeReplies = 0;
+
 function interruptPlayback() {
+  chainEpoch += 1;
   playbackGeneration += 1;
   if (typeof stopFillers === 'function') stopFillers(true);
   if (typeof clearCueTimers === 'function') clearCueTimers();
@@ -4315,12 +4422,13 @@ function flushSpoken() {
 }
 
 async function handleSpokenTurn(text) {
+  const bargeIn = callBusy && headphoneMode();
   if (callBusy) interruptPlayback(); // spoken over a running reply
   callBusy = true;
   if (!headphoneMode()) stopListening();
   addUserMsg(text);
   try {
-    await askActive(text);
+    await askActive(text, bargeIn ? { interrupt: true } : undefined);
   } finally {
     callBusy = false;
     // A short gap before reopening the microphone: without it the tail of the
@@ -4388,6 +4496,8 @@ els.edgeBtn.onclick = () => {
   sendTypedMessage();
 };
 els.liveAmbience.checked = localStorage.getItem('companion_ambience') === 'true';
+els.liveSfx.checked = sfxEnabled();
+els.liveSfx.onchange = () => { safeSet('companion_sfx', els.liveSfx.checked ? 'true' : 'false'); if (els.liveSfx.checked) amb.blocked = false; };
 els.ambVol.value = localStorage.getItem('companion_ambVol') || '25';
 els.liveAmbience.onchange = () => {
   safeSet('companion_ambience', els.liveAmbience.checked ? 'true' : 'false');
@@ -4413,6 +4523,66 @@ els.liveArousal.onchange = () => {
 els.liveEdging.onchange = () => { safeSet('companion_edging', els.liveEdging.checked ? 'true' : 'false'); updateArousalUI(); };
 els.liveEdgeGoal.onchange = () => { safeSet('companion_edgeGoal', els.liveEdgeGoal.value); updateArousalUI(); };
 // updateArousalUI() erst im Start-Timeout: die Zustandsvariablen stehen weiter unten.
+let padWakeLock = null;
+let padPulseTimer = null;
+function padPlaceDot() {
+  const r = els.padArea.getBoundingClientRect();
+  els.padDot.style.left = (motionWish.stroke * r.width) + 'px';
+  els.padDot.style.top = ((1 - motionWish.speed) * r.height) + 'px';
+  els.padDot.style.opacity = motionWish.active ? '0.9' : '0.45';
+}
+function padUpdatePulse() {
+  const st = device1.getState && device1.getState();
+  const bpm = st && st.texture !== 'stop' ? (st.bpm || 0) : 0;
+  els.padDot.style.animation = bpm > 0 ? `padPulse ${(60 / bpm).toFixed(2)}s ease-in-out infinite` : 'none';
+  const w = wishWords();
+  els.padInfo.textContent = motionWish.active ? `Wunsch: ${w.sp}, ${w.st}` : 'Punkt ziehen, um Tempo und Hub zu wünschen';
+}
+async function openPad() {
+  els.padOverlay.style.display = '';
+  padPlaceDot();
+  padUpdatePulse();
+  clearInterval(padPulseTimer);
+  padPulseTimer = setInterval(padUpdatePulse, 1000);
+  // Bildschirm wach halten, solange die Fläche offen ist.
+  try { if (navigator.wakeLock) padWakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+function closePad() {
+  els.padOverlay.style.display = 'none';
+  clearInterval(padPulseTimer);
+  try { if (padWakeLock) padWakeLock.release(); } catch (e) {}
+  padWakeLock = null;
+}
+function padPointer(e) {
+  const r = els.padArea.getBoundingClientRect();
+  setWishFromPad((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  padPlaceDot();
+  padUpdatePulse();
+}
+let padDragging = false;
+els.padArea.addEventListener('pointerdown', e => { padDragging = true; try { els.padArea.setPointerCapture(e.pointerId); } catch (x) {} padPointer(e); });
+els.padArea.addEventListener('pointermove', e => { if (padDragging) padPointer(e); });
+els.padArea.addEventListener('pointerup', () => {
+  padDragging = false;
+  const w = wishWords();
+  logEvent('msg', { role: 'system', text: `Wunsch per Steuerfläche: ${w.sp}, ${w.st}.` });
+});
+// Doppeltipp auf den Punkt: Wunsch aufheben, die Figur bestimmt wieder allein.
+els.padDot.addEventListener('dblclick', () => {
+  motionWish.active = false; motionWish.rampStart = 0;
+  logEvent('msg', { role: 'system', text: 'Steuerfläche zurückgesetzt.' });
+  padPlaceDot(); padUpdatePulse();
+});
+els.padBtn.onclick = openPad;
+els.padClose.onclick = closePad;
+els.padStop.onclick = () => els.stopBtn.click();
+els.padEdge.onclick = () => els.edgeBtn.click();
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && els.padOverlay.style.display !== 'none' && navigator.wakeLock) {
+    try { padWakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+});
+
 els.readyBtn.onclick = () => {
   els.readyRow.style.display = 'none';
   forceReadyNext = true;
@@ -5417,8 +5587,26 @@ function liveShape() { return LIVE_SHAPE[replyLengthKey()] || LIVE_SHAPE.mittel;
 // Antwort dort - alles danach reagiert auf etwas, das ich nie gesagt habe.
 // (2) Hält es sich nicht an den Umfang, wird an einer Zeilen- bzw. Satzgrenze
 // gekürzt. Marker und Audio-Tags zählen nicht als Wörter.
+// Kleine Modelle mischen gelegentlich kyrillische oder asiatische Wörter in
+// deutsche Sätze ("so gut выглядите", "uns妬"). Die Stimme würde sie
+// vorlesen - sie fliegen raus. Ebenso Zeilen, die nur aus einer Zahl bestehen
+// ("3"); deren Bewegungsmarker bleiben erhalten.
+const FOREIGN_SCRIPT = /[\u0400-\u04FF\u0590-\u06FF\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]+/g;
+function scrubReply(text) {
+  let foreign = 0, bare = 0;
+  const lines = String(text || '').split(/\n/).map(l => {
+    const cleaned = l.replace(FOREIGN_SCRIPT, () => { foreign++; return ''; }).replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1');
+    const core = cleaned.replace(/<<[^>]*>>/g, '').replace(/\[[^\]]*\]/g, '').replace(/^[^:\n]{1,24}:/, '').trim();
+    if (core && !/\p{L}/u.test(core)) { bare++; return (cleaned.match(/<<[^>]*>>/g) || []).join(' '); }
+    return cleaned;
+  });
+  if (foreign || bare) logEvent('msg', { role: 'system', text: `Antwort bereinigt: ${foreign ? foreign + ' fremdsprachige Stelle(n)' : ''}${foreign && bare ? ', ' : ''}${bare ? bare + ' Zeile(n) ohne Wörter' : ''}.` });
+  return lines.join('\n');
+}
+
 function tidyReply(text, maxWords) {
   const meName = (characters.find(c => c.isUser) || {}).name;
+  text = scrubReply(text);
   const lines = String(text || '').split(/\n+/).filter(l => l.trim());
   const out = [];
   let words = 0, cut = '';
@@ -5605,8 +5793,133 @@ function updateAmbience() {
     setAmbience(key);
   }
 }
+// ---------- Geräusche zur Handlung ----------
+// Kurze Einzelgeräusche, ausgelöst von Stichworten im Text der Figur und genau
+// in dem Abschnitt abgespielt, der sie enthält. Pro Geräusch gibt es eine
+// Sperrzeit und insgesamt höchstens eines alle 20 Sekunden - sonst wird es
+// zur Geräuschkulisse aus lauter Effekten.
+const SFX_EVENTS = [
+  { key: 'knock',   label: 'Klopfen',          re: /\b(klopf\w*|pocht\w* an)\b/,                                   prompt: 'Two firm knocks on a wooden door', dur: 2 },
+  { key: 'door',    label: 'Tür',              re: /\b(tür|türe)\b.{0,30}\b(öffne\w*|auf|zu|schließ\w*|fällt ins schloss)\b/, prompt: 'A wooden door opening slowly with a soft creak, then closing', dur: 3 },
+  { key: 'clothes', label: 'Kleidung',         re: /\b(auszieh\w*|zieh\w* .{0,25}\baus\b|reißverschluss|streif\w* .{0,25}(stoff|kleid|hemd|bluse|hose|slip|bh)|knöpf\w* .{0,15}auf)\b/, prompt: 'Clothes rustling and a zipper being pulled down slowly', dur: 3 },
+  { key: 'glass',   label: 'Gläser',           re: /(anstoß\w*|stoß\w* .{0,25}\ban\b|gläser\w*|\bglas\b|\bprost\b|schenk\w* .{0,15}\bein\b|einschenk\w*)/,          prompt: 'Two wine glasses clinking together, then wine being poured', dur: 3 },
+  { key: 'bed',     label: 'Bett',             re: /\b(bett|matratze|laken)\b/,                                       prompt: 'An old wooden bed creaking rhythmically, mattress springs', dur: 4 },
+  { key: 'slap',    label: 'Klaps',            re: /\b(klaps|klatsch\w*|haut auf den|auf (den|deinen|meinen) (po|hintern))\b/, prompt: 'A single sharp playful slap on bare skin', dur: 1.5 },
+  { key: 'skin',    label: 'Körper',           re: /\b(stöß\w*|stoß\w*|reite\w*|haut an haut|rammt?\w*)\b/,          prompt: 'Rhythmic soft skin-on-skin slapping sounds, bodies moving together', dur: 4 },
+  { key: 'wet',     label: 'Nasse Geräusche',  re: /\b(schmatz\w*|glitsch\w*|nass\w*|feucht\w*|gleitgel)\b|(^|\s)öl\b/,       prompt: 'Soft wet squelching sounds, slow and rhythmic', dur: 3 },
+  { key: 'sheets',  label: 'Decke',            re: /\b(decke|bettdecke|kissen)\b/,                                    prompt: 'Bed sheets and a duvet rustling softly', dur: 2.5 },
+];
+const SFX_COOLDOWN_MS = 60000;
+const SFX_GLOBAL_GAP_MS = 20000;
+const sfxLastPlayed = {};
+let sfxLastAny = 0;
+const sfxUrls = new Map();
+function sfxEnabled() { return localStorage.getItem('companion_sfx') === 'true'; }
+async function sfxUrl(ev) {
+  if (sfxUrls.has(ev.key)) return sfxUrls.get(ev.key);
+  const dbKey = 'sfx_v1_' + ev.key;
+  let blob = null;
+  try { blob = await dbGet(STORE_AUDIO, dbKey); } catch (e) {}
+  if (!blob) {
+    if (amb.blocked) return null;
+    const apiKey = apiKeyFor('companion_elevenKey');
+    if (!apiKey) return null;
+    const res = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
+      method: 'POST', headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: ev.prompt, duration_seconds: ev.dur, prompt_influence: 0.5 }),
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) amb.blocked = true;
+      logEvent('msg', { role: 'system', text: 'Geräusch „' + ev.label + '": ElevenLabs-Fehler ' + res.status });
+      return null;
+    }
+    blob = await res.blob();
+    dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+    logEvent('msg', { role: 'system', text: 'Geräusch erzeugt: ' + ev.label });
+  }
+  const url = URL.createObjectURL(blob);
+  sfxUrls.set(ev.key, url);
+  return url;
+}
+// Plant höchstens ein Geräusch pro Antwort: das erste passende Stichwort, dessen
+// Sperrzeit abgelaufen ist. Gibt { [Abschnitt]: Ereignis } zurück und lädt das
+// Geräusch schon vorab, damit es rechtzeitig bereit ist.
+function planSfx(pieces) {
+  const plan = {};
+  if (!sfxEnabled() || isMuted) return plan;
+  if (introPhase(sceneStep) || readyHoldActive()) return plan;
+  const now = Date.now();
+  if (now - sfxLastAny < SFX_GLOBAL_GAP_MS) return plan;
+  for (let i = 0; i < pieces.length; i++) {
+    const t = String(pieces[i].text || '').toLowerCase();
+    const ev = SFX_EVENTS.find(e => e.re.test(t) && now - (sfxLastPlayed[e.key] || 0) > SFX_COOLDOWN_MS);
+    if (ev) {
+      plan[i] = ev;
+      sfxUrl(ev).catch(() => null);
+      break;
+    }
+  }
+  return plan;
+}
+async function playSfx(ev, generation) {
+  const url = await sfxUrl(ev).catch(() => null);
+  if (!url || isMuted || playbackGeneration !== generation) return;
+  sfxLastPlayed[ev.key] = sfxLastAny = Date.now();
+  logEvent('msg', { role: 'system', text: 'Geräusch: ' + ev.label });
+  const a = new Audio(url);
+  a.volume = Math.min(1, ambVolume() * 2.2);
+  a.play().catch(() => {});
+}
+
 function updateAmbienceUI() {
   if (els.ambNow) els.ambNow.textContent = amb.key ? 'jetzt: ' + AMBIENCES[amb.key].label : '-';
+}
+
+// ---------- Augen zu: Steuerfläche ----------
+// Ein Punkt auf dunklem Bildschirm: oben/unten = Tempo, links/rechts = Hublänge.
+// Der Wunsch wirkt nicht sofort, sondern ab der nächsten Antwort und dann
+// allmählich: Die Figur leitet die Handlung dorthin, und die App schiebt die
+// Bewegung über etwa 20 Sekunden schrittweise zum Wunsch (höchstens 70 %).
+const motionWish = { active: false, speed: 0.5, stroke: 0.5, since: 0, rampStart: 0 };
+const WISH_BPM_MIN = 15, WISH_BPM_MAX = 180;
+function wishBpm() { return Math.round(WISH_BPM_MIN + motionWish.speed * (WISH_BPM_MAX - WISH_BPM_MIN)); }
+function wishStrokeLen() { return Math.round(150 + motionWish.stroke * 849); }
+function wishWords() {
+  const sp = motionWish.speed < 0.25 ? 'sehr langsam' : motionWish.speed < 0.5 ? 'langsam' : motionWish.speed < 0.75 ? 'zügig' : 'schnell und heftig';
+  const st = motionWish.stroke < 0.33 ? 'kurze Bewegungen' : motionWish.stroke < 0.66 ? 'mittlere Bewegungen' : 'lange, volle Bewegungen';
+  return { sp, st };
+}
+function wishFactor() {
+  if (!motionWish.active || !motionWish.rampStart) return 0;
+  return Math.min(0.7, Math.max(0, (Date.now() - motionWish.rampStart) / 20000) * 0.7 + 0.15);
+}
+// Im Gerät angewendet (vor dem Hinhalte-Deckel, der Vorrang hat).
+function wishRequest(req) {
+  const f = wishFactor();
+  if (!f || !req) return req;
+  const tex = req.texture || 'smooth';
+  if (tex === 'stop' || tex === 'hold') return req;
+  const bpm = (req.bpm || 0) + (wishBpm() - (req.bpm || 0)) * f;
+  const lo = req.low ?? 350, hi = req.high ?? 650;
+  const len = (hi - lo) + (wishStrokeLen() - (hi - lo)) * f;
+  const mid = Math.max(len / 2, Math.min(999 - len / 2, (lo + hi) / 2));
+  return Object.assign({}, req, { bpm: Math.round(bpm), low: Math.round(mid - len / 2), high: Math.round(mid + len / 2) });
+}
+function wishBlock() {
+  if (!motionWish.active) return '';
+  const w = wishWords();
+  return `\n\nMEIN WUNSCH ZUM TEMPO (live von mir gemeldet): ${w.sp}, ${w.st}. Leite die Handlung in dieser Antwort behutsam dorthin - nicht schlagartig, sondern so, dass es sich natürlich ergibt, und dein Sprechen passt sich dem Tempo an. Nenne keine Zahlen und erwähne keinen Regler.`;
+}
+// Beginnt die nächste Antwort zu sprechen, startet die allmähliche Anpassung.
+function wishOnReplyStart() {
+  if (motionWish.active && motionWish.since > motionWish.rampStart) motionWish.rampStart = Date.now();
+}
+function setWishFromPad(x, y) {
+  motionWish.stroke = Math.max(0, Math.min(1, x));
+  motionWish.speed = Math.max(0, Math.min(1, 1 - y));
+  if (!motionWish.active) logEvent('msg', { role: 'system', text: 'Steuerfläche aktiv.' });
+  motionWish.active = true;
+  motionWish.since = Date.now();
 }
 
 // ---------- Nähe-Regler und Hinhalten ----------
@@ -6521,10 +6834,16 @@ async function runAutoLoop() {
   while (autoPlaying) {
     autoStepCount += 1;
     const prompt = AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)];
-    const ok = await askActive(prompt, { silent: true, autoStep: autoStepCount });
-    if (!ok) break; // stop the loop on error instead of spamming failed requests
+    // Die nächste Fortsetzung startet, sobald der letzte Abschnitt der
+    // laufenden zu sprechen beginnt - sie entsteht im Hintergrund und folgt
+    // ohne lange Pause. Vorher wurde erst nach dem letzten Wort angefragt.
+    let nearResolve;
+    const near = new Promise(r => { nearResolve = r; });
+    const run = askActive(prompt, { silent: true, autoStep: autoStepCount, onNearEnd: nearResolve });
+    const outcome = await Promise.race([near.then(() => 'near'), run.then(ok => (ok ? 'done' : 'fail'))]);
+    if (outcome === 'fail') break; // stop the loop on error instead of spamming failed requests
     if (!autoPlaying) break;
-    await new Promise(r => setTimeout(r, 800)); // brief pause between lines
+    if (outcome === 'done') await new Promise(r => setTimeout(r, 300));
   }
   autoPlaying = false;
   setAutoStatus(false);
@@ -9763,7 +10082,10 @@ async function rememberConversation() {
     });
 
     if (els.sharedProfile) els.sharedProfile.value = globalProfile();
-    logEvent('msg', { role: 'system', text: 'Gedächtnis: ' + JSON.stringify({ profil: profile, figuren: byName }).slice(0, 1500) });
+    // Eine Zeile statt des ganzen Gedächtnisses - das stand sonst bei jedem
+    // "Erinnern" komplett im Protokoll.
+    const profileLines = profile ? profile.split(/\n/).filter(l => l.trim()).length : 0;
+    logEvent('msg', { role: 'system', text: `Gedächtnis aktualisiert: Profil ${profileLines} Punkte; Figuren: ${Object.keys(byName).join(', ') || 'keine'}.` });
     addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
       + (profile ? (meNow ? ` Das Wissen über dich als ${meNow.name} ist aktualisiert.` : ' Das gemeinsame Wissen über dich ist aktualisiert.') : ''));
   } catch (err) {
@@ -10026,7 +10348,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -10150,11 +10472,26 @@ async function askEnsemble(userText, options) {
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
 
-  // Sending again while a reply is still being fetched or spoken used to start
-  // a second, independent answer - and both then talked at once. The newer
-  // message wins: the older reply is cut off rather than layered underneath.
-  interruptPlayback();
-  const generation = playbackGeneration;
+  // Früher schnitt jede neue Nachricht die laufende Antwort ab. Jetzt spricht
+  // die Figur zu Ende; die neue Antwort entsteht währenddessen und folgt direkt.
+  // Nur ein ausdrücklicher Abbruch (options.interrupt, etwa Dazwischenreden mit
+  // Kopfhörern) schneidet ab.
+  const queueMode = !(options && options.interrupt) && activeReplies > 0;
+  if (!queueMode) interruptPlayback();
+  const myEpoch = chainEpoch;
+  let generation = playbackGeneration;
+  const prevPlayback = playbackChain;
+  let releaseChain = () => {};
+  playbackChain = new Promise(r => { releaseChain = r; });
+  activeReplies += 1;
+  // Für den Selbstlauf: meldet, wenn der letzte Abschnitt zu sprechen beginnt -
+  // dann wird die nächste Fortsetzung schon im Hintergrund erzeugt.
+  const nearEnd = () => {
+    if (options && typeof options.onNearEnd === 'function') {
+      const f = options.onNearEnd; options.onNearEnd = null;
+      try { f(); } catch (e) {}
+    }
+  };
   arousalFromText(userText);
   const introNow = introPhase(sceneStep);
   // Bereitmachen: erst nach dem Kennenlernen, nur wenn die Figuren vom Gerät
@@ -10164,8 +10501,18 @@ async function askEnsemble(userText, options) {
   if (!introNow && readyGate !== 'ready') {
     // Nicht mehr an ein verbundenes Gerät geknüpft: Sonst lief die Bewegung ohne
     // Gerät gleich nach dem Kennenlernen los, mitten im Spaziergang.
-    if (!readyCheckEnabled() || !deviceAware() || unattended) {
-      if (unattended && readyGate === 'asking') readyGate = 'ready';
+    if (!readyCheckEnabled() || !deviceAware()) {
+      // Bereitmachen aus - nichts zu tun.
+    } else if (unattended) {
+      // Selbstlauf gibt die Bewegung nie frei: Vorher lief das Gerät los, ohne
+      // dass ich je "bereit" gesagt hatte. Die Figur fragt (bzw. wartet), und
+      // der Selbstlauf hält nach dieser Antwort an, bis ich antworte.
+      readyGate = 'asking';
+      if (typeof autoPlaying !== 'undefined' && autoPlaying) {
+        autoPlaying = false;
+        setAutoStatus(false);
+        addMsg('system', 'Selbstlauf angehalten - die Figur wartet auf dein „bereit".');
+      }
     } else if (readyGate === 'asking' && (forceReadyNext || saysReady(userText))) {
       readyGate = 'ready';
       readyJustConfirmed = true;
@@ -10190,7 +10537,7 @@ async function askEnsemble(userText, options) {
   if (history.length > 24) history = history.slice(-24);
 
   setThinking('Antwort wird geschrieben');
-  if (!(options && options.silent)) startFillers(generation);
+  if (!(options && options.silent) && !queueMode) startFillers(generation);
   try {
     let replyText = await generateWithoutRepeat(
       provider,
@@ -10200,18 +10547,29 @@ async function askEnsemble(userText, options) {
     );
     // Superseded while the model was thinking: drop this answer entirely rather
     // than adding it to a conversation that has already moved on.
-    if (playbackGeneration !== generation) { setThinking(''); return false; }
+    if (chainEpoch !== myEpoch) { setThinking(''); return false; }
     setThinking('');
 
-    history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
-    try { updateAmbience(); } catch (e) {}
-    sceneStep += 1;
-
+    // Erst kürzen, dann in den Verlauf: Vorher landeten die erfundenen Zeilen
+    // für mich im Verlauf, und das Modell lernte daraus, sie weiter zu schreiben.
     {
       const tidy = tidyReply(replyText, (options && (options.autoStep || options.image)) ? 0 : liveShape().words);
       if (tidy.cut) logEvent('msg', { role: 'system', text: `Antwort gekürzt (${tidy.cut}): ${replyText.length} → ${tidy.text.length} Zeichen.` });
       replyText = tidy.text;
     }
+    history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
+    sceneStep += 1;
+
+    // Warten, bis die vorige Antwort zu Ende gesprochen ist - dann übernehmen.
+    if (queueMode) {
+      logEvent('msg', { role: 'system', text: 'Nächste Antwort fertig - wartet, bis die Figur ausgesprochen hat.' });
+      await prevPlayback;
+      if (chainEpoch !== myEpoch) return false;
+      playbackGeneration += 1;
+      generation = playbackGeneration;
+    }
+    try { updateAmbience(); } catch (e) {}
+
     const lines = parseEnsembleText(replyText);
     lines.forEach(pc => {
       if (isTagOnly(pc.text)) return;
@@ -10226,6 +10584,7 @@ async function askEnsemble(userText, options) {
     const anyV3 = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
       && lines.some(l => resolveVoice(l.role).emotional);
     const pieces = splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90);
+    const sfxPlan = planSfx(pieces);
     const replyShownAt = Date.now();
 
     const hasDevice2 = (localStorage.getItem('companion_device2Desc') || '').trim().length > 0;
@@ -10233,7 +10592,7 @@ async function askEnsemble(userText, options) {
       try {
         const raw = await callProvider(
           provider,
-          buildMotionPromptForDevice(pieces, deviceNum) + arousalBlock(),
+          buildMotionPromptForDevice(pieces, deviceNum) + arousalBlock() + wishBlock(),
           [{ role: 'user', content: 'Gib die Bewegungsdaten für die oben angegebenen Textabschnitte zurück.' }],
           0.3,
           // Short JSON, but a reasoning model still thinks first - and an empty
@@ -10312,6 +10671,8 @@ async function askEnsemble(userText, options) {
     prep(0); prep(1);
     for (let i = 0; i < pieces.length; i++) {
       if (playbackGeneration !== generation) break; // user pressed stop
+      if (i === pieces.length - 1) nearEnd();
+      if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
       if (!autoPlaying && silent) break;
       playIndex = i;
       const current = prep(i);
@@ -10324,7 +10685,7 @@ async function askEnsemble(userText, options) {
       const piece = pieces[i];
       let ctl = null;
       const firstOne = i === 0;
-      if (firstOne) await settleFillers();
+      if (firstOne) { await settleFillers(); wishOnReplyStart(); }
       await current.play((timeline) => {
         if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte).` });
         if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
@@ -10339,7 +10700,10 @@ async function askEnsemble(userText, options) {
     return false;
   } finally {
     stopFillers(false);
-    setThinking('');
+    if (activeReplies <= 1) setThinking('');
+    activeReplies = Math.max(0, activeReplies - 1);
+    releaseChain();
+    nearEnd();
   }
 }
 
@@ -10566,6 +10930,7 @@ els.navNewChat.onclick = () => {
   updateReadyButton();
   resetArousal();
   setAmbience(null);
+  motionWish.active = false; motionWish.rampStart = 0;
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
