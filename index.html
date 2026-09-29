@@ -2502,8 +2502,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.29';
+const APP_VERSION = '1.30';
 const CHANGELOG = [
+  { v: '1.30', date: '2026-09-29', items: [
+    'Behoben: Nach „Kurz davor" blieb das Gerät gebremst, bis der Nähe-Regler unter 70 ging - in der dunklen Ansicht ist der nicht zu sehen, und die Steuerfläche wirkte minutenlang nicht. Jetzt löst sich die Bremse nach 25 Sekunden von selbst, sofort beim Ziehen auf der Steuerfläche oder wenn du sagst „lass mich kommen".',
+    'Steuerfläche: Nach dem Loslassen des Punkts wird die laufende Bewegung gleich neu bewertet, nicht erst beim nächsten Bewegungswechsel.',
+  ]},
   { v: '1.29', date: '2026-09-29', items: [
     'Erzähler und Bewegung im Gleichklang: Beschreibt der Erzähler, was gerade mit dem Gerät passiert, startet die Bewegung jetzt mit seiner Beschreibung - nicht erst, wenn die Figur danach wieder spricht.',
   ]},
@@ -3913,6 +3917,8 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   }
 
   function applyState(req, instant) {
+    // Den ungedeckelten Wunsch merken - nach dem Hinhalten wird er wiederhergestellt.
+    if (req && req.texture !== 'stop') state.lastRawReq = Object.assign({}, req);
     req = edgeCapRequest(wishRequest(req, getSettings()));
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
@@ -4076,7 +4082,10 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     m.timer = setTimeout(tick, Math.max(stepMs, actualMs));
   }
 
-  return { setMotion, runSequence, isConnected: isOpen, getState: () => state.motion.requested };
+  // Nach dem Hinhalten oder einer Änderung auf der Steuerfläche die letzte
+  // eigentliche Bewegung erneut anwenden (jetzt ohne Deckel bzw. mit neuem Wunsch).
+  function reapply() { if (state.lastRawReq) setMotion(state.lastRawReq); }
+  return { setMotion, runSequence, reapply, isConnected: isOpen, getState: () => state.motion.requested };
 }
 
 const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, els.motionTrackFill, 'Gerät 1', 'd1');
@@ -4574,10 +4583,13 @@ function padPointer(e) {
   padUpdatePulse();
 }
 let padDragging = false;
+let padReapplyTimer = null;
 els.padArea.addEventListener('pointerdown', e => { padDragging = true; try { els.padArea.setPointerCapture(e.pointerId); } catch (x) {} padPointer(e); });
 els.padArea.addEventListener('pointermove', e => { if (padDragging) padPointer(e); });
 els.padArea.addEventListener('pointerup', () => {
   padDragging = false;
+  // Beim Loslassen die laufende Bewegung sofort neu bewerten (mit neuem Wunsch).
+  if (motionWish.rampStart) { clearTimeout(padReapplyTimer); padReapplyTimer = setTimeout(() => [device1, device2].forEach(d => { try { d.reapply(); } catch (e) {} }), 50); }
   const w = wishWords();
   logEvent('msg', { role: 'system', text: `Wunsch per Steuerfläche: ${w.sp}, ${w.st}.` });
 });
@@ -5935,6 +5947,8 @@ function wishOnReplyStart() {
   if (motionWish.active && motionWish.since > motionWish.rampStart) motionWish.rampStart = Date.now();
 }
 function setWishFromPad(x, y) {
+  // Wer auf der Fläche nach mehr verlangt, hat die Kante hinter sich.
+  if (typeof edgeCapActive === 'function' && edgeCapActive()) endEdge('Steuerfläche');
   motionWish.stroke = Math.max(0, Math.min(1, x));
   motionWish.speed = Math.max(0, Math.min(1, 1 - y));
   if (!motionWish.active) logEvent('msg', { role: 'system', text: 'Steuerfläche aktiv.' });
@@ -5949,6 +5963,13 @@ function setWishFromPad(x, y) {
 const AROUSAL_DANGER = 85;   // ab hier "kurz davor"
 const AROUSAL_SAFE = 70;     // darunter ist die Kante überstanden
 const EDGE_CAP_BPM = 18;
+// Das Bremsen hält höchstens so lange - danach gilt die Kante als überstanden.
+// Vorher blieb es gebremst, bis der Regler unter 70 ging; in der dunklen
+// Ansicht ist der Regler aber nicht zu sehen, und das Gerät lief minutenlang
+// mit 18 Hüben pro Minute, egal was Figur oder Steuerfläche wollten.
+const EDGE_HOLD_MS = 25000;
+let edgeReleaseTimer = null;
+let releaseForced = false;
 let arousal = 0;
 let arousalPeak = 0;
 let arousalHistory = [];     // { t, v }
@@ -5961,7 +5982,16 @@ function edgeGoal() {
   return Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : 3;
 }
 // Nach der eingestellten Zahl Kanten ist das nächste Mal das erlaubte.
-function releaseAllowed() { return edgeCount > edgeGoal(); }
+function releaseAllowed() { return releaseForced || edgeCount > edgeGoal(); }
+function endEdge(reason) {
+  if (!inDanger) return;
+  inDanger = false;
+  clearTimeout(edgeReleaseTimer);
+  if (arousal >= AROUSAL_SAFE) { arousal = AROUSAL_SAFE - 5; }
+  logEvent('msg', { role: 'system', text: 'Kante überstanden (' + reason + ') - Bremse gelöst.' });
+  updateArousalUI();
+  [device1, device2].forEach(d => { try { d.reapply(); } catch (e) {} });
+}
 function edgeCapActive() { return edgingEnabled() && inDanger && !releaseAllowed(); }
 // Wird in applyState jedes Geräts angewendet - also auch auf Folgen und Marker.
 function edgeCapRequest(req) {
@@ -6000,10 +6030,13 @@ function setArousal(v, source, quiet) {
     logEvent('msg', { role: 'system', text: releaseAllowed()
       ? `Kurz davor (${edgeCount}. Mal) - jetzt erlaubt.`
       : `Kurz davor (${edgeCount}. Mal)${edgingEnabled() ? ' - Gerät gebremst.' : ''}` });
-    if (edgeCapActive()) applyEdgeCapNow();
+    if (edgeCapActive()) {
+      applyEdgeCapNow();
+      clearTimeout(edgeReleaseTimer);
+      edgeReleaseTimer = setTimeout(() => endEdge('nach ' + Math.round(EDGE_HOLD_MS / 1000) + ' s automatisch'), EDGE_HOLD_MS);
+    }
   } else if (inDanger && v < AROUSAL_SAFE) {
-    inDanger = false;
-    logEvent('msg', { role: 'system', text: 'Kante überstanden.' });
+    endEdge('Regler');
   }
   updateArousalUI();
 }
@@ -6018,6 +6051,8 @@ function updateArousalUI() {
     : String(arousal);
 }
 function resetArousal() {
+  clearTimeout(edgeReleaseTimer);
+  releaseForced = false;
   arousal = 0; arousalPeak = 0; arousalHistory = []; edgeCount = 0; inDanger = false;
   updateArousalUI();
 }
@@ -6025,6 +6060,13 @@ function resetArousal() {
 function arousalFromText(text) {
   if (!arousalEnabled()) return;
   const t = String(text || '').toLowerCase();
+  // Ausdrücklich darum gebeten: dann ist das Hinhalten vorbei.
+  if (/lass mich (jetzt )?kommen|ich will (jetzt )?kommen|darf ich (jetzt )?kommen|bring mich zum (kommen|höhepunkt)|mach mich fertig/.test(t)) {
+    if (!releaseForced) logEvent('msg', { role: 'system', text: 'Kommen erlaubt (ausdrücklich gewünscht).' });
+    releaseForced = true;
+    endEdge('Wunsch zu kommen');
+    updateArousalUI();
+  }
   if (/\b(ich komme|ich komm)\b(?! gleich)/.test(t) && !/gleich|fast|kurz/.test(t)) setArousal(100, 'gesagt');
   else if (/kurz davor|gleich komm|komm gleich|fast so ?weit|bin fast|nicht mehr lange/.test(t)) setArousal(Math.max(arousal, 90), 'gesagt');
 }
