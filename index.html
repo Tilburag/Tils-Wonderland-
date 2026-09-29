@@ -2502,8 +2502,19 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.26';
+const APP_VERSION = '1.29';
 const CHANGELOG = [
+  { v: '1.29', date: '2026-09-29', items: [
+    'Erzähler und Bewegung im Gleichklang: Beschreibt der Erzähler, was gerade mit dem Gerät passiert, startet die Bewegung jetzt mit seiner Beschreibung - nicht erst, wenn die Figur danach wieder spricht.',
+  ]},
+  { v: '1.28', date: '2026-09-29', items: [
+    'Steuerfläche (🌙): Lange Bewegungen bleiben jetzt innerhalb der eingestellten Gerätegrenzen, statt am Rand abgeschnitten zu werden - „lang" nutzt den ganzen erlaubten Weg.',
+  ]},
+  { v: '1.27', date: '2026-09-29', items: [
+    'Behoben: „Stopp" beendet jetzt auch den Selbstlauf („▶ Geschichte") - vorher sprach die Figur nach dem Stopp einfach weiter.',
+    'Behoben: Zeilen mit Regieanweisungen wie „[schmatzt] … [saugt gierig]" wurden für technische Daten gehalten und komplett verworfen. Ins Gesprochene gerutschte Bewegungsschritte („zu 100 in 1s | halten 2s") werden jetzt herausgeschnitten, der Rest der Zeile bleibt.',
+    'Geräuschkulisse: Kaminfeuer wird jetzt auch bei „Feuer an", „knistern" oder „Ofen" erkannt.',
+  ]},
   { v: '1.26', date: '2026-09-28', items: [
     '🌙 Augen zu: Ein Tipp auf den Mond neben dem Eingabefeld macht den Bildschirm schwarz. Ein Punkt pulsiert im Takt der Bewegung; ziehst du ihn, wünschst du dir ein Tempo (oben schneller, unten langsamer) und eine Hublänge (links kurz, rechts lang). Der Wunsch wirkt ab der nächsten Antwort und allmählich - die Figur leitet die Handlung dorthin. Doppeltipp auf den Punkt hebt den Wunsch auf. Stopp und „Kurz davor" sind unten erreichbar, der Bildschirm bleibt an.',
   ]},
@@ -3902,7 +3913,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   }
 
   function applyState(req, instant) {
-    req = edgeCapRequest(wishRequest(req));
+    req = edgeCapRequest(wishRequest(req, getSettings()));
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
     const span = Math.max(1, maxPos - minPos);
@@ -4072,6 +4083,9 @@ const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, el
 const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2, els.motionTrackFill2, 'Gerät 2', 'd2');
 
 els.stopBtn.onclick = () => {
+  // Stopp beendet auch den Selbstlauf - vorher erzeugte er nach dem Stopp
+  // einfach die nächste Fortsetzung.
+  if (typeof autoPlaying !== 'undefined' && autoPlaying) { autoPlaying = false; setAutoStatus(false); }
   chainEpoch += 1;
   if (typeof abortAllRequests === 'function') abortAllRequests();
   playbackGeneration += 1;
@@ -5677,7 +5691,7 @@ const AMBIENCES = {
   park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
   lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
   rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
-  fire:   { label: 'Kaminfeuer',   re: /\b(kamin|kaminfeuer|lagerfeuer)\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
+  fire:   { label: 'Kaminfeuer',   re: /\b(kamin\w*|lagerfeuer|knister\w*|ofen|feuer (?:an|brennt|prasselt|lodert))\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
   shower: { label: 'Dusche / Bad', re: /\b(dusche|duschen|badewanne|whirlpool)\b/g, prompt: 'Warm shower running steadily in a tiled bathroom' },
   city:   { label: 'Stadt',        re: /\b(straße|hinterhof|balkon|dachterrasse)\b/g, prompt: 'Distant city at night, faint traffic hum, calm' },
   room:   { label: 'Zimmer',       re: /\b(schlafzimmer|bett|hotelzimmer|zimmer|wohnung|sofa|couch)\b/g, prompt: 'Quiet intimate bedroom at night, soft room tone, very faint distant city hum' },
@@ -5894,15 +5908,21 @@ function wishFactor() {
   return Math.min(0.7, Math.max(0, (Date.now() - motionWish.rampStart) / 20000) * 0.7 + 0.15);
 }
 // Im Gerät angewendet (vor dem Hinhalte-Deckel, der Vorrang hat).
-function wishRequest(req) {
+function wishRequest(req, limits) {
   const f = wishFactor();
   if (!f || !req) return req;
+  // Innerhalb der eingestellten Gerätegrenzen bleiben: Sonst schnitt das Gerät
+  // z. B. 604-996 bei 860 ab, und aus "lang" wurde doch wieder kurz.
+  const lo0 = limits && Number.isFinite(limits.minPos) ? limits.minPos : 0;
+  const hi0 = limits && Number.isFinite(limits.maxPos) ? limits.maxPos : 999;
+  const span = Math.max(50, hi0 - lo0);
   const tex = req.texture || 'smooth';
   if (tex === 'stop' || tex === 'hold') return req;
   const bpm = (req.bpm || 0) + (wishBpm() - (req.bpm || 0)) * f;
   const lo = req.low ?? 350, hi = req.high ?? 650;
-  const len = (hi - lo) + (wishStrokeLen() - (hi - lo)) * f;
-  const mid = Math.max(len / 2, Math.min(999 - len / 2, (lo + hi) / 2));
+  const wantLen = 150 + motionWish.stroke * (span - 150);
+  const len = Math.min(span, (hi - lo) + (wantLen - (hi - lo)) * f);
+  const mid = Math.max(lo0 + len / 2, Math.min(hi0 - len / 2, (lo + hi) / 2));
   return Object.assign({}, req, { bpm: Math.round(bpm), low: Math.round(mid - len / 2), high: Math.round(mid + len / 2) });
 }
 function wishBlock() {
@@ -9788,7 +9808,9 @@ function takeCues(text) {
 
 function looksTechnical(line) {
   const body = line.replace(/^[^:{\[\n]{1,24}:\s*/, '').trim();
-  if (/^[\[{][\s\S]*[\]}]$/.test(body)) return true;
+  // Nur echte Datenstrukturen - "[schmatzt] Text [saugt]" sind Regieanweisungen
+  // und wurden vorher samt Text verworfen.
+  if (/^[\[{][\s\S]*[\]}]$/.test(body) && /["':]/.test(body)) return true;
   if (/"(device_\d|position|speed|low|high|bpm|texture)"\s*:/.test(body)) return true;
   if (/^```/.test(body)) return true;
   return false;
@@ -9809,7 +9831,12 @@ function cleanDisplayText(text) {
   return String(text).replace(/[\uE000-\uF76F]/g, '').replace(/[ \t]{2,}/g, ' ').trim();
 }
 function stripMarkerDebris(line) {
-  return String(line).replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
+  return String(line)
+    // Bewegungsschritte, die ohne Klammern im Text gelandet sind:
+    // "zu 100 in 1s | halten 2s", "pendeln 300-600@40 smooth 3s", "300-700@15"
+    .replace(/\b(zu \d{1,3} in [\d.,]+ ?s|halten [\d.,]+ ?s|pendeln \d{1,3}-\d{1,3}@\d{1,3}(?: [a-z]+)?(?: [\d.,]+ ?s)?|\d{1,3}-\d{1,3}@\d{1,3}(?: (?:smooth|pulse|tremor|hold|stop|accel))?)\b/gi, ' ')
+    .replace(/\s\|\s/g, ' ')
+    .replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
 }
 
 function matchSpeakerName(raw, names) {
@@ -10176,6 +10203,9 @@ function exampleName() {
   return c ? c.name : 'Figur';
 }
 
+// Erzählzeilen, die eine Bewegung am Gerät beschreiben.
+const NARRATION_MOVES = /(stroker|hülse|gleit|\bhub|\bhüb|beweg|fährt|führt|schiebt|zieht|drückt|reibt|pumpt|rhythm|tempo|stöß|stoß|reitet|nimmt ihn|umschließt)/i;
+
 function inlineMotionBlock() {
   if (!inlineMotionEnabled()) return '';
   if (introPhase(sceneStep) || readyHoldActive()) return '';
@@ -10211,7 +10241,10 @@ Beispiel "einmal ganz hoch, oben zittern, dann in der Mitte verharren, kurz Paus
 Was das Gerät kann - nutze es aus: sehr langsame, lange Hübe genauso wie sehr schnelle, kurze (etwa 780-880@220); Fahrten von 0,2 bis 20 Sekunden; Zittern von ruhig (@0) bis so schnell es geht (@230). ${textures.includes('tremor') ? '' : '(Zittern ist in den Einstellungen abgeschaltet.) '}Sag im Text nur, was der Marker auch wirklich tut - "schneller" heißt höheres bpm, "kleiner" heißt low und high enger.
 
 ${device ? `Das Gerät: ${device.slice(0, 700)}\n` : ''}
+Beschreibt eine Erzählzeile (*…*), was die Hülse gerade tut, gehört der Marker in DIESE Zeile - an ihren Anfang oder vor die beschriebene Stelle - und nicht erst in die gesprochene Zeile danach. Sonst beginnt die Bewegung zu spät.
+
 Beispiele:
+- *<<zu 150 in 3s | 150-700@25 smooth>> Sie führt die Hülse langsam ganz nach unten und beginnt, gleichmäßig über ihn zu gleiten.*
 - ${exampleName()}: <<200-800@22 smooth>> Komm her.
 - ${exampleName()}: Ich fahre ganz langsam <<zu 60 in 3s>> hinunter bis zum Ansatz, <<halten 1s | zu 950 in 1,5s>> und wieder ganz hoch.
 - ${exampleName()}: Nur die Spitze jetzt <<760-940@120 smooth>> - so schnell, wie du es magst.
@@ -10584,6 +10617,21 @@ async function askEnsemble(userText, options) {
     const anyV3 = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
       && lines.some(l => resolveVoice(l.role).emotional);
     const pieces = splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90);
+    // Beschreibt der Erzähler die Bewegung, bevor die Figur spricht, der Marker
+    // steht aber erst in der gesprochenen Zeile danach, lief das Gerät erst an,
+    // als die Figur wieder sprach. Dann wird die erste Bewegung an den Anfang
+    // dieser Erzählzeile vorgezogen.
+    {
+      const k = pieces.findIndex(p => p.cues && p.cues.length);
+      if (k > 0) {
+        const j = pieces.findIndex((p, idx) => idx < k && p.role === 'narrator' && NARRATION_MOVES.test(p.text));
+        if (j >= 0) {
+          const first = pieces[k].cues.shift();
+          pieces[j].cues = [{ at: 0, cue: first.cue }].concat(pieces[j].cues || []);
+          logEvent('msg', { role: 'system', text: 'Bewegung an die Erzählzeile vorgezogen.' });
+        }
+      }
+    }
     const sfxPlan = planSfx(pieces);
     const replyShownAt = Date.now();
 
