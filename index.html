@@ -1072,6 +1072,30 @@
       </div>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveMusic" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Musik im Hintergrund</span>
+      </label>
+      <p class="hint">Eigens erzeugte Instrumentalmusik in drei Stimmungen - ruhig, sinnlich und treibend -, die der Intensität der Szene folgt und weich überblendet. Wird leiser, sobald jemand spricht. Jede Stimmung wird einmal bei ElevenLabs erzeugt und gespeichert; Musik kostet dort deutlich mehr als Geräusche.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:2px 0 0 0;">
+        <span style="font-size:13px;">Lautstärke</span>
+        <input type="range" id="musicVol" min="5" max="50" step="1" value="18" style="flex:1; margin:0;">
+        <span id="musicNow" style="font-size:12px; min-width:90px; text-align:right;">-</span>
+        <button class="btn-secondary" id="musicRedo" type="button" title="Aktuelles Stück neu erzeugen" style="width:auto; padding:2px 10px;">↻</button>
+      </div>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="padImages" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Szenenbilder in der Mond-Ansicht</span>
+      </label>
+      <p class="hint">Das jeweils neueste Szenenbild erscheint ganz schwach im Hintergrund der dunklen Ansicht und blendet beim nächsten weich über.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveSpatial" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Raumklang (mit Kopfhörern)</span>
+      </label>
+      <p class="hint">Jede Figur bekommt ihren Platz: die erste links, die zweite rechts, der Erzähler in der Mitte. Flüstert eine Figur, rückt sie nah an dein Ohr. Der Ort bestimmt den Hall - im Bad hallt es, draußen klingt es offen. Nur mit ElevenLabs-Stimmen. Die Geräuschkulisse wird immer leiser, solange jemand spricht.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveSfx" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Geräusche zur Handlung</span>
       </label>
@@ -1106,6 +1130,16 @@
         <span style="font-size:13.5px; color:var(--text);">Wartezeit mit Lauten füllen</span>
       </label>
       <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - passend zu dem, was gerade passiert (Gespräch, Küssen, Mund, Hand, Sex, Höhepunkt) und zur Intensität. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveBreath" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Atmen und Stöhnen im Takt</span>
+      </label>
+      <p class="hint">Bei schneller Bewegung atmen, keuchen und stöhnen die Figuren im Rhythmus der Hübe - in den Momenten, in denen gerade niemand spricht. Nur mit ElevenLabs.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveVibrate" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Handy vibriert im Takt</span>
+      </label>
+      <p class="hint">Das Handy pulsiert leise mit jeder Bewegung des Geräts - je schneller, desto kräftiger. Funktioniert unter Android in Chrome.</p>
       <details id="fillerPreview" style="margin-top:6px;">
         <summary style="cursor:pointer; font-size:13.5px;">Laute anhören und neu erzeugen</summary>
         <p class="hint">▶ spielt den Laut (erzeugt ihn beim ersten Mal). ↻ verwirft ihn und erzeugt eine neue Fassung - ElevenLabs klingt jedes Mal etwas anders.</p>
@@ -1282,6 +1316,8 @@
 </div>
 
 <div id="padOverlay" style="display:none; position:fixed; inset:0; z-index:2000; background:#000; touch-action:none; user-select:none; -webkit-user-select:none;">
+  <img id="padImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 3s; filter:brightness(0.6) blur(1px); pointer-events:none;">
+  <img id="padImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 3s; filter:brightness(0.6) blur(1px); pointer-events:none;">
   <div id="padArea" style="position:absolute; inset:calc(env(safe-area-inset-top, 0px) + 56px) 18px calc(env(safe-area-inset-bottom, 0px) + 86px) 18px; border:1px solid #111; border-radius:18px;">
     <span style="position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">schneller ↑</span>
     <span style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">↓ langsamer</span>
@@ -1466,6 +1502,14 @@ const els = {
   liveArousal: document.getElementById('liveArousal'),
   liveAmbience: document.getElementById('liveAmbience'),
   liveSfx: document.getElementById('liveSfx'),
+  liveSpatial: document.getElementById('liveSpatial'),
+  liveMusic: document.getElementById('liveMusic'),
+  musicVol: document.getElementById('musicVol'),
+  musicNow: document.getElementById('musicNow'),
+  musicRedo: document.getElementById('musicRedo'),
+  padImages: document.getElementById('padImages'),
+  padImgA: document.getElementById('padImgA'),
+  padImgB: document.getElementById('padImgB'),
   ambVol: document.getElementById('ambVol'),
   ambNow: document.getElementById('ambNow'),
   ambRedo: document.getElementById('ambRedo'),
@@ -1563,6 +1607,8 @@ const els = {
   elevenModel: document.getElementById('elevenModel'),
   smoothMotion: document.getElementById('smoothMotion'),
   liveFillers: document.getElementById('liveFillers'),
+  liveBreath: document.getElementById('liveBreath'),
+  liveVibrate: document.getElementById('liveVibrate'),
   fillerPreview: document.getElementById('fillerPreview'),
   fillerPreviewList: document.getElementById('fillerPreviewList'),
   livePace: document.getElementById('livePace'),
@@ -2502,8 +2548,25 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.30';
+const APP_VERSION = '1.34';
 const CHANGELOG = [
+  { v: '1.34', date: '2026-09-29', items: [
+    'Musik im Hintergrund: eigens erzeugte Instrumentalmusik in drei Stimmungen - ruhig, sinnlich, treibend -, die der Intensität der Bewegung folgt und weich überblendet. Wird leiser, sobald jemand spricht. Jede Stimmung wird einmal erzeugt und gespeichert, ↻ erzeugt das aktuelle Stück neu.',
+    'Szenenbilder in der Mond-Ansicht: Das neueste Szenenbild erscheint ganz schwach hinter der Steuerfläche und blendet beim nächsten weich über.',
+  ]},
+  { v: '1.33', date: '2026-09-29', items: [
+    'Atmen und Stöhnen im Takt: Bei schneller Bewegung keuchen und stöhnen die Figuren im Rhythmus der Hübe, abwechselnd und nur, wenn gerade niemand spricht. Mit Raumklang kommt jede aus ihrer Richtung.',
+    'Handy vibriert im Takt (Android/Chrome): pulsiert mit jeder Bewegung, bei hohem Tempo kräftiger.',
+    'Tageszeit und Wiedersehen: Die Figuren wissen, wie spät es ist und wann du zuletzt da warst - „Du lässt mich drei Tage warten?" Je Ich getrennt.',
+  ]},
+  { v: '1.32', date: '2026-09-29', items: [
+    'Raumklang (für Kopfhörer, bei Szene und Besetzung einschalten): Jede Figur hat ihren Platz im Stereobild - die erste links, die zweite rechts, der Erzähler in der Mitte. Flüstert sie dir ins Ohr, rückt ihre Stimme ganz nah an ein Ohr; kniet sie vor dir, klingt sie etwas entfernter. Der Ort bestimmt den Hall: Bad hallt, draußen offen, Schlafzimmer warm und nah. Gilt im Gespräch und in der Geschichte, für Stimmen, Laute und Geräusche.',
+    'Die Geräuschkulisse wird jetzt leiser, solange jemand spricht, und kommt in den Pausen zurück - sie darf dafür insgesamt lauter eingestellt werden.',
+  ]},
+  { v: '1.31', date: '2026-09-29', items: [
+    'Hörspiel im Geschichtenmodus: Geräuschkulisse (draußen Vögel, Regen, Kaminfeuer …), Geräusche zur Handlung und Zwischenlaute gibt es jetzt auch in der Geschichte - dichter als im Gespräch, und jedes Geräusch erklingt an der Stelle im Abschnitt, an der es beschrieben wird.',
+    'Neue Geräusche: Hand, Kuss, Schritte. „Draußen" und „im Freien" bringen Vogelgezwitscher.',
+  ]},
   { v: '1.30', date: '2026-09-29', items: [
     'Behoben: Nach „Kurz davor" blieb das Gerät gebremst, bis der Nähe-Regler unter 70 ging - in der dunklen Ansicht ist der nicht zu sehen, und die Steuerfläche wirkte minutenlang nicht. Jetzt löst sich die Bremse nach 25 Sekunden von selbst, sofort beim Ziehen auf der Steuerfläche oder wenn du sagst „lass mich kommen".',
     'Steuerfläche: Nach dem Loslassen des Punkts wird die laufende Bewegung gleich neu bewertet, nicht erst beim nächsten Bewegungswechsel.',
@@ -3155,6 +3218,8 @@ function buildSessionExport() {
     `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${brokenModels.size ? ', abgelehnt: ' + [...brokenModels].map(m => MODEL_NAMES[m] || m).join(', ') : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
     `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
+    `Musik: ${musicEnabled() ? (music.mood ? MUSIC_MOODS[music.mood].label : 'an, noch nichts') + ', Lautstärke ' + Math.round(musicVolume() * 100) + ' %' : 'aus'}`,
+    `Raumklang: ${spatialEnabled() ? 'an (Raum ' + (spatial.roomKey || 'room') + ', Audio ' + (spatial.ctx ? spatial.ctx.state : 'noch nicht gestartet') + ')' : 'aus'}`,
     `Geräusche zur Handlung: ${sfxEnabled() ? 'an' : 'aus'}; Steuerfläche: ${motionWish.active ? wishWords().sp + ', ' + wishWords().st : 'nicht benutzt'}`,
     `Geräuschkulisse: ${ambienceEnabled() ? (amb.key ? AMBIENCES[amb.key].label : 'an, noch kein Ort') + ', Lautstärke ' + Math.round(ambVolume() * 100) + ' %' : 'aus'}`,
     `Nähe-Regler: ${arousalEnabled() ? `an (jetzt ${arousal}, Höchstwert ${arousalPeak}, ${edgeCount}x kurz davor)` : 'aus'}; Hinhalten: ${edgingEnabled() ? `an, Ziel ${edgeGoal()}` : 'aus'}`,
@@ -4103,6 +4168,8 @@ els.stopBtn.onclick = () => {
   device2.setMotion({ texture: 'stop' });
   stopFillers(true);
   setAmbience(null);
+  music.suspended = true;   // bis zur nächsten Antwort bzw. Geschichte
+  setMusic(null);
   speechSynthesis.cancel();
   if (currentElevenAudio) {
     currentElevenAudio.pause();
@@ -4520,6 +4587,23 @@ els.edgeBtn.onclick = () => {
 };
 els.liveAmbience.checked = localStorage.getItem('companion_ambience') === 'true';
 els.liveSfx.checked = sfxEnabled();
+els.liveSpatial.checked = spatialEnabled();
+els.liveMusic.checked = musicEnabled();
+els.musicVol.value = localStorage.getItem('companion_musicVol') || '18';
+els.liveMusic.onchange = () => {
+  safeSet('companion_music', els.liveMusic.checked ? 'true' : 'false');
+  music.blocked = false;
+  if (!els.liveMusic.checked) setMusic(null);
+};
+els.musicVol.oninput = () => {
+  safeSet('companion_musicVol', els.musicVol.value);
+  const a = music.players[music.players.length - 1];
+  if (a) { try { a.volume = musicTargetVolume(); } catch (e) {} }
+};
+els.musicRedo.onclick = () => { music.blocked = false; if (music.mood) setMusic(music.mood, true); };
+els.padImages.checked = localStorage.getItem('companion_padImages') === 'true';
+els.padImages.onchange = () => safeSet('companion_padImages', els.padImages.checked ? 'true' : 'false');
+els.liveSpatial.onchange = () => { safeSet('companion_spatial', els.liveSpatial.checked ? 'true' : 'false'); if (els.liveSpatial.checked) ensureAudioCtx(); };
 els.liveSfx.onchange = () => { safeSet('companion_sfx', els.liveSfx.checked ? 'true' : 'false'); if (els.liveSfx.checked) amb.blocked = false; };
 els.ambVol.value = localStorage.getItem('companion_ambVol') || '25';
 els.liveAmbience.onchange = () => {
@@ -4546,6 +4630,18 @@ els.liveArousal.onchange = () => {
 els.liveEdging.onchange = () => { safeSet('companion_edging', els.liveEdging.checked ? 'true' : 'false'); updateArousalUI(); };
 els.liveEdgeGoal.onchange = () => { safeSet('companion_edgeGoal', els.liveEdgeGoal.value); updateArousalUI(); };
 // updateArousalUI() erst im Start-Timeout: die Zustandsvariablen stehen weiter unten.
+// Neuestes Szenenbild schwach hinter der Steuerfläche, mit Überblendung.
+let padImgFront = 'A';
+let padLastImage = null;
+function setPadImage(src) {
+  padLastImage = src;
+  if (localStorage.getItem('companion_padImages') !== 'true' || !els.padImgA) return;
+  const next = padImgFront === 'A' ? els.padImgB : els.padImgA;
+  const prev = padImgFront === 'A' ? els.padImgA : els.padImgB;
+  next.onload = () => { next.style.opacity = '0.22'; prev.style.opacity = '0'; };
+  next.src = src;
+  padImgFront = padImgFront === 'A' ? 'B' : 'A';
+}
 let padWakeLock = null;
 let padPulseTimer = null;
 function padPlaceDot() {
@@ -4563,6 +4659,8 @@ function padUpdatePulse() {
 }
 async function openPad() {
   els.padOverlay.style.display = '';
+  if (localStorage.getItem('companion_padImages') === 'true' && padLastImage) setPadImage(padLastImage);
+  else { els.padImgA.style.opacity = '0'; els.padImgB.style.opacity = '0'; }
   padPlaceDot();
   padUpdatePulse();
   clearInterval(padPulseTimer);
@@ -4909,16 +5007,20 @@ function fillerSetForContext(c, level) {
 }
 // Zwischenlaut nach einem gesprochenen Abschnitt: Beschreibt die Figur gerade
 // Mund, Hand oder Sex, folgt oft ein passender Laut, bevor sie weiterspricht.
-async function interludeFiller(pieceText, generation) {
+async function interludeFiller(pieceText, generation, opts) {
+  const inStory = !!(opts && opts.story);
   if (!fillersEnabled() || isMuted) return;
   if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') return;
-  if (introPhase(sceneStep) || readyHoldActive()) return;
+  if (!inStory && (introPhase(sceneStep) || readyHoldActive())) return;
   const c = classifyFillerText(pieceText);
-  const chance = { oral: 0.85, climax: 0.6, hand: 0.5, sex: 0.5, kiss: 0.35 }[c] || 0;
+  const chance = (inStory
+    ? { oral: 0.9, climax: 0.8, hand: 0.7, sex: 0.7, kiss: 0.5 }
+    : { oral: 0.85, climax: 0.6, hand: 0.5, sex: 0.5, kiss: 0.35 })[c] || 0;
   if (!chance || Math.random() > chance) return;
   const who = aiCharacters().filter(x => !x.isNarrator);
   if (!who.length) return;
-  const fv = fillerVoice(who[Math.floor(Math.random() * who.length)].name);
+  const fillerWho = who[Math.floor(Math.random() * who.length)];
+  const fv = fillerVoice(fillerWho.name);
   if (!fv) return;
   const list = FILLER_SETS[fillerSetForContext(c, currentMotionLevel())].slice().sort(() => Math.random() - 0.5);
   let url = null;
@@ -4926,6 +5028,8 @@ async function interludeFiller(pieceText, generation) {
   if (!url) url = await fillerUrl(fv.voiceId, fv.modelId, list[0], true).catch(() => null);
   if (!url || playbackGeneration !== generation || isMuted) return;
   const a = new Audio(url);
+  routeAudio(a, 'filler', fillerWho.name, pieceText);
+  trackSpeaking(a);
   fillerAudio = a;
   await new Promise(res => {
     const done = () => { if (fillerAudio === a) fillerAudio = null; res(); };
@@ -5016,13 +5120,18 @@ async function prewarmFillers() {
         if (!fillersEnabled()) return;
         try { await fillerUrl(fv.voiceId, fv.modelId, t, true); } catch (e) {}
       }
+      if (typeof breathEnabled === 'function' && breathEnabled()) {
+        for (const t of BREATH_SET) { try { await fillerUrl(fv.voiceId, fv.modelId, t, true); } catch (e) {} }
+      }
     }
   } finally { prewarmRunning = false; }
 }
+let lastFillerRole = null;
 async function pickFiller(level) {
   const who = aiCharacters().filter(c => !c.isNarrator);
   if (!who.length) return null;
   const c = who[Math.floor(Math.random() * who.length)];
+  lastFillerRole = c.name;
   const fv = fillerVoice(c.name);
   if (!fv) return null;
   const list = FILLER_SETS[fillerSetFor(level)].slice().sort(() => Math.random() - 0.5);
@@ -5048,6 +5157,8 @@ function startFillers(generation) {
       count += 1;
       const a = new Audio(url);
       a.volume = 0.85;
+      routeAudio(a, 'filler', lastFillerRole, '');
+      trackSpeaking(a);
       fillerAudio = a;
       fillerDone = new Promise(res => {
         a.onended = a.onerror = () => { if (fillerAudio === a) fillerAudio = null; res(); };
@@ -5087,7 +5198,7 @@ els.muteBtn.onclick = () => {
   isMuted = !isMuted;
   els.muteBtn.textContent = isMuted ? '🔇 Stumm' : '🔊 Ton an';
   els.muteBtn.className = 'pill ' + (isMuted ? 'off' : 'on');
-  if (isMuted) setAmbience(null); else { amb.key = null; updateAmbience(); }
+  if (isMuted) { setAmbience(null); setMusic(null); } else { amb.key = null; updateAmbience(); }
   if (isMuted) {
     stopFillers(true);
     speechSynthesis.cancel(); // stop Android TTS if it's currently speaking
@@ -5492,8 +5603,179 @@ function fetchElevenAudioTimed(text, role, ctx) {
   })();
 }
 
+// ---------- Im Takt: Atmen/Stöhnen und Vibration ----------
+// Ein Taktgeber folgt dem Tempo, das gerade am Gerät anliegt. Bei schneller
+// Bewegung spielt er kurze Atem- und Stöhnlaute - nur wenn niemand spricht -
+// und lässt auf Wunsch das Handy mitpulsen.
+const BREATH_SET = ['[breathing heavily] Hah.', '[panting] Hah…', '[moans] Ah.', '[moans softly] Mmh.', '[gasps] Ah!', '[panting] Hah, hah.'];
+const BREATH_MIN_BPM = 90;
+function breathEnabled() { return localStorage.getItem('companion_breath') === 'true'; }
+function vibrateEnabled() { return localStorage.getItem('companion_vibrate') === 'true' && typeof navigator.vibrate === 'function'; }
+const beat = { next: 0, busy: false, count: 0, audio: null };
+function currentBeat() {
+  const st = device1 && device1.getState ? device1.getState() : null;
+  if (!st || st.texture === 'stop' || st.texture === 'hold' || !(st.bpm > 0)) return null;
+  return st;
+}
+function someoneSpeaking() {
+  return (typeof spatial !== 'undefined' && spatial.speaking > 0) || (window.speechSynthesis && speechSynthesis.speaking);
+}
+async function beatTick() {
+  const st = currentBeat();
+  const now = Date.now();
+  if (!st) { beat.next = 0; return; }
+  const period = 60000 / Math.max(1, st.bpm);
+  if (!beat.next) beat.next = now + period;
+  if (now < beat.next) return;
+  beat.next = now + period;
+  beat.count++;
+  if (document.visibilityState !== 'visible') return;
+  if (vibrateEnabled()) {
+    const strength = st.bpm >= 150 ? 60 : st.bpm >= 90 ? 40 : 20;
+    try { navigator.vibrate(strength); } catch (e) {}
+  }
+  if (!breathEnabled() || isMuted || beat.busy) return;
+  if ((localStorage.getItem('companion_ttsSource') || 'browser') !== 'elevenlabs') return;
+  if (st.bpm < BREATH_MIN_BPM || st.texture === 'tremor') return;
+  if (typeof introPhase === 'function' && (introPhase(sceneStep) || readyHoldActive())) return;
+  if (someoneSpeaking()) return;
+  // Bei sehr hohem Tempo nur jeden zweiten Hub, sonst wird es ein Dauerton.
+  if (st.bpm >= 150 && beat.count % 2) return;
+  const who = aiCharacters().filter(c => !c.isNarrator);
+  if (!who.length) return;
+  const c = who[beat.count % who.length];
+  const fv = fillerVoice(c.name);
+  if (!fv) return;
+  const text = BREATH_SET[Math.floor(Math.random() * BREATH_SET.length)];
+  beat.busy = true;
+  try {
+    let url = await fillerUrl(fv.voiceId, fv.modelId, text, false);
+    if (!url) { fillerUrl(fv.voiceId, fv.modelId, text, true).catch(() => null); return; }  // fürs nächste Mal laden
+    if (someoneSpeaking() || isMuted) return;
+    const a = new Audio(url);
+    a.volume = 0.8;
+    routeAudio(a, 'filler', c.name, '');
+    beat.audio = a;
+    await new Promise(res => { a.onended = a.onerror = res; setTimeout(res, 2500); a.play().catch(res); });
+  } finally { beat.busy = false; }
+}
+setInterval(() => { beatTick().catch(() => {}); }, 60);
+
+// ---------- Raumklang: Position, Raum, Ducking ----------
+// Nur für ElevenLabs-Audio (die Android-Stimme lässt sich nicht umleiten).
+// Stimmen bekommen einen festen Platz im Stereobild, Flüstern rückt nah ans
+// Ohr, der Ort bestimmt den Hall. Die Kulisse wird leiser, solange jemand spricht.
+const spatial = { ctx: null, master: null, conv: null, wetBus: null, roomKey: null, speaking: 0 };
+function spatialEnabled() { return localStorage.getItem('companion_spatial') === 'true'; }
+function ensureAudioCtx() {
+  if (!spatial.ctx) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      const ctx = new AC();
+      spatial.ctx = ctx;
+      spatial.master = ctx.createGain();
+      spatial.master.connect(ctx.destination);
+      spatial.conv = ctx.createConvolver();
+      spatial.wetBus = ctx.createGain();
+      spatial.wetBus.connect(spatial.conv);
+      spatial.conv.connect(spatial.master);
+      setRoom('room');
+    } catch (e) { spatial.ctx = null; return null; }
+  }
+  if (spatial.ctx.state === 'suspended') spatial.ctx.resume().catch(() => {});
+  return spatial.ctx;
+}
+// Browser erlauben Audio-Verarbeitung erst nach einer Berührung.
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => {
+  if (spatialEnabled()) ensureAudioCtx();
+}, { passive: true }));
+
+const ROOMS = {
+  room:   { decay: 0.45, wet: 0.10 },
+  bar:    { decay: 0.9,  wet: 0.16 },
+  club:   { decay: 1.1,  wet: 0.20 },
+  shower: { decay: 1.5,  wet: 0.32 },
+  fire:   { decay: 0.55, wet: 0.10 },
+  rain:   { decay: 0.45, wet: 0.08 },
+  park:   { decay: 0.2,  wet: 0.03 },
+  lake:   { decay: 0.2,  wet: 0.03 },
+  city:   { decay: 0.35, wet: 0.05 },
+};
+function setRoom(key) {
+  const ctx = spatial.ctx;
+  if (!ctx) { spatial.roomKey = key; return; }
+  const r = ROOMS[key] || ROOMS.room;
+  if (spatial.roomKey === key && spatial.conv.buffer) return;
+  spatial.roomKey = key;
+  // Künstlicher Nachhall: abklingendes Rauschen, zwei Kanäle leicht verschieden
+  const len = Math.max(1, Math.floor(ctx.sampleRate * r.decay));
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  }
+  spatial.conv.buffer = buf;
+  spatial.wetBus.gain.value = r.wet * 2.2;
+}
+// Fester Platz je Figur: erste links, zweite rechts, dritte Mitte-rechts …
+function rolePan(role) {
+  if (!role || role === 'narrator') return 0;
+  const cast = aiCharacters().filter(c => !c.isNarrator);
+  const idx = cast.findIndex(c => c.name === role);
+  if (cast.length <= 1) return 0;
+  return [-0.55, 0.55, 0.2, -0.25][idx] ?? 0;
+}
+function proximity(text) {
+  const t = String(text || '').toLowerCase();
+  if (/flüster|ins ohr|haucht|an deinem ohr|raunt/.test(t)) return 'close';
+  if (/kniet|vor dir|zwischen deinen|am fußende|von unten/.test(t)) return 'low';
+  return 'normal';
+}
+// kind: 'voice' | 'filler' | 'sfx'
+function routeAudio(el, kind, role, text) {
+  if (!spatialEnabled()) return;
+  const ctx = ensureAudioCtx();
+  if (!ctx || ctx.state !== 'running') return;   // lieber normal als stumm
+  try {
+    setRoom(amb.key || 'room');
+    const src = ctx.createMediaElementSource(el);
+    const pan = ctx.createStereoPanner();
+    const dry = ctx.createGain();
+    const send = ctx.createGain();
+    let p = kind === 'sfx' ? (Math.random() * 0.4 - 0.2) : rolePan(role);
+    let g = 1, wet = 1;
+    const prox = kind === 'sfx' ? 'normal' : proximity(text);
+    if (prox === 'close') { p = p === 0 ? 0.8 : Math.sign(p) * 0.85; g = 1.15; wet = 0.25; }
+    if (prox === 'low') { g = 0.92; wet = 1.4; }
+    if (role === 'narrator') { wet = 0.4; }
+    pan.pan.value = Math.max(-1, Math.min(1, p));
+    dry.gain.value = g;
+    send.gain.value = wet;
+    src.connect(pan); pan.connect(dry); dry.connect(spatial.master);
+    pan.connect(send); send.connect(spatial.wetBus);
+  } catch (e) {}
+}
+// Ducking: Kulisse leiser, solange eine Stimme spricht.
+function ambTargetVolume() { return ambVolume() * (spatial.speaking > 0 ? 0.4 : 1); }
+function trackSpeaking(el) {
+  let on = false;
+  const start = () => { if (on) return; on = true; spatial.speaking++; duckNow(); };
+  const stop = () => { if (!on) return; on = false; spatial.speaking = Math.max(0, spatial.speaking - 1); setTimeout(duckNow, 250); };
+  el.addEventListener('playing', start);
+  el.addEventListener('ended', stop); el.addEventListener('pause', stop); el.addEventListener('error', stop);
+}
+function duckNow() {
+  const a = amb.players[amb.players.length - 1];
+  if (a && !a.paused) fadeAudio(a, ambTargetVolume(), 350);
+  const m = music.players[music.players.length - 1];
+  if (m && !m.paused) fadeAudio(m, musicTargetVolume(), 350);
+}
+
 function playElevenUrl(objectUrl, onStart, text, role, starts) {
   const audio = new Audio(objectUrl);
+  routeAudio(audio, 'voice', role, text);
+  trackSpeaking(audio);
   currentElevenAudio = audio;
   return new Promise((resolve) => {
     currentElevenResolve = resolve;
@@ -5700,7 +5982,7 @@ function introPhase(step) {
 const AMBIENCES = {
   bar:    { label: 'Bar',          re: /\b(bar|pub|kneipe|lounge|café|cafe|restaurant|theke|tresen)\b/g, prompt: 'Cozy bar ambience, quiet unintelligible background chatter, soft clinking glasses, distant muffled music' },
   club:   { label: 'Club',         re: /\b(club|disco|tanzfläche)\b/g, prompt: 'Muffled nightclub bass from the next room, low crowd murmur' },
-  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
+  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum|draußen|im freien|terrasse)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
   lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
   rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
   fire:   { label: 'Kaminfeuer',   re: /\b(kamin\w*|lagerfeuer|knister\w*|ofen|feuer (?:an|brennt|prasselt|lodert))\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
@@ -5720,6 +6002,10 @@ function detectAmbience() {
     if (typeof history[i].content === 'string') texts.push(history[i].content);
   }
   texts.push(localStorage.getItem('companion_sceneDesc') || '');
+  return detectAmbienceIn(texts);
+}
+// texts: neueste zuerst
+function detectAmbienceIn(texts) {
   for (const raw of texts) {
     const t = raw.toLowerCase();
     let best = null, bestAt = -1;
@@ -5790,7 +6076,7 @@ function loopAmbience(url, key) {
   a.volume = 0;
   a.play().catch(() => {});
   amb.players.push(a);
-  fadeAudio(a, ambVolume(), 2500);
+  fadeAudio(a, ambTargetVolume(), 2500);
   const schedule = () => {
     const d = a.duration && isFinite(a.duration) ? a.duration : 20;
     amb.loopTimer = setTimeout(() => {
@@ -5804,6 +6090,7 @@ function loopAmbience(url, key) {
 async function setAmbience(key, fresh) {
   if (key === amb.key && !fresh) return;
   amb.key = key;
+  if (key) setRoom(key);
   stopAmbiencePlayers(3000);
   updateAmbienceUI();
   if (!key || !ambienceEnabled() || isMuted) return;
@@ -5819,6 +6106,106 @@ function updateAmbience() {
     setAmbience(key);
   }
 }
+// ---------- Musik ----------
+// Drei Stimmungen, gewählt nach der Intensität der Bewegung. Gewechselt wird
+// erst, wenn die neue Stimmung 20 Sekunden anhält - sonst würde bei jedem
+// Tempowechsel umgeblendet.
+const MUSIC_MOODS = {
+  calm:    { label: 'ruhig',    prompt: 'Slow sensual instrumental lounge music, soft Rhodes piano, warm bass, gentle brushed drums, late night intimate mood, 70 bpm, no vocals, seamless loop' },
+  sensual: { label: 'sinnlich', prompt: 'Sensual downtempo deep house instrumental, warm pads, deep groovy bass, soft percussion, seductive late night atmosphere, 100 bpm, no vocals, seamless loop' },
+  driving: { label: 'treibend', prompt: 'Driving dark electronic instrumental, pulsing bass, steady kick drum, rising synths, hypnotic and intense, 124 bpm, no vocals, seamless loop' },
+};
+const music = { mood: null, pending: null, pendingSince: 0, players: [], loopTimer: null, blocked: false, suspended: false };
+function musicEnabled() { return localStorage.getItem('companion_music') === 'true'; }
+function musicVolume() {
+  const v = parseInt(localStorage.getItem('companion_musicVol') || '18', 10);
+  return Math.max(0.05, Math.min(0.5, (Number.isFinite(v) ? v : 18) / 100));
+}
+function musicTargetVolume() { return musicVolume() * ((typeof spatial !== 'undefined' && spatial.speaking > 0) ? 0.45 : 1); }
+function moodForNow() {
+  const lvl = currentMotionLevel();
+  const st = device1 && device1.getState ? device1.getState() : null;
+  const moving = st && st.texture !== 'stop' && st.bpm > 0;
+  if (!moving) return 'calm';
+  return lvl === 2 ? 'driving' : lvl === 1 ? 'sensual' : 'calm';
+}
+async function musicBlob(mood, fresh) {
+  const dbKey = 'music_v1_' + mood;
+  if (fresh) { try { await dbDelete(STORE_AUDIO, dbKey); } catch (e) {} }
+  else { try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {} }
+  if (music.blocked) return null;
+  const apiKey = apiKeyFor('companion_elevenKey');
+  if (!apiKey) return null;
+  logEvent('msg', { role: 'system', text: 'Musik wird erzeugt: ' + MUSIC_MOODS[mood].label + ' …' });
+  const res = await fetch('https://api.elevenlabs.io/v1/music', {
+    method: 'POST', headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: MUSIC_MOODS[mood].prompt, music_length_ms: 90000 }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { const b = await res.clone().json(); detail = b?.detail?.message || b?.detail?.status || ''; } catch (e) {}
+    logEvent('msg', { role: 'system', text: 'Musik: ElevenLabs-Fehler ' + res.status + (detail ? ' - ' + String(detail).slice(0, 150) : '') });
+    if (res.status === 401 || res.status === 403) {
+      music.blocked = true;
+      addMsg('system', 'Musik: Dein ElevenLabs-Schlüssel darf keine Musik erzeugen (' + res.status + '). Bei ElevenLabs in den Einstellungen des API-Schlüssels die Berechtigung für Musik einschalten - oder einen Schlüssel mit allen Rechten eintragen.');
+    }
+    return null;
+  }
+  const blob = await res.blob();
+  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+  logEvent('msg', { role: 'system', text: 'Musik erzeugt: ' + MUSIC_MOODS[mood].label });
+  return blob;
+}
+function stopMusicPlayers(ms) {
+  clearTimeout(music.loopTimer);
+  const old = music.players; music.players = [];
+  old.forEach(a => fadeAudio(a, 0, ms, () => { try { a.pause(); } catch (e) {} }));
+}
+function loopMusic(url, mood) {
+  if (music.mood !== mood) return;
+  const a = new Audio(url);
+  a.volume = 0;
+  a.play().catch(() => {});
+  music.players.push(a);
+  fadeAudio(a, musicTargetVolume(), 4000);
+  const schedule = () => {
+    const d = a.duration && isFinite(a.duration) ? a.duration : 85;
+    music.loopTimer = setTimeout(() => {
+      if (music.mood !== mood) return;
+      fadeAudio(a, 0, 4000, () => { try { a.pause(); } catch (e) {} music.players = music.players.filter(x => x !== a); });
+      loopMusic(url, mood);
+    }, Math.max(8000, (d - 4) * 1000));
+  };
+  if (a.readyState >= 1) schedule(); else a.addEventListener('loadedmetadata', schedule, { once: true });
+}
+async function setMusic(mood, fresh) {
+  if (mood === music.mood && !fresh) return;
+  music.mood = mood;
+  stopMusicPlayers(4000);
+  updateMusicUI();
+  if (!mood || !musicEnabled() || isMuted) return;
+  const blob = await musicBlob(mood, fresh).catch(() => null);
+  if (!blob || music.mood !== mood) return;
+  loopMusic(URL.createObjectURL(blob), mood);
+}
+function updateMusicUI() {
+  if (els.musicNow) els.musicNow.textContent = music.mood ? 'jetzt: ' + MUSIC_MOODS[music.mood].label : '-';
+}
+// Alle 2 Sekunden prüfen, ob die Stimmung wechseln soll.
+setInterval(() => {
+  if (!musicEnabled() || isMuted || music.suspended) { if (music.mood) setMusic(null); return; }
+  const inScene = (typeof story !== 'undefined' && story.playing) || (typeof history !== 'undefined' && history.length > 0);
+  if (!inScene) return;
+  const want = moodForNow();
+  if (!music.mood) { setMusic(want); return; }
+  if (want === music.mood) { music.pending = null; return; }
+  if (music.pending !== want) { music.pending = want; music.pendingSince = Date.now(); return; }
+  if (Date.now() - music.pendingSince > 20000) { music.pending = null; setMusic(want); }
+  // Ducking mitziehen
+  const a = music.players[music.players.length - 1];
+  if (a && !a.paused && Math.abs(a.volume - musicTargetVolume()) > 0.03) fadeAudio(a, musicTargetVolume(), 400);
+}, 2000);
+
 // ---------- Geräusche zur Handlung ----------
 // Kurze Einzelgeräusche, ausgelöst von Stichworten im Text der Figur und genau
 // in dem Abschnitt abgespielt, der sie enthält. Pro Geräusch gibt es eine
@@ -5829,6 +6216,9 @@ const SFX_EVENTS = [
   { key: 'door',    label: 'Tür',              re: /\b(tür|türe)\b.{0,30}\b(öffne\w*|auf|zu|schließ\w*|fällt ins schloss)\b/, prompt: 'A wooden door opening slowly with a soft creak, then closing', dur: 3 },
   { key: 'clothes', label: 'Kleidung',         re: /\b(auszieh\w*|zieh\w* .{0,25}\baus\b|reißverschluss|streif\w* .{0,25}(stoff|kleid|hemd|bluse|hose|slip|bh)|knöpf\w* .{0,15}auf)\b/, prompt: 'Clothes rustling and a zipper being pulled down slowly', dur: 3 },
   { key: 'glass',   label: 'Gläser',           re: /(anstoß\w*|stoß\w* .{0,25}\ban\b|gläser\w*|\bglas\b|\bprost\b|schenk\w* .{0,15}\bein\b|einschenk\w*)/,          prompt: 'Two wine glasses clinking together, then wine being poured', dur: 3 },
+  { key: 'hand',    label: 'Hand',             re: /(\b(hand|hände|händen|finger\w*)\b.{0,40}(umschließ|umfass|reib|streich|pump|gleit|massier|wichs)|\bwichs\w*|runterhol\w*|handjob)/, prompt: 'Rhythmic soft skin rubbing sounds of a hand stroking, slightly wet and intimate', dur: 4 },
+  { key: 'kiss',    label: 'Kuss',             re: /\b(küss\w*|kuss|knutsch\w*)\b/,                                prompt: 'Soft intimate kissing sounds, lips gently smacking', dur: 3 },
+  { key: 'steps',   label: 'Schritte',         re: /\b(schritte|schreitet|kommt (herein|näher|zu dir)|geht (zu|auf|hinüber)|barfuß über)\b/, prompt: 'Slow footsteps on a wooden floor, then stopping', dur: 3 },
   { key: 'bed',     label: 'Bett',             re: /\b(bett|matratze|laken)\b/,                                       prompt: 'An old wooden bed creaking rhythmically, mattress springs', dur: 4 },
   { key: 'slap',    label: 'Klaps',            re: /\b(klaps|klatsch\w*|haut auf den|auf (den|deinen|meinen) (po|hintern))\b/, prompt: 'A single sharp playful slap on bare skin', dur: 1.5 },
   { key: 'skin',    label: 'Körper',           re: /\b(stöß\w*|stoß\w*|reite\w*|haut an haut|rammt?\w*)\b/,          prompt: 'Rhythmic soft skin-on-skin slapping sounds, bodies moving together', dur: 4 },
@@ -5894,6 +6284,7 @@ async function playSfx(ev, generation) {
   logEvent('msg', { role: 'system', text: 'Geräusch: ' + ev.label });
   const a = new Audio(url);
   a.volume = Math.min(1, ambVolume() * 2.2);
+  routeAudio(a, 'sfx', null, '');
   a.play().catch(() => {});
 }
 
@@ -7806,6 +8197,7 @@ async function makeSceneImage(momentText, castOverride) {
     || (body.data && body.data[0] && body.data[0].b64_json) || '';
   if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
   logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
+  try { setPadImage('data:image/webp;base64,' + base64); } catch (e) {}
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
 }
 
@@ -10351,6 +10743,32 @@ function initiativeRule() {
     + (askedTwice ? ' Deine letzten beiden Antworten endeten mit einer Frage - diesmal KEINE Frage, sondern eine Handlung oder eine Ansage.' : '');
 }
 
+// Tageszeit und Wiedersehen: Die Figuren wissen, wie spät es ist und wann das
+// Ich zuletzt da war. Das Wiedersehen nur in den ersten beiden Antworten.
+function lastSeenKey() {
+  const me = (typeof userCharacter === 'function') ? userCharacter() : null;
+  return 'companion_lastSeen_' + (me && me.figureId ? me.figureId : 'ohneIch');
+}
+function timeBlock() {
+  const now = new Date();
+  const h = now.getHours();
+  const part = h < 5 ? 'mitten in der Nacht' : h < 10 ? 'früh am Morgen' : h < 12 ? 'am Vormittag' : h < 14 ? 'mittags' : h < 18 ? 'am Nachmittag' : h < 22 ? 'am Abend' : 'spät in der Nacht';
+  const day = now.toLocaleDateString('de-DE', { weekday: 'long' });
+  const clock = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  let t = `\n\nZEIT: Es ist ${day}, ${clock} Uhr (${part}). Das darf in der Stimmung mitschwingen, muss aber nicht erwähnt werden.`;
+  if (sceneStep < 2) {
+    const last = parseInt(localStorage.getItem(lastSeenKey()) || '0', 10);
+    if (last) {
+      const hours = (Date.now() - last) / 3600000;
+      const since = hours < 1 ? null : hours < 20 ? `vor ${Math.round(hours)} Stunden` : hours < 44 ? 'gestern' : `vor ${Math.round(hours / 24)} Tagen`;
+      if (since) t += ` WIEDERSEHEN: Ihr hattet euch zuletzt ${since}. Die Figuren dürfen darauf reagieren - freudig, neckend oder vorwurfsvoll, wenn es lange her ist.`;
+    } else {
+      t += ' Es ist euer erstes Treffen.';
+    }
+  }
+  return t;
+}
+
 function placeRule() {
   if (introPhase(sceneStep)) {
     return 'Es spielen nur die oben genannten Figuren mit - keine neuen. Ein Ortswechsel ist erlaubt, wenn er sich aus dem Gespräch ergibt; beschreibe dann kurz den neuen Ort. Der Fokus liegt auf dem Gespräch und der wachsenden Spannung zwischen uns, nicht auf Körperlichem.';
@@ -10423,7 +10841,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}${timeBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -10551,6 +10969,7 @@ async function askEnsemble(userText, options) {
   // die Figur zu Ende; die neue Antwort entsteht währenddessen und folgt direkt.
   // Nur ein ausdrücklicher Abbruch (options.interrupt, etwa Dazwischenreden mit
   // Kopfhörern) schneidet ab.
+  if (typeof music !== 'undefined') music.suspended = false;
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
   const myEpoch = chainEpoch;
@@ -10634,6 +11053,7 @@ async function askEnsemble(userText, options) {
     }
     history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
     sceneStep += 1;
+    safeSet(lastSeenKey(), String(Date.now()));
 
     // Warten, bis die vorige Antwort zu Ende gesprochen ist - dann übernehmen.
     if (queueMode) {
@@ -11020,6 +11440,7 @@ els.navNewChat.onclick = () => {
   updateReadyButton();
   resetArousal();
   setAmbience(null);
+  setMusic(null);
   motionWish.active = false; motionWish.rampStart = 0;
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
@@ -11311,6 +11732,13 @@ function renderFillerPreview() {
   });
 }
 els.fillerPreview.addEventListener('toggle', () => { if (els.fillerPreview.open) renderFillerPreview(); });
+els.liveBreath.checked = breathEnabled();
+els.liveBreath.onchange = () => { safeSet('companion_breath', els.liveBreath.checked ? 'true' : 'false'); if (els.liveBreath.checked) prewarmFillers(); };
+els.liveVibrate.checked = localStorage.getItem('companion_vibrate') === 'true';
+els.liveVibrate.onchange = () => {
+  safeSet('companion_vibrate', els.liveVibrate.checked ? 'true' : 'false');
+  if (els.liveVibrate.checked && typeof navigator.vibrate !== 'function') addMsg('system', 'Dieses Gerät oder dieser Browser kann nicht vibrieren.');
+};
 els.liveFillers.onchange = () => {
   safeSet('companion_fillers', els.liveFillers.checked ? 'true' : 'false');
   if (els.liveFillers.checked) prewarmFillers();
@@ -11875,6 +12303,8 @@ async function prepareTimedSpeech(text, role, timed) {
           durationMs,
           starts,
           play: () => new Promise((resolve) => {
+            routeAudio(audio, 'voice', role, text);
+            trackSpeaking(audio);
             story.audio = audio;
             story.resolveCurrent = resolve;
             const done = () => { URL.revokeObjectURL(url); resolve(); };
@@ -11924,7 +12354,45 @@ function schedulePhases(chunk, durationMs) {
   });
 }
 
+// ---------- Hörspiel: Kulisse, Geräusche und Laute auch in der Geschichte ----------
+// Dichter als im Live-Gespräch: kürzere Sperrzeiten, und das Geräusch erklingt
+// an der Stelle im Abschnitt, an der es beschrieben wird.
+const STORY_SFX_GAP_MS = 6000;
+const STORY_SFX_COOLDOWN_MS = 20000;
+function storySoundscape(i, durationMs, myGen) {
+  // Kulisse aus den letzten Abschnitten (neueste zuerst) und der Szene
+  if (ambienceEnabled() && !isMuted) {
+    const texts = [];
+    for (let k = i; k >= 0 && texts.length < 4; k--) texts.push(story.chunks[k].text || '');
+    texts.push(localStorage.getItem('companion_sceneDesc') || '');
+    const key = detectAmbienceIn(texts);
+    if (key && key !== amb.key) {
+      logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ' + AMBIENCES[key].label });
+      setAmbience(key);
+    }
+  }
+  // Ein Geräusch pro Abschnitt: das zuerst beschriebene
+  if (!sfxEnabled() || isMuted) return;
+  const now = Date.now();
+  if (now - sfxLastAny < STORY_SFX_GAP_MS) return;
+  const t = String(story.chunks[i].text || '').toLowerCase();
+  let best = null, bestAt = Infinity;
+  SFX_EVENTS.forEach(ev => {
+    if (now - (sfxLastPlayed[ev.key] || 0) < STORY_SFX_COOLDOWN_MS) return;
+    const m = t.match(ev.re);
+    if (m && m.index < bestAt) { best = ev; bestAt = m.index; }
+  });
+  if (!best) return;
+  sfxUrl(best).catch(() => null);   // schon laden
+  const delay = Math.max(0, Math.min(durationMs - 1500, (bestAt / Math.max(1, t.length)) * durationMs));
+  story.phaseTimers.push(setTimeout(() => {
+    if (!story.playing || story.gen !== myGen) return;
+    playSfx(best, playbackGeneration);
+  }, Math.round(delay)));
+}
+
 async function runStory() {
+  music.suspended = false;
   const myGen = ++story.gen;
   // The next chunk's audio is fetched while the current one plays, so the
   // transition between chunks has no gap in it.
@@ -11945,6 +12413,7 @@ async function runStory() {
     highlightChunk(i);
     setStoryProgress((i + 1) / story.chunks.length);
     schedulePhases(chunk, current.durationMs);
+    try { storySoundscape(i, current.durationMs, myGen); } catch (e) {}
     let cueCtl = null;
     if (chunk.cues && chunk.cues.length) {
       current.timeline = makeTimeline(chunk.text, current.durationMs, current.starts);
@@ -11957,6 +12426,9 @@ async function runStory() {
     clearPhaseTimers();
 
     if (!story.playing) break;
+    // Zwischenlaut wie im Live-Gespräch - im Hörspiel etwas häufiger.
+    if (nextPromise) { try { await interludeFiller(chunk.text, playbackGeneration, { story: true }); } catch (e) {} }
+    if (story.gen !== myGen || !story.playing) break;
     story.index = nextIndex;
     if (!nextPromise) break;
     upcoming = await nextPromise;
@@ -12045,6 +12517,7 @@ els.pauseStoryBtn.onclick = () => {
   story.paused = true;
   story.playing = false;
   clearPhaseTimers();
+  setAmbience(null);
   if (story.audio) story.audio.pause();
   speechSynthesis.pause();
   device1.setMotion({ texture: 'hold' });
@@ -12055,6 +12528,7 @@ els.pauseStoryBtn.onclick = () => {
 function stopStory() {
   story.playing = false;
   story.paused = false;
+  setAmbience(null);
   story.gen++;
   clearPhaseTimers();
   clearCueTimers();
