@@ -1076,6 +1076,18 @@
         <span style="font-size:13.5px; color:var(--text);">Musik im Hintergrund</span>
       </label>
       <p class="hint">Eigens erzeugte Instrumentalmusik in drei Stimmungen - ruhig, sinnlich und treibend -, die der Intensität der Szene folgt und weich überblendet. Wird leiser, sobald jemand spricht. Jede Stimmung wird einmal bei ElevenLabs erzeugt und gespeichert; Musik kostet dort deutlich mehr als Geräusche.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:2px 0 4px 0;">
+        <span style="font-size:13px;">Stil</span>
+        <select id="musicStyle" style="flex:1;">
+          <option value="auto">Automatisch nach Szene</option>
+          <option value="lounge">Lounge</option>
+          <option value="elbenwald">Elbenwald</option>
+          <option value="orient">Orient</option>
+          <option value="jazz">Jazz-Bar</option>
+          <option value="gothic">Gothic</option>
+          <option value="strand">Strand</option>
+        </select>
+      </div>
       <div style="display:flex; align-items:center; gap:8px; margin:2px 0 0 0;">
         <span style="font-size:13px;">Lautstärke</span>
         <input type="range" id="musicVol" min="5" max="50" step="1" value="18" style="flex:1; margin:0;">
@@ -1208,6 +1220,14 @@
         <button class="btn-primary" id="genFigureBtn">✨ Figur erzeugen</button>
       </div>
       <p class="hint" id="genFigureInfo">Eigenschaften, Geschlecht, Beschreibung und eine passende Stimme werden automatisch gewählt. Danach kannst du alles ändern.</p>
+
+      <label for="figureImport" style="margin-top:14px;">Fertiges Paket einfügen (Figuren, Szene, Geschichte)</label>
+      <textarea id="figureImport" style="min-height:70px" placeholder="Alles einfügen, was der Assistent vorbereitet hat - Figuren, Szene, Geschichte und Einstellungen. Nur Figuren gehen auch."></textarea>
+      <div class="btn-row">
+        <button class="btn-secondary" id="pasteFigureBtn" type="button">📋 Aus Zwischenablage</button>
+        <button class="btn-primary" id="importFigureBtn" type="button">Übernehmen</button>
+      </div>
+      <p class="hint" id="importFigureInfo">Figuren mit bekanntem Namen bekommen eine neue Version, die alte bleibt erhalten. Enthält das Paket eine Geschichte, wird alles eingetragen und der Geschichtenmodus geöffnet.</p>
     </div>
 
     <details class="panel" id="figureEditor" style="display:none">
@@ -1227,6 +1247,7 @@
       <p class="hint">Erfindet eine abwechslungsreiche Ausgangslage - jedes Mal eine andere. Steht in der Besetzung schon jemand, dreht sich die Idee um genau diese Figuren.</p>
 
       <label for="storyCastMode">Wer spielt mit</label>
+      <button class="btn-secondary" id="storyPasteBtn" type="button" style="width:100%; margin:0 0 10px 0;">📋 Paket aus der Zwischenablage einfügen</button>
       <select id="storyCastMode">
         <option value="bestehend">Meine Besetzung verwenden</option>
         <option value="neu">Figuren und Szene neu entwerfen lassen</option>
@@ -1247,6 +1268,8 @@
         <option value="5">ca. 5 Minuten</option>
         <option value="10">ca. 10 Minuten</option>
         <option value="15">ca. 15 Minuten</option>
+        <option value="20">ca. 20 Minuten</option>
+        <option value="30">ca. 30 Minuten</option>
       </select>
 
       <label for="storyPace">Aufbau</label>
@@ -1408,6 +1431,82 @@
 <div class="motion-track-label left">Gerät 2</div>
 
 <script>
+// ---------- Standard-Einstellungen ----------
+// Tils eingestellte Werte als Ausgangspunkt für einen neuen Browser. Gesetzt
+// wird nur, was dort noch fehlt - vorhandene Einstellungen bleiben unberührt.
+// Bewusst NUR technische Werte: keine Schlüssel, keine Figuren, keine
+// Gedächtnisse, keine Texte - die Datei liegt in einem öffentlichen
+// Repository. Alles Persönliche kommt über die verschlüsselte Sicherung.
+const APP_DEFAULTS = {
+  "companion_sfx": "true",
+  "companion_llmProvider": "venice",
+  "companion_readyCheck": "true",
+  "companion_taskModel_motion": "deepseek-v4-1-flash",
+  "companion_fillers": "true",
+  "companion_model_venice": "gemma-4-uncensored",
+  "companion_ttsSource": "elevenlabs",
+  "companion_model_deepseek": "deepseek-chat",
+  "companion_edging": "true",
+  "companion_arousal": "true",
+  "companion_deviceAware": "true",
+  "companion_d2_maxPos": "950",
+  "companion_d2_minPos": "50",
+  "companion_localSpeechOnly": "false",
+  "companion_storyCastMode": "bestehend",
+  "companion_callMode": "lautsprecher",
+  "companion_d1_pat_pulse": "true",
+  "companion_music": "true",
+  "companion_elevenModel": "v4turbo",
+  "companion_d1_minPos": "150",
+  "companion_d1_maxPos": "860",
+  "companion_ambVol": "54",
+  "companion_spatial": "true",
+  "companion_d2_pat_pulse": "true",
+  "companion_veniceOwnPromptOnly": "false",
+  "companion_pace_live": "zuegig",
+  "companion_d1_fastGap": "45",
+  "companion_pace_story": "langsam",
+  "companion_breath": "true",
+  "companion_d1_ip": "192.168.178.68",
+  "companion_portraitStyle": "frei",
+  "companion_replyLength": "mittel",
+  "companion_model_openai": "gpt-4o",
+  "companion_videoModel": "wan-2-7-enhanced-image-to-video",
+  "companion_d1_speedCap": "1",
+  "companion_padImages": "true",
+  "companion_edgeGoal": "1",
+  "companion_model_anthropic": "claude-sonnet-4-6",
+  "companion_storyPlay": "figur",
+  "companion_d2_fastGap": "70",
+  "companion_fantasyImageModel": "z-image-turbo",
+  "companion_taskThinks_motion": "false",
+  "companion_ambience": "true",
+  "companion_speechGap": "1300",
+  "companion_rate": "1",
+  "companion_audioCache": "false",
+  "companion_taskModel_chat": "gemma-4-uncensored",
+  "companion_voice": "Deutsch Deutschland",
+  "companion_d2_speedCap": "1",
+  "companion_temperature": "0.8",
+  "companion_storyImages": "true",
+  "companion_taskThinks_draft": "false",
+  "companion_vibrate": "true",
+  "companion_mode": "story",
+  "companion_smoothMotion": "true",
+  "companion_taskModel_draft": "gemma-4-uncensored",
+  "companion_micSense": "false",
+  "companion_imageModel": "lustify-v8",
+  "companion_emotionalVoice": "false",
+  "companion_motionMode": "einzel",
+  "companion_pitch": "1.1",
+  "companion_voiceNarrator": "Deutsch Deutschland",
+  "companion_pitchNarrator": "0.9",
+  "companion_rateNarrator": "0.9",
+  "companion_model_openrouter": "anthropic/claude-3.5-sonnet"
+};
+try {
+  Object.entries(APP_DEFAULTS).forEach(([k, v]) => { if (localStorage.getItem(k) === null) localStorage.setItem(k, v); });
+} catch (e) {}
 // ============================================================================
 //  HIER DEINE ZUGANGSDATEN EINTRAGEN - einmal, dann nie wieder
 // ----------------------------------------------------------------------------
@@ -1486,6 +1585,11 @@ const els = {
   talkBtn: document.getElementById('talkBtn'),
   autoBtn: document.getElementById('autoBtn'),
   textInput: document.getElementById('textInput'),
+  figureImport: document.getElementById('figureImport'),
+  pasteFigureBtn: document.getElementById('pasteFigureBtn'),
+  importFigureBtn: document.getElementById('importFigureBtn'),
+  importFigureInfo: document.getElementById('importFigureInfo'),
+  storyPasteBtn: document.getElementById('storyPasteBtn'),
   padBtn: document.getElementById('padBtn'),
   padOverlay: document.getElementById('padOverlay'),
   padArea: document.getElementById('padArea'),
@@ -1505,6 +1609,7 @@ const els = {
   liveSpatial: document.getElementById('liveSpatial'),
   liveMusic: document.getElementById('liveMusic'),
   musicVol: document.getElementById('musicVol'),
+  musicStyle: document.getElementById('musicStyle'),
   musicNow: document.getElementById('musicNow'),
   musicRedo: document.getElementById('musicRedo'),
   padImages: document.getElementById('padImages'),
@@ -2548,8 +2653,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.34';
+const APP_VERSION = '1.37';
 const CHANGELOG = [
+  { v: '1.37', date: '2026-10-01', items: [
+    'Behoben: „Kurz davor" (auch in der Mond-Ansicht) warf einen aus dem Geschichtenmodus - es startete ein Live-Gespräch und würgte die Geschichte ab. In der Geschichte bremst es jetzt nur das Gerät. Auch eine getippte Nachricht und „Stopp" brechen die Geschichte nicht mehr unsauber ab.',
+    'Ganzes Paket einfügen: Figuren, Szene, Geschichte und Einstellungen (Besetzung, Erzähler, Dauer, Aufbau, Musikstil …) in einem Rutsch - unter Figuren oder mit „📋 Paket aus der Zwischenablage einfügen" direkt in der Geschichte. Danach nur noch „Geschichte schreiben".',
+    'Geschichten bis 30 Minuten.',
+    'Neue Browser starten mit Tils Einstellungen (nur technische Werte - Schlüssel, Figuren und Gedächtnis kommen weiter über die Sicherung).',
+  ]},
+  { v: '1.36', date: '2026-10-01', items: [
+    'Musik-Stile: Lounge, Elbenwald, Orient, Jazz-Bar, Gothic und Strand - jeweils ruhig, sinnlich und treibend. „Automatisch nach Szene" wählt den Stil aus dem, was gerade passiert (Elfen und Zauberwald → Elbenwald, Bar → Jazz …).',
+    'Flüstern ins Ohr: Flüstert eine Figur - in ihrer Zeile oder vom Erzähler direkt davor beschrieben -, wird die Zeile wirklich geflüstert und klingt mit Raumklang ganz nah an einem Ohr, mit wärmerem Bass wie direkt am Mund.',
+    'Fertige Figuren einfügen: Ein Block, der mit „=== FIGUR ===" beginnt, wird unter Figuren mit einem Tipp komplett übernommen - alle Felder, Eigenschaften und Haken an der richtigen Stelle. Mehrere Figuren auf einmal gehen auch.',
+  ]},
+  { v: '1.35', date: '2026-10-01', items: [
+    'Geschichte: Die Bewegung folgt jetzt der Handlung statt dem, wer gerade spricht. Beschreibt der Erzähler, was passiert, startet die Bewegung dort; zärtliche Zwischensätze bremsen nicht mehr, was gerade hart und schnell ist. Unnötige Zwischenfahrten vor jedem neuen Rhythmus fallen weg. Gilt auch für bereits gespeicherte Geschichten.',
+  ]},
   { v: '1.34', date: '2026-09-29', items: [
     'Musik im Hintergrund: eigens erzeugte Instrumentalmusik in drei Stimmungen - ruhig, sinnlich, treibend -, die der Intensität der Bewegung folgt und weich überblendet. Wird leiser, sobald jemand spricht. Jede Stimmung wird einmal erzeugt und gespeichert, ↻ erzeugt das aktuelle Stück neu.',
     'Szenenbilder in der Mond-Ansicht: Das neueste Szenenbild erscheint ganz schwach hinter der Steuerfläche und blendet beim nächsten weich über.',
@@ -3218,7 +3337,7 @@ function buildSessionExport() {
     `Sprachausgabe: ${tts}${tts === 'elevenlabs' ? ` (Modellwahl ${elevenModelChoice()}${brokenModels.size ? ', abgelehnt: ' + [...brokenModels].map(m => MODEL_NAMES[m] || m).join(', ') : ''})` : ''}; Stimme folgt Bewegung: ${voiceFollowsMotion() ? 'ja' : 'nein'}; Füll-Laute: ${fillersEnabled() ? 'ja' : 'nein'}`,
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
     `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
-    `Musik: ${musicEnabled() ? (music.mood ? MUSIC_MOODS[music.mood].label : 'an, noch nichts') + ', Lautstärke ' + Math.round(musicVolume() * 100) + ' %' : 'aus'}`,
+    `Musik: ${musicEnabled() ? (music.mood ? (MUSIC_STYLES[music.style] ? MUSIC_STYLES[music.style].label + ', ' : '') + MUSIC_MOODS[music.mood].label : 'an, noch nichts') + ', Lautstärke ' + Math.round(musicVolume() * 100) + ' %' : 'aus'}`,
     `Raumklang: ${spatialEnabled() ? 'an (Raum ' + (spatial.roomKey || 'room') + ', Audio ' + (spatial.ctx ? spatial.ctx.state : 'noch nicht gestartet') + ')' : 'aus'}`,
     `Geräusche zur Handlung: ${sfxEnabled() ? 'an' : 'aus'}; Steuerfläche: ${motionWish.active ? wishWords().sp + ', ' + wishWords().st : 'nicht benutzt'}`,
     `Geräuschkulisse: ${ambienceEnabled() ? (amb.key ? AMBIENCES[amb.key].label : 'an, noch kein Ort') + ', Lautstärke ' + Math.round(ambVolume() * 100) + ' %' : 'aus'}`,
@@ -4157,6 +4276,15 @@ const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, el
 const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2, els.motionTrackFill2, 'Gerät 2', 'd2');
 
 els.stopBtn.onclick = () => {
+  // In der Geschichte sauber über die Geschichte stoppen - sonst brachen die
+  // abgewürgten Audio-Anfragen sie mittendrin ab, ohne dass sie richtig endete.
+  if (typeof currentMode !== 'undefined' && currentMode === 'story' && (story.playing || story.paused)) {
+    stopStory();
+    setStoryStatus('Gestoppt. "Abspielen" beginnt von vorn.');
+    device1.setMotion({ texture: 'stop' });
+    device2.setMotion({ texture: 'stop' });
+    return;
+  }
   // Stopp beendet auch den Selbstlauf - vorher erzeugte er nach dem Stopp
   // einfach die nächste Fortsetzung.
   if (typeof autoPlaying !== 'undefined' && autoPlaying) { autoPlaying = false; setAutoStatus(false); }
@@ -4564,6 +4692,13 @@ setCallButton();
 function sendTypedMessage() {
   const text = els.textInput.value.trim();
   if (!text) return;
+  // Im Geschichtenmodus gibt es kein Gespräch - eine Nachricht hätte ein
+  // Live-Gespräch gestartet und dabei die laufende Geschichte abgewürgt.
+  if (typeof currentMode !== 'undefined' && currentMode === 'story') {
+    els.textInput.value = '';
+    setStoryStatus('Im Geschichtenmodus wird nicht geantwortet - zum Mitreden auf „Live" wechseln.');
+    return;
+  }
   autoPlaying = false; setAutoStatus(false); // typing also interrupts auto-continue
   // Typing mid-call is fine, but the microphone has to be closed for it -
   // otherwise the reply to the typed message gets transcribed as input.
@@ -4582,6 +4717,12 @@ els.arousalSlider.addEventListener('input', () => setArousal(parseInt(els.arousa
 els.arousalSlider.addEventListener('change', () => setArousal(parseInt(els.arousalSlider.value, 10), 'Regler'));
 els.edgeBtn.onclick = () => {
   setArousal(Math.max(arousal, 90), 'Knopf');
+  // In der Geschichte nur bremsen (Hinhalten wirkt am Gerät), keine Nachricht -
+  // vorher flog man damit aus der Geschichte.
+  if (currentMode === 'story') {
+    setStoryStatus(edgeCapActive() ? 'Kurz davor - das Gerät wird für eine Weile gebremst.' : 'Kurz davor gemeldet.');
+    return;
+  }
   els.textInput.value = 'Ich bin kurz davor!';
   sendTypedMessage();
 };
@@ -4600,6 +4741,8 @@ els.musicVol.oninput = () => {
   const a = music.players[music.players.length - 1];
   if (a) { try { a.volume = musicTargetVolume(); } catch (e) {} }
 };
+els.musicStyle.value = musicStyleSetting();
+els.musicStyle.onchange = () => { safeSet('companion_musicStyle', els.musicStyle.value); if (music.mood) setMusic(music.mood, false); };
 els.musicRedo.onclick = () => { music.blocked = false; if (music.mood) setMusic(music.mood, true); };
 els.padImages.checked = localStorage.getItem('companion_padImages') === 'true';
 els.padImages.onchange = () => safeSet('companion_padImages', els.padImages.checked ? 'true' : 'false');
@@ -5328,7 +5471,8 @@ function fetchElevenAudio(text, role, ctx) {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
   const baseSettings = voiceSettings;
   const request = () => {
-    const prefix = dynamicPrefix(modelId, level);
+    // Geflüsterte Zeilen (nicht der Erzähler) werden wirklich geflüstert.
+    const prefix = (ctx && ctx.whisper && isV3(modelId) && role !== 'narrator') ? '[whispers] ' : dynamicPrefix(modelId, level);
     return {
       text: prefix + text,
       settings: dynamicVoiceSettings(baseSettings, modelId, level),
@@ -5549,7 +5693,8 @@ function fetchElevenAudioTimed(text, role, ctx) {
       : { stability: 0.5, similarity_boost: 0.75 });
   const level = ctx && ctx.level !== undefined ? ctx.level : currentMotionLevel();
   const request = () => {
-    const prefix = dynamicPrefix(modelId, level);
+    // Geflüsterte Zeilen (nicht der Erzähler) werden wirklich geflüstert.
+    const prefix = (ctx && ctx.whisper && isV3(modelId) && role !== 'narrator') ? '[whispers] ' : dynamicPrefix(modelId, level);
     return {
       prefix,
       text: prefix + text,
@@ -5726,9 +5871,27 @@ function rolePan(role) {
   if (cast.length <= 1) return 0;
   return [-0.55, 0.55, 0.2, -0.25][idx] ?? 0;
 }
+// Geflüstert: die Zeile selbst sagt es, oder der Erzähler direkt davor
+// beschreibt, dass diese Figur flüstert.
+const WHISPER_RE = /flüster|ins ohr|an dein(em)? ohr|haucht|raunt|wispert/i;
+function markWhispers(list) {
+  const names = aiCharacters().filter(c => !c.isNarrator).map(c => String(c.name).split(' ')[0].toLowerCase());
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    if (!p || p.role === 'narrator') continue;
+    if (WHISPER_RE.test(p.text || '')) { p.whisper = true; continue; }
+    const prev = list[i - 1];
+    if (prev && prev.role === 'narrator' && WHISPER_RE.test(prev.text || '')) {
+      const first = String(p.role).split(' ')[0].toLowerCase();
+      const named = names.filter(n => String(prev.text).toLowerCase().includes(n));
+      if (!named.length || named.includes(first)) p.whisper = true;
+    }
+  }
+  return list;
+}
 function proximity(text) {
   const t = String(text || '').toLowerCase();
-  if (/flüster|ins ohr|haucht|an deinem ohr|raunt/.test(t)) return 'close';
+  if (/\[whisper|flüster|ins ohr|haucht|an deinem ohr|raunt/.test(t)) return 'close';
   if (/kniet|vor dir|zwischen deinen|am fußende|von unten/.test(t)) return 'low';
   return 'normal';
 }
@@ -5746,13 +5909,21 @@ function routeAudio(el, kind, role, text) {
     let p = kind === 'sfx' ? (Math.random() * 0.4 - 0.2) : rolePan(role);
     let g = 1, wet = 1;
     const prox = kind === 'sfx' ? 'normal' : proximity(text);
-    if (prox === 'close') { p = p === 0 ? 0.8 : Math.sign(p) * 0.85; g = 1.15; wet = 0.25; }
+    if (prox === 'close') { p = p === 0 ? 0.85 : Math.sign(p) * 0.92; g = 1.2; wet = 0.12; }
     if (prox === 'low') { g = 0.92; wet = 1.4; }
     if (role === 'narrator') { wet = 0.4; }
     pan.pan.value = Math.max(-1, Math.min(1, p));
     dry.gain.value = g;
     send.gain.value = wet;
-    src.connect(pan); pan.connect(dry); dry.connect(spatial.master);
+    if (prox === 'close') {
+      // Nahbesprechung: wärmerer Bass, als wäre der Mund direkt am Ohr
+      const warm = ctx.createBiquadFilter();
+      warm.type = 'lowshelf'; warm.frequency.value = 220; warm.gain.value = 5;
+      src.connect(warm); warm.connect(pan);
+    } else {
+      src.connect(pan);
+    }
+    pan.connect(dry); dry.connect(spatial.master);
     pan.connect(send); send.connect(spatial.wetBus);
   } catch (e) {}
 }
@@ -5772,9 +5943,9 @@ function duckNow() {
   if (m && !m.paused) fadeAudio(m, musicTargetVolume(), 350);
 }
 
-function playElevenUrl(objectUrl, onStart, text, role, starts) {
+function playElevenUrl(objectUrl, onStart, text, role, starts, whisper) {
   const audio = new Audio(objectUrl);
-  routeAudio(audio, 'voice', role, text);
+  routeAudio(audio, 'voice', role, whisper ? '[whispers]' : text);
   trackSpeaking(audio);
   currentElevenAudio = audio;
   return new Promise((resolve) => {
@@ -5836,7 +6007,7 @@ function prepareSpeech(text, role, timed, ctx) {
       }
       const url = typeof result === 'string' ? result : result.url;
       const starts = typeof result === 'string' ? null : result.starts;
-      return playElevenUrl(url, onStart, text, role, starts);
+      return playElevenUrl(url, onStart, text, role, starts, !!(ctx && ctx.whisper));
     }
   };
 }
@@ -6111,11 +6282,56 @@ function updateAmbience() {
 // erst, wenn die neue Stimmung 20 Sekunden anhält - sonst würde bei jedem
 // Tempowechsel umgeblendet.
 const MUSIC_MOODS = {
-  calm:    { label: 'ruhig',    prompt: 'Slow sensual instrumental lounge music, soft Rhodes piano, warm bass, gentle brushed drums, late night intimate mood, 70 bpm, no vocals, seamless loop' },
-  sensual: { label: 'sinnlich', prompt: 'Sensual downtempo deep house instrumental, warm pads, deep groovy bass, soft percussion, seductive late night atmosphere, 100 bpm, no vocals, seamless loop' },
-  driving: { label: 'treibend', prompt: 'Driving dark electronic instrumental, pulsing bass, steady kick drum, rising synths, hypnotic and intense, 124 bpm, no vocals, seamless loop' },
+  calm:    { label: 'ruhig' },
+  sensual: { label: 'sinnlich' },
+  driving: { label: 'treibend' },
 };
-const music = { mood: null, pending: null, pendingSince: 0, players: [], loopTimer: null, blocked: false, suspended: false };
+// Stile mit je drei Stimmungen. "auto" wählt den Stil aus Szene und Gespräch.
+const MUSIC_STYLES = {
+  lounge: { label: 'Lounge', prompts: {
+    calm: 'Slow sensual instrumental lounge music, soft Rhodes piano, warm bass, gentle brushed drums, late night intimate mood, 70 bpm, no vocals, seamless loop',
+    sensual: 'Sensual downtempo deep house instrumental, warm pads, deep groovy bass, soft percussion, seductive late night atmosphere, 100 bpm, no vocals, seamless loop',
+    driving: 'Driving dark electronic instrumental, pulsing bass, steady kick drum, rising synths, hypnotic and intense, 124 bpm, no vocals, seamless loop' } },
+  elbenwald: { label: 'Elbenwald', prompts: {
+    calm: 'Ethereal elven forest ambient music, soft celtic harp, airy wordless female humming, gentle wooden flute, shimmering chimes and distant birds, mystical and intimate, 70 bpm, instrumental, no lyrics, seamless loop',
+    sensual: 'Sensual fantasy downtempo, flowing celtic harp arpeggios over warm deep bass, soft hand drums, breathy flute, moonlit elven forest at night, magical and seductive, 95 bpm, instrumental, no lyrics, seamless loop',
+    driving: 'Hypnotic tribal fantasy music, pulsing frame drums and deep bass, soaring flute and harp, ritual dance in an ancient elven forest, primal and intense, 118 bpm, instrumental, no lyrics, seamless loop' } },
+  orient: { label: 'Orient', prompts: {
+    calm: 'Slow oriental chill music, soft oud, warm ney flute, gentle darbuka, incense-filled palace at night, sensual and calm, 70 bpm, instrumental, no vocals, seamless loop',
+    sensual: 'Sensual oriental downtempo, oud melodies over deep bass, rolling darbuka and riq, belly dance atmosphere, seductive, 98 bpm, instrumental, no vocals, seamless loop',
+    driving: 'Intense oriental electronic, fast darbuka rhythms, pulsing bass, swirling strings and oud, hypnotic desert night, 120 bpm, instrumental, no vocals, seamless loop' } },
+  jazz: { label: 'Jazz-Bar', prompts: {
+    calm: 'Smoky late night jazz, slow brushed drums, upright bass, soft piano, breathy tenor saxophone, intimate bar after midnight, 66 bpm, instrumental, seamless loop',
+    sensual: 'Sensual neo-soul jazz, warm Rhodes, walking bass, laid-back groove, sultry muted trumpet, 90 bpm, instrumental, seamless loop',
+    driving: 'Hot uptempo jazz-funk, driving bass and drums, punchy horns, energetic and sweaty, 118 bpm, instrumental, seamless loop' } },
+  gothic: { label: 'Gothic', prompts: {
+    calm: 'Dark gothic ambient, slow cello, deep organ pads, distant wordless choir, candlelit castle crypt, mysterious and seductive, 65 bpm, instrumental, no lyrics, seamless loop',
+    sensual: 'Sensual dark wave, brooding bass, cold synths, slow heavy beat, velvet and candlelight, 92 bpm, instrumental, no vocals, seamless loop',
+    driving: 'Intense dark industrial gothic, pounding drums, distorted bass, dramatic strings, relentless and primal, 122 bpm, instrumental, no vocals, seamless loop' } },
+  strand: { label: 'Strand', prompts: {
+    calm: 'Warm tropical chill out, soft acoustic guitar, gentle steel drums, ocean breeze, sunset on the beach, relaxed and sensual, 72 bpm, instrumental, no vocals, seamless loop',
+    sensual: 'Sensual tropical deep house, marimba, warm bass, light percussion, balmy night by the sea, 100 bpm, instrumental, no vocals, seamless loop',
+    driving: 'Energetic tropical house, driving kick, bright plucks, steel drums, beach party heat, 122 bpm, instrumental, no vocals, seamless loop' } },
+};
+function musicStyleSetting() { return localStorage.getItem('companion_musicStyle') || 'lounge'; }
+function currentMusicStyle() {
+  const set = musicStyleSetting();
+  if (set !== 'auto') return MUSIC_STYLES[set] ? set : 'lounge';
+  const texts = [];
+  if (typeof story !== 'undefined' && story.playing && story.chunks.length) {
+    for (let k = story.index; k >= 0 && texts.length < 6; k--) texts.push(story.chunks[k].text || '');
+  }
+  for (let i = history.length - 1; i >= 0 && texts.length < 8; i--) if (typeof history[i].content === 'string') texts.push(history[i].content);
+  texts.push(localStorage.getItem('companion_sceneDesc') || '');
+  const t = texts.join(' ').toLowerCase();
+  if (/\b(elb|elfe|elfen|feen|zauber|magie|verwunschen|zauberwald|mondlicht)/.test(t)) return 'elbenwald';
+  if (/\b(orient|harem|basar|wüste|sultan|palast|bauchtanz|hamam)/.test(t)) return 'orient';
+  if (/\b(jazz|bar|kneipe|lounge|whisky|saxophon)/.test(t)) return 'jazz';
+  if (/\b(gothic|burg|schloss|vampir|kerker|gruft|kerzen)/.test(t)) return 'gothic';
+  if (/\b(strand|meer|insel|palmen|bucht|wellen)/.test(t)) return 'strand';
+  return 'lounge';
+}
+const music = { mood: null, style: null, pending: null, pendingSince: 0, players: [], loopTimer: null, blocked: false, suspended: false };
 function musicEnabled() { return localStorage.getItem('companion_music') === 'true'; }
 function musicVolume() {
   const v = parseInt(localStorage.getItem('companion_musicVol') || '18', 10);
@@ -6130,16 +6346,17 @@ function moodForNow() {
   return lvl === 2 ? 'driving' : lvl === 1 ? 'sensual' : 'calm';
 }
 async function musicBlob(mood, fresh) {
-  const dbKey = 'music_v1_' + mood;
+  const style = currentMusicStyle();
+  const dbKey = style === 'lounge' ? 'music_v1_' + mood : 'music_v1_' + style + '_' + mood;   // Lounge behält die alten Stücke
   if (fresh) { try { await dbDelete(STORE_AUDIO, dbKey); } catch (e) {} }
   else { try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {} }
   if (music.blocked) return null;
   const apiKey = apiKeyFor('companion_elevenKey');
   if (!apiKey) return null;
-  logEvent('msg', { role: 'system', text: 'Musik wird erzeugt: ' + MUSIC_MOODS[mood].label + ' …' });
+  logEvent('msg', { role: 'system', text: 'Musik wird erzeugt: ' + MUSIC_STYLES[style].label + ', ' + MUSIC_MOODS[mood].label + ' …' });
   const res = await fetch('https://api.elevenlabs.io/v1/music', {
     method: 'POST', headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: MUSIC_MOODS[mood].prompt, music_length_ms: 90000 }),
+    body: JSON.stringify({ prompt: MUSIC_STYLES[style].prompts[mood], music_length_ms: 90000 }),
   });
   if (!res.ok) {
     let detail = '';
@@ -6153,7 +6370,7 @@ async function musicBlob(mood, fresh) {
   }
   const blob = await res.blob();
   dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
-  logEvent('msg', { role: 'system', text: 'Musik erzeugt: ' + MUSIC_MOODS[mood].label });
+  logEvent('msg', { role: 'system', text: 'Musik erzeugt: ' + MUSIC_STYLES[style].label + ', ' + MUSIC_MOODS[mood].label });
   return blob;
 }
 function stopMusicPlayers(ms) {
@@ -6179,8 +6396,10 @@ function loopMusic(url, mood) {
   if (a.readyState >= 1) schedule(); else a.addEventListener('loadedmetadata', schedule, { once: true });
 }
 async function setMusic(mood, fresh) {
-  if (mood === music.mood && !fresh) return;
+  const style = mood ? currentMusicStyle() : null;
+  if (mood === music.mood && style === music.style && !fresh) return;
   music.mood = mood;
+  music.style = style;
   stopMusicPlayers(4000);
   updateMusicUI();
   if (!mood || !musicEnabled() || isMuted) return;
@@ -6189,7 +6408,7 @@ async function setMusic(mood, fresh) {
   loopMusic(URL.createObjectURL(blob), mood);
 }
 function updateMusicUI() {
-  if (els.musicNow) els.musicNow.textContent = music.mood ? 'jetzt: ' + MUSIC_MOODS[music.mood].label : '-';
+  if (els.musicNow) els.musicNow.textContent = music.mood ? (MUSIC_STYLES[music.style] ? MUSIC_STYLES[music.style].label + ', ' : '') + MUSIC_MOODS[music.mood].label : '-';
 }
 // Alle 2 Sekunden prüfen, ob die Stimmung wechseln soll.
 setInterval(() => {
@@ -6198,6 +6417,8 @@ setInterval(() => {
   if (!inScene) return;
   const want = moodForNow();
   if (!music.mood) { setMusic(want); return; }
+  // Stilwechsel (z. B. Szene wechselt in den Elbenwald) gleich übernehmen
+  if (currentMusicStyle() !== music.style) { music.pending = null; setMusic(want); return; }
   if (want === music.mood) { music.pending = null; return; }
   if (music.pending !== want) { music.pending = want; music.pendingSince = Date.now(); return; }
   if (Date.now() - music.pendingSince > 20000) { music.pending = null; setMusic(want); }
@@ -6505,7 +6726,7 @@ function readyHoldActive() {
 }
 // Knopf als sicherer Weg, falls meine Worte nicht als Bereitschaft erkannt werden.
 function updateReadyButton() {
-  if (els.readyRow) els.readyRow.style.display = readyGate === 'asking' ? '' : 'none';
+  if (els.readyRow) els.readyRow.style.display = (readyGate === 'asking' && currentMode !== 'story') ? '' : 'none';
 }
 let forceReadyNext = false;
 function readyBlock() {
@@ -9939,6 +10160,199 @@ els.genFigureBtn.onclick = async () => {
   els.genFigureBtn.disabled = false;
   els.genFigureBtn.textContent = figureFilterMe ? '✨ Ich erzeugen' : '✨ Figur erzeugen';
 };
+// ---------- Figuren aus einem Textblock übernehmen ----------
+// Format (Feldnamen wie im Editor, Reihenfolge egal, mehrzeilige Werte erlaubt):
+// === FIGUR === / Name der Figur: … / Geschlecht: … / Aussehen: … / Eigenschaften: a; b /
+// Spricht emotional: ja / Ist eine Erzählerstimme: nein / Ergänzung in eigenen Worten: … /
+// Tonfall-Beispielzeilen: … / Länge der Antworten: kurz / Kreativität: 0,4 /
+// Tonhöhe: 1,0 / Sprechtempo: 1,0 / Stimme (ElevenLabs): … / Stimmbeschreibung: … / === ENDE ===
+const IMPORT_FIELDS = [
+  ['name', /^name( der figur)?$/],
+  ['gender', /^geschlecht$/],
+  ['appearance', /^aussehen$/],
+  ['traits', /^eigenschaften$/],
+  ['emotional', /^spricht emotional/],
+  ['isNarrator', /^(ist eine )?erzählerstimme$|^erzähler$/],
+  ['isUser', /^(ist ein )?ich$|^ich-figur$/],
+  ['notes', /^(ergänzung in eigenen worten|ergänzung|notizen|wesen)$/],
+  ['styleExamples', /^(tonfall(-| – | - )?beispielzeilen.*|beispielzeilen|tonfall)$/],
+  ['replyLength', /^länge( der antworten)?$/],
+  ['temperature', /^kreativität$/],
+  ['pitch', /^tonhöhe$/],
+  ['rate', /^sprechtempo$/],
+  ['voiceName', /^(stimme \(elevenlabs\)|elevenlabs-stimme|elevenlabs)$/],
+  ['voiceDescription', /^stimmbeschreibung/],
+  ['userStyle', /^so sollen die figuren mit mir reden$/],
+];
+function parseFigureBlocks(text) {
+  const blocks = String(text || '').split(/^\s*={2,}\s*FIGUR\s*={2,}\s*$/mi).slice(1);
+  return blocks.map(block => {
+    block = block.split(/^\s*={2,}\s*ENDE\s*={2,}\s*$/mi)[0];
+    const fields = {};
+    let cur = null;
+    block.split(/\r?\n/).forEach(line => {
+      const m = line.match(/^\s*\**\s*([A-Za-zÄÖÜäöüß()\-– ]{2,60}?)\s*\**\s*:\s*(.*)$/);
+      if (m) {
+        const key = m[1].toLowerCase().replace(/\s+/g, ' ').trim();
+        const hit = IMPORT_FIELDS.find(([, re]) => re.test(key));
+        if (hit) { cur = hit[0]; fields[cur] = m[2]; return; }
+      }
+      if (cur) fields[cur] = (fields[cur] ? fields[cur] + '\n' : '') + line;
+    });
+    Object.keys(fields).forEach(k => { fields[k] = String(fields[k]).trim(); });
+    return fields;
+  }).filter(f => f.name);
+}
+function figureFromFields(f) {
+  const yes = v => /^(ja|an|true|✓|☑|x)/i.test(String(v || '').trim());
+  const num = v => parseFloat(String(v || '').replace(',', '.'));
+  const len = String(f.replyLength || '').toLowerCase();
+  const draft = {
+    name: f.name,
+    gender: String(f.gender || '').toLowerCase(),
+    appearance: f.appearance || '',
+    traits: String(f.traits || '').replace(/[☑✓]/g, '').split(/[;\n·]/).map(t => t.replace(/^[-•*\s]+/, '').trim()).filter(Boolean),
+    notes: f.notes || '',
+    styleExamples: f.styleExamples || '',
+    emotional: f.emotional === undefined ? true : yes(f.emotional),
+    replyLength: /sehr/.test(len) ? 'sehrlang' : /lang/.test(len) ? 'lang' : /kurz/.test(len) ? 'kurz' : 'mittel',
+    temperature: num(f.temperature),
+    pitch: num(f.pitch),
+    rate: num(f.rate),
+    voiceName: f.voiceName || '',
+    voiceDescription: f.voiceDescription || '',
+    userStyle: f.userStyle || '',
+  };
+  const clean = sanitizeSingleCharacter(draft);
+  clean.isNarrator = yes(f.isNarrator);
+  clean.isUser = yes(f.isUser);
+  if (clean.isUser) { clean.userStyle = String(draft.userStyle).slice(0, 1500); clean.elevenVoice = ''; }
+  if (!clean.gender || clean.gender === 'offen') clean.gender = normalizeGender(draft.gender, clean.appearance, clean.notes);
+  return clean;
+}
+function importFigures(text) {
+  const blocks = parseFigureBlocks(text);
+  if (!blocks.length) return 'Kein Block mit „=== FIGUR ===" gefunden.';
+  const done = [], failed = [];
+  blocks.forEach(f => {
+    try {
+      const clean = figureFromFields(f);
+      const issue = ageIssue(clean);
+      if (issue) { failed.push(ageErrorText(clean, issue)); return; }
+      const existing = figureArchive.find(x => (latestVersion(x) || {}).name === clean.name);
+      if (existing) {
+        clean.figureId = existing.id;
+        storeCharacterVersion(clean, true);
+        done.push(clean.name + ' (neue Version)');
+      } else {
+        addFigureToArchive(clean);
+        done.push(clean.name);
+      }
+    } catch (e) { failed.push((f.name || 'Figur') + ': ' + e.message); }
+  });
+  saveArchive();
+  renderFigureList();
+  const noVoice = blocks.filter(f => f.voiceName).map(figureFromFields).filter(c => !c.elevenVoice && !c.isUser).map(c => c.name);
+  return (done.length ? 'Übernommen: ' + done.join(', ') + '.' : '')
+    + (noVoice.length ? ' Stimme nicht gefunden für ' + noVoice.join(', ') + ' - erst die Stimme bei ElevenLabs anlegen und die Stimmen neu laden, dann im Editor zuweisen.' : '')
+    + (failed.length ? ' Nicht übernommen: ' + failed.join(' ') : '');
+}
+// ---------- Paket: Figuren + Szene + Geschichte + Einstellungen ----------
+function packageBlock(text, name) {
+  const re = new RegExp('^\\s*={2,}\\s*' + name + '\\s*={2,}\\s*$([\\s\\S]*?)(?=^\\s*={2,}\\s*(ENDE|FIGUR|SZENE|GESCHICHTE|EINSTELLUNGEN)\\s*={2,}\\s*$|$(?![\\s\\S]))', 'mi');
+  const m = String(text || '').match(re);
+  return m ? m[1].trim() : null;
+}
+function findFigureByName(name, wantNarrator) {
+  const n = String(name || '').trim().toLowerCase();
+  if (!n) return null;
+  const all = figureArchive.filter(f => latestVersion(f));
+  return all.find(f => latestVersion(f).name.toLowerCase() === n && (wantNarrator === undefined || !!latestVersion(f).isNarrator === wantNarrator))
+    || all.find(f => latestVersion(f).name.toLowerCase() === n)
+    || all.find(f => latestVersion(f).name.toLowerCase().split(' ')[0] === n.split(' ')[0]);
+}
+function applyPackageSettings(block, report) {
+  const yes = v => /^(ja|an|true|✓|☑)/i.test(String(v).trim());
+  const lines = block.split(/\r?\n/).map(l => l.match(/^\s*([^:]+):\s*(.*)$/)).filter(Boolean);
+  lines.forEach(([, k, v]) => {
+    const key = k.trim().toLowerCase();
+    const val = v.trim();
+    if (/^dauer/.test(key)) {
+      const want = parseInt(val, 10);
+      const opts = [...els.storyLength.options].map(o => parseInt(o.value, 10));
+      const best = opts.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a, opts[0]);
+      els.storyLength.value = String(best);
+    } else if (/^aufbau/.test(key)) {
+      const p = /direkt/i.test(val) ? 'direkt' : /zü|zue/i.test(val) ? 'zuegig' : 'langsam';
+      safeSet('companion_pace_story', p); els.storyPace.value = p;
+    } else if (/^musik-?stil|^musik$/.test(key) && !/^(an|aus|ja|nein)$/i.test(val)) {
+      const st = Object.keys(MUSIC_STYLES).find(x => MUSIC_STYLES[x].label.toLowerCase() === val.toLowerCase() || x === val.toLowerCase()) || (/auto/i.test(val) ? 'auto' : null);
+      if (st) { safeSet('companion_musicStyle', st); els.musicStyle.value = st; safeSet('companion_music', 'true'); els.liveMusic.checked = true; }
+    } else {
+      const toggles = {
+        'geräuschkulisse': ['companion_ambience', els.liveAmbience], 'geräusche zur handlung': ['companion_sfx', els.liveSfx],
+        'raumklang': ['companion_spatial', els.liveSpatial], 'atmen im takt': ['companion_breath', els.liveBreath],
+        'füll-laute': ['companion_fillers', els.liveFillers], 'musik an': ['companion_music', els.liveMusic],
+        'vibration': ['companion_vibrate', els.liveVibrate], 'bilder': ['companion_storyImages', els.storyImages],
+      };
+      const t = Object.keys(toggles).find(x => key.startsWith(x));
+      if (t) { safeSet(toggles[t][0], yes(val) ? 'true' : 'false'); if (toggles[t][1]) toggles[t][1].checked = yes(val); }
+    }
+  });
+  // Besetzung und Erzähler zuletzt - sie brauchen den Geschichtenbereich
+  const cast = lines.find(([, k]) => /^besetzung/i.test(k.trim()));
+  const narr = lines.find(([, k]) => /^erzähler/i.test(k.trim()));
+  if (cast) {
+    els.storyCastMode.value = 'bestehend'; safeSet('companion_storyCastMode', 'bestehend');
+    characters = [];
+    const missing = [];
+    cast[2].split(/[,;]/).map(x => x.trim()).filter(Boolean).forEach(name => {
+      const f = findFigureByName(name, false);
+      if (f) addFigureToCast(f.id); else missing.push(name);
+    });
+    saveCharacters();
+    if (missing.length) report.push('Nicht gefunden: ' + missing.join(', ') + '.');
+  }
+  if (narr) {
+    const f = /^(kein|aus|nein)/i.test(narr[2].trim()) ? null : findFigureByName(narr[2], true);
+    safeSet('companion_narratorFigure', f ? f.id : '');
+    safeSet('companion_narratorEnabled', f ? 'true' : 'false');
+  }
+}
+function importPackage(text) {
+  const report = [];
+  if (/={2,}\s*FIGUR\s*={2,}/i.test(text)) report.push(importFigures(text));
+  const scene = packageBlock(text, 'SZENE');
+  const idea = packageBlock(text, 'GESCHICHTE');
+  const settings = packageBlock(text, 'EINSTELLUNGEN');
+  if (!scene && !idea && !settings) return report.join(' ') || 'Nichts zum Übernehmen gefunden.';
+  if (idea || settings) switchMode('story');
+  if (scene) { safeSet('companion_sceneDesc', scene.slice(0, 4000)); if (els.liveScene) els.liveScene.value = scene.slice(0, 4000); report.push('Szene eingetragen.'); }
+  if (idea) { els.storyIdea.value = idea; safeSet('companion_storyIdea', idea); report.push('Geschichte eingetragen.'); }
+  if (settings) { applyPackageSettings(settings, report); report.push('Einstellungen übernommen.'); }
+  renderStoryCast();
+  renderNarratorSelect(els.storyNarrator, 'Kein Erzähler - nur Dialog');
+  if (idea || settings) setStoryStatus(report.filter(r => !/^Übernommen: /.test(r) || true).join(' ') + ' Jetzt „Geschichte schreiben" drücken.');
+  return report.join(' ');
+}
+async function pasteAndImport(infoEl) {
+  try {
+    const t = await navigator.clipboard.readText();
+    const msg = importPackage(t);
+    if (infoEl) infoEl.textContent = msg;
+    return msg;
+  } catch (e) {
+    const msg = 'Kein Zugriff auf die Zwischenablage - bitte unter Figuren von Hand ins Feld einfügen und „Übernehmen" drücken.';
+    if (infoEl) infoEl.textContent = msg; else setStoryStatus(msg);
+  }
+}
+els.importFigureBtn.onclick = () => {
+  els.importFigureInfo.textContent = importPackage(els.figureImport.value);
+  if (/Übernommen|eingetragen/.test(els.importFigureInfo.textContent)) els.figureImport.value = '';
+};
+els.pasteFigureBtn.onclick = () => pasteAndImport(els.importFigureInfo);
+els.storyPasteBtn.onclick = () => pasteAndImport(null);
+
 // Microphone, clipboard and local network access all hang on the same
 // criterion, and when it isn't met the browser refuses silently - no prompt, no
 // error. Saying so up front saves the same half hour of confusion every time.
@@ -11078,7 +11492,7 @@ async function askEnsemble(userText, options) {
     // schneiden, bei den anderen Modellen öfter (sie bekommen den Kontext mit).
     const anyV3 = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
       && lines.some(l => resolveVoice(l.role).emotional);
-    const pieces = splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90);
+    const pieces = markWhispers(splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90));
     // Beschreibt der Erzähler die Bewegung, bevor die Figur spricht, der Marker
     // steht aber erst in der gesprochenen Zeile danach, lief das Gerät erst an,
     // als die Figur wieder sprach. Dann wird die erste Bewegung an den Anfang
@@ -11168,6 +11582,7 @@ async function askEnsemble(userText, options) {
       return item && !item.muster ? motionLevelOf(item) : currentMotionLevel();
     };
     const context = (i) => ({
+      whisper: !!(pieces[i] && pieces[i].whisper),
       level: pieceLevel(i),
       previous: pieces.slice(Math.max(0, i - 2), i).filter(x => x.role === pieces[i].role).map(x => x.text).join(' '),
       next: pieces[i + 1] && pieces[i + 1].role === pieces[i].role ? pieces[i + 1].text : '',
@@ -11761,6 +12176,38 @@ els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
 els.navVersionLine.textContent = 'Version ' + APP_VERSION;
 
 // ---- generating the text ----
+// Geschichte: Die Bewegung soll der Handlung folgen, nicht dem, wer spricht.
+// In einer gespeicherten Geschichte standen alle Marker in den gesprochenen
+// Zeilen und keiner beim Erzähler - Élodies zärtliche Sätze bremsten das Gerät,
+// während der Erzähler gerade Katjas härteste Stöße beschrieb.
+function fixStoryCues(chunks) {
+  let moved = 0, trimmed = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    const c = chunks[i];
+    if (c.role !== 'narrator' || (c.cues && c.cues.length) || !NARRATION_MOVES.test(c.text || '')) continue;
+    for (let j = i + 1; j <= Math.min(chunks.length - 1, i + 2); j++) {
+      const d = chunks[j];
+      if (d.role === 'narrator') break;
+      if (d.cues && d.cues.length && !NARRATION_MOVES.test(d.text || '')) {
+        c.cues = [Object.assign({}, d.cues[0], { at: 0 })];
+        d.cues = d.cues.slice(1);
+        moved++;
+        break;
+      }
+    }
+  }
+  // "zu X in 2s" vor jedem Pendeln unterbricht den Rhythmus - weglassen,
+  // wenn das Ziel ohnehin im neuen Bereich liegt.
+  chunks.forEach(c => (c.cues || []).forEach(q => {
+    const steps = q.cue && q.cue.kind === 'seq' ? q.cue.steps : null;
+    if (steps && steps.length >= 2 && steps[0].type === 'move' && steps[1].type === 'osc'
+        && steps[0].to >= Math.min(steps[1].low, steps[1].high) && steps[0].to <= Math.max(steps[1].low, steps[1].high)) {
+      steps.shift(); trimmed++;
+    }
+  }));
+  return { moved, trimmed };
+}
+
 function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, previousTail) {
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
   const narratorOn = localStorage.getItem('companion_narratorEnabled') === 'true';
@@ -11811,7 +12258,7 @@ Vorgabe von mir: ${idea}
 
 ${arc}
 
-Umfang: ungefähr ${wordsPerSection} Wörter. Das ist wichtig - deutlich kürzer oder länger passt nicht zur geplanten Dauer.${inlineMotionBlock() ? inlineMotionBlock() + '\n\nDie Marker zählen nicht zum Umfang.' : ''}
+Umfang: ungefähr ${wordsPerSection} Wörter. Das ist wichtig - deutlich kürzer oder länger passt nicht zur geplanten Dauer.${inlineMotionBlock() ? inlineMotionBlock() + '\n\nDie Marker zählen nicht zum Umfang.\n\nFÜR DIE GESCHICHTE GILT ZUSÄTZLICH: Die Bewegung folgt der HANDLUNG, nicht dem, der gerade spricht. Marker gehören in die Erzählzeilen, die beschreiben, was mit ihm geschieht. Gesprochene Zeilen bekommen nur dann einen Marker, wenn die Sprecherin im selben Moment etwas Neues tut. Eine zärtliche Zeile einer Figur macht die Bewegung nicht langsamer, wenn eine andere gerade hart und schnell ist. Setze "zu X in Ns" nur, wenn die Handlung an eine andere Stelle wechselt - nicht vor jedem Marker.' : ''}
 
 ${storyPlayBlock()}
 
@@ -12198,6 +12645,8 @@ els.genStoryBtn.onclick = async () => {
     const text = await generateStoryText(provider, idea, minutes);
     const segments = parseEnsembleText(text);
     story.chunks = splitSegmentsIntoPieces(segments, 220).map(p => ({ role: p.role, text: p.text, phases: {}, cues: p.cues || [] }));
+    markWhispers(story.chunks);
+    { const f = fixStoryCues(story.chunks); if (f.moved || f.trimmed) logEvent('msg', { role: 'system', text: `Geschichte: ${f.moved} Bewegungen an Erzählzeilen vorgezogen, ${f.trimmed} unnötige Zwischenfahrten entfernt.` }); }
     story.index = 0;
     storyImageRun++;   // Bilder einer früheren Geschichte gelten nicht mehr
     renderStory();
@@ -12272,11 +12721,11 @@ function estimateSpeechMs(text, role) {
   return Math.max(800, (words / (STORY_WORDS_PER_MINUTE * rate)) * 60000);
 }
 
-async function prepareTimedSpeech(text, role, timed) {
+async function prepareTimedSpeech(text, role, timed, ctx) {
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
   if (source === 'elevenlabs') {
     let starts = null;
-    let pending = timed ? fetchElevenAudioTimed(text, role) : null;
+    let pending = timed ? fetchElevenAudioTimed(text, role, ctx) : null;
     if (pending) {
       try {
         const r = await pending;
@@ -12287,7 +12736,7 @@ async function prepareTimedSpeech(text, role, timed) {
         pending = null;
       }
     }
-    if (!pending) pending = fetchElevenAudio(text, role);
+    if (!pending) pending = fetchElevenAudio(text, role, ctx);
     if (pending) {
       try {
         const url = await pending;
@@ -12303,7 +12752,7 @@ async function prepareTimedSpeech(text, role, timed) {
           durationMs,
           starts,
           play: () => new Promise((resolve) => {
-            routeAudio(audio, 'voice', role, text);
+            routeAudio(audio, 'voice', role, (ctx && ctx.whisper) ? '[whispers]' : text);
             trackSpeaking(audio);
             story.audio = audio;
             story.resolveCurrent = resolve;
@@ -12396,7 +12845,7 @@ async function runStory() {
   const myGen = ++story.gen;
   // The next chunk's audio is fetched while the current one plays, so the
   // transition between chunks has no gap in it.
-  const prepChunk = (c) => prepareTimedSpeech(c.text, c.role, hasMidCues(c.cues));
+  const prepChunk = (c) => prepareTimedSpeech(c.text, c.role, hasMidCues(c.cues), { whisper: !!c.whisper });
   let upcoming = await prepChunk(story.chunks[story.index]);
   if (story.gen !== myGen) return;   // inzwischen woanders hingesprungen
 
@@ -12634,7 +13083,9 @@ els.loadStoryBtn.onclick = async () => {
     if (!entry || !Array.isArray(entry.chunks)) throw new Error('Eintrag unlesbar.');
     stopStory();
     storyImageRun++;
-    story.chunks = entry.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases || {}, cues: c.cues || [] }, c.image ? { image: c.image } : {}));
+    story.chunks = entry.chunks.map(c => Object.assign({ role: c.role, text: c.text, phases: c.phases || {}, cues: (c.cues || []).map(q => JSON.parse(JSON.stringify(q))) }, c.image ? { image: c.image } : {}));
+    fixStoryCues(story.chunks);   // auch ältere, gespeicherte Geschichten profitieren
+    markWhispers(story.chunks);
     story.index = 0;
     renderStory();
     els.playStoryBtn.disabled = false;
