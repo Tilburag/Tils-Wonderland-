@@ -1086,6 +1086,13 @@
           <option value="jazz">Jazz-Bar</option>
           <option value="gothic">Gothic</option>
           <option value="strand">Strand</option>
+          <option value="techno">Berlin-Techno</option>
+          <option value="kino">Kino-Epos</option>
+          <option value="spa">Wellness</option>
+          <option value="latin">Latin</option>
+          <option value="rnb">R&amp;B</option>
+          <option value="klassik">Klassik</option>
+          <option value="synthwave">Synthwave</option>
         </select>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:2px 0 0 0;">
@@ -1104,6 +1111,8 @@
         <span style="font-size:13px;">Im Live-Gespräch automatisch ein neues Bild</span>
         <select id="padAutoImage" style="flex:1;">
           <option value="0">nie</option>
+          <option value="0.5">alle 30 Sekunden</option>
+          <option value="1">jede Minute</option>
           <option value="2">alle 2 Minuten</option>
           <option value="3">alle 3 Minuten</option>
           <option value="5">alle 5 Minuten</option>
@@ -2664,8 +2673,18 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.38';
+const APP_VERSION = '1.40';
 const CHANGELOG = [
+  { v: '1.40', date: '2026-10-02', items: [
+    'Bewegung folgt der Erzählung auch ohne Marker: Beschreibt der Erzähler „sie verharrt an der Spitze", „beschleunigt", „quälend langsam" oder „über die ganze Länge", passt die App die laufende Bewegung genau in diesem Satz an - im Gespräch und in der Geschichte. Vorher lief oft eine einzige Bewegung über eine ganze, lange Antwort.',
+  ]},
+  { v: '1.39', date: '2026-10-02', items: [
+    'Bilder: Format auf 832×1216 umgestellt (bewährtes Hochformat der Bildmodelle) - bei 912×1280 kamen teils nur Streifenmuster. Bilder, die der Anbieter unkenntlich macht, werden nicht mehr angezeigt.',
+    'Automatische Bilder in der Mond-Ansicht jetzt auch alle 30 Sekunden oder jede Minute.',
+    'Sieben neue Musik-Stile: Berlin-Techno, Kino-Epos, Wellness, Latin, R&B, Klassik, Synthwave - auch automatisch nach Szene.',
+    'Umgebungswünsche: Fenster oder Dach öffnen, Vögel hereinlassen und Ähnliches setzen die Figuren jetzt in der Szene um, statt es abzutun. Dazu neue Geräusche „Fenster" und „Vögel"; Vogelgezwitscher bringt auch die Wald-Kulisse.',
+    '„Mach die Musik leiser/lauter/aus" und „Regen leiser" wirken sofort, und eine Figur nimmt es beiläufig auf.',
+  ]},
   { v: '1.38', date: '2026-10-01', items: [
     'Alle Bilder im Hochformat 5:7 (Szenenbilder, Geschichtenbilder, Porträts) - sie füllen den Handybildschirm, gerade in der Mond-Ansicht. Die Bildbeschreibung wird dafür vertikal komponiert.',
     'Mond-Ansicht im Live-Gespräch: auf Wunsch alle 2, 3 oder 5 Minuten automatisch ein neues Szenenbild - nur wenn seit dem letzten Bild etwas passiert ist.',
@@ -4809,7 +4828,8 @@ function setPadImage(src) {
 // nur wenn seit dem letzten Bild neue Antworten gekommen sind.
 const padAuto = { busy: false, last: 0, historyLen: 0 };
 setInterval(async () => {
-  const minutes = parseInt(localStorage.getItem('companion_padAutoImage') || '0', 10);
+  // (alle 5 s prüfen, damit auch 30 Sekunden klappen)
+  const minutes = parseFloat(localStorage.getItem('companion_padAutoImage') || '0');
   if (!minutes || padAuto.busy) return;
   if (!els.padOverlay || els.padOverlay.style.display === 'none') return;
   if (currentMode !== 'live' || history.length < 2) return;
@@ -4827,7 +4847,7 @@ setInterval(async () => {
   } catch (e) {
     logEvent('msg', { role: 'system', text: 'Automatisches Bild fehlgeschlagen: ' + (e && e.message ? e.message : e) });
   } finally { padAuto.busy = false; }
-}, 10000);
+}, 5000);
 let padWakeLock = null;
 let padPulseTimer = null;
 function padPlaceDot() {
@@ -6196,7 +6216,7 @@ function introPhase(step) {
 const AMBIENCES = {
   bar:    { label: 'Bar',          re: /\b(bar|pub|kneipe|lounge|café|cafe|restaurant|theke|tresen)\b/g, prompt: 'Cozy bar ambience, quiet unintelligible background chatter, soft clinking glasses, distant muffled music' },
   club:   { label: 'Club',         re: /\b(club|disco|tanzfläche)\b/g, prompt: 'Muffled nightclub bass from the next room, low crowd murmur' },
-  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum|draußen|im freien|terrasse)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
+  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum|draußen|im freien|terrasse|vögel|vogelgezwitscher|zwitscher\w*)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
   lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
   rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
   fire:   { label: 'Kaminfeuer',   re: /\b(kamin\w*|lagerfeuer|knister\w*|ofen|feuer (?:an|brennt|prasselt|lodert))\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
@@ -6351,6 +6371,34 @@ const MUSIC_STYLES = {
     calm: 'Dark gothic ambient, slow cello, deep organ pads, distant wordless choir, candlelit castle crypt, mysterious and seductive, 65 bpm, instrumental, no lyrics, seamless loop',
     sensual: 'Sensual dark wave, brooding bass, cold synths, slow heavy beat, velvet and candlelight, 92 bpm, instrumental, no vocals, seamless loop',
     driving: 'Intense dark industrial gothic, pounding drums, distorted bass, dramatic strings, relentless and primal, 122 bpm, instrumental, no vocals, seamless loop' } },
+  techno: { label: 'Berlin-Techno', prompts: {
+    calm: 'Minimal deep techno intro, soft hypnotic kick, warm sub bass, dark atmospheric pads, Berlin club at dawn, 110 bpm, instrumental, no vocals, seamless loop',
+    sensual: 'Hypnotic dark Berlin techno, rolling bassline, crisp hi-hats, sensual and steamy warehouse club mood, 124 bpm, instrumental, no vocals, seamless loop',
+    driving: 'Hard driving industrial techno, pounding four-on-the-floor kick, distorted rumble bass, relentless and raw, Berghain peak time, 136 bpm, instrumental, no vocals, seamless loop' } },
+  kino: { label: 'Kino-Epos', prompts: {
+    calm: 'Intimate cinematic score, soft piano and warm strings, slow and emotional, romantic tension, 65 bpm, instrumental, seamless loop',
+    sensual: 'Sensual cinematic score, swelling strings over pulsing low synths, building romantic tension, 90 bpm, instrumental, seamless loop',
+    driving: 'Epic cinematic climax, thundering drums, soaring strings and brass, overwhelming intensity, 120 bpm, instrumental, seamless loop' } },
+  spa: { label: 'Wellness', prompts: {
+    calm: 'Calm spa ambient music, soft singing bowls, gentle flowing water, warm pads, deeply relaxing massage room, 60 bpm, instrumental, seamless loop',
+    sensual: 'Sensual spa downtempo, warm pads, soft handpan, gentle heartbeat pulse, oil massage atmosphere, 80 bpm, instrumental, seamless loop',
+    driving: 'Warm tribal ambient, deep hand drums, rising pads, sauna heat and steam, 105 bpm, instrumental, seamless loop' } },
+  latin: { label: 'Latin', prompts: {
+    calm: 'Slow romantic bossa nova, nylon guitar, soft brushes, warm night in Rio, 70 bpm, instrumental, no vocals, seamless loop',
+    sensual: 'Sensual tango, bandoneon, passionate violin, staccato piano, dark ballroom, 100 bpm, instrumental, seamless loop',
+    driving: 'Fiery latin percussion, fast congas and timbales, driving bass, hot salsa night, 125 bpm, instrumental, no vocals, seamless loop' } },
+  rnb: { label: 'R&B', prompts: {
+    calm: 'Slow late night R&B instrumental, mellow Rhodes, deep bass, soft snaps, bedroom mood, 68 bpm, no vocals, seamless loop',
+    sensual: 'Sensual slow jam R&B instrumental, silky synths, deep 808 bass, laid-back groove, seductive, 85 bpm, no vocals, seamless loop',
+    driving: 'Intense dark trap R&B instrumental, hard 808s, fast hi-hats, moody synths, 140 bpm half-time feel, no vocals, seamless loop' } },
+  klassik: { label: 'Klassik', prompts: {
+    calm: 'Romantic classical chamber music, slow cello and piano, candlelit salon, tender and longing, 60 bpm, instrumental, seamless loop',
+    sensual: 'Passionate classical string quartet, sensual flowing melody, rising tension, 88 bpm, instrumental, seamless loop',
+    driving: 'Dramatic classical orchestra, furious strings, pounding timpani, wild and passionate allegro, 132 bpm, instrumental, seamless loop' } },
+  synthwave: { label: 'Synthwave', prompts: {
+    calm: 'Dreamy retro synthwave, warm analog pads, slow drum machine, neon night drive, 80 bpm, instrumental, no vocals, seamless loop',
+    sensual: 'Sensual darksynth, pulsing arpeggios, deep analog bass, neon-lit bedroom, 100 bpm, instrumental, no vocals, seamless loop',
+    driving: 'Driving outrun synthwave, fast arpeggios, punchy gated drums, high speed neon chase, 128 bpm, instrumental, no vocals, seamless loop' } },
   strand: { label: 'Strand', prompts: {
     calm: 'Warm tropical chill out, soft acoustic guitar, gentle steel drums, ocean breeze, sunset on the beach, relaxed and sensual, 72 bpm, instrumental, no vocals, seamless loop',
     sensual: 'Sensual tropical deep house, marimba, warm bass, light percussion, balmy night by the sea, 100 bpm, instrumental, no vocals, seamless loop',
@@ -6369,6 +6417,11 @@ function currentMusicStyle() {
   const t = texts.join(' ').toLowerCase();
   if (/\b(elb|elfe|elfen|feen|zauber|magie|verwunschen|zauberwald|mondlicht)/.test(t)) return 'elbenwald';
   if (/\b(orient|harem|basar|wüste|sultan|palast|bauchtanz|hamam)/.test(t)) return 'orient';
+  if (/\b(techno|berghain|kitkat|rave|tanzfläche|darkroom)/.test(t)) return 'techno';
+  if (/\b(spa|massage|sauna|wellness|massageöl|whirlpool)/.test(t)) return 'spa';
+  if (/\b(tango|salsa|rio|kuba|latino|bossa)/.test(t)) return 'latin';
+  if (/\b(neon|retro|achtziger|cyber)/.test(t)) return 'synthwave';
+  if (/\b(salon|kammermusik|cello|ballsaal|oper)/.test(t)) return 'klassik';
   if (/\b(jazz|bar|kneipe|lounge|whisky|saxophon)/.test(t)) return 'jazz';
   if (/\b(gothic|burg|schloss|vampir|kerker|gruft|kerzen)/.test(t)) return 'gothic';
   if (/\b(strand|meer|insel|palmen|bucht|wellen)/.test(t)) return 'strand';
@@ -6480,6 +6533,8 @@ const SFX_EVENTS = [
   { key: 'door',    label: 'Tür',              re: /\b(tür|türe)\b.{0,30}\b(öffne\w*|auf|zu|schließ\w*|fällt ins schloss)\b/, prompt: 'A wooden door opening slowly with a soft creak, then closing', dur: 3 },
   { key: 'clothes', label: 'Kleidung',         re: /\b(auszieh\w*|zieh\w* .{0,25}\baus\b|reißverschluss|streif\w* .{0,25}(stoff|kleid|hemd|bluse|hose|slip|bh)|knöpf\w* .{0,15}auf)\b/, prompt: 'Clothes rustling and a zipper being pulled down slowly', dur: 3 },
   { key: 'glass',   label: 'Gläser',           re: /(anstoß\w*|stoß\w* .{0,25}\ban\b|gläser\w*|\bglas\b|\bprost\b|schenk\w* .{0,15}\bein\b|einschenk\w*)/,          prompt: 'Two wine glasses clinking together, then wine being poured', dur: 3 },
+  { key: 'window',  label: 'Fenster',          re: /\b(fenster|dach|dachluke|terrassentür)\b.{0,30}\b(öffne\w*|auf|aufgestoßen|aufreiß\w*)\b|öffne\w* .{0,20}\b(fenster|dach)\b/, prompt: 'A large window being opened, then fresh outside air and distant birdsong flowing in', dur: 4 },
+  { key: 'birds',   label: 'Vögel',            re: /\b(vögel|vogel|zwitscher\w*|spatzen|amseln|flattern\w*)\b/, prompt: 'A flock of small birds fluttering in through an open window, wings flapping, lively chirping and singing close by', dur: 6 },
   { key: 'hand',    label: 'Hand',             re: /(\b(hand|hände|händen|finger\w*)\b.{0,40}(umschließ|umfass|reib|streich|pump|gleit|massier|wichs)|\bwichs\w*|runterhol\w*|handjob)/, prompt: 'Rhythmic soft skin rubbing sounds of a hand stroking, slightly wet and intimate', dur: 4 },
   { key: 'kiss',    label: 'Kuss',             re: /\b(küss\w*|kuss|knutsch\w*)\b/,                                prompt: 'Soft intimate kissing sounds, lips gently smacking', dur: 3 },
   { key: 'steps',   label: 'Schritte',         re: /\b(schritte|schreitet|kommt (herein|näher|zu dir)|geht (zu|auf|hinüber)|barfuß über)\b/, prompt: 'Slow footsteps on a wooden floor, then stopping', dur: 3 },
@@ -6725,6 +6780,45 @@ function arousalFromText(text) {
   if (/\b(ich komme|ich komm)\b(?! gleich)/.test(t) && !/gleich|fast|kurz/.test(t)) setArousal(100, 'gesagt');
   else if (/kurz davor|gleich komm|komm gleich|fast so ?weit|bin fast|nicht mehr lange/.test(t)) setArousal(Math.max(arousal, 90), 'gesagt');
 }
+// Wünsche an die Umgebung aus dem, was Til sagt: Musik/Kulisse lauter, leiser,
+// aus, an. Die App setzt es sofort um, die Figuren nehmen es beiläufig auf.
+let envNote = '';
+function applyEnvironmentWishes(text) {
+  const t = String(text || '').toLowerCase();
+  const notes = [];
+  const adjust = (key, label, factor) => {
+    const cur = parseInt(localStorage.getItem(key) || '20', 10);
+    const next = Math.max(5, Math.min(key === 'companion_musicVol' ? 50 : 80, Math.round(cur * factor)));
+    safeSet(key, String(next));
+    notes.push(`${label} ${factor < 1 ? 'leiser' : 'lauter'} gestellt`);
+    return next;
+  };
+  if (/musik\b.{0,25}\b(leiser|ruhiger|runter)/.test(t) || /\b(leiser|runter)\b.{0,15}\bmusik/.test(t)) {
+    const v = adjust('companion_musicVol', 'Musik', 0.55); if (els.musicVol) els.musicVol.value = v;
+  } else if (/musik\b.{0,25}\b(lauter|aufdrehen|hoch)/.test(t) || /\b(lauter|aufdrehen)\b.{0,15}\bmusik/.test(t)) {
+    const v = adjust('companion_musicVol', 'Musik', 1.6); if (els.musicVol) els.musicVol.value = v;
+  } else if (/musik\b.{0,15}\b(aus|stopp|weg)\b/.test(t)) {
+    safeSet('companion_music', 'false'); if (els.liveMusic) els.liveMusic.checked = false; setMusic(null); notes.push('Musik ausgeschaltet');
+  } else if (/musik\b.{0,15}\b(an|ein)\b|mach (mal )?musik/.test(t)) {
+    safeSet('companion_music', 'true'); if (els.liveMusic) els.liveMusic.checked = true; music.suspended = false; notes.push('Musik eingeschaltet');
+  }
+  if (/(regen|geräusch\w*|kulisse|hintergrund)\b.{0,20}\b(leiser|ruhiger)/.test(t)) {
+    const v = adjust('companion_ambVol', 'Geräuschkulisse', 0.55); if (els.ambVol) els.ambVol.value = v;
+  } else if (/(regen|geräusch\w*|kulisse|hintergrund)\b.{0,20}\b(lauter)/.test(t)) {
+    const v = adjust('companion_ambVol', 'Geräuschkulisse', 1.6); if (els.ambVol) els.ambVol.value = v;
+  }
+  if (notes.length) {
+    duckNow();
+    const a = music.players[music.players.length - 1];
+    if (a) { try { a.volume = musicTargetVolume(); } catch (e) {} }
+    logEvent('msg', { role: 'system', text: 'Umgebung: ' + notes.join(', ') + '.' });
+  }
+  envNote = notes.length ? notes.join(', ') : '';
+}
+function environmentBlock() {
+  return `\n\nWÜNSCHE AN DIE UMGEBUNG: Bittet Til um etwas an der Umgebung - ein Fenster oder Dach öffnen, Vögel hereinlassen, Licht dimmen, Musik leiser oder lauter, Kerzen anzünden -, dann setzen die Figuren das in der Szene sofort um und beschreiben es, auch wenn es fantasievoll ist. Sie spielen mit, statt es abzutun.${envNote ? ' Gerade eben: ' + envNote + ' - eine Figur nimmt das beiläufig auf.' : ''}`;
+}
+
 function arousalBlock() {
   if (!arousalEnabled()) return '';
   let t = `\n\nMEINE NÄHE ZUM HÖHEPUNKT (live von mir gemeldet): ${arousal}/100, ${arousalTrend()}. Höchster Wert bisher: ${arousalPeak}. Das ist die Wahrheit über meinen Zustand - richte Tempo und Intensität danach, sprich es aber nicht als Zahl aus.`;
@@ -8444,9 +8538,10 @@ async function makeSceneImage(momentText, castOverride) {
         // aus Gewohnheit doch noch ein Oberteil malen.
         + (/\b(fully naked|completely naked|nude|naked)\b/i.test(prompt) ? ', clothes, clothing, shirt, top, bra, leggings, pants'
           : /\btopless\b/i.test(prompt) ? ', shirt, top, bra' : ''),
-      // Hochformat 5:7 - füllt den Handybildschirm, auch in der Mond-Ansicht
-      width: 912,
-      height: 1280,
+      // Hochformat nahe 5:7. 832x1216 ist ein Format, auf das die gängigen
+      // Bildmodelle trainiert sind - bei 912x1280 kamen teils nur Streifenmuster.
+      width: 832,
+      height: 1216,
       format: 'webp',
       safe_mode: false,
       hide_watermark: true,
@@ -8457,10 +8552,18 @@ async function makeSceneImage(momentText, castOverride) {
     try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
     throw new Error(res.status + (detail ? ': ' + detail : ''));
   }
+  // Venice kennzeichnet Bilder, die es unkenntlich gemacht hat - die zeigen
+  // nur verwaschene Muster und werden nicht angezeigt.
+  const blurred = res.headers.get('x-venice-is-blurred') === 'true';
+  const violation = res.headers.get('x-venice-is-content-violation') === 'true';
   const body = await res.json();
   const base64 = (Array.isArray(body.images) && body.images[0])
     || (body.data && body.data[0] && body.data[0].b64_json) || '';
   if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
+  if (blurred || violation) {
+    logEvent('msg', { role: 'system', text: `Szenenbild verworfen (${violation ? 'Inhaltsfilter' : 'unkenntlich gemacht'}): ${prompt.slice(0, 300)}` });
+    throw new Error('Der Anbieter hat das Bild unkenntlich gemacht - es wird nicht angezeigt.');
+  }
   logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
   try { setPadImage('data:image/webp;base64,' + base64); } catch (e) {}
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
@@ -9027,8 +9130,8 @@ async function generateCharacterImage(c, button) {
         seed: figureSeed(c),
         negative_prompt: negativeFor(species.nonHuman, colors,
           species.color && species.hair && species.hair !== species.color ? species.color : null),
-        width: 912,
-        height: 1280,
+        width: 832,
+        height: 1216,
         format: 'webp',
         safe_mode: false,
         hide_watermark: true,
@@ -11095,6 +11198,49 @@ function exampleName() {
   return c ? c.name : 'Figur';
 }
 
+// Bewegung aus der Erzählung ableiten: Beschreibt der Erzähler eine Änderung
+// (verharrt, schneller, langsamer, ganze Länge, nur an der Spitze), es steht
+// aber kein Marker dabei, passt die App die laufende Bewegung selbst an.
+// Vorher lief oft eine einzige Bewegung 80 Sekunden lang, während der
+// Erzähler drei verschiedene beschrieb.
+function narrationMotion(text) {
+  const t = String(text || '').toLowerCase();
+  const st = device1 && device1.getState ? device1.getState() : null;
+  if (!st || st.texture === 'stop') return null;
+  let low = st.low ?? 300, high = st.high ?? 700, bpm = st.bpm || 30, texture = st.texture || 'smooth';
+  const mid = (low + high) / 2;
+  if (/(verharr|hält (ihn |sie |es )?(dort |da )?(inne|still|fest)|zur ruhe|unbeweglich|still ?hält|inne ?hält|hält abrupt)/.test(t)) {
+    const pos = /(oben|spitze|kante|eichel)/.test(t) ? 940 : /(ansatz|unten|basis|wurzel)/.test(t) ? 60 : Math.round(mid);
+    return { req: { low: pos, high: pos, bpm: 0, texture: 'hold' }, label: 'verharrt' };
+  }
+  const changed = [];
+  if (/(ganze[nr]? länge|bis zum ansatz|von der spitze bis|ganz hinunter|bis ganz nach (unten|oben)|lange[n]?,? (weiche[n]? |fließende[n]? )?(züge?|hübe|bahnen)|unendlich lange[nm]? zug)/.test(t)) { low = 30; high = 970; changed.push('ganze Länge'); }
+  else if (/(nur (noch )?(an|um) der spitze|an der spitze|über die spitze|eichel)/.test(t)) { low = 680; high = 980; changed.push('Spitze'); }
+  else if (/(am ansatz|ganz unten|an der basis|nur noch ganz unten|am schaft unten)/.test(t)) { low = 20; high = 320; changed.push('unten'); }
+  if (/(beschleunig|schneller|zügiger|rasend|heftiger|härter|wilder|schnelle[n]?,? (kurze[n]? )?(stöße|hübe|bahnen)|harte[n]?,? schnelle[n]? stöße)/.test(t)) { bpm = Math.min(200, Math.round(bpm * 1.4 + 10)); changed.push('schneller'); }
+  else if (/(verlangsam|langsamer|quälend langsam|fast unmerklich|ganz langsam|behutsam|schwebend)/.test(t)) { bpm = Math.max(12, Math.round(bpm * 0.6)); changed.push('langsamer'); }
+  if (!changed.length) return null;
+  if (texture === 'hold' || texture === 'tremor' || !(bpm > 0)) { texture = 'smooth'; bpm = Math.max(bpm, 30); }
+  return { req: { low, high, bpm, texture }, label: changed.join(', ') };
+}
+let narrationHoldTimer = null;
+function applyNarrationMotion(text) {
+  const nm = narrationMotion(text);
+  if (!nm) return;
+  const before = device1.getState ? Object.assign({}, device1.getState()) : null;
+  device1.setMotion(nm.req);
+  clearTimeout(narrationHoldTimer);
+  // Ein "Verharren" ist ein Moment, kein Dauerzustand: nach 5 s geht es
+  // weiter wie vorher, falls bis dahin nichts Neues kam.
+  if (nm.req.texture === 'hold' && before && before.texture !== 'hold' && before.texture !== 'stop') {
+    narrationHoldTimer = setTimeout(() => {
+      const now = device1.getState();
+      if (now && now.texture === 'hold' && now.low === nm.req.low) device1.setMotion(before);
+    }, 5000);
+  }
+  logEvent('msg', { role: 'system', text: 'Bewegung aus der Erzählung: ' + nm.label + '.' });
+}
+
 // Erzählzeilen, die eine Bewegung am Gerät beschreiben.
 const NARRATION_MOVES = /(stroker|hülse|gleit|\bhub|\bhüb|beweg|fährt|führt|schiebt|zieht|drückt|reibt|pumpt|rhythm|tempo|stöß|stoß|reitet|nimmt ihn|umschließt)/i;
 
@@ -11299,7 +11445,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}${timeBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}${timeBlock()}${environmentBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -11428,6 +11574,7 @@ async function askEnsemble(userText, options) {
   // Nur ein ausdrücklicher Abbruch (options.interrupt, etwa Dazwischenreden mit
   // Kopfhörern) schneidet ab.
   if (typeof music !== 'undefined') music.suspended = false;
+  if (!(options && options.silent)) { try { applyEnvironmentWishes(userText); } catch (e) {} } else envNote = '';
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
   const myEpoch = chainEpoch;
@@ -11642,6 +11789,9 @@ async function askEnsemble(userText, options) {
       if (playbackGeneration !== generation) break; // user pressed stop
       if (i === pieces.length - 1) nearEnd();
       if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
+      if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
+        try { applyNarrationMotion(pieces[i].text); } catch (e) {}
+      }
       if (!autoPlaying && silent) break;
       playIndex = i;
       const current = prep(i);
@@ -12907,6 +13057,9 @@ async function runStory() {
     setStoryProgress((i + 1) / story.chunks.length);
     schedulePhases(chunk, current.durationMs);
     try { storySoundscape(i, current.durationMs, myGen); } catch (e) {}
+    if (chunk.role === 'narrator' && !(chunk.cues && chunk.cues.length) && !Object.keys(chunk.phases || {}).some(k => (chunk.phases[k] || []).length)) {
+      try { applyNarrationMotion(chunk.text); } catch (e) {}
+    }
     let cueCtl = null;
     if (chunk.cues && chunk.cues.length) {
       current.timeline = makeTimeline(chunk.text, current.durationMs, current.starts);
