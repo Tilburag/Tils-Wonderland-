@@ -361,7 +361,7 @@
   }
   .figure-row .thumb {
     width: 54px; height: 54px; border-radius: 50%;
-    object-fit: cover; flex-shrink: 0;
+    object-fit: cover; object-position: 50% 18%; flex-shrink: 0;
     background: var(--bg-panel-raised); border: 1px solid var(--line);
     display: flex; align-items: center; justify-content: center;
     font-size: 21px; color: var(--text-dim);
@@ -383,7 +383,7 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    object-fit: cover;
+    object-fit: cover; object-position: 50% 18%;
     background: var(--bg-panel);
     border: 1px solid var(--line);
     flex-shrink: 0;
@@ -399,7 +399,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    object-fit: cover;
+    object-fit: cover; object-position: 50% 18%;
     vertical-align: middle;
     margin-right: 6px;
   }
@@ -1100,6 +1100,16 @@
         <span style="font-size:13.5px; color:var(--text);">Szenenbilder in der Mond-Ansicht</span>
       </label>
       <p class="hint">Das jeweils neueste Szenenbild erscheint ganz schwach im Hintergrund der dunklen Ansicht und blendet beim nächsten weich über.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:2px 0 0 0;">
+        <span style="font-size:13px;">Im Live-Gespräch automatisch ein neues Bild</span>
+        <select id="padAutoImage" style="flex:1;">
+          <option value="0">nie</option>
+          <option value="2">alle 2 Minuten</option>
+          <option value="3">alle 3 Minuten</option>
+          <option value="5">alle 5 Minuten</option>
+        </select>
+      </div>
+      <p class="hint">Nur solange die Mond-Ansicht offen ist und seit dem letzten Bild etwas passiert ist. Jedes Bild kostet bei Venice wie ein Klick auf „Bild".</p>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveSpatial" style="width:auto;">
@@ -1613,6 +1623,7 @@ const els = {
   musicNow: document.getElementById('musicNow'),
   musicRedo: document.getElementById('musicRedo'),
   padImages: document.getElementById('padImages'),
+  padAutoImage: document.getElementById('padAutoImage'),
   padImgA: document.getElementById('padImgA'),
   padImgB: document.getElementById('padImgB'),
   ambVol: document.getElementById('ambVol'),
@@ -2653,8 +2664,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.37';
+const APP_VERSION = '1.38';
 const CHANGELOG = [
+  { v: '1.38', date: '2026-10-01', items: [
+    'Alle Bilder im Hochformat 5:7 (Szenenbilder, Geschichtenbilder, Porträts) - sie füllen den Handybildschirm, gerade in der Mond-Ansicht. Die Bildbeschreibung wird dafür vertikal komponiert.',
+    'Mond-Ansicht im Live-Gespräch: auf Wunsch alle 2, 3 oder 5 Minuten automatisch ein neues Szenenbild - nur wenn seit dem letzten Bild etwas passiert ist.',
+  ]},
   { v: '1.37', date: '2026-10-01', items: [
     'Behoben: „Kurz davor" (auch in der Mond-Ansicht) warf einen aus dem Geschichtenmodus - es startete ein Live-Gespräch und würgte die Geschichte ab. In der Geschichte bremst es jetzt nur das Gerät. Auch eine getippte Nachricht und „Stopp" brechen die Geschichte nicht mehr unsauber ab.',
     'Ganzes Paket einfügen: Figuren, Szene, Geschichte und Einstellungen (Besetzung, Erzähler, Dauer, Aufbau, Musikstil …) in einem Rutsch - unter Figuren oder mit „📋 Paket aus der Zwischenablage einfügen" direkt in der Geschichte. Danach nur noch „Geschichte schreiben".',
@@ -4746,6 +4761,11 @@ els.musicStyle.onchange = () => { safeSet('companion_musicStyle', els.musicStyle
 els.musicRedo.onclick = () => { music.blocked = false; if (music.mood) setMusic(music.mood, true); };
 els.padImages.checked = localStorage.getItem('companion_padImages') === 'true';
 els.padImages.onchange = () => safeSet('companion_padImages', els.padImages.checked ? 'true' : 'false');
+els.padAutoImage.value = localStorage.getItem('companion_padAutoImage') || '0';
+els.padAutoImage.onchange = () => {
+  safeSet('companion_padAutoImage', els.padAutoImage.value);
+  if (els.padAutoImage.value !== '0' && !els.padImages.checked) { els.padImages.checked = true; safeSet('companion_padImages', 'true'); }
+};
 els.liveSpatial.onchange = () => { safeSet('companion_spatial', els.liveSpatial.checked ? 'true' : 'false'); if (els.liveSpatial.checked) ensureAudioCtx(); };
 els.liveSfx.onchange = () => { safeSet('companion_sfx', els.liveSfx.checked ? 'true' : 'false'); if (els.liveSfx.checked) amb.blocked = false; };
 els.ambVol.value = localStorage.getItem('companion_ambVol') || '25';
@@ -4785,6 +4805,29 @@ function setPadImage(src) {
   next.src = src;
   padImgFront = padImgFront === 'A' ? 'B' : 'A';
 }
+// Automatische Bilder in der Mond-Ansicht (Live): im eingestellten Abstand,
+// nur wenn seit dem letzten Bild neue Antworten gekommen sind.
+const padAuto = { busy: false, last: 0, historyLen: 0 };
+setInterval(async () => {
+  const minutes = parseInt(localStorage.getItem('companion_padAutoImage') || '0', 10);
+  if (!minutes || padAuto.busy) return;
+  if (!els.padOverlay || els.padOverlay.style.display === 'none') return;
+  if (currentMode !== 'live' || history.length < 2) return;
+  if (!apiKeyFor('companion_apiKey_venice')) return;
+  if (Date.now() - padAuto.last < minutes * 60000) return;
+  if (history.length === padAuto.historyLen) return;
+  if (introPhase(sceneStep)) return;
+  padAuto.busy = true;
+  padAuto.last = Date.now();
+  padAuto.historyLen = history.length;
+  try {
+    const { dataUrl, prompt } = await makeSceneImage();
+    lastSceneImage = { dataUrl, prompt, createdAt: Date.now() };
+    addSceneImageMsg(dataUrl);
+  } catch (e) {
+    logEvent('msg', { role: 'system', text: 'Automatisches Bild fehlgeschlagen: ' + (e && e.message ? e.message : e) });
+  } finally { padAuto.busy = false; }
+}, 10000);
 let padWakeLock = null;
 let padPulseTimer = null;
 function padPlaceDot() {
@@ -8181,7 +8224,7 @@ ${(c.appearance || '').trim()
   ? 'Halte dich beim Aussehen strikt an die Angaben oben - Haare, Gesicht, Augen, Haut, Statur, Kleidung und Alter sind festgelegt, damit dieselbe Figur bei jedem Versuch gleich aussieht. Nenne das Auffälligste zuerst (Haare, Gesicht, Augen), denn Bildmodelle gewichten die ersten Wörter am stärksten. Frei wählen darfst du nur Ausdruck, Blick, Haltung, Licht und Hintergrund.'
   : 'Übersetze das Wesen ins Sichtbare: Gesicht, Ausdruck, Blick, Haltung, Haare, Kleidung, Licht und Hintergrund passend zur Szene. Eine ruhige Figur schaut anders als eine ungeduldige - das soll man sehen.'}
 
-${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Brustbild einer erwachsenen Figur von mindestens ${MIN_AGE} Jahren - schreibe ausdrücklich \"adult\" -, bekleidet, Blick zur Kamera. Keine realen Personen und keine Namen von Filmen, Spielen oder Büchern - beschreibe eine eigenständige Gestalt mit eigenen Worten. Kein Text und keine Schrift im Bild.
+${portraitStyle() === 'foto' ? 'Stil: ein echtes Porträtfoto, keine Illustration. Beschreibe es wie eine Fotografie - Kamera und Objektiv (etwa 85 mm), natürliches oder weiches Studiolicht, echte Hautstruktur mit Poren, leichte Unschärfe im Hintergrund. Keine Worte wie painting, illustration, digital art, render oder anime.\n\n' : ''}Vorgaben: Bild im Hochformat (5:7), Brustbild bis Hüfte einer erwachsenen Figur von mindestens ${MIN_AGE} Jahren - schreibe ausdrücklich \"adult\" -, bekleidet, Blick zur Kamera. Keine realen Personen und keine Namen von Filmen, Spielen oder Büchern - beschreibe eine eigenständige Gestalt mit eigenen Worten. Kein Text und keine Schrift im Bild.
 
 Antworte NUR mit dem englischen Prompt, ein bis drei Sätze, ohne Anführungszeichen und ohne Erklärung.`;
 }
@@ -8229,7 +8272,7 @@ function buildSceneImageRequest(momentText, castOverride) {
       .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
       .filter(Boolean).join('\n').slice(-2500);
 
-  return `Schreibe einen Bild-Prompt, der ${momentText ? 'den Kern dieses Abschnitts einer Geschichte' : 'den aktuellen Moment dieses Gesprächs'} als ein einzelnes Bild zeigt. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
+  return `Schreibe einen Bild-Prompt, der ${momentText ? 'den Kern dieses Abschnitts einer Geschichte' : 'den aktuellen Moment dieses Gesprächs'} als ein einzelnes Bild im HOCHFORMAT (5:7) zeigt - vertikal komponiert, die Personen nah oder halbnah und von oben nach unten ins Bild gesetzt, damit es auf einem Handybildschirm wirkt. Keine Weitwinkel- oder Panoramaaufnahme. Der Prompt geht an ein Bildmodell und muss auf Englisch sein.
 
 Die Personen:
 ${people}
@@ -8401,8 +8444,9 @@ async function makeSceneImage(momentText, castOverride) {
         // aus Gewohnheit doch noch ein Oberteil malen.
         + (/\b(fully naked|completely naked|nude|naked)\b/i.test(prompt) ? ', clothes, clothing, shirt, top, bra, leggings, pants'
           : /\btopless\b/i.test(prompt) ? ', shirt, top, bra' : ''),
-      width: 1024,
-      height: 768,
+      // Hochformat 5:7 - füllt den Handybildschirm, auch in der Mond-Ansicht
+      width: 912,
+      height: 1280,
       format: 'webp',
       safe_mode: false,
       hide_watermark: true,
@@ -8983,8 +9027,8 @@ async function generateCharacterImage(c, button) {
         seed: figureSeed(c),
         negative_prompt: negativeFor(species.nonHuman, colors,
           species.color && species.hair && species.hair !== species.color ? species.color : null),
-        width: 1024,
-        height: 1024,
+        width: 912,
+        height: 1280,
         format: 'webp',
         safe_mode: false,
         hide_watermark: true,
