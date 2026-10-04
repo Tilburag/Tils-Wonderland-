@@ -682,6 +682,19 @@
     font-size: 12px;
     font-family: inherit;
   }
+  /* Tablet: mehr Breite, größere Schrift und Bedienelemente */
+  @media (min-width: 760px) {
+    html { font-size: 17px; }
+    .app { max-width: 860px; padding-left: 32px; padding-right: 32px; }
+    .bottom-bar { max-width: 860px; padding-left: 32px; padding-right: 32px; }
+    .msg { max-width: 72%; }
+    .bottom-controls .side-col .side-btn { max-width: none; }
+    button, select, input[type="text"], textarea { font-size: 16px; }
+    .subsection > summary, .panel > summary { padding-top: 6px; padding-bottom: 6px; }
+  }
+  @media (min-width: 1100px) {
+    .app, .bottom-bar { max-width: 1000px; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .thinking-dot { animation: none; opacity: 0.8; }
   }
@@ -988,77 +1001,7 @@
     <p class="hint">Setzt ausgearbeitete Vorlagen für Szene, Gerätebeschreibung und Geschichten-Vorgabe ein. Figuren und Schlüssel bleiben unberührt.</p>
 
     <details class="subsection">
-      <summary>Sicherung</summary>
-      <p class="hint" style="margin-top:0;">
-        Erstellt eine verschlüsselte Datei mit allem, was du auswählst. Ohne das Kennwort
-        ist sie nicht zu öffnen und von außen nicht als etwas Bestimmtes zu erkennen -
-        sie enthält keinerlei lesbare Hinweise auf ihren Inhalt oder ihre Herkunft.
-      </p>
-
-      <label>Was hinein soll</label>
-      <div style="display:flex; flex-direction:column; gap:7px; margin:6px 0 10px 0;">
-        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
-          <input type="checkbox" id="bkSettings" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Einstellungen, Figuren und Besetzungen</span>
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
-          <input type="checkbox" id="bkImages" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Bilder in voller Größe</span>
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
-          <input type="checkbox" id="bkStories" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Aufbewahrte Geschichten</span>
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
-          <input type="checkbox" id="bkAudio" style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Vertonung (groß - oft hunderte MB)</span>
-        </label>
-      </div>
-
-      <label for="bkPass">Kennwort</label>
-      <input type="password" id="bkPass" placeholder="Mindestens 8 Zeichen">
-      <p class="hint">Es gibt keinen Weg zurück, wenn du es vergisst - die Datei ist dann endgültig unlesbar.</p>
-
-      <div class="btn-row">
-        <button class="btn-secondary" id="exportSettingsBtn">Sicherung herunterladen</button>
-      </div>
-
-      <label for="bkFile">Sicherung wiederherstellen</label>
-      <input type="file" id="bkFile" style="width:100%; font-size:13px; color:var(--text-dim);">
-      <div class="btn-row">
-        <button class="btn-secondary" id="importSettingsBtn">Wiederherstellen</button>
-      </div>
-      <p class="hint" id="bkInfo">&nbsp;</p>
-    </details>
-
-    <div class="btn-row" style="margin-top:14px;">
-      <button class="btn-primary" id="saveSettingsBtn">Speichern &amp; einklappen</button>
-    </div>
-    <p class="hint">Alle Schlüssel werden nur lokal auf deinem Handy gespeichert.</p>
-  </details>
-
-
-  </div>
-
-  <div id="livePanel" style="display:none">
-    <details class="panel" id="liveSetup" open>
-      <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Szene und Besetzung</summary>
-
-      <label for="liveScene">Kurz: wo seid ihr, was ist die Lage? (optional)</label>
-      <textarea id="liveScene" style="min-height:90px" placeholder="Ein paar Sätze genügen. Leer lassen, wenn es einfach losgehen soll."></textarea>
-
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveDeviceAware" checked style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Die Figuren wissen vom Gerät</span>
-      </label>
-      <p class="hint" id="liveDeviceAwareHint">Aus: Es wird weiterhin gesteuert, aber im Gespräch kommt das Gerät nicht vor - die Figuren beschreiben Hände, Mund und Körper.</p>
-
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveReadyCheck" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Vor der ersten Bewegung Bescheid geben</span>
-      </label>
-      <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen. Bis dahin bleibt die Bewegung aus.</p>
-
+      <summary>Klang &amp; Atmosphäre</summary>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveAmbience" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Geräuschkulisse</span>
@@ -1103,6 +1046,94 @@
       </div>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveSpatial" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Raumklang (mit Kopfhörern)</span>
+      </label>
+      <p class="hint">Jede Figur bekommt ihren Platz: die erste links, die zweite rechts, der Erzähler in der Mitte. Flüstert eine Figur, rückt sie nah an dein Ohr. Der Ort bestimmt den Hall - im Bad hallt es, draußen klingt es offen. Nur mit ElevenLabs-Stimmen. Die Geräuschkulisse wird immer leiser, solange jemand spricht.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveSfx" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Geräusche zur Handlung</span>
+      </label>
+      <p class="hint">Einzelne Geräusche, wenn der Text sie nahelegt - ein Klopfen an der Tür, ein knarrendes Bett, raschelnde Kleidung, klirrende Gläser, ein Klaps. Sie erklingen genau in dem Satz, der sie beschreibt, und nicht bei jeder Erwähnung. Jedes Geräusch wird einmal bei ElevenLabs erzeugt und gespeichert.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveVoiceMotion" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Stimme folgt der Bewegung</span>
+      </label>
+      <p class="hint">Bei ruhiger Bewegung spricht die Figur gelassener, bei hohem Tempo schneller und atemloser.</p>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveFillers" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Wartezeit mit Lauten füllen</span>
+      </label>
+      <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - passend zu dem, was gerade passiert (Gespräch, Küssen, Mund, Hand, Sex, Höhepunkt) und zur Intensität. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
+      <details id="fillerPreview" style="margin-top:6px;">
+        <summary style="cursor:pointer; font-size:13.5px;">Laute anhören und neu erzeugen</summary>
+        <p class="hint">▶ spielt den Laut (erzeugt ihn beim ersten Mal). ↻ verwirft ihn und erzeugt eine neue Fassung - ElevenLabs klingt jedes Mal etwas anders.</p>
+        <div id="fillerPreviewList"></div>
+      </details>
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveBreath" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Atmen und Stöhnen im Takt</span>
+      </label>
+      <p class="hint">Bei schneller Bewegung atmen, keuchen und stöhnen die Figuren im Rhythmus der Hübe - in den Momenten, in denen gerade niemand spricht. Nur mit ElevenLabs.</p>
+    </details>
+    <details class="subsection">
+      <summary>Spiel &amp; Ablauf</summary>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveReadyCheck" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Vor der ersten Bewegung Bescheid geben</span>
+      </label>
+      <p class="hint">Die Figur fordert dich auf, das Gerät anzulegen, und wartet, bis du sagst, dass du bereit bist („bin bereit", „fertig", „los"). Erst dann bewegt es sich. Wirkt nur, wenn die Figuren vom Gerät wissen. Bis dahin bleibt die Bewegung aus.</p>
+
+
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="liveArousal" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Knöpfe „Kurz davor" und „Gekommen"</span>
+      </label>
+      <p class="hint">Über dem Eingabefeld: „🔥 Kurz davor" meldet es sofort (auch per Sprache: „kurz davor", „gleich komm ich"), „💦 Gekommen" sagt den Figuren, dass es passiert ist. Mit Pulsgurt zeigt die Leiste auch deinen Herzschlag.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:6px 0 0 18px;">
+        <input type="checkbox" id="liveEdging" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Die Figur hält dich hin</span>
+      </label>
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0 0 18px;">
+        <span style="font-size:13px;">Kommen erlaubt nach</span>
+        <select id="liveEdgeGoal" style="width:auto;">
+          <option value="1">1 Mal</option><option value="2">2 Mal</option><option value="3">3 Mal</option><option value="4">4 Mal</option><option value="5">5 Mal</option>
+        </select>
+        <span style="font-size:13px;">kurz davor</span>
+      </div>
+      <p class="hint" style="margin-left:18px;">Sobald du „kurz davor" meldest oder der Regler über 85 geht, bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt - und die Figur lässt dich zappeln. Erst nach der eingestellten Zahl darf es weitergehen bis zum Ende.</p>
+
+    </details>
+    <details class="subsection">
+      <summary>Pulsgurt</summary>
+      <p class="hint">Ein Bluetooth-Pulsgurt (z. B. Polar H10, H9, H7, Verity Sense) verbindet sich direkt mit der App - in Chrome unter Android oder am Rechner. Die Polar-App dabei schließen, sonst ist der Gurt belegt.</p>
+      <div class="btn-row">
+        <button class="btn-secondary" id="hrConnectBtn" type="button">❤️ Pulsgurt verbinden</button>
+      </div>
+      <p class="hint" id="hrInfo">Nicht verbunden.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="hrFigures" checked style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Figuren reagieren auf deinen Puls</span>
+      </label>
+      <p class="hint">Sie hören deinen Herzschlag mit, gehen darauf ein („dein Herz rast…") und bewegen die Hülse ab und zu genau im Takt deines Herzens.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:8px 0 0 0;">
+        <span style="font-size:13px;">Bremst automatisch ab</span>
+        <select id="hrEdge" style="flex:1;">
+          <option value="0">nie</option>
+          <option value="110">110 Schlägen</option><option value="120">120 Schlägen</option><option value="130">130 Schlägen</option>
+          <option value="140">140 Schlägen</option><option value="150">150 Schlägen</option><option value="160">160 Schlägen</option>
+        </select>
+      </div>
+      <p class="hint">Erreicht dein Puls diesen Wert, wirkt das wie „Kurz davor": das Gerät bremst 25 Sekunden, höchstens einmal pro Minute. Taste dich heran - jeder Körper ist anders.</p>
+    </details>
+
+    <details class="subsection">
+      <summary>Bilder</summary>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="padImages" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Szenenbilder in der Mond-Ansicht</span>
       </label>
@@ -1120,62 +1151,79 @@
       </div>
       <p class="hint">Nur solange die Mond-Ansicht offen ist und seit dem letzten Bild etwas passiert ist. Jedes Bild kostet bei Venice wie ein Klick auf „Bild".</p>
 
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveSpatial" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Raumklang (mit Kopfhörern)</span>
-      </label>
-      <p class="hint">Jede Figur bekommt ihren Platz: die erste links, die zweite rechts, der Erzähler in der Mitte. Flüstert eine Figur, rückt sie nah an dein Ohr. Der Ort bestimmt den Hall - im Bad hallt es, draußen klingt es offen. Nur mit ElevenLabs-Stimmen. Die Geräuschkulisse wird immer leiser, solange jemand spricht.</p>
+    </details>
+    <details class="subsection">
+      <summary>Sicherung</summary>
+      <p class="hint" style="margin-top:0;">
+        Erstellt eine verschlüsselte Datei mit allem, was du auswählst. Ohne das Kennwort
+        ist sie nicht zu öffnen und von außen nicht als etwas Bestimmtes zu erkennen -
+        sie enthält keinerlei lesbare Hinweise auf ihren Inhalt oder ihre Herkunft.
+      </p>
 
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveSfx" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Geräusche zur Handlung</span>
-      </label>
-      <p class="hint">Einzelne Geräusche, wenn der Text sie nahelegt - ein Klopfen an der Tür, ein knarrendes Bett, raschelnde Kleidung, klirrende Gläser, ein Klaps. Sie erklingen genau in dem Satz, der sie beschreibt, und nicht bei jeder Erwähnung. Jedes Geräusch wird einmal bei ElevenLabs erzeugt und gespeichert.</p>
-
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveArousal" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Nähe-Regler</span>
-      </label>
-      <p class="hint">Über dem Eingabefeld erscheint ein Regler: Wie nah bist du dran? Du kannst ihn jederzeit verschieben, die nächste Antwort richtet sich danach. „🔥 Kurz davor" meldet es sofort - auch per Sprache („kurz davor", „gleich komm ich").</p>
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:6px 0 0 18px;">
-        <input type="checkbox" id="liveEdging" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Die Figur hält dich hin</span>
-      </label>
-      <div style="display:flex; align-items:center; gap:8px; margin:4px 0 0 18px;">
-        <span style="font-size:13px;">Kommen erlaubt nach</span>
-        <select id="liveEdgeGoal" style="width:auto;">
-          <option value="1">1 Mal</option><option value="2">2 Mal</option><option value="3">3 Mal</option><option value="4">4 Mal</option><option value="5">5 Mal</option>
-        </select>
-        <span style="font-size:13px;">kurz davor</span>
+      <label>Was hinein soll</label>
+      <div style="display:flex; flex-direction:column; gap:7px; margin:6px 0 10px 0;">
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
+          <input type="checkbox" id="bkSettings" checked style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Einstellungen, Figuren und Besetzungen</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
+          <input type="checkbox" id="bkImages" checked style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Bilder in voller Größe</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
+          <input type="checkbox" id="bkStories" checked style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Aufbewahrte Geschichten</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
+          <input type="checkbox" id="bkAudio" style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Alle Töne: gesprochene Texte, Füll-Laute, Geräusche, Kulissen und Musik (groß - oft hunderte MB)</span>
+        </label>
       </div>
-      <p class="hint" style="margin-left:18px;">Sobald du „kurz davor" meldest oder der Regler über 85 geht, bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt - und die Figur lässt dich zappeln. Erst nach der eingestellten Zahl darf es weitergehen bis zum Ende.</p>
+
+      <label for="bkPass">Kennwort</label>
+      <input type="password" id="bkPass" placeholder="Mindestens 8 Zeichen">
+      <p class="hint">Es gibt keinen Weg zurück, wenn du es vergisst - die Datei ist dann endgültig unlesbar.</p>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="exportSettingsBtn">Sicherung herunterladen</button>
+      </div>
+
+      <label for="bkFile">Sicherung wiederherstellen</label>
+      <input type="file" id="bkFile" style="width:100%; font-size:13px; color:var(--text-dim);">
+      <div class="btn-row">
+        <button class="btn-secondary" id="importSettingsBtn">Wiederherstellen</button>
+      </div>
+      <p class="hint" id="bkInfo">&nbsp;</p>
+    </details>
+
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn-primary" id="saveSettingsBtn">Speichern &amp; einklappen</button>
+    </div>
+    <p class="hint">Alle Schlüssel werden nur lokal auf deinem Handy gespeichert.</p>
+  </details>
+
+
+  </div>
+
+  <div id="livePanel" style="display:none">
+    <details class="panel" id="liveSetup" open>
+      <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Szene und Besetzung</summary>
+
+      <label for="liveScene">Kurz: wo seid ihr, was ist die Lage? (optional)</label>
+      <textarea id="liveScene" style="min-height:90px" placeholder="Ein paar Sätze genügen. Leer lassen, wenn es einfach losgehen soll."></textarea>
 
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveVoiceMotion" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Stimme folgt der Bewegung</span>
+        <input type="checkbox" id="liveDeviceAware" checked style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Die Figuren wissen vom Gerät</span>
       </label>
-      <p class="hint">Bei ruhiger Bewegung spricht die Figur gelassener, bei hohem Tempo schneller und atemloser.</p>
+      <p class="hint" id="liveDeviceAwareHint">Aus: Es wird weiterhin gesteuert, aber im Gespräch kommt das Gerät nicht vor - die Figuren beschreiben Hände, Mund und Körper.</p>
 
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveFillers" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Wartezeit mit Lauten füllen</span>
-      </label>
-      <p class="hint">Während die Antwort entsteht, hörst du kurze Laute der Figuren - passend zu dem, was gerade passiert (Gespräch, Küssen, Mund, Hand, Sex, Höhepunkt) und zur Intensität. Nur mit ElevenLabs. Jeder Laut wird einmal erzeugt und dann gespeichert.</p>
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
-        <input type="checkbox" id="liveBreath" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Atmen und Stöhnen im Takt</span>
-      </label>
-      <p class="hint">Bei schneller Bewegung atmen, keuchen und stöhnen die Figuren im Rhythmus der Hübe - in den Momenten, in denen gerade niemand spricht. Nur mit ElevenLabs.</p>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="liveVibrate" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Handy vibriert im Takt</span>
       </label>
       <p class="hint">Das Handy pulsiert leise mit jeder Bewegung des Geräts - je schneller, desto kräftiger. Funktioniert unter Android in Chrome.</p>
-      <details id="fillerPreview" style="margin-top:6px;">
-        <summary style="cursor:pointer; font-size:13.5px;">Laute anhören und neu erzeugen</summary>
-        <p class="hint">▶ spielt den Laut (erzeugt ihn beim ersten Mal). ↻ verwirft ihn und erzeugt eine neue Fassung - ElevenLabs klingt jedes Mal etwas anders.</p>
-        <div id="fillerPreviewList"></div>
-      </details>
+
 
       <label for="livePace">Aufbau</label>
       <select id="livePace">
@@ -1194,6 +1242,47 @@
       <label for="liveNarrator">Erzähler</label>
       <select id="liveNarrator"></select>
       <p class="hint">Der Erzähler beschreibt, was geschieht. Ohne ihn wirkt es wie ein reines Telefonat.</p>
+
+      <label for="gameSelect">Spiel</label>
+      <select id="gameSelect">
+        <option value="">Kein Spiel - freies Gespräch</option>
+        <option value="challenge">Durchhalte-Challenge</option>
+        <option value="duel">Duell der Figuren</option>
+        <option value="adventure">Abenteuer mit Entscheidungen</option>
+        <option value="tournament">Turnier aller Figuren</option>
+      </select>
+      <div id="gameOptChallenge" style="display:none; margin-top:6px;">
+        <div style="display:flex; gap:8px;">
+          <select id="gameDuration" style="flex:1;">
+            <option value="5">5 Minuten</option><option value="10" selected>10 Minuten</option>
+            <option value="15">15 Minuten</option><option value="20">20 Minuten</option><option value="30">30 Minuten</option>
+          </select>
+          <select id="gameDifficulty" style="flex:1;">
+            <option value="sanft">sanft</option><option value="mittel" selected>mittel</option><option value="hart">hart</option>
+          </select>
+        </div>
+        <p class="hint" id="gameRecordInfo">Halte durch, ohne zu kommen. Alle zwei Minuten wird es eine Stufe heftiger. „Kurz davor" ist erlaubt, kostet aber Punkte. Hast du die Zeit geschafft, darfst du kommen.</p>
+      </div>
+      <div id="gameOptDuel" style="display:none; margin-top:6px;">
+        <div style="display:flex; gap:8px;">
+          <select id="gameRounds" style="flex:1;">
+            <option value="1">1 Runde</option><option value="2" selected>2 Runden</option><option value="3">3 Runden</option>
+          </select>
+          <select id="gameTurn" style="flex:1;">
+            <option value="45">45 s pro Zug</option><option value="60" selected>60 s pro Zug</option><option value="90">90 s pro Zug</option><option value="120">2 Min pro Zug</option>
+          </select>
+        </div>
+        <p class="hint" id="gameDuelInfo">Die ersten beiden Figuren der Besetzung treten gegeneinander an - abwechselnd hat jede das Gerät für sich. Danach stimmst du ab, wer gewonnen hat. Die Siegerin bekommt das Finale.</p>
+      </div>
+      <div id="gameOptTournament" style="display:none; margin-top:6px;">
+        <select id="gameTurnT" style="width:100%;">
+          <option value="45">45 s pro Zug</option><option value="60" selected>60 s pro Zug</option><option value="90">90 s pro Zug</option><option value="120">2 Min pro Zug</option>
+        </select>
+        <p class="hint" id="gameTourInfo">Alle Figuren der Besetzung treten im K.-o.-System gegeneinander an - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und alle merken sich, wie das Turnier ausgegangen ist.</p>
+      </div>
+      <div id="gameOptAdventure" style="display:none; margin-top:6px;">
+        <p class="hint">Nach jeder Antwort erscheinen zwei bis drei Möglichkeiten über dem Eingabefeld - tippe eine an oder sag sie. Deine Wahl bestimmt, wie es weitergeht. Mit Erzähler am schönsten.</p>
+      </div>
 
       <div class="btn-row">
         <button class="btn-primary" id="liveStartBtn">Los geht's</button>
@@ -1221,6 +1310,16 @@
         <button class="mode-btn active" id="figFilterChars" type="button">Figuren</button>
         <button class="mode-btn" id="figFilterNarr" type="button">Erzähler</button>
         <button class="mode-btn" id="figFilterMe" type="button">Ich</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0 8px 0;">
+        <span style="font-size:13px;">Ordnen</span>
+        <select id="figureSort" style="flex:1;">
+          <option value="standard">wie angelegt</option>
+          <option value="name">nach Name</option>
+          <option value="wesen">nach Wesen</option>
+          <option value="rolle">nach Rolle in der Szene</option>
+          <option value="art">Figuren · Erzähler · Ich</option>
+        </select>
       </div>
       <div id="figureList"></div>
       <div class="btn-row">
@@ -1384,11 +1483,16 @@
     <span id="thinkingText">Antwort wird geschrieben</span>
     <button class="thinking-cancel" id="thinkingCancel">Abbrechen</button>
   </div>
+  <div id="gameHud" style="display:none; padding:6px 0 4px 0;">
+    <div id="gameStatus" style="font-size:13px; color:var(--text); text-align:center;"></div>
+    <div id="gameButtons" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:6px;"></div>
+  </div>
   <div id="arousalRow" style="display:none; padding:4px 0; align-items:center; gap:8px;">
-    <span style="font-size:12px; color:var(--muted, #888);">Nähe</span>
-    <input type="range" id="arousalSlider" min="0" max="100" step="1" value="0" style="flex:1; margin:0;">
-    <span id="arousalVal" style="font-size:12px; min-width:58px; text-align:right;">0</span>
-    <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:0 0 auto; padding:6px 10px;">🔥 Kurz davor</button>
+    <span id="hrVal" style="font-size:13px; min-width:56px; display:none;">❤️ –</span>
+    <input type="range" id="arousalSlider" min="0" max="100" step="1" value="0" style="display:none;">
+    <span id="arousalVal" style="font-size:12px; min-width:40px; text-align:center; color:var(--text-dim, #999);"></span>
+    <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">🔥 Kurz davor</button>
+    <button class="btn-secondary" id="comeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">💦 Gekommen</button>
   </div>
   <div id="readyRow" style="display:none; padding:6px 0;">
     <button class="btn-primary" id="readyBtn" type="button" style="width:100%;">✓ Bereit - los geht's</button>
@@ -1450,6 +1554,59 @@
 <div class="motion-track-label left">Gerät 2</div>
 
 <script>
+// ---------- ElevenLabs: gleichzeitige Anfragen begrenzen ----------
+// Das Abo erlaubt nur 3 Anfragen gleichzeitig. Mit Sprache, Vorab-Laden,
+// Füll-Lauten, Atemlauten, Geräuschen, Kulisse und Musik kamen mehr zusammen,
+// und ElevenLabs antwortete mit 429 - die App fiel dann auf die Android-Stimme
+// zurück. Jetzt warten Anfragen auf einen freien Platz; Sprache hat Vorrang,
+// Hintergrund (Musik, Geräusche, Kulisse) nutzt nie den letzten freien Platz.
+// Kommt trotzdem ein 429, wird kurz gewartet und wiederholt.
+(() => {
+  const origFetch = window.fetch.bind(window);
+  const q = { active: 0, max: 3, waiting: [] };
+  const pump = () => {
+    q.waiting.sort((a, b) => b.prio - a.prio);
+    for (let i = 0; i < q.waiting.length; i++) {
+      const w = q.waiting[i];
+      const limit = w.prio > 0 ? q.max : q.max - 1;
+      if (q.active < limit) { q.waiting.splice(i, 1); i--; q.active++; w.go(); }
+    }
+  };
+  window.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (!url.startsWith('https://api.elevenlabs.io/') || /\/v1\/(voices|models|user)/.test(url)) return origFetch(input, init);
+    const prio = /text-to-speech/.test(url) ? 1 : 0;
+    await new Promise(go => { q.waiting.push({ prio, go }); pump(); });
+    // Den Platz erst freigeben, wenn die Antwort KOMPLETT gelesen ist. Vorher
+    // wurde er schon beim Eintreffen der Kopfzeilen frei - bei gestreamten
+    // Stimmen lief die Anfrage bei ElevenLabs aber noch weiter, und es gab
+    // "429: Too many concurrent requests" samt Wechsel zur Android-Stimme.
+    let released = false;
+    const guard = setTimeout(() => release(), 120000);   // Sicherheitsnetz
+    function release() { if (released) return; released = true; clearTimeout(guard); q.active--; pump(); }
+    try {
+      let res;
+      for (let attempt = 0; ; attempt++) {
+        res = await origFetch(input, init);
+        if (res.status === 429 && attempt < 6) { await new Promise(r => setTimeout(r, 600 * (attempt + 1))); continue; }
+        break;
+      }
+      if (!res.body) { release(); return res; }
+      const reader = res.body.getReader();
+      const stream = new ReadableStream({
+        async pull(c) {
+          try {
+            const { done, value } = await reader.read();
+            if (done) { c.close(); release(); } else c.enqueue(value);
+          } catch (e) { release(); c.error(e); }
+        },
+        cancel(reason) { release(); try { reader.cancel(reason); } catch (e) {} },
+      });
+      return new Response(stream, { status: res.status, statusText: res.statusText, headers: res.headers });
+    } catch (e) { release(); throw e; }
+  };
+})();
+
 // ---------- Standard-Einstellungen ----------
 // Tils eingestellte Werte als Ausgangspunkt für einen neuen Browser. Gesetzt
 // wird nur, was dort noch fehlt - vorhandene Einstellungen bleiben unberührt.
@@ -1604,6 +1761,22 @@ const els = {
   talkBtn: document.getElementById('talkBtn'),
   autoBtn: document.getElementById('autoBtn'),
   textInput: document.getElementById('textInput'),
+  gameSelect: document.getElementById('gameSelect'),
+  gameOptChallenge: document.getElementById('gameOptChallenge'),
+  gameOptDuel: document.getElementById('gameOptDuel'),
+  gameOptAdventure: document.getElementById('gameOptAdventure'),
+  gameOptTournament: document.getElementById('gameOptTournament'),
+  gameTurnT: document.getElementById('gameTurnT'),
+  gameTourInfo: document.getElementById('gameTourInfo'),
+  gameDuration: document.getElementById('gameDuration'),
+  gameDifficulty: document.getElementById('gameDifficulty'),
+  gameRounds: document.getElementById('gameRounds'),
+  gameTurn: document.getElementById('gameTurn'),
+  gameRecordInfo: document.getElementById('gameRecordInfo'),
+  gameDuelInfo: document.getElementById('gameDuelInfo'),
+  gameHud: document.getElementById('gameHud'),
+  gameStatus: document.getElementById('gameStatus'),
+  gameButtons: document.getElementById('gameButtons'),
   figureImport: document.getElementById('figureImport'),
   pasteFigureBtn: document.getElementById('pasteFigureBtn'),
   importFigureBtn: document.getElementById('importFigureBtn'),
@@ -1621,6 +1794,12 @@ const els = {
   arousalRow: document.getElementById('arousalRow'),
   arousalSlider: document.getElementById('arousalSlider'),
   arousalVal: document.getElementById('arousalVal'),
+  comeBtn: document.getElementById('comeBtn'),
+  hrVal: document.getElementById('hrVal'),
+  hrConnectBtn: document.getElementById('hrConnectBtn'),
+  hrInfo: document.getElementById('hrInfo'),
+  hrFigures: document.getElementById('hrFigures'),
+  hrEdge: document.getElementById('hrEdge'),
   edgeBtn: document.getElementById('edgeBtn'),
   liveArousal: document.getElementById('liveArousal'),
   liveAmbience: document.getElementById('liveAmbience'),
@@ -1751,6 +1930,7 @@ const els = {
   navChangelog: document.getElementById('navChangelog'),
   navVersionLine: document.getElementById('navVersionLine'),
   figureList: document.getElementById('figureList'),
+  figureSort: document.getElementById('figureSort'),
   figureEditor: document.getElementById('figureEditor'),
   figFilterChars: document.getElementById('figFilterChars'),
   figFilterNarr: document.getElementById('figFilterNarr'),
@@ -2673,8 +2853,39 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.40';
+const APP_VERSION = '1.46';
 const CHANGELOG = [
+  { v: '1.46', date: '2026-10-04', items: [
+    'Pulsgurt: Bluetooth-Brustgurte (z. B. Polar H10/H9/H7) verbinden sich direkt in den Einstellungen unter „Pulsgurt". Dein Herzschlag steht über dem Eingabefeld und in der Mond-Ansicht, die Figuren gehen darauf ein und bewegen die Hülse ab und zu genau im Takt deines Herzens. Auf Wunsch bremst ein hoher Puls automatisch wie „Kurz davor".',
+    'Der Nähe-Regler ist weg - stattdessen zwei Knöpfe: „🔥 Kurz davor" und „💦 Gekommen".',
+    'Wetten in der Durchhalte-Challenge: Jede Figur tippt, wie lange du durchhältst. Sie schauen zu, feuern an - und wer richtig lag, jubelt, die anderen ärgern sich.',
+  ]},
+  { v: '1.45', date: '2026-10-04', items: [
+    'Figuren ordnen: unter Figuren nach Name, Wesen, Rolle in der Szene oder Art (Figuren · Erzähler · Ich) - mit Zwischenüberschriften.',
+    'Behoben: Figuren, die nur in der Beschreibung einer anderen vorkommen (Katja bei Élodie, Seraweth bei Felurian), redeten mit - mit der Stimme der ersten Figur. Jetzt erfährt das Modell, wer NICHT da ist, und Zeilen abwesender Figuren werden entfernt.',
+    'Markenzeichen (Signature Move): neues Feld je Figur - eine typische Bewegung, Geste oder ein Satz, den sie immer wieder einsetzt, damit man sie sofort erkennt. Auch im Import („Markenzeichen: …").',
+    'Neues Spiel: Turnier aller Figuren im K.-o.-System - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und jede Teilnehmerin merkt sich in ihrem Gedächtnis, wie das Turnier ausging.',
+  ]},
+  { v: '1.44', date: '2026-10-04', items: [
+    'Neu: Spielmodus im Live-Bereich unter „Spiel" - drei Spiele:',
+    'Durchhalte-Challenge: 5 bis 30 Minuten, sanft/mittel/hart. Alle zwei Minuten eine Stufe heftiger (die App sorgt selbst für die Steigerung), „Kurz davor" erlaubt, aber gezählt. Geschafft? Dann darfst du kommen. Rekorde je Dauer und Schwierigkeit.',
+    'Duell der Figuren: Die ersten beiden Figuren der Besetzung haben abwechselnd das Gerät für sich (1-3 Runden, 45 s bis 2 Min pro Zug), danach stimmst du ab - die Siegerin bekommt das Finale. Siege werden gezählt.',
+    'Abenteuer mit Entscheidungen: Nach jeder Antwort erscheinen zwei bis drei Möglichkeiten über dem Eingabefeld; deine Wahl bestimmt, wie es weitergeht.',
+    'Über dem Eingabefeld zeigt eine Spielleiste Zeit, Stufe, Runde und die passenden Knöpfe (Gekommen, Aufgeben, Abstimmen, Wahl).',
+  ]},
+  { v: '1.43', date: '2026-10-04', items: [
+    'Aufgeräumt: Die vielen Schalter aus „Szene und Besetzung" sind in die Einstellungen gewandert - aufklappbar in „Klang & Atmosphäre" (Kulisse, Musik, Raumklang, Geräusche, Laute, Atmen), „Spiel & Ablauf" (Bereitmachen, Nähe-Regler, Hinhalten) und „Bilder". Im Live-Bereich bleiben nur „Figuren wissen vom Gerät" und „Handy vibriert im Takt".',
+    'Tablet: breitere Darstellung, größere Schrift und Bedienelemente ab 760 Pixel Breite.',
+  ]},
+  { v: '1.42', date: '2026-10-03', items: [
+    'Behoben: trotz Begrenzung noch „ElevenLabs 429\" mit Wechsel zur Android-Stimme. Ein Platz wurde schon beim ersten Byte einer Vertonung frei, obwohl sie bei ElevenLabs noch lief. Jetzt erst, wenn sie komplett geladen ist; bei 429 wartet die App geduldiger.',
+    'Gespräch: Die kurze Anfahrt vor jedem neuen Rhythmus („zu 950 in 1s\") fällt weg, wenn das Ziel ohnehin im neuen Bereich liegt - weniger Stocken bei jeder Zeile.',
+    'Bad und Badewanne werden als Ort erkannt: Kulisse „Dusche / Bad\" mit Hall, Musik im Stil Wellness - statt Meer und Strand.',
+  ]},
+  { v: '1.41', date: '2026-10-03', items: [
+    'Behoben: ElevenLabs-Fehler 429 („zu viele gleichzeitige Anfragen") - die App schickt jetzt höchstens drei Anfragen gleichzeitig, Sprache hat Vorrang vor Musik, Geräuschen und Kulisse, und ein 429 wird kurz abgewartet statt auf die Android-Stimme zu wechseln.',
+    'Große Besetzung (mehr als drei Figuren): Pro Antwort sprechen nur zwei bis drei, abwechselnd - statt einer Reihe gleichförmiger Einzeiler von allen.',
+  ]},
   { v: '1.40', date: '2026-10-02', items: [
     'Bewegung folgt der Erzählung auch ohne Marker: Beschreibt der Erzähler „sie verharrt an der Spitze", „beschleunigt", „quälend langsam" oder „über die ganze Länge", passt die App die laufende Bewegung genau in diesem Satz an - im Gespräch und in der Geschichte. Vorher lief oft eine einzige Bewegung über eine ganze, lange Antwort.',
   ]},
@@ -3372,6 +3583,7 @@ function buildSessionExport() {
     `Erzählerstimme: ${narrator ? 'an' : 'aus'}`,
     `Aufbau: Live ${pace('live')}, Geschichte ${pace('story')}; Figuren wissen vom Gerät: ${deviceAware() ? 'ja' : 'nein'}; Bescheid vor erster Bewegung: ${readyCheckEnabled() ? 'ja' : 'nein'} (Stand: ${readyGate})`,
     `Musik: ${musicEnabled() ? (music.mood ? (MUSIC_STYLES[music.style] ? MUSIC_STYLES[music.style].label + ', ' : '') + MUSIC_MOODS[music.mood].label : 'an, noch nichts') + ', Lautstärke ' + Math.round(musicVolume() * 100) + ' %' : 'aus'}`,
+    `Pulsgurt: ${hr.connected ? 'verbunden, ' + hr.bpm + ' (Ruhe ' + (hrRest() || '?') + '), bremst ab ' + (hrEdgeAt() || 'nie') : 'nicht verbunden'}`,
     `Raumklang: ${spatialEnabled() ? 'an (Raum ' + (spatial.roomKey || 'room') + ', Audio ' + (spatial.ctx ? spatial.ctx.state : 'noch nicht gestartet') + ')' : 'aus'}`,
     `Geräusche zur Handlung: ${sfxEnabled() ? 'an' : 'aus'}; Steuerfläche: ${motionWish.active ? wishWords().sp + ', ' + wishWords().st : 'nicht benutzt'}`,
     `Geräuschkulisse: ${ambienceEnabled() ? (amb.key ? AMBIENCES[amb.key].label : 'an, noch kein Ort') + ', Lautstärke ' + Math.round(ambVolume() * 100) + ' %' : 'aus'}`,
@@ -4137,7 +4349,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   function applyState(req, instant) {
     // Den ungedeckelten Wunsch merken - nach dem Hinhalten wird er wiederhergestellt.
     if (req && req.texture !== 'stop') state.lastRawReq = Object.assign({}, req);
-    req = edgeCapRequest(wishRequest(req, getSettings()));
+    req = edgeCapRequest(wishRequest(gameRequest(req), getSettings()));
     const m = state.motion;
     const { minPos, maxPos, speedCap } = getSettings();
     const span = Math.max(1, maxPos - minPos);
@@ -4310,6 +4522,7 @@ const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, el
 const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2, els.motionTrackFill2, 'Gerät 2', 'd2');
 
 els.stopBtn.onclick = () => {
+  if (game.running) endGame('Stopp');
   // In der Geschichte sauber über die Geschichte stoppen - sonst brachen die
   // abgewürgten Audio-Anfragen sie mittendrin ab, ohne dass sie richtig endete.
   if (typeof currentMode !== 'undefined' && currentMode === 'story' && (story.playing || story.paused)) {
@@ -4861,7 +5074,7 @@ function padUpdatePulse() {
   const bpm = st && st.texture !== 'stop' ? (st.bpm || 0) : 0;
   els.padDot.style.animation = bpm > 0 ? `padPulse ${(60 / bpm).toFixed(2)}s ease-in-out infinite` : 'none';
   const w = wishWords();
-  els.padInfo.textContent = motionWish.active ? `Wunsch: ${w.sp}, ${w.st}` : 'Punkt ziehen, um Tempo und Hub zu wünschen';
+  els.padInfo.textContent = (hr.connected && hr.bpm ? '❤️ ' + hr.bpm + ' · ' : '') + (motionWish.active ? `Wunsch: ${w.sp}, ${w.st}` : 'Punkt ziehen, um Tempo und Hub zu wünschen');
 }
 async function openPad() {
   els.padOverlay.style.display = '';
@@ -6220,7 +6433,7 @@ const AMBIENCES = {
   lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
   rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
   fire:   { label: 'Kaminfeuer',   re: /\b(kamin\w*|lagerfeuer|knister\w*|ofen|feuer (?:an|brennt|prasselt|lodert))\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
-  shower: { label: 'Dusche / Bad', re: /\b(dusche|duschen|badewanne|whirlpool)\b/g, prompt: 'Warm shower running steadily in a tiled bathroom' },
+  shower: { label: 'Dusche / Bad', re: /\b(dusche|duschen|badewanne|wanne|whirlpool|schaumbad|bad|badezimmer|bades)\b/g, prompt: 'Warm shower running steadily in a tiled bathroom' },
   city:   { label: 'Stadt',        re: /\b(straße|hinterhof|balkon|dachterrasse)\b/g, prompt: 'Distant city at night, faint traffic hum, calm' },
   room:   { label: 'Zimmer',       re: /\b(schlafzimmer|bett|hotelzimmer|zimmer|wohnung|sofa|couch)\b/g, prompt: 'Quiet intimate bedroom at night, soft room tone, very faint distant city hum' },
 };
@@ -6418,7 +6631,7 @@ function currentMusicStyle() {
   if (/\b(elb|elfe|elfen|feen|zauber|magie|verwunschen|zauberwald|mondlicht)/.test(t)) return 'elbenwald';
   if (/\b(orient|harem|basar|wüste|sultan|palast|bauchtanz|hamam)/.test(t)) return 'orient';
   if (/\b(techno|berghain|kitkat|rave|tanzfläche|darkroom)/.test(t)) return 'techno';
-  if (/\b(spa|massage|sauna|wellness|massageöl|whirlpool)/.test(t)) return 'spa';
+  if (/\b(spa|massage|sauna|wellness|massageöl|whirlpool|badewanne|wanne|schaumbad|bad\b)/.test(t)) return 'spa';
   if (/\b(tango|salsa|rio|kuba|latino|bossa)/.test(t)) return 'latin';
   if (/\b(neon|retro|achtziger|cyber)/.test(t)) return 'synthwave';
   if (/\b(salon|kammermusik|cello|ballsaal|oper)/.test(t)) return 'klassik';
@@ -6666,6 +6879,88 @@ function setWishFromPad(x, y) {
   motionWish.since = Date.now();
 }
 
+// ---------- Pulsgurt (Bluetooth Heart Rate Service) ----------
+// Standard-Dienst 0x180D, den Polar und fast alle Brustgurte anbieten.
+const hr = { device: null, bpm: 0, history: [], connected: false, lastAutoEdge: 0, lastLog: 0, retries: 0 };
+function hrFiguresEnabled() { return localStorage.getItem('companion_hrFigures') !== 'false'; }
+function hrEdgeAt() { return parseInt(localStorage.getItem('companion_hrEdge') || '0', 10); }
+function hrRest() {
+  const vals = hr.history.map(h => h.bpm).sort((a, b) => a - b);
+  if (vals.length < 10) return 0;
+  return vals[Math.floor(vals.length * 0.1)];
+}
+function hrTrend() {
+  const now = Date.now();
+  const recent = hr.history.filter(h => now - h.t < 10000).map(h => h.bpm);
+  const before = hr.history.filter(h => now - h.t >= 25000 && now - h.t < 40000).map(h => h.bpm);
+  if (!recent.length || !before.length) return 'gleichmäßig';
+  const d = recent.reduce((a, b) => a + b, 0) / recent.length - before.reduce((a, b) => a + b, 0) / before.length;
+  return d > 6 ? 'steigt deutlich' : d > 2 ? 'steigt' : d < -6 ? 'sinkt deutlich' : d < -2 ? 'sinkt' : 'gleichmäßig';
+}
+function updateHrUi() {
+  const on = hr.connected && hr.bpm > 0;
+  els.hrVal.style.display = on ? '' : 'none';
+  els.hrVal.textContent = '❤️ ' + (on ? hr.bpm : '–');
+  els.hrInfo.textContent = hr.connected ? `Verbunden${hr.device && hr.device.name ? ' mit ' + hr.device.name : ''} · ${hr.bpm || '–'} Schläge/Min${hrRest() ? ' · Ruhe etwa ' + hrRest() : ''}` : (hr.device ? 'Verbindung verloren - versuche es erneut …' : 'Nicht verbunden.');
+  els.hrConnectBtn.textContent = hr.connected ? '❤️ Trennen' : '❤️ Pulsgurt verbinden';
+}
+function onHeartRate(e) {
+  const v = e.target.value;
+  const flags = v.getUint8(0);
+  const bpm = (flags & 1) ? v.getUint16(1, true) : v.getUint8(1);
+  if (!bpm || bpm < 30 || bpm > 230) return;
+  const now = Date.now();
+  hr.bpm = bpm;
+  hr.history.push({ t: now, bpm });
+  if (hr.history.length > 1200) hr.history.splice(0, hr.history.length - 1200);
+  if (now - hr.lastLog > 15000) { hr.lastLog = now; logEvent('msg', { role: 'system', text: `Puls ${bpm} (${hrTrend()})` }); }
+  // Automatisches Bremsen bei hohem Puls
+  const at = hrEdgeAt();
+  if (at && bpm >= at && !inDanger && now - hr.lastAutoEdge > 60000 && arousalEnabled()) {
+    hr.lastAutoEdge = now;
+    logEvent('msg', { role: 'system', text: `Puls ${bpm} ≥ ${at} - wirkt wie „Kurz davor".` });
+    setArousal(Math.max(arousal, 90), 'Puls');
+  }
+  updateHrUi();
+}
+async function hrConnectGatt() {
+  const server = await hr.device.gatt.connect();
+  const svc = await server.getPrimaryService('heart_rate');
+  const ch = await svc.getCharacteristic('heart_rate_measurement');
+  await ch.startNotifications();
+  ch.addEventListener('characteristicvaluechanged', onHeartRate);
+  hr.connected = true; hr.retries = 0;
+  logEvent('msg', { role: 'system', text: 'Pulsgurt verbunden' + (hr.device.name ? ': ' + hr.device.name : '') + '.' });
+  updateHrUi();
+}
+async function connectHeart() {
+  if (hr.connected) {
+    const d = hr.device; hr.device = null; hr.connected = false;
+    try { d.gatt.disconnect(); } catch (e) {}
+    updateHrUi(); return;
+  }
+  if (!navigator.bluetooth) { els.hrInfo.textContent = 'Dieser Browser kann kein Bluetooth - bitte Chrome unter Android oder am Rechner nehmen.'; return; }
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] });
+    hr.device = dev;
+    dev.addEventListener('gattserverdisconnected', () => {
+      hr.connected = false; updateHrUi();
+      if (!hr.device || hr.retries >= 6) return;
+      hr.retries++;
+      setTimeout(() => { if (hr.device && !hr.connected) hrConnectGatt().catch(() => {}); }, 3000);
+    });
+    els.hrInfo.textContent = 'Verbinde …';
+    await hrConnectGatt();
+  } catch (e) {
+    els.hrInfo.textContent = /cancel/i.test(e.message) ? 'Abgebrochen.' : 'Verbindung fehlgeschlagen: ' + e.message;
+  }
+}
+function heartBlock() {
+  if (!hr.connected || !hr.bpm || !hrFiguresEnabled()) return '';
+  const rest = hrRest();
+  return `\n\nTILS PULS (live vom Pulsgurt): ${hr.bpm} Schläge pro Minute${rest ? `, Ruhepuls etwa ${rest}` : ''}, ${hrTrend()}. Ihr spürt seinen Herzschlag - geht ab und zu darauf ein („dein Herz rast…", „ich spüre, wie es pocht…"). Manchmal bewegt ihr die Hülse genau im Takt seines Herzens: dann steht im Marker als Tempo ${hr.bpm} mit der Art pulse, etwa <<300-700@${hr.bpm} pulse>>, und der Erzähler beschreibt es.`;
+}
+
 // ---------- Nähe-Regler und Hinhalten ----------
 // Ich melde live, wie nah ich dran bin. Die Figur richtet die nächste Antwort
 // danach, und beim Hinhalten bremst die App das Gerät selbst - sofort und
@@ -6692,7 +6987,10 @@ function edgeGoal() {
   return Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : 3;
 }
 // Nach der eingestellten Zahl Kanten ist das nächste Mal das erlaubte.
-function releaseAllowed() { return releaseForced || edgeCount > edgeGoal(); }
+function releaseAllowed() {
+  if (typeof game !== 'undefined' && game.running && (game.type === 'challenge' || game.type === 'duel') && game.phase === 'play') return false;
+  return releaseForced || edgeCount > edgeGoal();
+}
 function endEdge(reason) {
   if (!inDanger) return;
   inDanger = false;
@@ -6754,11 +7052,11 @@ function updateArousalUI() {
   if (!els.arousalRow) return;
   els.arousalRow.style.display = arousalEnabled() ? 'flex' : 'none';
   if (document.activeElement !== els.arousalSlider) els.arousalSlider.value = String(arousal);
-  const hue = Math.round(120 - arousal * 1.2);
-  els.arousalSlider.style.accentColor = `hsl(${hue}, 75%, 45%)`;
+  // Statt der Zahl nur noch der Stand des Hinhaltens (Kanten / Ziel)
   els.arousalVal.textContent = edgingEnabled()
-    ? `${arousal} · ${Math.min(edgeCount, edgeGoal())}/${edgeGoal()}${releaseAllowed() ? ' ✓' : ''}`
-    : String(arousal);
+    ? `${Math.min(edgeCount, edgeGoal())}/${edgeGoal()}${releaseAllowed() ? ' ✓' : ''}`
+    : '';
+  els.edgeBtn.classList.toggle('btn-primary', inDanger);
 }
 function resetArousal() {
   clearTimeout(edgeReleaseTimer);
@@ -6814,6 +7112,11 @@ function applyEnvironmentWishes(text) {
     logEvent('msg', { role: 'system', text: 'Umgebung: ' + notes.join(', ') + '.' });
   }
   envNote = notes.length ? notes.join(', ') : '';
+}
+function crowdBlock() {
+  const n = aiCharacters().filter(c => !c.isNarrator).length;
+  if (n <= 3) return '';
+  return `\n\nGROSSE BESETZUNG (${n} Figuren): Lass pro Antwort nur zwei bis drei Figuren sprechen - abwechselnd über die Antworten verteilt -, die anderen bleiben im Hintergrund und werden höchstens kurz erwähnt. Jede Figur, die spricht, sagt etwas Eigenes, das zu ihrem Wesen passt; keine Reihe von Einzeilern, in der alle nacheinander dasselbe sagen.`;
 }
 function environmentBlock() {
   return `\n\nWÜNSCHE AN DIE UMGEBUNG: Bittet Til um etwas an der Umgebung - ein Fenster oder Dach öffnen, Vögel hereinlassen, Licht dimmen, Musik leiser oder lauter, Kerzen anzünden -, dann setzen die Figuren das in der Szene sofort um und beschreiben es, auch wenn es fantasievoll ist. Sie spielen mit, statt es abzutun.${envNote ? ' Gerade eben: ' + envNote + ' - eine Figur nimmt das beiläufig auf.' : ''}`;
@@ -7629,6 +7932,368 @@ function splitSegmentsIntoPieces(segments, maxChars, firstMax) {
 let autoPlaying = false;
 let autoStepCount = 0;
 
+// ======================= SPIELMODUS =======================
+// Drei Spiele auf Basis des Live-Gesprächs: Durchhalte-Challenge, Duell der
+// Figuren, Abenteuer mit Entscheidungen. Die App führt Zeit, Stufen, Züge und
+// Abstimmung; die Figuren bekommen den Spielstand in jeder Antwort mit.
+const game = {
+  type: null, running: false, phase: 'play', startedAt: 0, durationMs: 0, difficulty: 'mittel',
+  edgesAtStart: 0, level: 1, levels: 1, timer: null, choices: [],
+  duel: { a: null, b: null, rounds: 2, turnMs: 60000, round: 1, turn: 0, turnStarted: 0, winner: null },
+  tour: { entrants: [], next: [], stage: 1, out: [], history: [] },
+};
+function stageName(n) { return n <= 2 ? 'Finale' : n <= 4 ? 'Halbfinale' : n <= 8 ? 'Viertelfinale' : 'Runde'; }
+// Nächstes Duell im Turnier ansetzen (oder Siegerin küren)
+function nextTournamentMatch() {
+  const t = game.tour;
+  if (t.entrants.length < 2) {
+    if (t.next.length === 1 && !t.entrants.length) { finishTournament(t.next[0]); return; }
+    // neue Runde
+    t.entrants = t.next.concat(t.entrants); t.next = []; t.stage++;
+    if (t.entrants.length === 1) { finishTournament(t.entrants[0]); return; }
+  }
+  if (t.entrants.length === 1) { t.next.push(t.entrants.shift()); return nextTournamentMatch(); }   // Freilos
+  const remaining = t.entrants.length + t.next.length;
+  const a = t.entrants.shift(), b = t.entrants.shift();
+  Object.assign(game.duel, { a, b, rounds: 1, round: 1, turn: 0, turnStarted: Date.now(), winner: null });
+  game.phase = 'play';
+  game.tour.stageLabel = stageName(remaining);
+  addMsg('system', `🏆 ${game.tour.stageLabel}: ${a} gegen ${b}. ${a} beginnt.`);
+  logEvent('msg', { role: 'system', text: `Turnier ${game.tour.stageLabel}: ${a} gegen ${b}` });
+  startAutoForGame();
+  renderGameHud();
+}
+function finishTournament(champion) {
+  const t = game.tour;
+  game.duel.winner = champion;
+  game.phase = 'finale';
+  releaseForced = true;
+  if (inDanger) endEdge('Finale');
+  const r = gameRecords(); r.tourWins = r.tourWins || {}; r.tourWins[champion] = (r.tourWins[champion] || 0) + 1; saveGameRecords(r);
+  addMsg('system', `👑 ${champion} gewinnt das Turnier!`);
+  // Alle merken es sich: ein Satz im Gedächtnis jeder Teilnehmerin.
+  const date = new Date().toLocaleDateString('de-DE');
+  aiCharacters().filter(c => !c.isNarrator && c.figureId && t.all.includes(c.name)).forEach(c => {
+    const lost = t.history.find(h => h.loser === c.name);
+    const line = c.name === champion
+      ? `${date}: Hat das Turnier um Til gewonnen (${t.history.filter(h => h.winner === champion).map(h => 'gegen ' + h.loser).join(', ')}).`
+      : `${date}: Hat im Turnier um Til gegen ${lost ? lost.winner : '?'} verloren. Siegerin wurde ${champion}.`;
+    const prev = figureMemory(c.figureId);
+    setFigureMemory(c.figureId, (prev ? prev + '\n' : '') + line);
+  });
+  logEvent('msg', { role: 'system', text: 'Turnier: Siegerin ' + champion + ' - Gedächtnisse ergänzt.' });
+  startAutoForGame();
+  renderGameHud();
+}
+const GAME_LEVEL_MS = 120000;
+const GAME_FLOORS = { sanft: [20, 90], mittel: [30, 140], hart: [45, 190] };
+function fmtTime(ms) { const t = Math.max(0, Math.round(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+function gameRecords() { try { return JSON.parse(localStorage.getItem('companion_gameRecords') || '{}'); } catch (e) { return {}; } }
+function saveGameRecords(r) { safeSet('companion_gameRecords', JSON.stringify(r)); }
+function duelists() { return aiCharacters().filter(c => !c.isNarrator).slice(0, 2).map(c => c.name); }
+
+function updateGameOptions() {
+  const t = els.gameSelect.value;
+  els.gameOptChallenge.style.display = t === 'challenge' ? '' : 'none';
+  els.gameOptDuel.style.display = t === 'duel' ? '' : 'none';
+  els.gameOptAdventure.style.display = t === 'adventure' ? '' : 'none';
+  els.gameOptTournament.style.display = t === 'tournament' ? '' : 'none';
+  const nT = aiCharacters().filter(c => !c.isNarrator).length;
+  const titles = (r.tourWins || {});
+  els.gameTourInfo.textContent = (nT >= 3 ? `${nT} Figuren` : 'Es braucht mindestens drei Figuren in der Besetzung') + ' treten im K.-o.-System gegeneinander an - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und alle merken sich, wie es ausging.'
+    + (Object.keys(titles).length ? ' Turniersiege: ' + Object.entries(titles).map(([n, w]) => n.split(' ')[0] + ' ' + w).join(', ') + '.' : '');
+  const r = gameRecords();
+  const key = 'challenge_' + els.gameDifficulty.value + '_' + els.gameDuration.value;
+  const best = r[key];
+  els.gameRecordInfo.textContent = 'Halte durch, ohne zu kommen. Alle zwei Minuten wird es eine Stufe heftiger. „Kurz davor" ist erlaubt, kostet aber Punkte. Hast du die Zeit geschafft, darfst du kommen.'
+    + (best ? ` Dein Rekord hier: ${fmtTime(best.ms)}${best.won ? ' (geschafft)' : ''}, ${best.edges} Kanten.` : '');
+  const d = duelists();
+  const wins = r.duelWins || {};
+  els.gameDuelInfo.textContent = (d.length >= 2 ? `${d[0]} gegen ${d[1]}` : 'Es braucht mindestens zwei Figuren in der Besetzung') + ' - abwechselnd hat jede das Gerät für sich. Danach stimmst du ab, die Siegerin bekommt das Finale.'
+    + (Object.keys(wins).length ? ' Bisherige Siege: ' + Object.entries(wins).map(([n, w]) => n.split(' ')[0] + ' ' + w).join(', ') + '.' : '');
+}
+
+// Die App sorgt selbst für die Steigerung - unabhängig davon, was das Modell wählt.
+function gameRequest(req) {
+  if (!game.running || game.type !== 'challenge' || game.phase !== 'play' || !req) return req;
+  const tex = req.texture || 'smooth';
+  if (tex === 'stop' || tex === 'hold') return req;
+  const [lo, hi] = GAME_FLOORS[game.difficulty] || GAME_FLOORS.mittel;
+  const f = Math.min(1, (Date.now() - game.startedAt) / Math.max(1, game.durationMs));
+  const minBpm = Math.round(lo + (hi - lo) * f);
+  const minLen = Math.round(250 + 450 * f);
+  let low = req.low ?? 300, high = req.high ?? 700;
+  if (high - low < minLen) { const mid = (low + high) / 2; low = Math.max(0, Math.round(mid - minLen / 2)); high = Math.min(999, low + minLen); low = high - minLen; }
+  return Object.assign({}, req, { bpm: Math.max(req.bpm || 0, minBpm), low, high });
+}
+
+function gameBlock() {
+  if (!game.running) return '';
+  const now = Date.now();
+  if (game.type === 'challenge') {
+    const el = now - game.startedAt;
+    const edges = edgeCount - game.edgesAtStart;
+    if (game.phase === 'over') return `\n\nSPIEL VORBEI (Durchhalte-Challenge): Til ist gerade gekommen - nach ${fmtTime(game.result || el)}${game.resultWon ? ', also NACHDEM er das Ziel geschafft hat. Feiert ihn, lobt ihn überschwänglich' : ', also VOR dem Ziel von ' + fmtTime(game.durationMs) + '. Reagiert darauf - neckend, triumphierend, aber zärtlich'} und lasst ihn sanft ausklingen.${game.betWinner ? ` Die Wette hat ${game.betWinner} gewonnen: Sie jubelt, triumphiert und lässt es die anderen spüren; die anderen ärgern sich, schmollen oder reden sich heraus.` : ''} Kein neues Spiel.`;
+    if (game.phase === 'won') return `\n\nSPIEL: DURCHHALTE-CHALLENGE - ZIEL ERREICHT nach ${fmtTime(game.durationMs)}! Til hat durchgehalten (${edges} Mal kurz davor). Jetzt darf er kommen: Lobt ihn, steigert ins Finale und bringt ihn zum Höhepunkt.`;
+    return betBlock(el) + `\n\nSPIEL: DURCHHALTE-CHALLENGE. Til muss ${fmtTime(game.durationMs)} durchhalten, ohne zu kommen. Verstrichen: ${fmtTime(el)}, noch ${fmtTime(game.durationMs - el)}. Stufe ${game.level} von ${game.levels} (Schwierigkeit ${game.difficulty}) - mit jeder Stufe wird es spürbar heftiger. Bisher ${edges} Mal kurz davor. Ihr wollt ihn zum Aufgeben bringen: steigert, reizt, verspottet ihn liebevoll, feuert ihn aber auch an durchzuhalten. Nennt ab und zu die Zeit oder die Stufe. Er darf erst kommen, wenn die Zeit um ist.`;
+  }
+  if (game.type === 'tournament') {
+    const d = game.duel, t = game.tour;
+    const cur = d.turn === 0 ? d.a : d.b, other = d.turn === 0 ? d.b : d.a;
+    const out = t.history.map(h => h.loser);
+    const watch = t.all.filter(n => n !== d.a && n !== d.b && !out.includes(n));
+    const past = t.history.length ? ' Bisher: ' + t.history.map(h => `${h.winner} schlug ${h.loser}`).join(', ') + '.' : '';
+    if (game.phase === 'finale') return `\n\nSPIEL: TURNIER - SIEGERIN ${d.winner}! Sie hat das Turnier um Til gewonnen und bekommt das Finale: triumphierend nimmt sie ihn sich und bringt ihn zum Höhepunkt. Die Ausgeschiedenen (${out.join(', ')}) schauen zu, gratulieren zähneknirschend, sind eifersüchtig.${past}`;
+    if (game.phase === 'over') return `\n\nSPIEL VORBEI: Til ist gekommen. ${d.winner} genießt ihren Triumph, alle lassen ihn sanft ausklingen.`;
+    if (game.phase === 'vote') return `\n\nSPIEL: TURNIER, ${t.stageLabel} - ABSTIMMUNG. ${d.a} und ${d.b} warten auf Tils Entscheidung, wer weiterkommt; beide werben ein letztes Mal kurz um ihn.`;
+    const left = d.turnMs - (Date.now() - d.turnStarted);
+    return `\n\nSPIEL: TURNIER UM TIL, ${t.stageLabel}: ${d.a} gegen ${d.b}. Jetzt ist NUR ${cur} am Zug (noch ${Math.max(0, Math.round(left / 1000))} Sekunden): Sie allein bestimmt, was mit Til passiert, und kämpft ums Weiterkommen. ${other} sagt höchstens einen kurzen, spitzen Satz.${watch.length ? ' Zuschauend am Rand: ' + watch.join(', ') + ' - sie schweigen oder raunen höchstens.' : ''}${out.length ? ' Ausgeschieden und nur noch Zuschauerinnen: ' + out.join(', ') + '.' : ''}${past} Er darf noch nicht kommen.`;
+  }
+  if (game.type === 'duel') {
+    const d = game.duel;
+    const cur = d.turn === 0 ? d.a : d.b, other = d.turn === 0 ? d.b : d.a;
+    if (game.phase === 'vote') return `\n\nSPIEL: DUELL - ABSTIMMUNG. Alle Runden sind vorbei. Til entscheidet gerade, wer besser war: ${d.a} oder ${d.b}. Beide werben noch einmal kurz um seine Stimme, necken sich gegenseitig. Kein Höhepunkt jetzt.`;
+    if (game.phase === 'finale') return `\n\nSPIEL: DUELL - FINALE. Til hat ${d.winner} zur Siegerin gewählt. ${d.winner} bekommt das Finale: Sie triumphiert, nimmt ihn sich und bringt ihn zum Höhepunkt. ${d.winner === d.a ? d.b : d.a} ist eifersüchtig, schmollt oder stichelt - darf aber zusehen.`;
+    if (game.phase === 'over') return `\n\nSPIEL VORBEI: Til ist gekommen. ${d.winner || cur} genießt den Triumph, beide lassen ihn sanft ausklingen.`;
+    const left = d.turnMs - (now - d.turnStarted);
+    return `\n\nSPIEL: DUELL DER FIGUREN, Runde ${d.round} von ${d.rounds}. Jetzt ist NUR ${cur} am Zug (noch ${Math.max(0, Math.round(left / 1000))} Sekunden): Sie allein bestimmt, was mit Til passiert, zeigt ihre ganze Art und will das Duell gewinnen. ${other} schaut zu und sagt höchstens einen kurzen, eifersüchtigen oder spöttischen Satz. Er darf noch nicht kommen.`;
+  }
+  if (game.type === 'adventure') {
+    if (game.phase === 'over') return '';
+    return `\n\nSPIEL: ABENTEUER MIT ENTSCHEIDUNGEN. Erzähle die Handlung lebendig weiter und führe sie auf eine Weggabelung zu. Beende JEDE Antwort mit genau einer letzten Zeile in diesem Format:\nWAHL: Möglichkeit eins | Möglichkeit zwei | Möglichkeit drei\nZwei oder drei kurze Möglichkeiten (je höchstens sechs Wörter), die in deutlich verschiedene Richtungen führen - verführerisch, gewagt, überraschend. Til wählt; seine letzte Wahl bestimmt, wie es jetzt weitergeht - setze sie sofort und ernsthaft um.`;
+  }
+  return '';
+}
+
+function betBlock(el) {
+  if (!game.bets || !game.bets.length) return '';
+  const parts = game.bets.map(b => {
+    if (!b.ms) return `${b.name} hat darauf gesetzt, dass er durchhält - sie feuert ihn zum Durchhalten an`;
+    const diff = b.ms - el;
+    if (diff > 60000) return `${b.name} hat auf ${fmtTime(b.ms)} gesetzt - noch Zeit, sie wartet lauernd`;
+    if (diff > -20000) return `${b.name} hat auf ${fmtTime(b.ms)} gesetzt - JETZT ist ihre Zeit, sie will ihn unbedingt jetzt kommen sehen und treibt ihn an`;
+    return `${b.name} hatte auf ${fmtTime(b.ms)} gesetzt - vorbei, sie ärgert sich, hofft aber noch, dass es knapp wird`;
+  });
+  return `\n\nWETTEN: ${parts.join('; ')}. Die Figuren schauen zu, fiebern mit, feuern an und kommentieren laut - jede will ihre Wette gewinnen.`;
+}
+function settleBets(resultMs, won) {
+  if (!game.bets || !game.bets.length) return null;
+  const score = b => b.ms ? Math.abs(b.ms - resultMs) + (won ? 30000 : 0) : (won ? 0 : Math.abs(game.durationMs - resultMs) + 60000);
+  const best = game.bets.slice().sort((a, b) => score(a) - score(b))[0];
+  game.betWinner = best.name;
+  const r = gameRecords(); r.betWins = r.betWins || {}; r.betWins[best.name] = (r.betWins[best.name] || 0) + 1; saveGameRecords(r);
+  return best;
+}
+function gameButton(label, onClick, primary) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = primary ? 'btn-primary' : 'btn-secondary';
+  b.style.cssText = 'width:auto; flex:0 1 auto; padding:7px 12px; font-size:13.5px;';
+  b.textContent = label;
+  b.onclick = onClick;
+  return b;
+}
+let gameHudKey = '';
+function renderGameHud() {
+  if (!game.running) { els.gameHud.style.display = 'none'; gameHudKey = ''; return; }
+  els.gameHud.style.display = '';
+  const now = Date.now();
+  // Knöpfe nur neu bauen, wenn sich etwas ändert - sonst würde ein Tipp
+  // manchmal ins Leere gehen, weil der Knopf jede Sekunde ersetzt wird.
+  const key = game.type + '|' + game.phase + '|' + game.choices.join('|');
+  const rebuild = key !== gameHudKey;
+  gameHudKey = key;
+  const btns = rebuild ? els.gameButtons : document.createElement('div');
+  if (rebuild) btns.innerHTML = '';
+  if (game.type === 'challenge') {
+    const el = now - game.startedAt;
+    const edges = edgeCount - game.edgesAtStart;
+    els.gameStatus.textContent = game.phase === 'won'
+      ? `🏆 Geschafft: ${fmtTime(game.durationMs)} - jetzt darfst du kommen! · Kanten ${edges}`
+      : `⏱ ${fmtTime(el)} / ${fmtTime(game.durationMs)} · Stufe ${game.level}/${game.levels} · Kanten ${edges}`;
+    btns.appendChild(gameButton('💦 Gekommen', () => { els.textInput.value = 'Ich bin gekommen!'; sendTypedMessage(); }, true));
+    btns.appendChild(gameButton('Aufgeben', () => endGame('aufgegeben')));
+  } else if (game.type === 'duel' || game.type === 'tournament') {
+    const d = game.duel;
+    if (game.phase === 'play') {
+      const cur = d.turn === 0 ? d.a : d.b;
+      els.gameStatus.textContent = game.type === 'tournament'
+        ? `🏆 ${game.tour.stageLabel}: ${d.a.split(' ')[0]} gegen ${d.b.split(' ')[0]} · ${cur.split(' ')[0]} am Zug · noch ${fmtTime(d.turnMs - (now - d.turnStarted))}`
+        : `⚔️ Runde ${d.round}/${d.rounds} · ${cur} ist am Zug · noch ${fmtTime(d.turnMs - (now - d.turnStarted))}`;
+    } else if (game.phase === 'vote') {
+      els.gameStatus.textContent = '⚔️ Wer war besser?';
+      [d.a, d.b].forEach(n => btns.appendChild(gameButton('👑 ' + n.split(' ')[0], () => voteDuel(n), true)));
+    } else {
+      els.gameStatus.textContent = game.type === 'tournament' ? `👑 ${d.winner} hat das Turnier gewonnen - das Finale gehört ihr.` : `👑 ${d.winner} hat gewonnen - das Finale gehört ihr.`;
+      btns.appendChild(gameButton('💦 Gekommen', () => { els.textInput.value = 'Ich bin gekommen!'; sendTypedMessage(); }, true));
+    }
+    btns.appendChild(gameButton('Beenden', () => endGame('beendet')));
+  } else if (game.type === 'adventure') {
+    els.gameStatus.textContent = game.choices.length ? '🧭 Wie geht es weiter?' : '🧭 Abenteuer läuft …';
+    game.choices.forEach(ch => btns.appendChild(gameButton(ch, () => {
+      game.choices = []; renderGameHud();
+      els.textInput.value = 'Ich wähle: ' + ch; sendTypedMessage();
+    }, true)));
+    btns.appendChild(gameButton('Beenden', () => endGame('beendet')));
+  }
+}
+
+function startAutoForGame() {
+  if (autoPlaying) return;
+  autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop();
+}
+function startGame(type) {
+  const cast = aiCharacters().filter(c => !c.isNarrator);
+  if (!cast.length) { addMsg('system', 'Für ein Spiel braucht es mindestens eine Figur in der Besetzung.'); return; }
+  if (type === 'duel' && cast.length < 2) { addMsg('system', 'Für das Duell braucht es mindestens zwei Figuren in der Besetzung.'); return; }
+  clearInterval(game.timer);
+  Object.assign(game, { type, running: true, phase: 'play', startedAt: Date.now(), choices: [], result: 0, resultWon: false, bets: [], betWinner: null });
+  releaseForced = false;
+  if (type === 'challenge') {
+    game.durationMs = parseInt(els.gameDuration.value, 10) * 60000;
+    game.difficulty = els.gameDifficulty.value;
+    game.edgesAtStart = edgeCount;
+    game.levels = Math.max(1, Math.ceil(game.durationMs / GAME_LEVEL_MS));
+    game.level = 1;
+    // Wetten: Jede Figur tippt, wie lange er durchhält - oder dass er es schafft.
+    const fr = [0.3, 0.5, 0.7, 0.85, 1.0].sort(() => Math.random() - 0.5);
+    game.bets = cast.map((c, i) => {
+      const f = fr[i % fr.length];
+      return { name: c.name, ms: f >= 1 ? null : Math.round(game.durationMs * f / 10000 + (Math.random() - 0.5)) * 10000 };
+    });
+    addMsg('system', `🎮 Durchhalte-Challenge: ${fmtTime(game.durationMs)}, ${game.difficulty}. Halte durch!\n🎲 Wetten: ` + game.bets.map(b => `${b.name.split(' ')[0]} ${b.ms ? 'tippt ' + fmtTime(b.ms) : 'sagt: er schafft es'}`).join(' · '));
+    startAutoForGame();
+  } else if (type === 'duel') {
+    const [a, b] = duelists();
+    Object.assign(game.duel, { a, b, rounds: parseInt(els.gameRounds.value, 10), turnMs: parseInt(els.gameTurn.value, 10) * 1000, round: 1, turn: 0, turnStarted: Date.now(), winner: null });
+    addMsg('system', `🎮 Duell: ${a} gegen ${b}, ${game.duel.rounds} Runden. ${a} beginnt.`);
+    startAutoForGame();
+  } else if (type === 'tournament') {
+    if (cast.length < 3) { addMsg('system', 'Für ein Turnier braucht es mindestens drei Figuren in der Besetzung.'); game.running = false; return; }
+    const names = cast.map(c => c.name).sort(() => Math.random() - 0.5);
+    game.tour = { entrants: names.slice(), next: [], stage: 1, history: [], all: names.slice() };
+    game.duel.turnMs = parseInt(els.gameTurnT.value, 10) * 1000;
+    addMsg('system', `🎮 Turnier mit ${names.length} Figuren: ${names.join(', ')}.`);
+    game.timer = setInterval(gameTick, 1000);
+    nextTournamentMatch();
+    return;
+  } else if (type === 'adventure') {
+    addMsg('system', '🎮 Abenteuer mit Entscheidungen beginnt.');
+    askActive('(Beginne jetzt das Abenteuer: Setze die Szene in Gang und führe zur ersten Entscheidung.)', { silent: true });
+  }
+  logEvent('msg', { role: 'system', text: 'Spiel gestartet: ' + type });
+  game.timer = setInterval(gameTick, 1000);
+  renderGameHud();
+}
+function gameTick() {
+  if (!game.running) return;
+  const now = Date.now();
+  if (game.type === 'challenge' && game.phase === 'play') {
+    const el = now - game.startedAt;
+    const lvl = Math.min(game.levels, Math.floor(el / GAME_LEVEL_MS) + 1);
+    if (lvl !== game.level) {
+      game.level = lvl;
+      logEvent('msg', { role: 'system', text: `Challenge: Stufe ${lvl} von ${game.levels}.` });
+      [device1, device2].forEach(d => { try { d.reapply(); } catch (e) {} });
+    }
+    if (el >= game.durationMs) {
+      game.phase = 'won';
+      releaseForced = true;
+      if (inDanger) endEdge('Ziel erreicht');
+      addMsg('system', `🏆 Geschafft! ${fmtTime(game.durationMs)} durchgehalten - jetzt darfst du kommen.`);
+      logEvent('msg', { role: 'system', text: 'Challenge: Ziel erreicht.' });
+    }
+  }
+  if ((game.type === 'duel' || game.type === 'tournament') && game.phase === 'play') {
+    const d = game.duel;
+    if (now - d.turnStarted >= d.turnMs) {
+      if (d.turn === 0) { d.turn = 1; }
+      else { d.turn = 0; d.round++; }
+      d.turnStarted = now;
+      if (d.round > d.rounds) {
+        game.phase = 'vote';
+        autoPlaying = false; setAutoStatus(false);
+        addMsg('system', game.type === 'tournament' ? `⚔️ ${game.duel.a.split(' ')[0]} oder ${game.duel.b.split(' ')[0]} - wer kommt weiter?` : '⚔️ Alle Runden vorbei - wer war besser?');
+      } else {
+        const cur = d.turn === 0 ? d.a : d.b;
+        logEvent('msg', { role: 'system', text: `Duell: Runde ${d.round}, ${cur} ist am Zug.` });
+      }
+    }
+  }
+  renderGameHud();
+}
+function voteDuel(name) {
+  const d = game.duel;
+  if (game.type === 'tournament') {
+    const loser = name === d.a ? d.b : d.a;
+    game.tour.history.push({ winner: name, loser, stage: game.tour.stageLabel });
+    game.tour.next.push(name);
+    addMsg('system', `✓ ${name.split(' ')[0]} kommt weiter, ${loser.split(' ')[0]} scheidet aus.`);
+    els.textInput.value = `${name.split(' ')[0]} kommt weiter, ${loser.split(' ')[0]} scheidet aus.`;
+    sendTypedMessage();
+    setTimeout(nextTournamentMatch, 300);
+    return;
+  }
+  d.winner = name;
+  game.phase = 'finale';
+  releaseForced = true;
+  if (inDanger) endEdge('Finale');
+  const r = gameRecords(); r.duelWins = r.duelWins || {}; r.duelWins[name] = (r.duelWins[name] || 0) + 1; saveGameRecords(r);
+  logEvent('msg', { role: 'system', text: 'Duell: Siegerin ' + name });
+  els.textInput.value = `${name.split(' ')[0]} hat gewonnen!`;
+  sendTypedMessage();
+  startAutoForGame();
+  renderGameHud();
+}
+// Aus dem, was Til sagt oder schreibt: gekommen? Spiel vorbei.
+function gameOnUserText(text) {
+  if (!game.running) return;
+  const t = String(text || '').toLowerCase();
+  if (!/(ich bin (gerade |jetzt )?gekommen|bin gekommen|ich komme( gerade| jetzt)?\s*[!.]*$|gekommen!)/.test(t)) return;
+  if (game.type === 'challenge') {
+    const el = Date.now() - game.startedAt;
+    game.result = Math.min(el, game.phase === 'won' ? el : el);
+    game.resultWon = game.phase === 'won';
+    const edges = edgeCount - game.edgesAtStart;
+    const key = 'challenge_' + game.difficulty + '_' + (game.durationMs / 60000);
+    const r = gameRecords();
+    const prev = r[key];
+    const score = game.resultWon ? game.durationMs : el;
+    const better = !prev || (game.resultWon && !prev.won) || (game.resultWon === !!prev.won && (score > prev.ms || (score === prev.ms && edges < prev.edges)));
+    if (better) { r[key] = { ms: score, edges, won: game.resultWon, at: Date.now() }; saveGameRecords(r); }
+    const bw = settleBets(el, game.resultWon);
+    addMsg('system', (game.resultWon ? `🏆 Challenge geschafft! ${fmtTime(game.durationMs)}, ${edges} Kanten.` : `💦 Gekommen nach ${fmtTime(el)} von ${fmtTime(game.durationMs)} (${edges} Kanten).`) + (better ? ' Neuer Rekord!' : '')
+      + (bw ? `\n🎲 Wette gewonnen: ${bw.name.split(' ')[0]} (${bw.ms ? 'getippt ' + fmtTime(bw.ms) : 'hat aufs Durchhalten gesetzt'}).` : ''));
+  }
+  game.phase = 'over';
+  autoPlaying = false; setAutoStatus(false);
+  renderGameHud();
+}
+function endGame(reason) {
+  if (!game.running) return;
+  clearInterval(game.timer);
+  game.running = false;
+  game.choices = [];
+  releaseForced = false;
+  if (autoPlaying) { autoPlaying = false; setAutoStatus(false); }
+  logEvent('msg', { role: 'system', text: 'Spiel beendet (' + reason + ').' });
+  if (reason === 'aufgegeben') addMsg('system', '🏳️ Challenge aufgegeben.');
+  renderGameHud();
+  updateGameOptions();
+}
+// Abenteuer: die WAHL-Zeile aus der Antwort holen
+function extractChoices(text) {
+  const lines = String(text || '').split('\n');
+  let choices = [];
+  const kept = lines.filter(l => {
+    const m = l.match(/^\s*[*_]*\s*(wahl|optionen|entscheidung|möglichkeiten)\s*[*_]*\s*:\s*(.+)$/i);
+    if (!m) return true;
+    choices = m[2].split(/\s*\|\s*|\s+\/\s+|\s*\d\)\s*/).map(x => x.replace(/^[-*•\s]+|[*_]+$/g, '').trim()).filter(x => x && x.length <= 80).slice(0, 3);
+    return false;
+  });
+  return { text: kept.join('\n').trim(), choices };
+}
+
 function setAutoStatus(on) {
   els.autoBtn.textContent = on ? '⏸ Geschichte' : '▶ Geschichte';
   els.autoBtn.classList.toggle('btn-primary', on);
@@ -7827,6 +8492,7 @@ function versionFromCharacter(c, versionNumber) {
     isUser: !!c.isUser,
     emotional: !!c.emotional,
     styleExamples: c.styleExamples || '',
+    signature: c.signature || '',
     replyLength: c.replyLength || 'mittel',
     temperature: typeof c.temperature === 'number' ? c.temperature : 0.8,
     voice: c.voice || '', elevenVoice: c.elevenVoice || '',
@@ -8052,6 +8718,7 @@ function describeCharacter(c) {
     return t.length ? `${group.label}: ${t.join(', ')}` : '';
   }).filter(Boolean);
   if (picked.length) parts.push(`Grobe Richtung (${picked.join('; ')}) - bei Widerspruch gilt die Beschreibung`);
+  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt; beschreibt es eine Bewegung, gehört ein passender Marker dazu`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
@@ -9505,6 +10172,18 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     styleArea.oninput = () => { c.styleExamples = styleArea.value; };
     card.appendChild(styleArea);
 
+    if (!c.isUser) {
+      const sigLabel = document.createElement('label');
+      sigLabel.textContent = 'Markenzeichen (Signature Move)';
+      card.appendChild(sigLabel);
+      const sigArea = document.createElement('textarea');
+      sigArea.value = c.signature || '';
+      sigArea.style.minHeight = '60px';
+      sigArea.placeholder = 'Etwas, woran man sie sofort erkennt: eine typische Bewegung, ein Satz, eine Geste. Z. B. „Hält oben inne, zählt leise bis drei und stößt dann dreimal hart nach unten."';
+      sigArea.oninput = () => { c.signature = sigArea.value; };
+      card.appendChild(sigArea);
+    }
+
     // Das Gedächtnis gehört zur Figur, nicht zu einer Version: überarbeitet man
     // ihr Aussehen, soll sie deshalb nicht vergessen, was sie erlebt hat. Es
     // wird sofort gesichert und nicht erst mit "Sichern".
@@ -9871,6 +10550,7 @@ function sanitizeDraftCharacters(list) {
     voiceDescription: String(c.voiceDescription || '').slice(0, 800),
     emotional: c.emotional === undefined ? true : !!c.emotional,
     styleExamples: String(c.styleExamples || '').slice(0, 1200),
+    signature: String(c.signature || '').slice(0, 500),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
     temperature: clamp(c.temperature, 0.1, 1.3, 0.8),
     pitch: clamp(c.pitch, 0.5, 2, 1.0),
@@ -10076,7 +10756,28 @@ function renderFigureList() {
     return;
   }
 
-  const shown = figureArchive.filter(f => figureModeMatches(latestVersion(f)));
+  let shown = figureArchive.filter(f => figureModeMatches(latestVersion(f)));
+  // Ordnen: nach Name, Wesen, Rolle oder Art - mit Zwischenüberschriften.
+  const sortMode = localStorage.getItem('companion_figureSort') || 'standard';
+  const groupOf = (v) => {
+    if (sortMode === 'art') return v.isUser ? 'Ich' : v.isNarrator ? 'Erzähler' : 'Figuren';
+    const gi = sortMode === 'wesen' ? 0 : sortMode === 'rolle' ? 2 : -1;
+    if (gi < 0) return '';
+    if (v.isNarrator) return 'Erzähler';
+    if (v.isUser) return 'Ich';
+    const g = TRAIT_GROUPS[gi];
+    const hit = g.traits.find(([id]) => (v.traits || []).includes(id));
+    return hit ? hit[1] : 'ohne Angabe';
+  };
+  if (sortMode !== 'standard') {
+    shown = shown.slice().sort((a, b) => {
+      const va = latestVersion(a), vb = latestVersion(b);
+      const ga = groupOf(va), gb = groupOf(vb);
+      const order = g => g === 'Ich' ? 'zz2' : g === 'Erzähler' ? 'zz1' : g === 'ohne Angabe' ? 'zz0' : g;
+      return order(ga).localeCompare(order(gb), 'de') || String(va.name).localeCompare(String(vb.name), 'de');
+    });
+  }
+  let lastGroup = null;
   if (!shown.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
@@ -10092,6 +10793,14 @@ function renderFigureList() {
   shown.forEach(figure => {
     const version = latestVersion(figure);
     const inCast = characters.some(c => c.figureId === figure.id);
+    const grp = groupOf(version);
+    if (grp && grp !== lastGroup) {
+      const h = document.createElement('div');
+      h.textContent = grp;
+      h.style.cssText = 'font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim, #999); margin:12px 0 4px 2px;';
+      els.figureList.appendChild(h);
+      lastGroup = grp;
+    }
 
     const row = document.createElement('div');
     row.className = 'figure-row' + (inCast ? ' in-cast' : '');
@@ -10330,6 +11039,7 @@ const IMPORT_FIELDS = [
   ['voiceName', /^(stimme \(elevenlabs\)|elevenlabs-stimme|elevenlabs)$/],
   ['voiceDescription', /^stimmbeschreibung/],
   ['userStyle', /^so sollen die figuren mit mir reden$/],
+  ['signature', /^(markenzeichen|signature( move)?|erkennungszeichen)/],
 ];
 function parseFigureBlocks(text) {
   const blocks = String(text || '').split(/^\s*={2,}\s*FIGUR\s*={2,}\s*$/mi).slice(1);
@@ -10361,6 +11071,7 @@ function figureFromFields(f) {
     traits: String(f.traits || '').replace(/[☑✓]/g, '').split(/[;\n·]/).map(t => t.replace(/^[-•*\s]+/, '').trim()).filter(Boolean),
     notes: f.notes || '',
     styleExamples: f.styleExamples || '',
+    signature: f.signature || '',
     emotional: f.emotional === undefined ? true : yes(f.emotional),
     replyLength: /sehr/.test(len) ? 'sehrlang' : /lang/.test(len) ? 'lang' : /kurz/.test(len) ? 'kurz' : 'mittel',
     temperature: num(f.temperature),
@@ -10499,6 +11210,18 @@ els.importFigureBtn.onclick = () => {
 };
 els.pasteFigureBtn.onclick = () => pasteAndImport(els.importFigureInfo);
 els.storyPasteBtn.onclick = () => pasteAndImport(null);
+els.hrConnectBtn.onclick = connectHeart;
+els.hrFigures.checked = hrFiguresEnabled();
+els.hrFigures.onchange = () => safeSet('companion_hrFigures', els.hrFigures.checked ? 'true' : 'false');
+els.hrEdge.value = String(hrEdgeAt());
+els.hrEdge.onchange = () => safeSet('companion_hrEdge', els.hrEdge.value);
+els.comeBtn.onclick = () => {
+  if (currentMode === 'story') { setStoryStatus('Gekommen - schön. Die Geschichte läuft weiter.'); logEvent('msg', { role: 'system', text: 'Gekommen (Geschichte).' }); return; }
+  els.textInput.value = 'Ich bin gekommen!';
+  sendTypedMessage();
+};
+els.figureSort.value = localStorage.getItem('companion_figureSort') || 'standard';
+els.figureSort.onchange = () => { safeSet('companion_figureSort', els.figureSort.value); renderFigureList(); };
 
 // Microphone, clipboard and local network access all hang on the same
 // criterion, and when it isn't met the browser refuses silently - no prompt, no
@@ -10904,6 +11627,16 @@ function parseEnsembleText(text) {
       logEvent('msg', { role: 'system', text: 'Zeile für dich verworfen: ' + line.slice(0, 100) });
       return;
     }
+    // Spricht eine bekannte Figur, die gar nicht in der Besetzung ist, fliegt
+    // die Zeile raus - sonst las sie die erste Figur mit ihrer Stimme vor.
+    if (m && !matchedName) {
+      const archiveNames = figureArchive.map(f => (latestVersion(f) || {}).name).filter(Boolean);
+      const absent = matchSpeakerName(m[1], archiveNames);
+      if (absent) {
+        logEvent('msg', { role: 'system', text: 'Zeile einer abwesenden Figur entfernt (' + absent + '): ' + line.slice(0, 100) });
+        return;
+      }
+    }
     const body = leadCue + (matchedName ? m[2] : line);
     const speaker = matchedName || 'character';
 
@@ -11119,6 +11852,30 @@ async function rememberConversation() {
   }
 }
 
+// Figuren, die in den Beschreibungen der Mitspielenden vorkommen, aber nicht
+// in der Besetzung sind (Katja in Élodies Beschreibung …). Ohne Hinweis ließ
+// das Modell sie mitsprechen - mit der Stimme der ersten Figur.
+function absentFigureNames() {
+  const present = characters.map(c => String(c.name).toLowerCase());
+  const presentFirst = present.map(n => n.split(' ')[0]);
+  const text = characters.map(c => [c.notes, c.styleExamples, c.signature].join(' ')).join(' ').toLowerCase();
+  const out = [];
+  figureArchive.forEach(f => {
+    const v = latestVersion(f);
+    if (!v || !v.name || v.isUser || v.isNarrator) return;
+    const full = v.name.toLowerCase(), first = full.split(' ')[0];
+    if (present.includes(full) || presentFirst.includes(first)) return;
+    const esc = first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (first.length >= 3 && new RegExp('(^|[^\\p{L}])' + esc + '($|[^\\p{L}])', 'u').test(text)) out.push(v.name);
+  });
+  return [...new Set(out)];
+}
+function absentBlock() {
+  const a = absentFigureNames();
+  if (!a.length) return '';
+  return `\n\nNICHT ANWESEND: ${a.join(', ')} ${a.length === 1 ? 'kommt' : 'kommen'} in den Beschreibungen vor, ${a.length === 1 ? 'ist' : 'sind'} aber heute NICHT dabei. ${a.length === 1 ? 'Sie spricht' : 'Sie sprechen'} nicht, ${a.length === 1 ? 'handelt' : 'handeln'} nicht und ${a.length === 1 ? 'taucht' : 'tauchen'} nicht auf - höchstens als Erinnerung oder Gedanke erwähnt.`;
+}
+
 function buildCastBlock() {
   const cast = characters.map(c => '- ' + describeCharacter(c)).join('\n');
   const me = userCharacter();
@@ -11135,7 +11892,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -11208,6 +11965,9 @@ function narrationMotion(text) {
   const st = device1 && device1.getState ? device1.getState() : null;
   if (!st || st.texture === 'stop') return null;
   let low = st.low ?? 300, high = st.high ?? 700, bpm = st.bpm || 30, texture = st.texture || 'smooth';
+  if (/(im takt (deines|seines|ihres|des)? ?herz|herzschlag|herzens)/.test(t) && hr.connected && hr.bpm) {
+    return { req: { low: Math.min(low, 300), high: Math.max(high, 700), bpm: hr.bpm, texture: 'pulse' }, label: 'im Herzschlag (' + hr.bpm + ')' };
+  }
   const mid = (low + high) / 2;
   if (/(verharr|hält (ihn |sie |es )?(dort |da )?(inne|still|fest)|zur ruhe|unbeweglich|still ?hält|inne ?hält|hält abrupt)/.test(t)) {
     const pos = /(oben|spitze|kante|eichel)/.test(t) ? 940 : /(ansatz|unten|basis|wurzel)/.test(t) ? 60 : Math.round(mid);
@@ -11445,7 +12205,7 @@ ${placeRule()}
 
 Bleib bei klarem, einfachem Deutsch. Keine anderen Sprachen, keine Fremdwörter, keine erfundenen Wörter.
 
-${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}${timeBlock()}${environmentBlock()}`;
+${photo ? `${PHOTO_INSTRUCTION}\n\n` : autoStep ? '' : `Das hier ist ein Wechselgespräch. UMFANG: ${liveShape().desc} Insgesamt höchstens etwa ${liveShape().words} Wörter. Schreibe NIE eine Zeile für mich - deine Antwort endet, sobald ich dran bin. Schließe so, dass ich antworten kann - mit einer Aufforderung, einer Handlung oder einem offenen Moment. Erzähle die Szene nicht allein weiter.\n\n`}${photo || autoStep ? `Umfang: etwa ${photo ? Math.max(8, replyLength().lines) : replyLength().lines} Zeilen insgesamt, Handlung und Rede zusammengezählt, und einzelne Zeilen bis zu ${replyLength().words} Wörter.` : ''} Die Zeilen dürfen unterschiedlich lang sein - eine knappe Erwiderung nach einer ausführlichen Beschreibung wirkt stärker als lauter gleich kurze. Handlungszeilen dürfen ruhig ausgeschrieben sein.${emotionalInstruction}${autoInstruction}${antiRepeat}${addressRule()}${initiativeRule()}${readyBlock()}${arousalBlock()}${wishBlock()}${timeBlock()}${environmentBlock()}${crowdBlock()}${gameBlock()}${heartBlock()}`;
 }
 
 // Wenn eine Figur als "das bin ich" gesetzt ist, gehört das Geschriebene ihr:
@@ -11575,6 +12335,7 @@ async function askEnsemble(userText, options) {
   // Kopfhörern) schneidet ab.
   if (typeof music !== 'undefined') music.suspended = false;
   if (!(options && options.silent)) { try { applyEnvironmentWishes(userText); } catch (e) {} } else envNote = '';
+  if (!(options && options.silent)) { try { gameOnUserText(userText); } catch (e) {} if (game.running && game.type === 'adventure') { game.choices = []; renderGameHud(); } }
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
   const myEpoch = chainEpoch;
@@ -11649,6 +12410,12 @@ async function askEnsemble(userText, options) {
     if (chainEpoch !== myEpoch) { setThinking(''); return false; }
     setThinking('');
 
+    if (game.running && game.type === 'adventure') {
+      const ex = extractChoices(replyText);
+      replyText = ex.text;
+      if (ex.choices.length) { game.choices = ex.choices; logEvent('msg', { role: 'system', text: 'Wahl: ' + ex.choices.join(' | ') }); }
+      renderGameHud();
+    }
     // Erst kürzen, dann in den Verlauf: Vorher landeten die erfundenen Zeilen
     // für mich im Verlauf, und das Modell lernte daraus, sie weiter zu schreiben.
     {
@@ -11684,6 +12451,7 @@ async function askEnsemble(userText, options) {
     const anyV3 = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs'
       && lines.some(l => resolveVoice(l.role).emotional);
     const pieces = markWhispers(splitSegmentsIntoPieces(lines, anyV3 ? 420 : 220, 90));
+    trimLeadingMoves(pieces);
     // Beschreibt der Erzähler die Bewegung, bevor die Figur spricht, der Marker
     // steht aber erst in der gesprochenen Zeile danach, lief das Gerät erst an,
     // als die Figur wieder sprach. Dann wird die erste Bewegung an den Anfang
@@ -11699,6 +12467,9 @@ async function askEnsemble(userText, options) {
         }
       }
     }
+    // Unnötige Anfahrten ("zu 950 in 1s" direkt vor einem Bereich, der 950
+    // ohnehin enthält) weglassen - sie unterbrachen bei jeder Zeile den Rhythmus.
+    try { fixStoryCues(pieces); } catch (e) {}
     const sfxPlan = planSfx(pieces);
     const replyShownAt = Date.now();
 
@@ -11819,6 +12590,7 @@ async function askEnsemble(userText, options) {
     return false;
   } finally {
     stopFillers(false);
+    if (game.running && game.phase === 'over' && activeReplies <= 1) endGame('vorbei');
     if (activeReplies <= 1) setThinking('');
     activeReplies = Math.max(0, activeReplies - 1);
     releaseChain();
@@ -12362,8 +13134,13 @@ els.liveStartBtn.onclick = () => {
   prewarmFillers();
   try { updateAmbience(); } catch (e) {}
   if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
+  if (els.gameSelect.value) { startGame(els.gameSelect.value); return; }
   els.textInput.focus();
 };
+els.gameSelect.value = localStorage.getItem('companion_game') || '';
+els.gameSelect.onchange = () => { safeSet('companion_game', els.gameSelect.value); updateGameOptions(); };
+[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn].forEach(el => { el.onchange = updateGameOptions; });
+updateGameOptions();
 
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
 els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
@@ -12390,16 +13167,21 @@ function fixStoryCues(chunks) {
       }
     }
   }
-  // "zu X in 2s" vor jedem Pendeln unterbricht den Rhythmus - weglassen,
-  // wenn das Ziel ohnehin im neuen Bereich liegt.
-  chunks.forEach(c => (c.cues || []).forEach(q => {
+  trimmed = trimLeadingMoves(chunks);
+  return { moved, trimmed };
+}
+// "zu X in 1s" vor jedem Pendeln unterbricht den Rhythmus - weglassen,
+// wenn das Ziel ohnehin im neuen Bereich liegt. Gilt für Geschichte und Gespräch.
+function trimLeadingMoves(list) {
+  let trimmed = 0;
+  list.forEach(c => (c.cues || []).forEach(q => {
     const steps = q.cue && q.cue.kind === 'seq' ? q.cue.steps : null;
     if (steps && steps.length >= 2 && steps[0].type === 'move' && steps[1].type === 'osc'
         && steps[0].to >= Math.min(steps[1].low, steps[1].high) && steps[0].to <= Math.max(steps[1].low, steps[1].high)) {
       steps.shift(); trimmed++;
     }
   }));
-  return { moved, trimmed };
+  return trimmed;
 }
 
 function buildStoryPrompt(idea, wordsPerSection, sectionIndex, sectionCount, previousTail) {
