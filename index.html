@@ -1113,6 +1113,7 @@
       <p class="hint">Ein Bluetooth-Pulsgurt (z. B. Polar H10, H9, H7, Verity Sense) verbindet sich direkt mit der App - in Chrome unter Android oder am Rechner. Die Polar-App dabei schließen, sonst ist der Gurt belegt.</p>
       <div class="btn-row">
         <button class="btn-secondary" id="hrConnectBtn" type="button">❤️ Pulsgurt verbinden</button>
+        <button class="btn-secondary" id="dashOpenBtn" type="button">📊 Auswertung</button>
       </div>
       <p class="hint" id="hrInfo">Nicht verbunden.</p>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
@@ -1243,7 +1244,7 @@
       <select id="liveNarrator"></select>
       <p class="hint">Der Erzähler beschreibt, was geschieht. Ohne ihn wirkt es wie ein reines Telefonat.</p>
 
-      <label for="gameSelect">Spiel</label>
+      <label for="gameSelect">Spiel <a href="#" id="dashOpenLink" style="font-weight:normal; font-size:13px; margin-left:8px;">📊 Auswertung</a></label>
       <select id="gameSelect">
         <option value="">Kein Spiel - freies Gespräch</option>
         <option value="challenge">Durchhalte-Challenge</option>
@@ -1290,6 +1291,7 @@
           <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discFig" style="width:auto;"><span style="font-size:13.5px;">Figuren</span></label>
           <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discVoice" style="width:auto;"><span style="font-size:13.5px;">Stimmen (blind)</span></label>
         </div>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:6px 0 0 0;"><input type="checkbox" id="discAdaptive" checked style="width:auto;"><span style="font-size:13.5px;">Figuren und Stimmen schlau testen (je etwa 6 statt alle)</span></label>
         <div style="display:flex; gap:8px; margin-top:6px;">
           <select id="discBlock" style="flex:1;"><option value="60">60 s pro Test</option><option value="90" selected>90 s pro Test</option></select>
           <select id="discReps" style="flex:1;"><option value="1" selected>je einmal</option><option value="2">je zweimal</option></select>
@@ -1335,6 +1337,7 @@
           <option value="wesen">nach Wesen</option>
           <option value="rolle">nach Rolle in der Szene</option>
           <option value="art">Figuren · Erzähler · Ich</option>
+          <option value="puls">nach meinen Vorlieben (Puls)</option>
         </select>
       </div>
       <div id="figureList"></div>
@@ -1492,6 +1495,16 @@
 <style>
   @keyframes padPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.28); } }
 </style>
+
+<div id="dashOverlay" style="display:none; position:fixed; inset:0; z-index:2100; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+  <div style="max-width:860px; margin:0 auto; padding:calc(env(safe-area-inset-top, 0px) + 16px) 18px calc(env(safe-area-inset-bottom, 0px) + 40px);">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <h2 style="margin:0;">📊 Auswertung</h2>
+      <button id="dashClose" type="button" class="btn-secondary" style="width:auto; padding:6px 14px;">Schließen</button>
+    </div>
+    <div id="dashBody"></div>
+  </div>
+</div>
 
 <div class="bottom-bar" id="bottomBar">
   <div class="thinking" id="thinkingRow" style="display:none;">
@@ -1786,6 +1799,7 @@ const els = {
   discDyn: document.getElementById('discDyn'), discLoc: document.getElementById('discLoc'),
   discTempo: document.getElementById('discTempo'), discFetish: document.getElementById('discFetish'),
   discFig: document.getElementById('discFig'), discVoice: document.getElementById('discVoice'),
+  discAdaptive: document.getElementById('discAdaptive'),
   discBlock: document.getElementById('discBlock'), discReps: document.getElementById('discReps'),
   discInfo: document.getElementById('discInfo'),
   gameTurnT: document.getElementById('gameTurnT'),
@@ -1819,6 +1833,11 @@ const els = {
   comeBtn: document.getElementById('comeBtn'),
   hrVal: document.getElementById('hrVal'),
   hrConnectBtn: document.getElementById('hrConnectBtn'),
+  dashOverlay: document.getElementById('dashOverlay'),
+  dashBody: document.getElementById('dashBody'),
+  dashClose: document.getElementById('dashClose'),
+  dashOpenBtn: document.getElementById('dashOpenBtn'),
+  dashOpenLink: document.getElementById('dashOpenLink'),
   hrInfo: document.getElementById('hrInfo'),
   hrFigures: document.getElementById('hrFigures'),
   hrEdge: document.getElementById('hrEdge'),
@@ -2752,7 +2771,17 @@ els.importSettingsBtn.onclick = async () => {
   els.importSettingsBtn.disabled = true;
   els.bkInfo.textContent = 'Entschlüssele...';
   try {
-    const bundle = await readEncryptedBackup(await file.arrayBuffer(), password);
+    let bundle;
+    try {
+      bundle = await readEncryptedBackup(await file.arrayBuffer(), password);
+    } catch (e) {
+      // Große Sicherungen (mit allen Tönen) sprengen auf manchen Handys den
+      // Arbeitsspeicher - das sah bisher aus wie ein rätselhafter Fehler.
+      if (e instanceof RangeError || /memory|allocation|invalid string length/i.test(e.message)) {
+        throw new Error('Die Sicherung ist zu groß für den Arbeitsspeicher dieses Geräts (' + (file.size / 1048576).toFixed(0) + ' MB). Am Tablet oder Rechner laden - oder eine Sicherung ohne „Alle Töne" erstellen.');
+      }
+      throw e;
+    }
     els.bkInfo.textContent = 'Stelle wieder her...';
     const summary = await restoreBackup(bundle);
     els.bkInfo.textContent = `Wiederhergestellt: ${summary}. Die Seite wird neu geladen.`;
@@ -2875,8 +2904,27 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.49';
+const APP_VERSION = '1.53';
 const CHANGELOG = [
+  { v: '1.53', date: '2026-10-04', items: [
+    'Entdecken: „Figuren und Stimmen schlau testen" - statt alle durchzuprobieren, testet die App zuerst drei möglichst verschiedene (nach Geschlecht, Alter, Akzent, Klang, Eigenschaften) und tastet sich dann an das heran, was dich am meisten packt: je etwa sechs Tests statt aller.',
+    'Figuren ordnen „nach meinen Vorlieben (Puls)": aus Figurentest, Blindtest ihrer Stimme und deinem Puls, wenn sie sprach - mit Wert in der Liste.',
+    'Auswertung: „⧉ Messdaten kopieren" erzeugt einen kompakten Bericht mit allen Kennzahlen, Testergebnissen und der letzten Sitzung als Zeitreihe - zum Einfügen hier im Chat.',
+  ]},
+  { v: '1.52', date: '2026-10-04', items: [
+    'Puls-Labor: Mit verbundenem Gurt zeichnet die App alle 5 Sekunden Puls, Herzfrequenzvariabilität, geschätzte Atmung, Tempo/Hub/Art der Bewegung, wer spricht und welche Musik läuft auf - in jeder Sitzung, nicht nur im Test. Die Auswertung rechnet daraus: wie stark dein Puls auf welches Tempo, welchen Hub, welche Figur und welche Musik reagiert (mit der gemessenen Verzögerung, mit der dein Puls dem Gerät folgt), Variabilität und Atmung ruhig gegen erregt, Zeit bis zur ersten Kante und zum Höhepunkt, Puls beim Höhepunkt, Erholung danach, Tageszeit, Sitzungsliste.',
+    'Vorhersagemodell: Aus Puls über Ruhe, Anstieg und sinkender Variabilität lernt die App, wann du gleich an der Kante bist - mit Trefferquote und Vorwarnzeit. Im Spiel erfahren es die Figuren, bevor du es sagst.',
+    'Mehr Freiraum für die Figuren: weniger reden, mehr Laute, echte Stille (eine Zeile „[Pause]" wird als Schweigen gespielt, das Gerät läuft weiter), und Stellungswechsel nur noch alle paar Antworten.',
+  ]},
+  { v: '1.51', date: '2026-10-04', items: [
+    'Sicherung laden: klare Meldung, wenn eine große Sicherung den Arbeitsspeicher des Geräts sprengt; Töne werden schrittweise eingespielt, und ist der Speicher voll, steht dabei, wie viele nicht mehr passten.',
+    'Auswertung (📊, unter Spiel und bei Pulsgurt): alle Messergebnisse an einem Ort - was dich packt (Rangliste je Bereich), dein Pulsverlauf in der Minute vor „Kurz davor" und „Gekommen" als Kurve, Spiele-Rekorde und Siege, dazu ein Fazit mit Tipps, was noch getestet werden sollte.',
+    'Pulsmuster: Bei jedem „Kurz davor" und „Gekommen" speichert die App die Minute davor. Ab zwei Messungen erkennt sie den Verlauf wieder - und die Figuren erfahren es: Sie halten dich dann genau an der Kante oder lassen dich bewusst kommen, je nachdem, ob es gerade erlaubt ist.',
+    'Alle Testergebnisse, Rekorde und Pulsverläufe kommen mit der Sicherung (Teil „Einstellungen").',
+  ]},
+  { v: '1.50', date: '2026-10-04', items: [
+    'Behoben: Seit 1.45 brach der Start der App an einer Stelle ab (Turnier-Anzeige las einen Wert, bevor er gesetzt war). Dadurch funktionierten unter anderem der Figuren-Editor und einige Knöpfe nicht mehr.',
+  ]},
   { v: '1.49', date: '2026-10-04', items: [
     'Entdecken: zwei neue Bereiche. „Figuren" - jede deiner Figuren spielt nacheinander dieselbe Situation, nur die Figur wechselt. „Stimmen (blind)" - derselbe Text in deinen ElevenLabs-Stimmen, ohne Namen; erst im Ergebnis siehst du, welche Stimme dich am meisten gepackt hat.',
   ]},
@@ -3843,8 +3891,15 @@ async function restoreBackup(bundle) {
     report.push(`${bundle.images.length} Bilder`);
   }
   if (Array.isArray(bundle.audio)) {
-    for (const e of bundle.audio) await dbPut(STORE_AUDIO, e.k, base64ToBlob(e.b, e.t));
-    report.push(`${bundle.audio.length} Tonstücke`);
+    let ok = 0, failed = 0;
+    for (let i = 0; i < bundle.audio.length; i++) {
+      const e = bundle.audio[i];
+      try { await dbPut(STORE_AUDIO, e.k, base64ToBlob(e.b, e.t)); ok++; }
+      catch (err) { failed++; if (/quota/i.test(String(err && (err.name || err.message)))) { failed += bundle.audio.length - i - 1; break; } }
+      bundle.audio[i] = null;   // Speicher gleich wieder freigeben
+      if (i % 25 === 0) els.bkInfo.textContent = `Stelle Töne wieder her … ${i} von ${bundle.audio.length}`;
+    }
+    report.push(`${ok} Tonstücke` + (failed ? ` (${failed} passten nicht mehr in den Speicher)` : ''));
   }
   return report.join(', ') || 'nichts';
 }
@@ -6966,6 +7021,7 @@ function onHeartRate(e) {
   hr.history.push({ t: now, bpm });
   if (hr.history.length > 1200) hr.history.splice(0, hr.history.length - 1200);
   if (now - hr.lastLog > 15000) { hr.lastLog = now; logEvent('msg', { role: 'system', text: `Puls ${bpm} (${hrTrend()})` }); }
+  try { hrCheckPattern(); } catch (e) {}
   // Automatisches Bremsen bei hohem Puls
   const at = hrEdgeAt();
   if (at && bpm >= at && !inDanger && now - hr.lastAutoEdge > 60000 && arousalEnabled()) {
@@ -7007,10 +7063,259 @@ async function connectHeart() {
     els.hrInfo.textContent = /cancel/i.test(e.message) ? 'Abgebrochen.' : 'Verbindung fehlgeschlagen: ' + e.message;
   }
 }
+// ---------- Pulsverlauf vor „Kurz davor" und „Gekommen" ----------
+// Bei jedem Druck wird die Minute davor gespeichert (als Abstand zum Ruhepuls,
+// damit Tage mit anderem Grundpuls vergleichbar bleiben). Ab zwei Ereignissen
+// entsteht ein Muster; taucht es wieder auf, erfahren es die Figuren.
+const HR_STEP = 5000, HR_WINDOW = 60000;
+function hrEvents() { try { return JSON.parse(localStorage.getItem('companion_hrEvents') || '[]'); } catch (e) { return []; } }
+function hrCurve(endT) {
+  const out = [];
+  for (let t = endT - HR_WINDOW; t < endT; t += HR_STEP) out.push(hrMean(t, t + HR_STEP));
+  return out;
+}
+function hrRecordEvent(type) {
+  try { hrLogEvent(type); } catch (e) {}
+  if (!hr.connected || hr.history.length < 10) return;
+  const now = Date.now();
+  const curve = hrCurve(now);
+  if (curve.filter(v => v != null).length < 6) return;
+  const rest = hrRest() || Math.min(...curve.filter(v => v != null));
+  const rel = curve.map(v => v == null ? null : Math.round((v - rest) * 10) / 10);
+  const evs = hrEvents();
+  evs.push({ type, t: now, rel, rest, end: rel[rel.length - 1] ?? rel.filter(v => v != null).pop(), hrv: rmssd(now - 30000, now) });
+  if (evs.length > 120) evs.splice(0, evs.length - 120);
+  safeSet('companion_hrEvents', JSON.stringify(evs));
+  logEvent('msg', { role: 'system', text: `Pulsverlauf gespeichert (${type === 'edge' ? 'kurz davor' : 'gekommen'}): +${Math.round(rel[0] ?? 0)} → +${Math.round(rel[rel.length - 1] ?? 0)} über Ruhe.` });
+}
+function fill(arr) { let last = null; const f = arr.map(v => (v == null ? last : (last = v))); let first = f.find(v => v != null) ?? 0; return f.map(v => v == null ? first : v); }
+function hrPattern(type) {
+  const evs = hrEvents().filter(e => e.type === type && Array.isArray(e.rel));
+  if (evs.length < 2) return null;
+  const n = evs[0].rel.length;
+  const avg = [];
+  for (let i = 0; i < n; i++) { const v = evs.map(e => e.rel[i]).filter(x => x != null); avg.push(v.length ? v.reduce((a, b) => a + b, 0) / v.length : null); }
+  const a = fill(avg);
+  return { n: evs.length, curve: a, end: a[a.length - 1], rise: a[a.length - 1] - a[0] };
+}
+function pearson(x, y) {
+  const n = Math.min(x.length, y.length); if (n < 3) return 0;
+  const mx = x.reduce((a, b) => a + b, 0) / n, my = y.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; }
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+let hrLastCheck = 0;
+function hrCheckPattern() {
+  const now = Date.now();
+  if (now - hrLastCheck < 5000) return;
+  hrLastCheck = now;
+  const rest = hrRest(); if (!rest) return;
+  const cur = hrCurve(now);
+  if (cur.filter(v => v != null).length < 8) return;
+  const rel = fill(cur.map(v => v == null ? null : v - rest));
+  const curEnd = rel[rel.length - 1], curRise = curEnd - rel[0];
+  let best = null;
+  ['came', 'edge'].forEach(type => {
+    const p = hrPattern(type); if (!p) return;
+    const sim = pearson(rel, p.curve);
+    const levelOk = curEnd >= p.end - 4;
+    const riseOk = p.rise <= 2 || curRise >= p.rise * 0.6;
+    if (sim > 0.6 && levelOk && riseOk && (!best || sim > best.sim)) best = { type, sim, n: p.n };
+  });
+  if (best) {
+    const fresh = !hr.pattern || now - hr.pattern.at > 60000 || hr.pattern.type !== best.type;
+    hr.pattern = Object.assign(best, { at: now });
+    if (fresh) logEvent('msg', { role: 'system', text: `Puls-Muster erkannt: wie kurz ${best.type === 'came' ? 'vor dem Kommen' : 'vor „Kurz davor"'} (Übereinstimmung ${Math.round(best.sim * 100)} %).` });
+  } else if (hr.pattern && now - hr.pattern.at > 30000) hr.pattern = null;
+}
+
+// ======================= PULS-LABOR =======================
+// Alle 5 Sekunden eine Zeile: Puls, Variabilität, Atmung, was das Gerät tut,
+// wer spricht, welche Musik läuft, welches Spiel. Daraus rechnet die
+// Auswertung Zusammenhänge aus - auch ohne „Entdecken", aus jeder Sitzung.
+let currentSpeaker = null, currentSpeakerAt = 0;
+function noteSpeaker(role) { currentSpeaker = role === 'narrator' ? 'Erzähler' : role; currentSpeakerAt = Date.now(); }
+const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5 };
+const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend'];
+// Atemfrequenz aus der Herzfrequenzvariabilität (respiratorische Sinusarrhythmie):
+// RR-Abstände glätten, Trend abziehen, Nulldurchgänge zählen.
+function breathRate(t0, t1) {
+  const v = hr.rr.filter(r => r.t >= t0 && r.t <= t1).map(r => r.ms);
+  if (v.length < 30) return null;
+  const k = 7, trend = v.map((_, i) => { const a = v.slice(Math.max(0, i - k), i + k + 1); return a.reduce((x, y) => x + y, 0) / a.length; });
+  const d = v.map((x, i) => x - trend[i]);
+  const sm = d.map((_, i) => (d[i - 1] ?? d[i]) * 0.25 + d[i] * 0.5 + (d[i + 1] ?? d[i]) * 0.25);
+  let cross = 0; for (let i = 1; i < sm.length; i++) if ((sm[i - 1] < 0) !== (sm[i] < 0)) cross++;
+  const secs = v.reduce((x, y) => x + y, 0) / 1000;
+  const br = cross / 2 / (secs / 60);
+  return br >= 4 && br <= 40 ? Math.round(br * 10) / 10 : null;
+}
+const hrLog = { session: null };
+function hrLogLoad() { try { return JSON.parse(localStorage.getItem('companion_hrLog') || '{"sessions":[]}'); } catch (e) { return { sessions: [] }; } }
+function hrLogSave() {
+  if (!hrLog.session || hrLog.session.rows.length < 6) return;
+  const all = hrLogLoad();
+  const i = all.sessions.findIndex(x => x.id === hrLog.session.id);
+  if (i >= 0) all.sessions[i] = hrLog.session; else all.sessions.push(hrLog.session);
+  let json = JSON.stringify(all);
+  while (json.length > 1200000 && all.sessions.length > 1) { all.sessions.shift(); json = JSON.stringify(all); }
+  safeSet('companion_hrLog', json);
+}
+function hrLogTick() {
+  if (!hr.connected || !hr.bpm) return;
+  const now = Date.now();
+  if (!hrLog.session) hrLog.session = { id: now, start: now, rows: [], speakers: [], styles: [], events: [] };
+  const S = hrLog.session;
+  const st = device1 && device1.getState ? device1.getState() : null;
+  const moving = st && st.texture !== 'stop' && st.bpm > 0;
+  const spk = currentSpeaker && now - currentSpeakerAt < 15000 ? currentSpeaker : null;
+  let si = -1; if (spk) { si = S.speakers.indexOf(spk); if (si < 0) { S.speakers.push(spk); si = S.speakers.length - 1; } }
+  const style = (typeof music !== 'undefined' && music.mood) ? (MUSIC_STYLES[music.style] ? MUSIC_STYLES[music.style].label : '') + ' ' + MUSIC_MOODS[music.mood].label : null;
+  let mi = -1; if (style) { mi = S.styles.indexOf(style); if (mi < 0) { S.styles.push(style); mi = S.styles.length - 1; } }
+  const rm = rmssd(now - 30000, now);
+  const br = breathRate(now - 60000, now);
+  S.rows.push([Math.round((now - S.start) / 1000), hr.bpm, rm == null ? -1 : Math.round(rm), moving ? Math.round(st.bpm) : 0,
+    moving ? Math.round((st.high ?? 0) - (st.low ?? 0)) : 0, moving ? (TEX_CODES[st.texture] ?? 1) : 0, si, mi,
+    br == null ? -1 : br, inDanger ? 1 : 0]);
+  if (S.rows.length > 2880) S.rows.splice(0, S.rows.length - 2880);
+  if (S.rows.length % 12 === 0) hrLogSave();
+  livePredict();
+}
+setInterval(() => { try { hrLogTick(); } catch (e) {} }, 5000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { try { hrLogSave(); } catch (e) {} } });
+function hrLogEvent(type) { if (hrLog.session) { hrLog.session.events.push({ t: Math.round((Date.now() - hrLog.session.start) / 1000), type }); hrLogSave(); } }
+
+// ---------- Analyse ----------
+function pct(arr, q) { const v = arr.slice().sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(v.length * q))] : null; }
+function mean(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }
+function sd(a) { const m = mean(a); return a.length > 1 ? Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)) : 0; }
+function pearson(x, y) {
+  const n = x.length; if (n < 10) return null;
+  const mx = mean(x), my = mean(y);
+  let a = 0, b = 0, c = 0; for (let i = 0; i < n; i++) { a += (x[i] - mx) * (y[i] - my); b += (x[i] - mx) ** 2; c += (y[i] - my) ** 2; }
+  return b && c ? a / Math.sqrt(b * c) : null;
+}
+function labAnalyze() {
+  const sessions = hrLogLoad().sessions.filter(S => S.rows && S.rows.length >= 12);
+  if (hrLog.session && hrLog.session.rows.length >= 12 && !sessions.some(S => S.id === hrLog.session.id)) sessions.push(hrLog.session);
+  if (!sessions.length) return null;
+  const R = { sessions: sessions.length, minutes: 0, rows: 0 };
+  const pts = [];   // { s, i, t, rel, hr, rm, bpm, len, tex, spk, style, br, danger, slope }
+  sessions.forEach((S, si) => {
+    const hrs = S.rows.map(r => r[1]);
+    const rest = pct(hrs, 0.1);
+    R.minutes += (S.rows[S.rows.length - 1][0] - S.rows[0][0]) / 60;
+    S.rows.forEach((r, i) => {
+      const prev = S.rows[Math.max(0, i - 6)];
+      pts.push({ s: si, i, t: r[0], hr: r[1], rel: r[1] - rest, rest, rm: r[2] >= 0 ? r[2] : null, bpm: r[3], len: r[4], tex: r[5],
+        spk: r[6] >= 0 ? S.speakers[r[6]] : null, style: r[7] >= 0 ? S.styles[r[7]] : null, br: r[8] >= 0 ? r[8] : null, danger: r[9], slope: r[1] - prev[1] });
+    });
+  });
+  R.rows = pts.length;
+  const bySession = sessions.map((S, si) => pts.filter(p => p.s === si));
+  // 1) Reaktionszeit: Wie viele Sekunden folgt der Puls dem Tempo?
+  let best = { lag: 3, r: null };
+  for (let lag = 0; lag <= 12; lag++) {
+    const x = [], y = [];
+    bySession.forEach(list => { for (let i = 0; i + lag < list.length; i++) { x.push(list[i].bpm); y.push(list[i + lag].rel); } });
+    const r = pearson(x, y);
+    if (r != null && (best.r == null || r > best.r)) best = { lag, r };
+  }
+  R.lagSec = best.lag * 5; R.lagR = best.r;
+  const shifted = []; bySession.forEach(list => list.forEach((p, i) => { const q = list[i + best.lag]; if (q) shifted.push({ ...p, relLag: q.rel }); }));
+  const groupMean = (keyFn, list) => { const g = {}; list.forEach(p => { const k = keyFn(p); if (k == null) return; (g[k] = g[k] || []).push(p.relLag ?? p.rel); }); return Object.entries(g).map(([k, v]) => ({ k, n: v.length, m: mean(v) })).filter(x => x.n >= 6); };
+  // 2) Tempo, Hub, Art
+  const bpmBucket = p => p.bpm === 0 ? '0 steht' : p.bpm <= 40 ? '1-40' : p.bpm <= 80 ? '41-80' : p.bpm <= 120 ? '81-120' : p.bpm <= 160 ? '121-160' : '161+';
+  R.tempo = groupMean(bpmBucket, shifted).sort((a, b) => parseInt(a.k) - parseInt(b.k));
+  const lenBucket = p => p.bpm === 0 ? null : p.len < 250 ? 'kurz (<25 %)' : p.len < 500 ? 'mittel (25-50 %)' : p.len < 750 ? 'lang (50-75 %)' : 'voll (>75 %)';
+  R.stroke = groupMean(lenBucket, shifted);
+  R.texture = groupMean(p => p.bpm === 0 ? null : TEX_NAMES[p.tex], shifted);
+  // 3) Wer spricht, welche Musik
+  R.speakers = groupMean(p => p.spk, shifted).sort((a, b) => b.m - a.m);
+  R.styles = groupMean(p => p.style, shifted).sort((a, b) => b.m - a.m);
+  // 4) Variabilität und Atmung: ruhig gegen erregt
+  const calm = pts.filter(p => p.rel < 6), hot = pts.filter(p => p.rel >= 18);
+  R.rmCalm = mean(calm.map(p => p.rm).filter(v => v != null)); R.rmHot = mean(hot.map(p => p.rm).filter(v => v != null));
+  R.brCalm = mean(calm.map(p => p.br).filter(v => v != null)); R.brHot = mean(hot.map(p => p.br).filter(v => v != null));
+  // 5) Kanten, Höhepunkte, Erholung
+  const evs = []; sessions.forEach((S, si) => (S.events || []).forEach(e => evs.push({ ...e, s: si })));
+  R.edges = evs.filter(e => e.type === 'edge').length; R.comes = evs.filter(e => e.type === 'came').length;
+  const firstEdge = sessions.map((S, si) => { const e = (S.events || []).find(x => x.type === 'edge'); return e ? (e.t - S.rows[0][0]) / 60 : null; }).filter(v => v != null);
+  R.timeToEdge = mean(firstEdge);
+  const toCome = sessions.map(S => { const e = (S.events || []).find(x => x.type === 'came'); return e ? (e.t - S.rows[0][0]) / 60 : null; }).filter(v => v != null);
+  R.timeToCome = mean(toCome);
+  const recov = [], edgeRecov = [], peakAtCome = [];
+  evs.forEach(e => {
+    const list = bySession[e.s]; const at = list.find(p => p.t >= e.t) || list[list.length - 1];
+    const after = (sec) => { const q = list.find(p => p.t >= e.t + sec); return q ? at.hr - q.hr : null; };
+    if (e.type === 'came') { const a = after(60), b = after(120); if (a != null) recov.push([a, b]); peakAtCome.push(Math.max(...list.filter(p => p.t >= e.t - 60 && p.t <= e.t + 10).map(p => p.hr))); }
+    if (e.type === 'edge') { const a = after(30); if (a != null) edgeRecov.push(a); }
+  });
+  R.hrr60 = mean(recov.map(x => x[0])); R.hrr120 = mean(recov.map(x => x[1]).filter(v => v != null));
+  R.edgeRecov = mean(edgeRecov); R.peakAtCome = mean(peakAtCome);
+  // 6) Vorhersage: Zeilen, auf die innerhalb von 60 s ein Ereignis folgt
+  const lab = pts.map(p => { const S = sessions[p.s]; return (S.events || []).some(e => e.t > p.t && e.t - p.t <= 60) ? 1 : 0; });
+  const relSd = sd(pts.map(p => p.rel)) || 1, slSd = sd(pts.map(p => p.slope)) || 1;
+  const rmVals = pts.map(p => p.rm).filter(v => v != null), rmM = mean(rmVals) || 0, rmSd = sd(rmVals) || 1;
+  const score = p => p.rel / relSd + p.slope / slSd - (p.rm == null ? 0 : (p.rm - rmM) / rmSd) * 0.5;
+  const scores = pts.map(score);
+  const pos = lab.reduce((a, b) => a + b, 0);
+  if (pos >= 6 && R.edges + R.comes >= 3) {
+    let bestF = { f1: 0 };
+    const cands = [...new Set(scores.map(x => Math.round(x * 10) / 10))].sort((a, b) => a - b);
+    cands.forEach(th => {
+      let tp = 0, fp = 0, fn = 0;
+      scores.forEach((sc, i) => { if (sc >= th) { if (lab[i]) tp++; else fp++; } else if (lab[i]) fn++; });
+      const prec = tp / Math.max(1, tp + fp), rec = tp / Math.max(1, tp + fn), f1 = prec + rec ? 2 * prec * rec / (prec + rec) : 0;
+      if (f1 > bestF.f1) bestF = { th, f1, prec, rec };
+    });
+    // Vorwarnzeit: wie früh die Schwelle vor dem Ereignis überschritten wurde
+    const leads = [];
+    evs.forEach(e => { const list = bySession[e.s]; const before = list.filter(p => p.t <= e.t && p.t > e.t - 120); const first = before.find(p => score(p) >= bestF.th); if (first) leads.push(e.t - first.t); });
+    R.predict = { ...bestF, lead: mean(leads), relSd, slSd, rmM, rmSd };
+    safeSet('companion_hrPredict', JSON.stringify(R.predict));
+  }
+  // 7) Tageszeit
+  const hours = {}; sessions.forEach((S, si) => { const h = new Date(S.start).getHours(); const k = h < 6 ? 'Nacht' : h < 12 ? 'Morgen' : h < 18 ? 'Tag' : 'Abend'; const l = bySession[si]; (hours[k] = hours[k] || []).push(Math.max(...l.map(p => p.rel))); });
+  R.dayparts = Object.entries(hours).map(([k, v]) => ({ k, n: v.length, m: mean(v) }));
+  // 8) Sitzungsliste
+  R.list = sessions.slice(-12).reverse().map(S => {
+    const hrs = S.rows.map(r => r[1]);
+    return { date: new Date(S.start).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      min: Math.round((S.rows[S.rows.length - 1][0] - S.rows[0][0]) / 60), rest: pct(hrs, 0.1), max: Math.max(...hrs),
+      edges: (S.events || []).filter(e => e.type === 'edge').length, came: (S.events || []).some(e => e.type === 'came') };
+  });
+  return R;
+}
+// Live-Vorhersage aus dem gelernten Modell
+let predictNote = null, predictAt = 0;
+function livePredict() {
+  let P = null; try { P = JSON.parse(localStorage.getItem('companion_hrPredict') || 'null'); } catch (e) {}
+  if (!P || !(P.prec >= 0.35) || !hrLog.session) return;
+  const rows = hrLog.session.rows; if (rows.length < 8) return;
+  const rest = pct(rows.map(r => r[1]), 0.1);
+  const r = rows[rows.length - 1], prev = rows[Math.max(0, rows.length - 7)];
+  const sc = (r[1] - rest) / P.relSd + (r[1] - prev[1]) / P.slSd - (r[2] >= 0 ? (r[2] - P.rmM) / P.rmSd * 0.5 : 0);
+  const now = Date.now();
+  if (sc >= P.th && !inDanger && now - predictAt > 60000) {
+    predictAt = now;
+    predictNote = { t: now, lead: P.lead, prec: P.prec };
+    logEvent('msg', { role: 'system', text: `Vorhersage: wahrscheinlich gleich „kurz davor" (Trefferquote ${Math.round(P.prec * 100)} %${P.lead ? ', meist ' + Math.round(P.lead) + ' s Vorlauf' : ''}).` });
+  }
+  if (predictNote && now - predictNote.t > 45000) predictNote = null;
+}
+function predictBlock() {
+  if (!predictNote) return '';
+  return `\n\nVORHERSAGE AUS SEINEN MESSWERTEN: Nach allem, was die App über Tils Körper gelernt hat, ist er sehr wahrscheinlich in etwa ${predictNote.lead ? Math.round(predictNote.lead) : 30} Sekunden an der Kante (bisherige Trefferquote ${Math.round(predictNote.prec * 100)} %). Ihr wisst es, bevor er es sagt - spielt damit: nehmt im richtigen Moment zurück, oder treibt ihn bewusst darüber, wenn es erlaubt ist. Ihr dürft ihm sagen, dass ihr es kommen spürt.`;
+}
+
 function heartBlock() {
   if (!hr.connected || !hr.bpm || !hrFiguresEnabled()) return '';
   const rest = hrRest();
-  return `\n\nTILS PULS (live vom Pulsgurt): ${hr.bpm} Schläge pro Minute${rest ? `, Ruhepuls etwa ${rest}` : ''}, ${hrTrend()}. Ihr spürt seinen Herzschlag - geht ab und zu darauf ein („dein Herz rast…", „ich spüre, wie es pocht…"). Manchmal bewegt ihr die Hülse genau im Takt seines Herzens: dann steht im Marker als Tempo ${hr.bpm} mit der Art pulse, etwa <<300-700@${hr.bpm} pulse>>, und der Erzähler beschreibt es.`;
+  const pat = hr.pattern && Date.now() - hr.pattern.at < 30000 ? hr.pattern : null;
+  const patText = pat ? `\n\nPULS-MUSTER ERKANNT: Sein Puls verläuft gerade genau so wie sonst ${pat.type === 'came' ? 'kurz bevor er kommt' : 'kurz bevor er „kurz davor" meldet'} (Übereinstimmung ${Math.round(pat.sim * 100)} %). Ihr wisst also, dass er gleich so weit ist - spielt bewusst damit: ${releaseAllowed() ? 'ihr dürft ihn jetzt kommen lassen, kündigt es an und treibt ihn darüber' : 'haltet ihn genau an der Kante, nehmt zurück, bevor es zu spät ist, und lasst ihn spüren, dass ihr es merkt'}.` : '';
+  return predictBlock() + patText + `\n\nTILS PULS (live vom Pulsgurt): ${hr.bpm} Schläge pro Minute${rest ? `, Ruhepuls etwa ${rest}` : ''}, ${hrTrend()}. Ihr spürt seinen Herzschlag - geht ab und zu darauf ein („dein Herz rast…", „ich spüre, wie es pocht…"). Manchmal bewegt ihr die Hülse genau im Takt seines Herzens: dann steht im Marker als Tempo ${hr.bpm} mit der Art pulse, etwa <<300-700@${hr.bpm} pulse>>, und der Erzähler beschreibt es.`;
 }
 
 // ---------- Nähe-Regler und Hinhalten ----------
@@ -7087,6 +7392,7 @@ function setArousal(v, source, quiet) {
   if (!inDanger && v >= AROUSAL_DANGER) {
     inDanger = true;
     edgeCount += 1;
+    if (source !== 'Puls') { try { hrRecordEvent('edge'); } catch (e) {} }
     logEvent('msg', { role: 'system', text: releaseAllowed()
       ? `Kurz davor (${edgeCount}. Mal) - jetzt erlaubt.`
       : `Kurz davor (${edgeCount}. Mal)${edgingEnabled() ? ' - Gerät gebremst.' : ''}` });
@@ -8046,13 +8352,15 @@ function duelists() { return aiCharacters().filter(c => !c.isNarrator).slice(0, 
 
 function updateGameOptions() {
   const t = els.gameSelect.value;
+  const r = gameRecords();
   els.gameOptChallenge.style.display = t === 'challenge' ? '' : 'none';
   els.gameOptDuel.style.display = t === 'duel' ? '' : 'none';
   els.gameOptAdventure.style.display = t === 'adventure' ? '' : 'none';
   els.gameOptTournament.style.display = t === 'tournament' ? '' : 'none';
   els.gameOptDiscover.style.display = t === 'discover' ? '' : 'none';
   // Geschätzte Dauer - mit allen Bereichen wird es schnell lang
-  const counts = { fig: discFigureItems().length, voice: discVoiceItems().length };
+  const ad = els.discAdaptive && els.discAdaptive.checked;
+  const counts = { fig: ad ? Math.min(ADAPT_BUDGET, discFigureItems().length) : discFigureItems().length, voice: ad ? Math.min(ADAPT_BUDGET, discVoiceItems().length) : discVoiceItems().length };
   const nItems = [['dyn', els.discDyn], ['loc', els.discLoc], ['tempo', els.discTempo], ['fetish', els.discFetish], ['fig', els.discFig], ['voice', els.discVoice]]
     .filter(([, el]) => el.checked).reduce((a, [k]) => a + (counts[k] ?? DISCOVER_ITEMS[k].items.length), 0) * parseInt(els.discReps.value, 10);
   const mins = Math.round(nItems * (parseInt(els.discBlock.value, 10) + 30) / 60);
@@ -8061,7 +8369,6 @@ function updateGameOptions() {
   const titles = (r.tourWins || {});
   els.gameTourInfo.textContent = (nT >= 3 ? `${nT} Figuren` : 'Es braucht mindestens drei Figuren in der Besetzung') + ' treten im K.-o.-System gegeneinander an - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und alle merken sich, wie es ausging.'
     + (Object.keys(titles).length ? ' Turniersiege: ' + Object.entries(titles).map(([n, w]) => n.split(' ')[0] + ' ' + w).join(', ') + '.' : '');
-  const r = gameRecords();
   const key = 'challenge_' + els.gameDifficulty.value + '_' + els.gameDuration.value;
   const best = r[key];
   els.gameRecordInfo.textContent = 'Halte durch, ohne zu kommen. Alle zwei Minuten wird es eine Stufe heftiger. „Kurz davor" ist erlaubt, kostet aber Punkte. Hast du die Zeit geschafft, darfst du kommen.'
@@ -8149,6 +8456,191 @@ function settleBets(resultMs, won) {
   const r = gameRecords(); r.betWins = r.betWins || {}; r.betWins[best.name] = (r.betWins[best.name] || 0) + 1; saveGameRecords(r);
   return best;
 }
+// ======================= AUSWERTUNG =======================
+function esc(t) { return String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function dashBar(value, max, color) {
+  const w = Math.max(0, Math.min(100, (value / max) * 100));
+  return `<div style="flex:1; height:10px; background:var(--line, #333); border-radius:5px; overflow:hidden;"><div style="width:${w}%; height:100%; background:${color}; border-radius:5px;"></div></div>`;
+}
+function dashCurveSvg(patterns) {
+  const W = 320, H = 120, pad = 22;
+  const all = patterns.flatMap(p => p.curve);
+  if (!all.length) return '';
+  const max = Math.max(10, ...all), min = Math.min(0, ...all);
+  const x = i => pad + i * (W - pad - 6) / (patterns[0].curve.length - 1);
+  const y = v => H - pad - (v - min) * (H - pad - 8) / (max - min || 1);
+  const lines = patterns.map(p => `<polyline fill="none" stroke="${p.color}" stroke-width="2.5" points="${p.curve.map((v, i) => x(i) + ',' + y(v)).join(' ')}"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%; max-width:520px; height:auto;">
+    <line x1="${pad}" y1="${y(0)}" x2="${W - 6}" y2="${y(0)}" stroke="currentColor" opacity="0.2"/>
+    <text x="${pad}" y="${H - 4}" font-size="9" fill="currentColor" opacity="0.6">-60 s</text>
+    <text x="${W - 30}" y="${H - 4}" font-size="9" fill="currentColor" opacity="0.6">jetzt</text>
+    <text x="2" y="${y(max) + 4}" font-size="9" fill="currentColor" opacity="0.6">+${Math.round(max)}</text>
+    <text x="2" y="${y(0) + 3}" font-size="9" fill="currentColor" opacity="0.6">Ruhe</text>
+    ${lines}</svg>`;
+}
+function labBars(list, unit) {
+  if (!list || !list.length) return '<p class="hint">Noch zu wenige Messpunkte.</p>';
+  const max = Math.max(5, ...list.map(x => Math.abs(x.m)));
+  return list.map(x => `<div style="display:flex; align-items:center; gap:8px; margin:3px 0;"><span style="width:38%; font-size:13px;">${esc(x.k)}</span>${dashBar(Math.max(0, x.m), max, x.m >= max * 0.66 ? '#e0526b' : x.m >= max * 0.33 ? '#e0a052' : '#6b8fb3')}<span style="width:72px; text-align:right; font-size:12.5px;">${x.m >= 0 ? '+' : ''}${x.m.toFixed(1)}${unit || ''} <span style="opacity:0.55;">(${x.n})</span></span></div>`).join('');
+}
+function labSections(L) {
+  const sec = (title, html) => `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">${title}</h3>${html}</div>`;
+  if (!L) return sec('🔬 Puls-Labor', '<p class="hint">Sobald du mit verbundenem Pulsgurt spielst, zeichnet die App alle 5 Sekunden Puls, Variabilität, Atmung und alles, was gerade passiert, auf - hier entsteht dann die Auswertung.</p>');
+  let h = '';
+  h += `<p class="hint" style="margin-top:0;">${L.sessions} Sitzungen · ${Math.round(L.minutes)} Minuten · ${L.rows} Messpunkte. Werte = Schläge über deinem Ruhepuls, ${L.lagSec} s versetzt gemessen (so lange braucht dein Puls, um auf das Gerät zu reagieren${L.lagR != null ? ', Zusammenhang r = ' + L.lagR.toFixed(2) : ''}).</p>`;
+  h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Tempo (Hübe pro Minute)</div>' + labBars(L.tempo);
+  h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Hublänge</div>' + labBars(L.stroke);
+  h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Art der Bewegung</div>' + labBars(L.texture);
+  if (L.speakers.length) h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Wer gerade spricht</div>' + labBars(L.speakers);
+  if (L.styles.length) h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Musik</div>' + labBars(L.styles);
+  const kv = (k, v) => v == null || Number.isNaN(v) ? '' : `<div style="flex:1 1 150px; border:1px solid var(--line, #333); border-radius:12px; padding:8px 10px;"><div style="font-size:11.5px; opacity:0.7;">${k}</div><div style="font-size:18px; font-weight:600;">${v}</div></div>`;
+  h += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">`
+    + kv('Variabilität ruhig → erregt', L.rmCalm != null && L.rmHot != null ? `${Math.round(L.rmCalm)} → ${Math.round(L.rmHot)} ms` : null)
+    + kv('Atmung ruhig → erregt', L.brCalm != null && L.brHot != null ? `${L.brCalm.toFixed(1)} → ${L.brHot.toFixed(1)}/min` : null)
+    + kv('Bis zur ersten Kante', L.timeToEdge != null ? `${L.timeToEdge.toFixed(1)} min` : null)
+    + kv('Bis zum Höhepunkt', L.timeToCome != null ? `${L.timeToCome.toFixed(1)} min` : null)
+    + kv('Puls beim Höhepunkt', L.peakAtCome != null ? `${Math.round(L.peakAtCome)}` : null)
+    + kv('Erholung nach 60 / 120 s', L.hrr60 != null ? `−${Math.round(L.hrr60)} / −${L.hrr120 != null ? Math.round(L.hrr120) : '?'}` : null)
+    + kv('Abfall 30 s nach Kante', L.edgeRecov != null ? `−${Math.round(L.edgeRecov)}` : null)
+    + kv('Vorhersage', L.predict ? `${Math.round(L.predict.prec * 100)} % Treffer · ${Math.round(L.predict.rec * 100)} % erkannt` : null)
+    + `</div>`;
+  if (L.predict) h += `<p class="hint">Das Vorhersagemodell kombiniert Puls über Ruhe, Anstieg der letzten 30 Sekunden und sinkende Variabilität. Es meldet sich im Mittel ${L.predict.lead ? Math.round(L.predict.lead) + ' Sekunden' : 'kurz'} vor „Kurz davor"/„Gekommen" - und die Figuren erfahren es.</p>`;
+  else h += '<p class="hint">Das Vorhersagemodell lernt, sobald mindestens drei „Kurz davor"/„Gekommen" mit Gurt aufgezeichnet sind.</p>';
+  if (L.dayparts.length > 1) h += '<div style="font-size:13px; opacity:0.75; margin:10px 0 4px;">Höchster Anstieg nach Tageszeit</div>' + labBars(L.dayparts);
+  h += '<div style="font-size:13px; opacity:0.75; margin:12px 0 4px;">Letzte Sitzungen</div><table style="width:100%; font-size:12.5px; border-collapse:collapse;"><tr style="opacity:0.65;"><td>Wann</td><td>Min</td><td>Ruhe</td><td>Max</td><td>Kanten</td><td></td></tr>'
+    + L.list.map(x => `<tr><td>${x.date}</td><td>${x.min}</td><td>${x.rest}</td><td>${x.max}</td><td>${x.edges}</td><td>${x.came ? '💦' : ''}</td></tr>`).join('') + '</table>';
+  return sec('🔬 Puls-Labor (aus allen Sitzungen)', h);
+}
+function labFazit(L) {
+  const f = [];
+  if (!L) return f;
+  const top = (list) => list && list.length ? list.slice().sort((a, b) => b.m - a.m)[0] : null;
+  const t = top(L.tempo), st = top(L.stroke), tx = top(L.texture), sp = top(L.speakers), mu = top(L.styles);
+  if (t && t.m > 3) f.push(`Im Alltag (nicht nur im Test) steigt dein Puls am stärksten bei <b>${esc(t.k)} Hüben pro Minute</b>${st ? ` und <b>${esc(st.k)}</b>em Hub` : ''}${tx ? `, Bewegungsart <b>${esc(tx.k)}</b>` : ''}.`);
+  if (L.lagR != null && L.lagR > 0.15) f.push(`Dein Puls folgt dem Tempo mit etwa <b>${L.lagSec} Sekunden</b> Verzögerung - Steigerungen wirken also erst nach einer Weile.`);
+  if (sp && sp.m > 3) f.push(`Wenn <b>${esc(sp.k)}</b> spricht, ist dein Puls im Schnitt am höchsten (+${sp.m.toFixed(1)}).`);
+  if (mu && mu.m > 3) f.push(`Bei der Musik wirkt <b>${esc(mu.k)}</b> am stärksten.`);
+  if (L.rmCalm != null && L.rmHot != null && L.rmCalm > L.rmHot) f.push(`Deine Herzfrequenzvariabilität fällt bei Erregung um rund ${Math.round(100 * (1 - L.rmHot / L.rmCalm))} % - ein typisches Zeichen dafür, dass dein Körper umschaltet.`);
+  if (L.brCalm != null && L.brHot != null && L.brHot > L.brCalm + 1) f.push(`Du atmest erregt schneller: etwa ${L.brCalm.toFixed(0)} → ${L.brHot.toFixed(0)} Atemzüge pro Minute.`);
+  if (L.timeToEdge != null) f.push(`Bis zur ersten Kante vergehen bei dir im Schnitt ${L.timeToEdge.toFixed(1)} Minuten${L.timeToCome != null ? `, bis zum Höhepunkt ${L.timeToCome.toFixed(1)} Minuten` : ''}.`);
+  if (L.hrr60 != null) f.push(`Nach dem Höhepunkt fällt dein Puls in einer Minute um etwa ${Math.round(L.hrr60)} Schläge - ${L.hrr60 >= 20 ? 'eine sehr schnelle Erholung' : L.hrr60 >= 12 ? 'eine gute Erholung' : 'du brauchst eher etwas länger, um runterzukommen'}.`);
+  if (L.predict) f.push(`Das Vorhersagemodell trifft in ${Math.round(L.predict.prec * 100)} % der Fälle${L.predict.lead ? ` und warnt im Schnitt ${Math.round(L.predict.lead)} Sekunden vorher` : ''}.`);
+  return f;
+}
+function renderDashboard() {
+  const store = discStore();
+  const rows = Object.entries(store).map(([id, e]) => ({ id, ...e, mean: e.n ? e.sum / e.n : null }));
+  const rec = gameRecords();
+  const evs = hrEvents();
+  const pe = hrPattern('edge'), pc = hrPattern('came');
+  const sec = (title, html) => `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">${title}</h3>${html}</div>`;
+  let html = '';
+  // Kopf
+  const tested = rows.filter(r => r.n).length;
+  html += `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">` + [
+    ['Ruhepuls', hr.connected && hrRest() ? hrRest() : (evs.length ? Math.round(evs[evs.length - 1].rest) : '–')],
+    ['Getestete Themen', tested],
+    ['Kurz davor (gemessen)', evs.filter(e => e.type === 'edge').length],
+    ['Gekommen (gemessen)', evs.filter(e => e.type === 'came').length],
+  ].map(([k, v]) => `<div style="flex:1 1 140px; border:1px solid var(--line, #333); border-radius:12px; padding:10px 12px;"><div style="font-size:12px; opacity:0.7;">${k}</div><div style="font-size:22px; font-weight:600;">${esc(v)}</div></div>`).join('') + `</div>`;
+  // Was dich packt
+  let disc = '';
+  const maxMean = Math.max(8, ...rows.filter(r => r.mean != null).map(r => r.mean));
+  Object.keys(DISCOVER_ITEMS).forEach(cat => {
+    const list = rows.filter(r => (r.cat || 'fetish') === cat).sort((a, b) => (b.mean ?? -99) - (a.mean ?? -99));
+    if (!list.length) return;
+    disc += `<div style="margin:10px 0 4px 0; font-size:13px; opacity:0.75;">${DISCOVER_ITEMS[cat].label}</div>`;
+    list.forEach(r => {
+      const color = r.mean == null ? '#666' : r.mean >= 5 ? '#e0526b' : r.mean >= 2.5 ? '#e0a052' : '#6b8fb3';
+      disc += `<div style="display:flex; align-items:center; gap:8px; margin:3px 0;"><span style="width:42%; font-size:13.5px;">${esc(r.label)}${r.skips ? ' <span style="opacity:0.6">(✗' + r.skips + ')</span>' : ''}</span>${r.mean != null ? dashBar(Math.max(0, r.mean), maxMean, color) : '<span style="flex:1; font-size:12px; opacity:0.6;">übersprungen</span>'}<span style="width:58px; text-align:right; font-size:12.5px;">${r.mean != null ? (r.mean >= 0 ? '+' : '') + r.mean.toFixed(1) : ''}${r.n > 1 ? ' ·' + r.n : ''}</span></div>`;
+    });
+  });
+  html += sec('Was dich packt (Pulsanstieg im Test)', disc || '<p class="hint">Noch keine Tests - unter Spiel „Entdecken" starten.</p>');
+  // Weg zum Höhepunkt
+  let curves = '';
+  const pats = [];
+  if (pe) pats.push({ curve: pe.curve, color: '#e0a052' });
+  if (pc) pats.push({ curve: pc.curve, color: '#e0526b' });
+  if (pats.length) {
+    curves += dashCurveSvg(pats);
+    curves += `<p class="hint">${pe ? `<span style="color:#e0a052">●</span> Vor „Kurz davor" (${pe.n}×): von +${Math.round(pe.curve[0])} auf +${Math.round(pe.end)} über Ruhe. ` : ''}${pc ? `<span style="color:#e0526b">●</span> Vor dem Kommen (${pc.n}×): von +${Math.round(pc.curve[0])} auf +${Math.round(pc.end)} über Ruhe.` : ''}</p>`;
+  } else curves = `<p class="hint">Noch zu wenig Messungen - ab zwei Mal „Kurz davor" bzw. „Gekommen" mit verbundenem Pulsgurt entsteht hier dein Muster.</p>`;
+  html += sec('Dein Puls in der Minute davor', curves);
+  // Spiele
+  const ch = Object.entries(rec).filter(([k]) => k.startsWith('challenge_')).map(([k, v]) => { const [, diff, dur] = k.split('_'); return `<tr><td>${dur} min, ${diff}</td><td>${fmtTime(v.ms)}${v.won ? ' 🏆' : ''}</td><td>${v.edges} Kanten</td></tr>`; }).join('');
+  const wins = (obj) => Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).map(([n, w]) => `${esc(n)} ${w}×`).join(', ') || '–';
+  html += sec('Spiele', `${ch ? `<table style="width:100%; font-size:13.5px; border-collapse:collapse;"><tr style="opacity:0.7;"><td>Challenge</td><td>Rekord</td><td></td></tr>${ch}</table>` : '<p class="hint">Noch keine Challenge.</p>'}
+    <p style="font-size:13.5px; margin:8px 0 0 0;">Duell-Siege: ${wins(rec.duelWins)}<br>Turniersiege: ${wins(rec.tourWins)}<br>Gewonnene Wetten: ${wins(rec.betWins)}</p>`);
+  // Puls-Labor
+  const L = labAnalyze();
+  html += labSections(L);
+  // Fazit
+  const strong = rows.filter(r => r.mean != null && r.mean >= 5).sort((a, b) => b.mean - a.mean).map(r => r.label);
+  const tempo = rows.filter(r => r.cat === 'tempo' && r.mean != null).sort((a, b) => b.mean - a.mean)[0];
+  const fig = rows.filter(r => r.cat === 'fig' && r.mean != null).sort((a, b) => b.mean - a.mean)[0];
+  const voice = rows.filter(r => r.cat === 'voice' && r.mean != null).sort((a, b) => b.mean - a.mean)[0];
+  const untested = Object.keys(DISCOVER_ITEMS).filter(cat => !rows.some(r => (r.cat || 'fetish') === cat && r.n)).map(cat => DISCOVER_ITEMS[cat].label);
+  const thin = rows.filter(r => r.n === 1).length;
+  const fazit = [];
+  if (strong.length) fazit.push(`Am deutlichsten reagiert dein Puls auf <b>${esc(strong.slice(0, 4).join(', '))}</b>.`);
+  if (tempo) fazit.push(`Beim Tempo wirkt <b>${esc(tempo.label)}</b> am stärksten (+${tempo.mean.toFixed(1)}).`);
+  if (fig) fazit.push(`Die Figur, bei der dein Puls am meisten steigt: <b>${esc(fig.label)}</b>.`);
+  if (voice) fazit.push(`Die stärkste Stimme im Blindtest: <b>${esc(voice.label)}</b>.`);
+  if (pc) fazit.push(`Kurz bevor du kommst, liegst du etwa <b>${Math.round(pc.end)} Schläge über Ruhe</b>${pc.rise > 2 ? `, in der letzten Minute steigt es um rund ${Math.round(pc.rise)}` : ''}. Erkennt die App diesen Verlauf wieder, erfahren es die Figuren.`);
+  else if (pe) fazit.push(`Bei „Kurz davor" liegst du etwa <b>${Math.round(pe.end)} Schläge über Ruhe</b> - die Figuren bekommen es mit, wenn sich das wiederholt.`);
+  labFazit(L).forEach(f => fazit.push(f));
+  if (untested.length) fazit.push(`Noch nie getestet: ${esc(untested.join(', '))}.`);
+  if (thin) fazit.push(`${thin} Ergebnisse beruhen auf nur einer Messung - eine Wiederholung macht sie verlässlicher.`);
+  html += sec('Fazit', fazit.length ? '<p style="font-size:14px; line-height:1.55;">' + fazit.join(' ') + '</p>' : '<p class="hint">Sobald Tests und Messungen vorliegen, steht hier deine Auswertung.</p>');
+  html += `<div class="btn-row" style="margin-top:18px; flex-wrap:wrap;">
+    <button class="btn-primary" id="dashToMem" type="button">✓ Ergebnisse ins Gedächtnis</button>
+    <button class="btn-secondary" id="dashCopy" type="button">⧉ Messdaten kopieren</button>
+    <button class="btn-secondary" id="dashResetEv" type="button">Pulsverläufe löschen</button>
+    <button class="btn-secondary" id="dashResetAll" type="button">Alle Testergebnisse löschen</button>
+  </div><p class="hint">Alle Werte liegen nur auf diesem Gerät und kommen mit der Sicherung (Teil „Einstellungen") mit.</p>`;
+  els.dashBody.innerHTML = html;
+  document.getElementById('dashCopy').onclick = copyMeasurements;
+  document.getElementById('dashToMem').onclick = () => { game.discSummary = discSummary(discStore()); discToMemory(); };
+  document.getElementById('dashResetEv').onclick = () => { if (confirm('Alle gespeicherten Pulsverläufe löschen?')) { localStorage.removeItem('companion_hrEvents'); renderDashboard(); } };
+  document.getElementById('dashResetAll').onclick = () => { if (confirm('Alle Entdecken-Ergebnisse löschen? Spiele-Rekorde bleiben.')) { localStorage.removeItem('companion_discover'); renderDashboard(); } };
+}
+// Bericht zum Einfügen in den Chat - kompakt, aber vollständig genug zum Prüfen
+function measurementReport() {
+  const lines = [`# Messdaten ${new Date().toLocaleString('de-DE')} · App ${APP_VERSION}`];
+  let L = null; try { L = labAnalyze(); } catch (e) { lines.push('Analysefehler: ' + e.message); }
+  if (L) {
+    lines.push(`Sitzungen ${L.sessions}, ${Math.round(L.minutes)} min, ${L.rows} Punkte, Verzögerung ${L.lagSec} s (r=${L.lagR != null ? L.lagR.toFixed(2) : '?'})`);
+    const t = (name, list) => list && list.length && lines.push(name + ': ' + list.map(x => `${x.k} ${x.m >= 0 ? '+' : ''}${x.m.toFixed(1)} (${x.n})`).join(' | '));
+    t('Tempo', L.tempo); t('Hub', L.stroke); t('Art', L.texture); t('Sprecher', L.speakers); t('Musik', L.styles); t('Tageszeit', L.dayparts);
+    lines.push(`RMSSD ruhig/erregt ${L.rmCalm != null ? Math.round(L.rmCalm) : '?'}/${L.rmHot != null ? Math.round(L.rmHot) : '?'} · Atmung ${L.brCalm != null ? L.brCalm.toFixed(1) : '?'}/${L.brHot != null ? L.brHot.toFixed(1) : '?'} · bis Kante ${L.timeToEdge != null ? L.timeToEdge.toFixed(1) : '?'} min · bis Höhepunkt ${L.timeToCome != null ? L.timeToCome.toFixed(1) : '?'} min · Puls Höhepunkt ${L.peakAtCome != null ? Math.round(L.peakAtCome) : '?'} · HRR60/120 ${L.hrr60 != null ? Math.round(L.hrr60) : '?'}/${L.hrr120 != null ? Math.round(L.hrr120) : '?'} · Kanten ${L.edges}, Höhepunkte ${L.comes}`);
+    if (L.predict) lines.push(`Vorhersage: Schwelle ${L.predict.th}, Präzision ${(L.predict.prec * 100).toFixed(0)} %, Recall ${(L.predict.rec * 100).toFixed(0)} %, Vorlauf ${L.predict.lead != null ? Math.round(L.predict.lead) : '?'} s`);
+    lines.push('Sitzungen: ' + L.list.map(x => `${x.date} ${x.min}min R${x.rest} M${x.max} K${x.edges}${x.came ? ' C' : ''}`).join(' | '));
+  }
+  const st = discStore();
+  const disc = Object.entries(st).map(([id, e]) => `${e.label}[${e.cat || '?'}] ${e.n ? (e.sum / e.n).toFixed(1) : '-'}×${e.n}${e.skips ? ' skip' + e.skips : ''}`);
+  if (disc.length) lines.push('Entdecken: ' + disc.join(' | '));
+  const evs = hrEvents();
+  if (evs.length) lines.push('Pulsmomente: ' + evs.slice(-20).map(e => `${e.type}@${new Date(e.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Ende+${Math.round(e.end ?? 0)} R${Math.round(e.rest ?? 0)}`).join(' | '));
+  lines.push('Spiele: ' + JSON.stringify(gameRecords()));
+  // Letzte Sitzung als Zeitreihe in 30-s-Schritten: t,Puls,RMSSD,Tempo,Hub,Art,Sprecher,Atmung
+  const all = hrLogLoad().sessions; const S = (hrLog.session && hrLog.session.rows.length >= 6) ? hrLog.session : all[all.length - 1];
+  if (S) {
+    lines.push(`Letzte Sitzung (${new Date(S.start).toLocaleString('de-DE')}), alle 30 s: t,Puls,RMSSD,Tempo,Hub,Art,Sprecher,Atmung`);
+    lines.push(S.rows.filter((_, i) => i % 6 === 0).map(r => [r[0], r[1], r[2], r[3], r[4], TEX_NAMES[r[5]] || r[5], r[6] >= 0 ? S.speakers[r[6]] : '-', r[8]].join(',')).join(' ; '));
+    if (S.events && S.events.length) lines.push('Ereignisse: ' + S.events.map(e => `${e.type}@${e.t}s`).join(', '));
+  }
+  return lines.join('\n');
+}
+async function copyMeasurements() {
+  const text = measurementReport();
+  try { await navigator.clipboard.writeText(text); addMsg('system', `Messdaten kopiert (${Math.round(text.length / 1024)} KB) - einfach in den Chat mit Claude einfügen.`); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'width:100%; min-height:200px; margin-top:10px;';
+    els.dashBody.appendChild(ta); ta.select();
+  }
+}
+function openDashboard(e) { if (e) e.preventDefault(); renderDashboard(); els.dashOverlay.style.display = ''; }
+
 // ======================= ENTDECKEN (Puls) =======================
 const DISC_COOL_MS = 30000;
 const DISC_CONTENT = { low: 250, high: 750, bpm: 60, texture: 'smooth' };
@@ -8208,6 +8700,62 @@ function discVoiceItems() {
   figureArchive.forEach(f => { const v = latestVersion(f); if (v && v.elevenVoice && !ids.has(v.elevenVoice)) ids.set(v.elevenVoice, ((elevenVoiceCache || []).find(x => x.voice_id === v.elevenVoice) || {}).name || v.name); });
   return [...ids.entries()].slice(0, 12).map(([id, name]) => ['voice_' + id, 'Stimme „' + name + '"', id]);
 }
+// ---------- Schlau testen: erst grob verschieden, dann verfeinern ----------
+// Jede Stimme/Figur bekommt eine Merkmalsmenge (Geschlecht, Alter, Akzent,
+// Klangwörter aus den ElevenLabs-Angaben bzw. Eigenschaften und Akzent der
+// Figur). Zuerst werden drei möglichst VERSCHIEDENE getestet, danach jeweils
+// die, die nach den bisherigen Messungen am meisten verspricht - plus etwas
+// Neugier auf noch Unbekanntes.
+const ADAPT_BUDGET = 6, ADAPT_START = 3;
+const STOP_WORDS = new Set(['and', 'the', 'with', 'for', 'a', 'of', 'voice', 'stimme', 'und', 'mit', 'der', 'die', 'das', 'eine', 'ein', 'sehr', 'very', 'in', 'to', 'is', 'adult', 'woman', 'man', 'around', 'speaking', 'german', 'native', 'speaker', 'clean', 'studio', 'quality', 'background', 'noise', 'sound', 'close', 'mic', 'no']);
+function tokens(text) { return new Set(String(text || '').toLowerCase().split(/[^a-zäöüß]+/).filter(w => w.length > 2 && !STOP_WORDS.has(w))); }
+function voiceFeatures(voiceId) {
+  const v = (elevenVoiceCache || []).find(x => x.voice_id === voiceId) || {};
+  const fig = figureArchive.map(f => latestVersion(f)).find(x => x && x.elevenVoice === voiceId);
+  const labels = v.labels ? Object.entries(v.labels).map(([k, val]) => k + '_' + val + ' ' + val).join(' ') : '';
+  return tokens([labels, v.description, fig && fig.voiceDescription, fig && fig.gender].join(' '));
+}
+function figureFeatures(figId) {
+  const f = figureArchive.find(x => x.id === figId); const v = f && latestVersion(f);
+  if (!v) return new Set();
+  const acc = (String(v.notes || '').match(/(russisch|französisch|italienisch|spanisch|britisch|amerikanisch|polnisch|schwedisch|japanisch|akzent)/gi) || []).join(' ');
+  return new Set([...(v.traits || []).map(t => 't_' + t), 'g_' + (v.gender || ''), ...tokens(acc), ...voiceFeatures(v.elevenVoice || '')]);
+}
+function jaccard(a, b) { if (!a.size && !b.size) return 0; let i = 0; a.forEach(x => { if (b.has(x)) i++; }); return i / (a.size + b.size - i || 1); }
+function featuresOf(cat, item) { return cat === 'voice' ? voiceFeatures(item[2]) : figureFeatures(item[2]); }
+// Startauswahl: so verschieden wie möglich (Farthest-Point)
+function diverseStart(cat, items, k) {
+  if (items.length <= k) return items.slice();
+  const feats = items.map(it => featuresOf(cat, it));
+  const chosen = [Math.floor(Math.random() * items.length)];
+  while (chosen.length < k) {
+    let best = -1, bestD = -1;
+    items.forEach((_, i) => { if (chosen.includes(i)) return; const d = Math.min(...chosen.map(c => 1 - jaccard(feats[i], feats[c]))); if (d > bestD) { bestD = d; best = i; } });
+    chosen.push(best);
+  }
+  return chosen.map(i => items[i]);
+}
+// Nächster Kandidat: Vorhersage aus ähnlichen Gemessenen + Neugier
+function nextAdaptive(cat) {
+  const d = game.disc, pool = d.pool && d.pool[cat];
+  if (!pool || pool.tested.length >= pool.budget) return null;
+  const store = discStore();
+  const done = pool.tested.map(id => { const it = pool.items.find(x => x[0] === id); const r = d.results.filter(x => x.id === id && x.delta != null).map(x => x.delta); const old = store[id] && store[id].n ? store[id].sum / store[id].n : null; const val = r.length ? mean(r) : d.skipped.includes(id) ? -4 : old; return { it, f: featuresOf(cat, it), val }; }).filter(x => x.val != null);
+  const cand = pool.items.filter(it => !pool.tested.includes(it[0]));
+  if (!cand.length) return null;
+  let best = null;
+  cand.forEach(it => {
+    const f = featuresOf(cat, it);
+    let w = 0, sum = 0, maxSim = 0;
+    done.forEach(x => { const sim = jaccard(f, x.f); maxSim = Math.max(maxSim, sim); w += sim + 0.05; sum += (sim + 0.05) * x.val; });
+    const pred = w ? sum / w : 0;
+    // etwas Neugier auf Unbekanntes, aber Treffer gehen vor
+    const score = pred + (1 - maxSim) * (pool.tested.length < ADAPT_START + 1 ? 1.5 : 0.5);
+    if (!best || score > best.score) best = { it, score, pred };
+  });
+  return best;
+}
+
 const VOICE_TEST_TEXT = 'Hey… da bist du ja. Komm ein bisschen näher… noch näher. Ich hab den ganzen Abend an dich gedacht, weißt du das? An deine Hände… an deinen Atem auf meiner Haut. Mmh… schließ die Augen. Hör einfach nur zu. Ich will, dass du jedes Wort spürst, das ich dir sage… ganz langsam… so ist gut. Du bist so schön, wenn du so still daliegst und nur auf mich hörst.';
 let discVoiceAudio = null;
 function stopDiscVoice() { if (discVoiceAudio) { try { discVoiceAudio.pause(); } catch (e) {} discVoiceAudio = null; } }
@@ -8240,13 +8788,21 @@ function startDiscover() {
   const cats = [['dyn', els.discDyn], ['loc', els.discLoc], ['tempo', els.discTempo], ['fetish', els.discFetish], ['fig', els.discFig], ['voice', els.discVoice]].filter(([, el]) => el.checked).map(([k]) => k);
   const reps = parseInt(els.discReps.value, 10);
   let trials = [];
-  cats.forEach(cat => DISCOVER_ITEMS[cat].items.forEach(([id, label, x]) => {
-    for (let r = 0; r < reps; r++) trials.push({ cat, id, label, x, rep: r });
-  }));
+  const adaptive = els.discAdaptive && els.discAdaptive.checked;
+  const pool = {};
+  cats.forEach(cat => {
+    let items = DISCOVER_ITEMS[cat].items;
+    if (adaptive && (cat === 'fig' || cat === 'voice') && items.length > ADAPT_BUDGET) {
+      pool[cat] = { items: items.slice(), budget: ADAPT_BUDGET, tested: [] };
+      items = diverseStart(cat, items, ADAPT_START);
+      items.forEach(it => pool[cat].tested.push(it[0]));
+    }
+    items.forEach(([id, label, x]) => { for (let r = 0; r < reps; r++) trials.push({ cat, id, label, x, rep: r }); });
+  });
   trials.sort(() => Math.random() - 0.5);
   for (let i = 1; i < trials.length; i++) if (trials[i].id === trials[i - 1].id) { const j = (i + 3) % trials.length; [trials[i], trials[j]] = [trials[j], trials[i]]; }
   if (!trials.length) { addMsg('system', 'Bitte mindestens einen Bereich ankreuzen.'); game.running = false; return false; }
-  game.disc = { trials, idx: 0, phase: 'cool', phaseStart: Date.now(), blockMs: parseInt(els.discBlock.value, 10) * 1000, results: [], skipped: [] };
+  game.disc = { trials, idx: 0, phase: 'cool', phaseStart: Date.now(), blockMs: parseInt(els.discBlock.value, 10) * 1000, results: [], skipped: [], pool };
   const mins = Math.round(trials.length * (game.disc.blockMs + DISC_COOL_MS) / 60000);
   addMsg('system', `🔬 Entdecken: ${trials.length} Tests, etwa ${mins} Minuten. Augen zu, entspann dich - dein Puls verrät, was dich packt.`);
   return true;
@@ -8269,6 +8825,17 @@ function discAdvance(skipped) {
       d.trials = d.trials.filter((t, i) => i <= d.idx || t.id !== tr.id);
       logEvent('msg', { role: 'system', text: 'Entdecken: übersprungen - ' + tr.label });
     } else discMeasure();
+    // Schlau testen: Ist das der letzte geplante Test dieser Kategorie, den
+    // vielversprechendsten nächsten Kandidaten nachschieben.
+    if (d.pool && d.pool[tr.cat] && !d.trials.slice(d.idx + 1).some(t => t.cat === tr.cat)) {
+      const nx = nextAdaptive(tr.cat);
+      if (nx) {
+        d.pool[tr.cat].tested.push(nx.it[0]);
+        const pos = Math.min(d.trials.length, d.idx + 1 + Math.floor(Math.random() * 3));
+        d.trials.splice(pos, 0, { cat: tr.cat, id: nx.it[0], label: nx.it[1], x: nx.it[2], rep: 0 });
+        logEvent('msg', { role: 'system', text: `Entdecken: als Nächstes ${tr.cat === 'voice' ? 'Stimme' : 'Figur'} „${nx.it[1]}" (Vorhersage ${nx.pred >= 0 ? '+' : ''}${nx.pred.toFixed(1)}).` });
+      }
+    }
     d.idx++;
     if (d.idx >= d.trials.length) { discFinish(); return; }
     d.phase = 'cool';
@@ -11126,7 +11693,24 @@ function renderFigureList() {
     const hit = g.traits.find(([id]) => (v.traits || []).includes(id));
     return hit ? hit[1] : 'ohne Angabe';
   };
-  if (sortMode !== 'standard') {
+  // Vorliebe je Figur: eigener Figurentest, Blindtest ihrer Stimme und wie hoch
+  // der Puls im Alltag war, wenn sie sprach.
+  let prefOf = null;
+  if (sortMode === 'puls') {
+    const st = discStore();
+    let L = null; try { L = labAnalyze(); } catch (e) {}
+    const m = id => st[id] && st[id].n ? st[id].sum / st[id].n : null;
+    prefOf = (f) => {
+      const v = latestVersion(f); const parts = [];
+      const a = m('fig_' + f.id); if (a != null) parts.push([a, 1]);
+      const b = v.elevenVoice ? m('voice_' + v.elevenVoice) : null; if (b != null) parts.push([b, 0.7]);
+      const c = L && L.speakers ? (L.speakers.find(x => x.k === v.name) || {}).m : null; if (c != null) parts.push([c, 0.5]);
+      if (!parts.length) return null;
+      return parts.reduce((s2, [x, w]) => s2 + x * w, 0) / parts.reduce((s2, [, w]) => s2 + w, 0);
+    };
+    shown = shown.slice().sort((a, b) => (prefOf(b) ?? -99) - (prefOf(a) ?? -99));
+  }
+  if (sortMode !== 'standard' && sortMode !== 'puls') {
     shown = shown.slice().sort((a, b) => {
       const va = latestVersion(a), vb = latestVersion(b);
       const ga = groupOf(va), gb = groupOf(vb);
@@ -11150,7 +11734,7 @@ function renderFigureList() {
   shown.forEach(figure => {
     const version = latestVersion(figure);
     const inCast = characters.some(c => c.figureId === figure.id);
-    const grp = groupOf(version);
+    const grp = sortMode === 'puls' ? (prefOf(figure) == null ? 'noch nicht gemessen' : 'nach Puls-Vorliebe') : groupOf(version);
     if (grp && grp !== lastGroup) {
       const h = document.createElement('div');
       h.textContent = grp;
@@ -11180,7 +11764,7 @@ function renderFigureList() {
       + (figure.versions.length > 1 ? `  ·  v${version.v}` : '');
     const gist = document.createElement('div');
     gist.className = 'gist';
-    gist.textContent = (inCast ? 'in der Szene · ' : '') + figureGist(version);
+    gist.textContent = (inCast ? 'in der Szene · ' : '') + (prefOf && prefOf(figure) != null ? `❤️ ${prefOf(figure) >= 0 ? '+' : ''}${prefOf(figure).toFixed(1)} · ` : '') + figureGist(version);
     if (inCast) gist.style.color = 'var(--accent)';
     meta.appendChild(who);
     meta.appendChild(gist);
@@ -11568,12 +12152,15 @@ els.importFigureBtn.onclick = () => {
 els.pasteFigureBtn.onclick = () => pasteAndImport(els.importFigureInfo);
 els.storyPasteBtn.onclick = () => pasteAndImport(null);
 els.hrConnectBtn.onclick = connectHeart;
+els.dashOpenBtn.onclick = openDashboard;
+els.dashOpenLink.onclick = openDashboard;
+els.dashClose.onclick = () => { els.dashOverlay.style.display = 'none'; };
 els.hrFigures.checked = hrFiguresEnabled();
 els.hrFigures.onchange = () => safeSet('companion_hrFigures', els.hrFigures.checked ? 'true' : 'false');
 els.hrEdge.value = String(hrEdgeAt());
 els.hrEdge.onchange = () => safeSet('companion_hrEdge', els.hrEdge.value);
 els.comeBtn.onclick = () => {
-  if (currentMode === 'story') { setStoryStatus('Gekommen - schön. Die Geschichte läuft weiter.'); logEvent('msg', { role: 'system', text: 'Gekommen (Geschichte).' }); return; }
+  if (currentMode === 'story') { try { hrRecordEvent('came'); } catch (e) {} setStoryStatus('Gekommen - schön. Die Geschichte läuft weiter.'); logEvent('msg', { role: 'system', text: 'Gekommen (Geschichte).' }); return; }
   els.textInput.value = 'Ich bin gekommen!';
   sendTypedMessage();
 };
@@ -12227,6 +12814,11 @@ function absentFigureNames() {
   });
   return [...new Set(out)];
 }
+// Mehr Freiraum: weniger reden, mehr tun, echte Pausen, nur Laute.
+function freedomBlock() {
+  return `\n\nFREIRAUM: Weniger reden, mehr tun und spüren. Nicht jede Antwort braucht viele Worte - oft reicht ein Atemzug, ein Stöhnen, ein einziges Wort oder ein halber Satz. Mindestens jede dritte Antwort besteht fast nur aus Lauten oder ein, zwei Worten. Stöhnen wird ausgeschrieben („Mmmh… ahh… ja…") statt beschrieben. Echte Stille ist erlaubt und erwünscht: Eine Zeile, die nur aus [Pause] besteht, wird als zwei, drei Sekunden Schweigen gespielt - nutzt das, um Spannung aufzubauen oder etwas wirken zu lassen. Bleibt bei einer Stellung und einer Sache und vertieft sie, statt ständig zu wechseln: ein Stellungs- oder Ortswechsel höchstens alle drei, vier Antworten und nur, wenn er die Szene wirklich weiterbringt.`;
+}
+
 function absentBlock() {
   const a = absentFigureNames();
   if (!a.length) return '';
@@ -12249,7 +12841,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${freedomBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -12692,6 +13284,7 @@ async function askEnsemble(userText, options) {
   // Kopfhörern) schneidet ab.
   if (typeof music !== 'undefined') music.suspended = false;
   if (!(options && options.silent)) { try { applyEnvironmentWishes(userText); } catch (e) {} } else envNote = '';
+  if (!(options && options.silent) && /(ich bin (gerade |jetzt )?gekommen|bin gekommen|gekommen!)/i.test(String(userText || ''))) { try { hrRecordEvent('came'); } catch (e) {} }
   if (!(options && options.silent)) { try { gameOnUserText(userText); } catch (e) {} if (game.running && game.type === 'adventure') { game.choices = []; renderGameHud(); } }
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
@@ -12907,8 +13500,11 @@ async function askEnsemble(userText, options) {
       next: pieces[i + 1] && pieces[i + 1].role === pieces[i].role ? pieces[i + 1].text : '',
     });
     const prepared = [];
+    // "[Pause]" als eigene Zeile = echte Stille, das Gerät läuft weiter
+    pieces.forEach(p => { if (/^\s*[\[(]\s*(pause|stille|schweigen|schweigt)[^\])]*[\])]\s*$/i.test(p.text || '')) p.silent = true; });
     const prep = (i) => {
       if (i >= pieces.length) return null;
+      if (pieces[i].silent) return { play: async () => { await new Promise(r => setTimeout(r, 2500 + Math.random() * 1500)); } };
       if (!prepared[i]) prepared[i] = prepareSpeech(pieces[i].text, pieces[i].role, inline && hasMidCues(pieces[i].cues), context(i));
       return prepared[i];
     };
@@ -12917,6 +13513,7 @@ async function askEnsemble(userText, options) {
       if (playbackGeneration !== generation) break; // user pressed stop
       if (i === pieces.length - 1) nearEnd();
       if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
+      noteSpeaker(pieces[i].role);
       if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
@@ -13496,7 +14093,7 @@ els.liveStartBtn.onclick = () => {
 };
 els.gameSelect.value = localStorage.getItem('companion_game') || '';
 els.gameSelect.onchange = () => { safeSet('companion_game', els.gameSelect.value); updateGameOptions(); };
-[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn, els.discDyn, els.discLoc, els.discTempo, els.discFetish, els.discFig, els.discVoice, els.discBlock, els.discReps].forEach(el => { el.onchange = updateGameOptions; });
+[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn, els.discDyn, els.discLoc, els.discTempo, els.discFetish, els.discFig, els.discVoice, els.discAdaptive, els.discBlock, els.discReps].forEach(el => { el.onchange = updateGameOptions; });
 updateGameOptions();
 
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
@@ -14196,6 +14793,7 @@ async function runStory() {
     setStoryProgress((i + 1) / story.chunks.length);
     schedulePhases(chunk, current.durationMs);
     try { storySoundscape(i, current.durationMs, myGen); } catch (e) {}
+    noteSpeaker(chunk.role);
     if (chunk.role === 'narrator' && !(chunk.cues && chunk.cues.length) && !Object.keys(chunk.phases || {}).some(k => (chunk.phases[k] || []).length)) {
       try { applyNarrationMotion(chunk.text); } catch (e) {}
     }
