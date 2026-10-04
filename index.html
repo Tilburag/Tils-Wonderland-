@@ -1250,6 +1250,7 @@
         <option value="duel">Duell der Figuren</option>
         <option value="adventure">Abenteuer mit Entscheidungen</option>
         <option value="tournament">Turnier aller Figuren</option>
+        <option value="discover">Entdecken - was mir gefällt (Puls)</option>
       </select>
       <div id="gameOptChallenge" style="display:none; margin-top:6px;">
         <div style="display:flex; gap:8px;">
@@ -1279,6 +1280,21 @@
           <option value="45">45 s pro Zug</option><option value="60" selected>60 s pro Zug</option><option value="90">90 s pro Zug</option><option value="120">2 Min pro Zug</option>
         </select>
         <p class="hint" id="gameTourInfo">Alle Figuren der Besetzung treten im K.-o.-System gegeneinander an - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und alle merken sich, wie das Turnier ausgegangen ist.</p>
+      </div>
+      <div id="gameOptDiscover" style="display:none; margin-top:6px;">
+        <div style="display:flex; flex-wrap:wrap; gap:4px 14px;">
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discDyn" checked style="width:auto;"><span style="font-size:13.5px;">Dynamik</span></label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discLoc" checked style="width:auto;"><span style="font-size:13.5px;">Orte</span></label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discTempo" checked style="width:auto;"><span style="font-size:13.5px;">Tempo</span></label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discFetish" checked style="width:auto;"><span style="font-size:13.5px;">Fetische</span></label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discFig" style="width:auto;"><span style="font-size:13.5px;">Figuren</span></label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discVoice" style="width:auto;"><span style="font-size:13.5px;">Stimmen (blind)</span></label>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <select id="discBlock" style="flex:1;"><option value="60">60 s pro Test</option><option value="90" selected>90 s pro Test</option></select>
+          <select id="discReps" style="flex:1;"><option value="1" selected>je einmal</option><option value="2">je zweimal</option></select>
+        </div>
+        <p class="hint" id="discInfo">Braucht den Pulsgurt. Die Figuren spielen ein Thema nach dem anderen an, dazwischen kurze Ruhepausen; dein Puls zeigt, was dich packt. Was dir nicht gefällt: „⏭ Überspringen". Am besten Augen zu und nicht sprechen.</p>
       </div>
       <div id="gameOptAdventure" style="display:none; margin-top:6px;">
         <p class="hint">Nach jeder Antwort erscheinen zwei bis drei Möglichkeiten über dem Eingabefeld - tippe eine an oder sag sie. Deine Wahl bestimmt, wie es weitergeht. Mit Erzähler am schönsten.</p>
@@ -1766,6 +1782,12 @@ const els = {
   gameOptDuel: document.getElementById('gameOptDuel'),
   gameOptAdventure: document.getElementById('gameOptAdventure'),
   gameOptTournament: document.getElementById('gameOptTournament'),
+  gameOptDiscover: document.getElementById('gameOptDiscover'),
+  discDyn: document.getElementById('discDyn'), discLoc: document.getElementById('discLoc'),
+  discTempo: document.getElementById('discTempo'), discFetish: document.getElementById('discFetish'),
+  discFig: document.getElementById('discFig'), discVoice: document.getElementById('discVoice'),
+  discBlock: document.getElementById('discBlock'), discReps: document.getElementById('discReps'),
+  discInfo: document.getElementById('discInfo'),
   gameTurnT: document.getElementById('gameTurnT'),
   gameTourInfo: document.getElementById('gameTourInfo'),
   gameDuration: document.getElementById('gameDuration'),
@@ -2853,8 +2875,18 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.46';
+const APP_VERSION = '1.49';
 const CHANGELOG = [
+  { v: '1.49', date: '2026-10-04', items: [
+    'Entdecken: zwei neue Bereiche. „Figuren" - jede deiner Figuren spielt nacheinander dieselbe Situation, nur die Figur wechselt. „Stimmen (blind)" - derselbe Text in deinen ElevenLabs-Stimmen, ohne Namen; erst im Ergebnis siehst du, welche Stimme dich am meisten gepackt hat.',
+  ]},
+  { v: '1.48', date: '2026-10-04', items: [
+    'Neu: „Entdecken - was mir gefällt (Puls)" unter Spiel. Die Figuren spielen Dynamik, Orte, Tempo und Fetische nacheinander an, mit Ruhepausen dazwischen; gemessen wird, wie dein Puls und deine Herzfrequenzvariabilität darauf reagieren. Was dir nicht gefällt: „⏭ Überspringen". Am Ende eine Rangliste (über alle bisherigen Tests gesammelt) - mit einem Tipp ins Gedächtnis deines Ichs, dann richten sich alle Figuren danach.',
+  ]},
+  { v: '1.47', date: '2026-10-04', items: [
+    'Spiele: Die Figuren wissen jetzt wirklich, dass sie im Wettstreit sind. Der Spielstand steht direkt in der Anweisung für jede Antwort (wer am Zug ist, wie lange noch, was auf dem Spiel steht) statt nur im Hintergrund.',
+    'Duell und Turnier: Es sprechen nur die beiden - die, die nicht am Zug ist, höchstens einen Satz; Zeilen anderer Figuren werden entfernt. Beim Zugwechsel klingt eine Ringglocke, in der Abstimmung werben beide um deine Stimme.',
+  ]},
   { v: '1.46', date: '2026-10-04', items: [
     'Pulsgurt: Bluetooth-Brustgurte (z. B. Polar H10/H9/H7) verbinden sich direkt in den Einstellungen unter „Pulsgurt". Dein Herzschlag steht über dem Eingabefeld und in der Mond-Ansicht, die Figuren gehen darauf ein und bewegen die Hülse ab und zu genau im Takt deines Herzens. Auf Wunsch bremst ein hoher Puls automatisch wie „Kurz davor".',
     'Der Nähe-Regler ist weg - stattdessen zwei Knöpfe: „🔥 Kurz davor" und „💦 Gekommen".',
@@ -6881,7 +6913,17 @@ function setWishFromPad(x, y) {
 
 // ---------- Pulsgurt (Bluetooth Heart Rate Service) ----------
 // Standard-Dienst 0x180D, den Polar und fast alle Brustgurte anbieten.
-const hr = { device: null, bpm: 0, history: [], connected: false, lastAutoEdge: 0, lastLog: 0, retries: 0 };
+const hr = { device: null, bpm: 0, history: [], rr: [], connected: false, lastAutoEdge: 0, lastLog: 0, retries: 0 };
+function hrMean(t0, t1) {
+  const v = hr.history.filter(h => h.t >= t0 && h.t <= t1).map(h => h.bpm);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+function rmssd(t0, t1) {
+  const v = hr.rr.filter(r => r.t >= t0 && r.t <= t1).map(r => r.ms);
+  if (v.length < 6) return null;
+  let sum = 0; for (let i = 1; i < v.length; i++) sum += (v[i] - v[i - 1]) ** 2;
+  return Math.sqrt(sum / (v.length - 1));
+}
 function hrFiguresEnabled() { return localStorage.getItem('companion_hrFigures') !== 'false'; }
 function hrEdgeAt() { return parseInt(localStorage.getItem('companion_hrEdge') || '0', 10); }
 function hrRest() {
@@ -6910,6 +6952,16 @@ function onHeartRate(e) {
   const bpm = (flags & 1) ? v.getUint16(1, true) : v.getUint8(1);
   if (!bpm || bpm < 30 || bpm > 230) return;
   const now = Date.now();
+  // Abstände zwischen den Herzschlägen (für die Herzfrequenzvariabilität)
+  if (flags & 0x10) {
+    let off = 1 + ((flags & 1) ? 2 : 1) + ((flags & 0x08) ? 2 : 0);
+    while (off + 1 < v.byteLength) {
+      const ms = v.getUint16(off, true) * 1000 / 1024;
+      if (ms > 250 && ms < 2000) hr.rr.push({ t: now, ms });
+      off += 2;
+    }
+    if (hr.rr.length > 3000) hr.rr.splice(0, hr.rr.length - 3000);
+  }
   hr.bpm = bpm;
   hr.history.push({ t: now, bpm });
   if (hr.history.length > 1200) hr.history.splice(0, hr.history.length - 1200);
@@ -7998,6 +8050,13 @@ function updateGameOptions() {
   els.gameOptDuel.style.display = t === 'duel' ? '' : 'none';
   els.gameOptAdventure.style.display = t === 'adventure' ? '' : 'none';
   els.gameOptTournament.style.display = t === 'tournament' ? '' : 'none';
+  els.gameOptDiscover.style.display = t === 'discover' ? '' : 'none';
+  // Geschätzte Dauer - mit allen Bereichen wird es schnell lang
+  const counts = { fig: discFigureItems().length, voice: discVoiceItems().length };
+  const nItems = [['dyn', els.discDyn], ['loc', els.discLoc], ['tempo', els.discTempo], ['fetish', els.discFetish], ['fig', els.discFig], ['voice', els.discVoice]]
+    .filter(([, el]) => el.checked).reduce((a, [k]) => a + (counts[k] ?? DISCOVER_ITEMS[k].items.length), 0) * parseInt(els.discReps.value, 10);
+  const mins = Math.round(nItems * (parseInt(els.discBlock.value, 10) + 30) / 60);
+  els.discInfo.textContent = `${nItems} Tests, etwa ${mins} Minuten. Braucht den Pulsgurt. Die Figuren spielen ein Thema nach dem anderen an, dazwischen kurze Ruhepausen; dein Puls zeigt, was dich packt. Was dir nicht gefällt: „⏭ Überspringen". Ergebnisse sammeln sich über alle Sitzungen - du kannst also gut einen Bereich pro Abend testen.`;
   const nT = aiCharacters().filter(c => !c.isNarrator).length;
   const titles = (r.tourWins || {});
   els.gameTourInfo.textContent = (nT >= 3 ? `${nT} Figuren` : 'Es braucht mindestens drei Figuren in der Besetzung') + ' treten im K.-o.-System gegeneinander an - je zwei im Duell, du entscheidest, wer weiterkommt. Die Siegerin bekommt das Finale, und alle merken sich, wie es ausging.'
@@ -8015,6 +8074,11 @@ function updateGameOptions() {
 
 // Die App sorgt selbst für die Steigerung - unabhängig davon, was das Modell wählt.
 function gameRequest(req) {
+  if (game.running && game.type === 'discover' && game.disc && game.phase !== 'results' && req && req.texture !== 'stop') {
+    const tr = discCurrent();
+    if (!tr || game.disc.phase === 'cool') return Object.assign({}, DISC_REST);
+    return Object.assign({}, tr.cat === 'tempo' ? tr.x : DISC_CONTENT);
+  }
   if (!game.running || game.type !== 'challenge' || game.phase !== 'play' || !req) return req;
   const tex = req.texture || 'smooth';
   if (tex === 'stop' || tex === 'hold') return req;
@@ -8058,6 +8122,7 @@ function gameBlock() {
     const left = d.turnMs - (now - d.turnStarted);
     return `\n\nSPIEL: DUELL DER FIGUREN, Runde ${d.round} von ${d.rounds}. Jetzt ist NUR ${cur} am Zug (noch ${Math.max(0, Math.round(left / 1000))} Sekunden): Sie allein bestimmt, was mit Til passiert, zeigt ihre ganze Art und will das Duell gewinnen. ${other} schaut zu und sagt höchstens einen kurzen, eifersüchtigen oder spöttischen Satz. Er darf noch nicht kommen.`;
   }
+  if (game.type === 'discover') return '\n\nSPIEL: ENTDECKEN. Die App testet anhand von Tils Puls, was ihm gefällt - Thema für Thema, mit Ruhepausen dazwischen. Folgt genau der Anweisung zum jeweiligen Test und mischt keine anderen Themen hinein. Das Gerät steuert die App selbst.';
   if (game.type === 'adventure') {
     if (game.phase === 'over') return '';
     return `\n\nSPIEL: ABENTEUER MIT ENTSCHEIDUNGEN. Erzähle die Handlung lebendig weiter und führe sie auf eine Weggabelung zu. Beende JEDE Antwort mit genau einer letzten Zeile in diesem Format:\nWAHL: Möglichkeit eins | Möglichkeit zwei | Möglichkeit drei\nZwei oder drei kurze Möglichkeiten (je höchstens sechs Wörter), die in deutlich verschiedene Richtungen führen - verführerisch, gewagt, überraschend. Til wählt; seine letzte Wahl bestimmt, wie es jetzt weitergeht - setze sie sofort und ernsthaft um.`;
@@ -8084,6 +8149,265 @@ function settleBets(resultMs, won) {
   const r = gameRecords(); r.betWins = r.betWins || {}; r.betWins[best.name] = (r.betWins[best.name] || 0) + 1; saveGameRecords(r);
   return best;
 }
+// ======================= ENTDECKEN (Puls) =======================
+const DISC_COOL_MS = 30000;
+const DISC_CONTENT = { low: 250, high: 750, bpm: 60, texture: 'smooth' };
+const DISC_REST = { low: 350, high: 650, bpm: 25, texture: 'smooth' };
+const DISCOVER_ITEMS = {
+  dyn: { label: 'Dynamik', items: [
+    ['dominant', 'dominant', 'Sie ist streng und dominant, gibt knappe Befehle und bestimmt alles.'],
+    ['zaertlich', 'zärtlich', 'Sie ist zärtlich und liebevoll, flüstert, streichelt, ganz sanft.'],
+    ['neckend', 'neckend', 'Sie neckt und reizt ihn, lacht, hält ihn spielerisch hin.'],
+    ['fordernd', 'gierig-fordernd', 'Sie ist gierig und fordernd, will ihn sofort, wild und ungeduldig.'],
+    ['lob', 'Lob', 'Sie lobt ihn überschwänglich, sagt ihm immer wieder, wie gut er ist.'],
+  ] },
+  loc: { label: 'Orte', items: [
+    ['bad', 'Bad', 'Ihr seid jetzt im dampfenden Bad, in einer großen Badewanne voller Schaum.'],
+    ['club', 'Club', 'Ihr seid jetzt in einem dunklen Club, Bässe wummern, andere schauen zu.'],
+    ['wald', 'Wald', 'Ihr seid jetzt draußen im Wald auf einer Lichtung, Vögel singen, jemand könnte vorbeikommen.'],
+    ['buero', 'Büro', 'Ihr seid jetzt im Büro nach Feierabend, auf dem Schreibtisch, die Stadtlichter vor dem Fenster.'],
+    ['hotel', 'Hotelsuite', 'Ihr seid jetzt in einer luxuriösen Hotelsuite mit Blick über die nächtliche Stadt.'],
+  ] },
+  tempo: { label: 'Tempo', items: [
+    ['langsam_lang', 'langsam und lang', { low: 80, high: 920, bpm: 35, texture: 'smooth' }],
+    ['schnell_kurz', 'schnell und kurz', { low: 600, high: 900, bpm: 150, texture: 'pulse' }],
+    ['spitze', 'nur an der Spitze', { low: 750, high: 980, bpm: 90, texture: 'smooth' }],
+    ['ganze_laenge', 'ganze Länge, zügig', { low: 40, high: 960, bpm: 100, texture: 'smooth' }],
+    ['zittern', 'Zittern oben', { low: 820, high: 920, bpm: 180, texture: 'tremor' }],
+  ] },
+  fig: { label: 'Figuren', items: [] },      // wird beim Start aus dem Archiv gefüllt
+  voice: { label: 'Stimmen', items: [] },    // ... und aus den eigenen ElevenLabs-Stimmen
+  fetish: { label: 'Fetische', items: [
+    ['fesseln', 'Fesseln', 'Er ist gefesselt und ihr vollkommen ausgeliefert.'],
+    ['augenbinde', 'Augenbinde', 'Er trägt eine Augenbinde, sieht nichts, alles ist Überraschung.'],
+    ['hinhalten', 'Orgasmuskontrolle', 'Sie verbietet ihm zu kommen und lässt ihn betteln.'],
+    ['spanking', 'Spanking', 'Klapse auf den Po, leichter, prickelnder Schmerz.'],
+    ['wachs_eis', 'Wachs und Eis', 'Heißes Wachs und kalte Eiswürfel im Wechsel auf seiner Haut.'],
+    ['dirty_talk', 'Dirty Talk', 'Sehr direkter, schmutziger Dirty Talk, alles beim Namen genannt.'],
+    ['beobachtet', 'Zuschauer', 'Andere schauen zu, kommentieren, er wird beobachtet.'],
+    ['oeffentlich', 'Erwischt werden', 'An einem halböffentlichen Ort, jeden Moment könnte jemand kommen.'],
+    ['fuesse', 'Füße', 'Sie verwöhnt ihn mit ihren Füßen.'],
+    ['leder_latex', 'Leder und Latex', 'Sie trägt Leder und Latex, das Knarzen und Glänzen des Materials.'],
+    ['strapon', 'Strap-on', 'Sie nimmt ihn mit einem Strap-on.'],
+    ['mehrere', 'Mehrere Frauen', 'Mehrere Frauen verwöhnen ihn gleichzeitig.'],
+    ['erniedrigung', 'Leichte Erniedrigung', 'Sie macht sich liebevoll-gemein über ihn lustig.'],
+    ['massage', 'Ölmassage', 'Eine langsame, glitschige Ölmassage am ganzen Körper.'],
+  ] },
+};
+// Figuren: jede (außer Ich und Erzählern) spielt dieselbe Situation.
+function discFigureItems() {
+  return figureArchive.map(f => [f, latestVersion(f)])
+    .filter(([, v]) => v && !v.isUser && !v.isNarrator && !ageIssue(v))
+    .slice(0, 12)
+    .map(([f, v]) => ['fig_' + f.id, v.name, f.id]);
+}
+// Stimmen: eigene (nicht vorgefertigte) Stimmen und die der Figuren - blind.
+function discVoiceItems() {
+  const ids = new Map();
+  (elevenVoiceCache || []).filter(v => v.category && v.category !== 'premade').forEach(v => ids.set(v.voice_id, v.name));
+  figureArchive.forEach(f => { const v = latestVersion(f); if (v && v.elevenVoice && !ids.has(v.elevenVoice)) ids.set(v.elevenVoice, ((elevenVoiceCache || []).find(x => x.voice_id === v.elevenVoice) || {}).name || v.name); });
+  return [...ids.entries()].slice(0, 12).map(([id, name]) => ['voice_' + id, 'Stimme „' + name + '"', id]);
+}
+const VOICE_TEST_TEXT = 'Hey… da bist du ja. Komm ein bisschen näher… noch näher. Ich hab den ganzen Abend an dich gedacht, weißt du das? An deine Hände… an deinen Atem auf meiner Haut. Mmh… schließ die Augen. Hör einfach nur zu. Ich will, dass du jedes Wort spürst, das ich dir sage… ganz langsam… so ist gut. Du bist so schön, wenn du so still daliegst und nur auf mich hörst.';
+let discVoiceAudio = null;
+function stopDiscVoice() { if (discVoiceAudio) { try { discVoiceAudio.pause(); } catch (e) {} discVoiceAudio = null; } }
+function discVoiceModel() { return elevenModelFor(true); }
+// Besetzung für einen Figurentest tauschen und danach zurück
+function discSwapCast(tr) {
+  const d = game.disc;
+  if (tr && tr.cat === 'fig' && d.phase === 'test') {
+    if (!d.origCast) d.origCast = characters.slice();
+    const fig = figureArchive.find(f => f.id === tr.x);
+    const me = d.origCast.find(c => c.isUser);
+    const narr = d.origCast.find(c => c.isNarrator);
+    const c = fig ? characterFromVersion(fig) : null;
+    if (c) { characters = [me, c, narr].filter(Boolean); logEvent('msg', { role: 'system', text: 'Entdecken: Figurentest mit ' + c.name }); }
+  } else if (d.origCast) {
+    characters = d.origCast; d.origCast = null; saveCharacters();
+  }
+}
+function discPausesAuto() {
+  if (!game.running || game.type !== 'discover' || !game.disc || game.phase === 'results') return false;
+  const tr = discCurrent();
+  return !!(tr && tr.cat === 'voice');
+}
+function discStore() { try { return JSON.parse(localStorage.getItem('companion_discover') || '{}'); } catch (e) { return {}; } }
+function startDiscover() {
+  if (!hr.connected) { addMsg('system', 'Für „Entdecken" muss der Pulsgurt verbunden sein (Einstellungen → Pulsgurt).'); game.running = false; return false; }
+  DISCOVER_ITEMS.fig.items = discFigureItems();
+  DISCOVER_ITEMS.voice.items = discVoiceItems();
+  if (els.discVoice.checked && !DISCOVER_ITEMS.voice.items.length) addMsg('system', 'Für den Stimmentest bitte zuerst unter Stimme & Sprachausgabe die ElevenLabs-Stimmen laden.');
+  const cats = [['dyn', els.discDyn], ['loc', els.discLoc], ['tempo', els.discTempo], ['fetish', els.discFetish], ['fig', els.discFig], ['voice', els.discVoice]].filter(([, el]) => el.checked).map(([k]) => k);
+  const reps = parseInt(els.discReps.value, 10);
+  let trials = [];
+  cats.forEach(cat => DISCOVER_ITEMS[cat].items.forEach(([id, label, x]) => {
+    for (let r = 0; r < reps; r++) trials.push({ cat, id, label, x, rep: r });
+  }));
+  trials.sort(() => Math.random() - 0.5);
+  for (let i = 1; i < trials.length; i++) if (trials[i].id === trials[i - 1].id) { const j = (i + 3) % trials.length; [trials[i], trials[j]] = [trials[j], trials[i]]; }
+  if (!trials.length) { addMsg('system', 'Bitte mindestens einen Bereich ankreuzen.'); game.running = false; return false; }
+  game.disc = { trials, idx: 0, phase: 'cool', phaseStart: Date.now(), blockMs: parseInt(els.discBlock.value, 10) * 1000, results: [], skipped: [] };
+  const mins = Math.round(trials.length * (game.disc.blockMs + DISC_COOL_MS) / 60000);
+  addMsg('system', `🔬 Entdecken: ${trials.length} Tests, etwa ${mins} Minuten. Augen zu, entspann dich - dein Puls verrät, was dich packt.`);
+  return true;
+}
+function discCurrent() { const d = game.disc; return d && d.trials[d.idx]; }
+function discMeasure() {
+  const d = game.disc, tr = discCurrent();
+  const tStart = d.phaseStart, tEnd = Date.now();
+  const base = hrMean(tStart - 15000, tStart);
+  const resp = hrMean(tStart + (tEnd - tStart) / 2, tEnd);
+  const hrvBase = rmssd(tStart - 20000, tStart), hrvTest = rmssd(tStart + (tEnd - tStart) / 2, tEnd);
+  d.results.push({ id: tr.id, cat: tr.cat, label: tr.label, delta: base != null && resp != null ? resp - base : null, hrvDrop: hrvBase != null && hrvTest != null ? hrvBase - hrvTest : null });
+  logEvent('msg', { role: 'system', text: `Entdecken: ${tr.label} - Puls ${base ? Math.round(base) : '?'} → ${resp ? Math.round(resp) : '?'}` });
+}
+function discAdvance(skipped) {
+  const d = game.disc, tr = discCurrent();
+  if (d.phase === 'test') {
+    if (skipped) {
+      d.skipped.push(tr.id);
+      d.trials = d.trials.filter((t, i) => i <= d.idx || t.id !== tr.id);
+      logEvent('msg', { role: 'system', text: 'Entdecken: übersprungen - ' + tr.label });
+    } else discMeasure();
+    d.idx++;
+    if (d.idx >= d.trials.length) { discFinish(); return; }
+    d.phase = 'cool';
+  } else {
+    d.phase = 'test';
+  }
+  d.phaseStart = Date.now();
+  [device1, device2].forEach(x => { try { x.reapply(); } catch (e) {} });
+  stopDiscVoice();
+  const cur = discCurrent();
+  discSwapCast(cur);
+  if (cur && cur.cat === 'voice') {
+    if (d.phase === 'cool') {
+      // Ruhe für die Messung und die Stimmprobe schon vorbereiten
+      try { interruptPlayback(); } catch (e) {}
+      fillerUrl(cur.x, discVoiceModel(), VOICE_TEST_TEXT, true).catch(() => null);
+    } else {
+      fillerUrl(cur.x, discVoiceModel(), VOICE_TEST_TEXT, true).then(url => {
+        if (!url || game.disc !== d || discCurrent() !== cur || d.phase !== 'test') return;
+        const a = new Audio(url);
+        a.loop = true;
+        routeAudio(a, 'voice', null, '');
+        discVoiceAudio = a;
+        a.play().catch(() => {});
+      }).catch(() => null);
+    }
+  }
+  renderGameHud();
+}
+function discFinish() {
+  const d = game.disc;
+  stopDiscVoice();
+  if (d.origCast) { characters = d.origCast; d.origCast = null; saveCharacters(); }
+  game.phase = 'results';
+  autoPlaying = false; setAutoStatus(false);
+  const store = discStore();
+  d.results.forEach(r => {
+    const e = store[r.id] || { label: r.label, cat: r.cat, sum: 0, n: 0, hrv: 0, hn: 0, skips: 0 };
+    if (r.delta != null) { e.sum += r.delta; e.n++; }
+    if (r.hrvDrop != null) { e.hrv += r.hrvDrop; e.hn++; }
+    store[r.id] = e;
+  });
+  [...new Set(d.skipped)].forEach(id => {
+    const it = Object.values(DISCOVER_ITEMS).flatMap(c => c.items.map(x => [x[0], x[1], c])).find(x => x[0] === id);
+    const e = store[id] || { label: it ? it[1] : id, cat: '', sum: 0, n: 0, hrv: 0, hn: 0, skips: 0 };
+    e.skips++; store[id] = e;
+  });
+  safeSet('companion_discover', JSON.stringify(store));
+  game.discSummary = discSummary(store);
+  addMsg('system', '🔬 Ergebnis (über alle bisherigen Tests):\n' + game.discSummary.text);
+  renderGameHud();
+}
+function discSummary(store) {
+  const rows = Object.entries(store).filter(([, e]) => e.n || e.skips).map(([id, e]) => ({ id, ...e, mean: e.n ? e.sum / e.n : null }));
+  const byCat = {};
+  rows.forEach(r => { (byCat[r.cat || 'fetish'] = byCat[r.cat || 'fetish'] || []).push(r); });
+  const bar = m => m == null ? '' : '▮'.repeat(Math.max(0, Math.min(10, Math.round(m))));
+  const lines = [], strong = [], none = [], skipped = [];
+  Object.keys(DISCOVER_ITEMS).forEach(cat => {
+    const list = (byCat[cat] || []).sort((a, b) => (b.mean ?? -99) - (a.mean ?? -99));
+    if (!list.length) return;
+    lines.push(DISCOVER_ITEMS[cat].label + ':');
+    list.forEach(r => {
+      if (r.mean != null) lines.push(`  ${r.label}: ${r.mean >= 0 ? '+' : ''}${r.mean.toFixed(1)} ${bar(r.mean)}${r.n > 1 ? ' (' + r.n + '×)' : ''}${r.skips ? ' · ' + r.skips + '× übersprungen' : ''}`);
+      else lines.push(`  ${r.label}: übersprungen`);
+      if (r.mean != null && r.mean >= 5 && !r.skips) strong.push(r.label);
+      else if (r.skips && (r.mean == null || r.mean < 3)) skipped.push(r.label);
+      else if (r.mean != null && r.mean < 2) none.push(r.label);
+    });
+  });
+  return { text: lines.join('\n'), strong, none, skipped };
+}
+function discToMemory() {
+  const sum = game.discSummary || discSummary(discStore());
+  const date = new Date().toLocaleDateString('de-DE');
+  const parts = [];
+  if (sum.strong.length) parts.push('reagiert deutlich auf: ' + sum.strong.join(', '));
+  if (sum.none.length) parts.push('kaum Reaktion auf: ' + sum.none.join(', '));
+  if (sum.skipped.length) parts.push('mag nicht (übersprungen): ' + sum.skipped.join(', '));
+  if (!parts.length) { addMsg('system', 'Noch keine eindeutigen Ergebnisse zum Übernehmen.'); return; }
+  const line = `- Puls-Test (${date}): ${parts.join('; ')}.`;
+  const old = sharedProfile().split('\n').filter(l => !/^- Puls-Test/.test(l)).join('\n').trim();
+  setSharedProfile(line + (old ? '\n' + old : ''));
+  addMsg('system', '✓ Ins Gedächtnis übernommen: ' + line.slice(2));
+  logEvent('msg', { role: 'system', text: 'Entdecken: ins Gedächtnis übernommen.' });
+}
+
+// Anweisung für die nächste Antwort, solange ein Spiel läuft
+function gameTurnPrompt() {
+  if (game.running && game.type === 'discover') {
+    const d = game.disc, tr = discCurrent();
+    if (!d || !tr || game.phase === 'results') return '';
+    if (d.phase === 'cool') return '(ENTDECKEN - kurze Ruhepause: ein, zwei ruhige, neutrale Sätze, gemeinsam durchatmen. Kein neues Thema, keine Marker.)';
+    if (tr.cat === 'tempo') return '(ENTDECKEN - Tempotest: Die Szene bleibt ruhig und sinnlich, ein, zwei Sätze ohne neues Thema. Die Bewegung steuert die App - keine Marker.)';
+    if (tr.cat === 'fig') return `(ENTDECKEN - Figurentest: ${tr.label} verführt Til auf ihre ganz eigene Art, in einer gleichbleibenden, sinnlichen Situation. Sie zeigt ihren Charakter, ihre Art zu sprechen und ihr Markenzeichen. Keine Marker - die Bewegung steuert die App.)`;
+    if (tr.cat === 'voice') return '';
+    return `(ENTDECKEN - Test „${tr.label}": ${tr.x} Spielt GENAU dieses Thema intensiv und eindeutig an, nichts anderes dazumischen. Keine Marker - die Bewegung steuert die App.)`;
+  }
+  if (!game.running) return '';
+  const now = Date.now();
+  if (game.type === 'duel' || game.type === 'tournament') {
+    const d = game.duel;
+    const cur = d.turn === 0 ? d.a : d.b, other = d.turn === 0 ? d.b : d.a;
+    const label = game.type === 'tournament' ? `TURNIER, ${game.tour.stageLabel}` : `DUELL, Runde ${d.round} von ${d.rounds}`;
+    if (game.phase === 'play') {
+      const left = Math.max(0, Math.round((d.turnMs - (now - d.turnStarted)) / 1000));
+      return `(${label}: ${cur} gegen ${other}. Jetzt ist NUR ${cur} am Zug - noch ${left} Sekunden. ${cur} spricht und handelt allein, zeigt ihre ganze Art und sagt auch, dass sie dieses Duell gewinnen will. ${other} darf höchstens EINEN kurzen, eifersüchtigen oder spöttischen Satz sagen. Alle anderen schweigen. Der Wettstreit muss spürbar sein.)`;
+    }
+    if (game.phase === 'vote') return `(${label} - ABSTIMMUNG: Die Zeit ist um. ${d.a} und ${d.b} werben jetzt direkt um Tils Stimme - jede sagt ihm in ein, zwei Sätzen, warum SIE gewinnen sollte, und stichelt gegen die andere. Noch kein Höhepunkt.)`;
+    if (game.phase === 'finale') return `(${game.type === 'tournament' ? 'TURNIER' : 'DUELL'} - FINALE: ${d.winner} hat gewonnen und feiert ihren Sieg. Sie nimmt sich Til jetzt als Preis und steigert bis zum Höhepunkt. Die Verliererin ärgert sich hörbar und schaut zu.)`;
+  }
+  if (game.type === 'challenge' && (game.phase === 'play' || game.phase === 'won')) {
+    const el = now - game.startedAt;
+    if (game.phase === 'won') return '(DURCHHALTE-CHALLENGE GESCHAFFT: Feiert Til, die Siegerin der Wette jubelt - und jetzt bringt ihr ihn zum Höhepunkt.)';
+    return `(DURCHHALTE-CHALLENGE: ${fmtTime(el)} von ${fmtTime(game.durationMs)} vorbei, Stufe ${game.level} von ${game.levels}. Treibt ihn weiter, nennt die Zeit, fiebert mit euren Wetten mit - wer auf jetzt getippt hat, will ihn kommen sehen, die anderen feuern ihn zum Durchhalten an.)`;
+  }
+  return '';
+}
+// Kurze Ringglocke beim Zugwechsel
+const BELL_SFX = { key: 'bell', label: 'Ringglocke', prompt: 'A single short boxing ring bell ding, clear and bright', dur: 1.5 };
+function ringBell(times) {
+  for (let i = 0; i < (times || 1); i++) setTimeout(() => { try { playSfx(BELL_SFX, playbackGeneration); } catch (e) {} }, i * 450);
+}
+// Im Duell sprechen nur die beiden - und die, die nicht dran ist, höchstens einmal.
+function enforceTurn(lines) {
+  if (!game.running || !(game.type === 'duel' || game.type === 'tournament') || game.phase !== 'play') return lines;
+  const d = game.duel;
+  const cur = d.turn === 0 ? d.a : d.b, other = d.turn === 0 ? d.b : d.a;
+  if (!lines.some(l => l.role === cur)) return lines;   // lieber nichts kaputt machen
+  let otherUsed = false, dropped = 0;
+  const out = lines.filter(l => {
+    if (l.role === 'narrator' || l.role === cur) return true;
+    if (l.role === other && !otherUsed) { otherUsed = true; return true; }
+    dropped++;
+    return false;
+  });
+  if (dropped) logEvent('msg', { role: 'system', text: `Duell: ${dropped} Zeile(n) von Figuren entfernt, die nicht am Zug waren.` });
+  return out;
+}
 function gameButton(label, onClick, primary) {
   const b = document.createElement('button');
   b.type = 'button';
@@ -8100,7 +8424,7 @@ function renderGameHud() {
   const now = Date.now();
   // Knöpfe nur neu bauen, wenn sich etwas ändert - sonst würde ein Tipp
   // manchmal ins Leere gehen, weil der Knopf jede Sekunde ersetzt wird.
-  const key = game.type + '|' + game.phase + '|' + game.choices.join('|');
+  const key = game.type + '|' + game.phase + '|' + game.choices.join('|') + '|' + (game.disc ? game.disc.phase + game.disc.idx : '');
   const rebuild = key !== gameHudKey;
   gameHudKey = key;
   const btns = rebuild ? els.gameButtons : document.createElement('div');
@@ -8128,6 +8452,20 @@ function renderGameHud() {
       btns.appendChild(gameButton('💦 Gekommen', () => { els.textInput.value = 'Ich bin gekommen!'; sendTypedMessage(); }, true));
     }
     btns.appendChild(gameButton('Beenden', () => endGame('beendet')));
+  } else if (game.type === 'discover') {
+    const d = game.disc, tr = discCurrent();
+    if (game.phase === 'results') {
+      els.gameStatus.textContent = '🔬 Fertig - Ergebnis steht oben im Verlauf.';
+      btns.appendChild(gameButton('✓ Ins Gedächtnis', () => { discToMemory(); endGame('fertig'); }, true));
+      btns.appendChild(gameButton('Verwerfen', () => endGame('fertig')));
+    } else if (d && tr) {
+      const len = d.phase === 'cool' ? DISC_COOL_MS : d.blockMs;
+      els.gameStatus.textContent = d.phase === 'cool'
+        ? `🔬 Pause · gleich: Test ${d.idx + 1}/${d.trials.length} · ${fmtTime(len - (now - d.phaseStart))}${hr.bpm ? ' · ❤️ ' + hr.bpm : ''}`
+        : `🔬 Test ${d.idx + 1}/${d.trials.length}: ${tr.label} · ${fmtTime(len - (now - d.phaseStart))}${hr.bpm ? ' · ❤️ ' + hr.bpm : ''}`;
+      btns.appendChild(gameButton('⏭ Überspringen', () => { if (game.disc.phase === 'test') discAdvance(true); else discAdvance(false); }, true));
+      btns.appendChild(gameButton('Beenden', () => { if (game.disc.results.length) discFinish(); else endGame('beendet'); }));
+    }
   } else if (game.type === 'adventure') {
     els.gameStatus.textContent = game.choices.length ? '🧭 Wie geht es weiter?' : '🧭 Abenteuer läuft …';
     game.choices.forEach(ch => btns.appendChild(gameButton(ch, () => {
@@ -8177,6 +8515,10 @@ function startGame(type) {
     game.timer = setInterval(gameTick, 1000);
     nextTournamentMatch();
     return;
+  } else if (type === 'discover') {
+    if (!startDiscover()) return;
+    try { device1.setMotion(Object.assign({}, DISC_REST)); } catch (e) {}
+    startAutoForGame();
   } else if (type === 'adventure') {
     addMsg('system', '🎮 Abenteuer mit Entscheidungen beginnt.');
     askActive('(Beginne jetzt das Abenteuer: Setze die Szene in Gang und führe zur ersten Entscheidung.)', { silent: true });
@@ -8204,6 +8546,11 @@ function gameTick() {
       logEvent('msg', { role: 'system', text: 'Challenge: Ziel erreicht.' });
     }
   }
+  if (game.type === 'discover' && game.disc && game.phase !== 'results') {
+    const d = game.disc;
+    const len = d.phase === 'cool' ? DISC_COOL_MS : d.blockMs;
+    if (now - d.phaseStart >= len) discAdvance(false);
+  }
   if ((game.type === 'duel' || game.type === 'tournament') && game.phase === 'play') {
     const d = game.duel;
     if (now - d.turnStarted >= d.turnMs) {
@@ -8213,9 +8560,14 @@ function gameTick() {
       if (d.round > d.rounds) {
         game.phase = 'vote';
         autoPlaying = false; setAutoStatus(false);
+        ringBell(2);
         addMsg('system', game.type === 'tournament' ? `⚔️ ${game.duel.a.split(' ')[0]} oder ${game.duel.b.split(' ')[0]} - wer kommt weiter?` : '⚔️ Alle Runden vorbei - wer war besser?');
+        // Beide werben jetzt um die Stimme
+        askActive(gameTurnPrompt(), { silent: true });
       } else {
         const cur = d.turn === 0 ? d.a : d.b;
+        ringBell(1);
+        addMsg('system', `🔔 ${cur.split(' ')[0]} ist am Zug.`);
         logEvent('msg', { role: 'system', text: `Duell: Runde ${d.round}, ${cur} ist am Zug.` });
       }
     }
@@ -8272,6 +8624,8 @@ function gameOnUserText(text) {
 function endGame(reason) {
   if (!game.running) return;
   clearInterval(game.timer);
+  stopDiscVoice();
+  if (game.disc && game.disc.origCast) { characters = game.disc.origCast; game.disc.origCast = null; saveCharacters(); }
   game.running = false;
   game.choices = [];
   releaseForced = false;
@@ -8308,8 +8662,11 @@ const AUTO_CONTINUE_PROMPTS = [
 
 async function runAutoLoop() {
   while (autoPlaying) {
+    if (discPausesAuto()) { await new Promise(r => setTimeout(r, 1000)); continue; }
     autoStepCount += 1;
-    const prompt = AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)];
+    // Im Spiel steht der Spielstand direkt in der Anweisung für diese Antwort -
+    // nur im Systemtext ging er unter, die Figuren wussten nichts vom Duell.
+    const prompt = gameTurnPrompt() || AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)];
     // Die nächste Fortsetzung startet, sobald der letzte Abschnitt der
     // laufenden zu sprechen beginnt - sie entsteht im Hintergrund und folgt
     // ohne lange Pause. Vorher wurde erst nach dem letzten Wort angefragt.
@@ -12437,7 +12794,7 @@ async function askEnsemble(userText, options) {
     }
     try { updateAmbience(); } catch (e) {}
 
-    const lines = parseEnsembleText(replyText);
+    const lines = enforceTurn(parseEnsembleText(replyText));
     lines.forEach(pc => {
       if (isTagOnly(pc.text)) return;
       addEnsembleMsg(pc.role, stripAudioTags(cleanDisplayText(pc.text)));
@@ -13139,7 +13496,7 @@ els.liveStartBtn.onclick = () => {
 };
 els.gameSelect.value = localStorage.getItem('companion_game') || '';
 els.gameSelect.onchange = () => { safeSet('companion_game', els.gameSelect.value); updateGameOptions(); };
-[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn].forEach(el => { el.onchange = updateGameOptions; });
+[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn, els.discDyn, els.discLoc, els.discTempo, els.discFetish, els.discFig, els.discVoice, els.discBlock, els.discReps].forEach(el => { el.onchange = updateGameOptions; });
 updateGameOptions();
 
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
