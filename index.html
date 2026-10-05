@@ -813,6 +813,21 @@
     body.in-live .tab span { display: none; }
     body.in-live .tab { min-height: 40px; }
   }
+  /* Überrasch mich: Animationen */
+  #surpriseSheet > div { animation: spSlide 420ms cubic-bezier(.2,.8,.2,1); }
+  @keyframes spSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sp-back { width: 62px; height: 84px; border-radius: 10px; border: 1px solid var(--gold);
+    background: repeating-linear-gradient(45deg, #3a1f29 0 6px, #2a1820 6px 12px); box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+    animation: spShuffle 0.7s ease-in-out infinite; }
+  .sp-back:nth-child(2) { animation-delay: 0.12s; } .sp-back:nth-child(3) { animation-delay: 0.24s; }
+  @keyframes spShuffle { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-12px) rotate(6deg); } }
+  .sp-flip { animation: spFlip 600ms cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes spFlip { from { transform: perspective(500px) rotateY(90deg) scale(0.8); opacity: 0; } to { transform: perspective(500px) rotateY(0) scale(1); opacity: 1; } }
+  .sp-fade { animation: spFade 500ms ease both; }
+  @keyframes spFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .sp-dice { display: inline-block; animation: spDice 0.6s linear infinite; }
+  @keyframes spDice { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { #surpriseSheet *, #surpriseSheet > div { animation: none !important; } }
   /* Kartendetail */
   #figCard { display: none; position: fixed; inset: 0; z-index: 2050; background: var(--bg); overflow-y: auto; }
   #figCard .fc-hero { position: relative; height: 46vh; min-height: 280px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 140px; }
@@ -1394,10 +1409,26 @@
       <p id="homeSceneText"></p>
       <div class="btn-row" style="margin-top:18px;">
         <button class="btn-primary" id="homeLiveBtn" type="button">Live beginnen</button>
+        <button class="btn-secondary" id="homeSurpriseBtn" type="button" style="flex:0 0 auto; padding:12px 16px;">🎲 Überrasch mich</button>
         <button class="btn-secondary" id="homeStoryBtn" type="button" style="flex:0 0 auto; padding:12px 18px;">Geschichte</button>
       </div>
     </div>
     <div class="home-tiles" id="homeTiles"></div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn-secondary" id="homeFireBtn" type="button">🔥 Lagerfeuer</button>
+    </div>
+    <div id="homeRecap" style="display:none; margin-top:16px; background:var(--bg-panel); border:1px solid var(--gold); border-radius:20px; padding:16px;">
+      <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">🗓 Dein Wochen-Rückblick ist da</div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+        <span style="font-size:13px;">erzählt von</span>
+        <select id="recapFigure" style="flex:1;"></select>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn-primary" id="recapPlay" type="button">▶ Anhören</button>
+        <button class="btn-secondary" id="recapRead" type="button" style="flex:0 0 auto; padding:12px 16px;">Lesen</button>
+      </div>
+      <p id="recapText" style="display:none; margin:12px 0 0; font-size:14px; line-height:1.55;"></p>
+    </div>
     <div class="home-label" id="homeLastLabel" style="display:none;">Letzte Sitzung</div>
     <div id="homeLast" style="font-size:13.5px; color:var(--text-dim);"></div>
   </div>
@@ -1567,6 +1598,10 @@
       <div class="btn-row">
         <button class="btn-secondary" id="pasteFigureBtn" type="button">📋 Aus Zwischenablage</button>
         <button class="btn-primary" id="importFigureBtn" type="button">Übernehmen</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="drawFigureBtn" type="button">✏️ Figur aus Zeichnung erschaffen</button>
+        <input type="file" id="drawFigureInput" accept="image/*" style="display:none">
       </div>
       <p class="hint" id="importFigureInfo">Figuren mit bekanntem Namen bekommen eine neue Version, die alte bleibt erhalten. Enthält das Paket eine Geschichte, wird alles eingetragen und der Geschichtenmodus geöffnet.</p>
     </div>
@@ -1748,6 +1783,7 @@
     <button class="btn-secondary" id="autoBtn" type="button">Automatik</button>
     <button class="btn-secondary" id="rememberBtn" type="button" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
     <button class="btn-secondary" id="sceneImageBtn" type="button" title="Ein Bild vom aktuellen Moment erzeugen">🖼 Bild</button>
+    <button class="btn-secondary" id="diaryBtn" type="button" title="Die Figuren schreiben jetzt in ihr Tagebuch">📖 Tagebuch schreiben</button>
     <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken">📷 Foto</button>
     <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
   </div>
@@ -1755,6 +1791,62 @@
 
 <nav class="tabbar" id="tabBar"><div class="tabbar-inner"><button class="tab" type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Start</span></button><button class="tab" type="button" data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Live</span></button><button class="tab" type="button" data-tab="games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/></svg><span>Spiele</span></button><button class="tab" type="button" data-tab="figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6c3-2 13-2 16 0v5c0 5-4 8-8 8s-8-3-8-8z"/><path d="M8 11h2M14 11h2"/></svg><span>Figuren</span></button><button class="tab" type="button" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Auswertung</span></button></div></nav>
 <div id="figCard"></div>
+<div id="campfire" style="display:none; position:fixed; inset:0; z-index:2042; background:radial-gradient(ellipse at 50% 110%, #4a1d0f 0%, #1a0d0b 45%, #0e0809 100%); color:var(--text); overflow-y:auto;">
+  <div style="max-width:620px; margin:0 auto; padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px);">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button type="button" class="btn-secondary" id="cfBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
+      <h1 style="margin:0; font-weight:600; font-size:30px; flex:1;">🔥 Lagerfeuer</h1>
+    </div>
+    <div id="cfSetup">
+      <p class="hint">Deine Figuren sitzen zusammen und reden untereinander - du hörst zu und kannst etwas einwerfen. Das Gerät ruht. Am Ende merkt sich jede, was sie über sich verraten und über die anderen erfahren hat.</p>
+      <label>Wer sitzt am Feuer</label>
+      <div id="cfWho" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
+      <label for="cfTopic">Worüber</label>
+      <select id="cfTopic">
+        <option value="">frei - einfach drauflos</option>
+        <option>Was mögt ihr an Til - und was nicht?</option>
+        <option>Fragt euch gegenseitig aus: Was mögt ihr, was verabscheut ihr?</option>
+        <option>Eure peinlichste Geschichte</option>
+        <option>Wer hat das letzte Duell oder Turnier wirklich verdient?</option>
+        <option>Eure wildesten Fantasien</option>
+        <option>Wahrheit oder Pflicht unter euch</option>
+        <option>Klatsch und Tratsch über die, die nicht da sind</option>
+        <option value="custom">eigenes Thema …</option>
+      </select>
+      <input type="text" id="cfTopicCustom" placeholder="Eigenes Thema" style="display:none; margin-top:6px;">
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <select id="cfLength" style="flex:1;"><option value="12">kurz (≈12 Beiträge)</option><option value="24" selected>mittel (≈24)</option><option value="40">lang (≈40)</option></select>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="cfRead" style="width:auto;"><span style="font-size:13.5px;">nur lesen</span></label>
+      </div>
+      <p class="hint">„Nur lesen" spart ElevenLabs-Guthaben: Text ohne Stimmen.</p>
+      <div class="btn-row"><button class="btn-primary" id="cfStart" type="button">Ans Feuer setzen</button></div>
+    </div>
+    <div id="cfRun" style="display:none;">
+      <div id="cfStatus" class="hint" style="margin:8px 0;"></div>
+      <div id="cfLog" style="display:flex; flex-direction:column; gap:10px; margin-top:6px;"></div>
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <input type="text" id="cfInput" placeholder="Etwas einwerfen …" style="flex:1; min-width:0;">
+        <button class="btn-secondary" id="cfSay" type="button" style="flex:0 0 auto; padding:0 16px;">➤</button>
+      </div>
+      <div class="btn-row"><button class="btn-primary" id="cfEnd" type="button">Feuer ausgehen lassen &amp; merken</button></div>
+      <div id="cfSummary" style="margin-top:12px; font-size:14px; line-height:1.5;"></div>
+    </div>
+  </div>
+</div>
+<div id="surpriseSheet" style="display:none; position:fixed; inset:0; z-index:2045; background:rgba(10,6,8,0.72); align-items:flex-end; justify-content:center;">
+  <div style="width:100%; max-width:560px; background:var(--bg-panel); border:1px solid var(--line); border-radius:24px 24px 0 0; padding:20px 18px calc(env(safe-area-inset-bottom, 0px) + 18px); max-height:88vh; overflow-y:auto;">
+    <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);" id="spDynamic">…</div>
+    <h2 style="margin:6px 0 4px; font-weight:600; font-size:28px;" id="spTitle">Würfle …</h2>
+    <div class="home-cast" id="spCast" style="margin:12px 0;"></div>
+    <p style="margin:0; font-size:14.5px; line-height:1.55; color:var(--text);" id="spScene"></p>
+    <p class="hint" id="spNarr" style="margin:8px 0 0;"></p>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn-primary" id="spGo" type="button" disabled>Los geht's</button>
+      <button class="btn-secondary" id="spAgain" type="button" style="flex:0 0 auto; padding:12px 16px;">🎲 Nochmal</button>
+      <button class="btn-secondary" id="spClose" type="button" style="flex:0 0 auto; padding:12px 14px;" aria-label="Schließen">✕</button>
+    </div>
+  </div>
+</div>
 <div id="soundLib" style="display:none; position:fixed; inset:0; z-index:2040; background:var(--bg); overflow-y:auto;">
   <div style="max-width:640px; margin:0 auto; padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 40px;">
     <div style="display:flex; align-items:center; gap:10px;">
@@ -2245,6 +2337,16 @@ const els = {
   liveStage: document.getElementById('liveStage'),
   liveSetupChip: document.getElementById('liveSetupChip'), stageAva: document.getElementById('stageAva'), stageName: document.getElementById('stageName'), stageWave: document.getElementById('stageWave'),
   figCard: document.getElementById('figCard'),
+  campfire: document.getElementById('campfire'), cfSetup: document.getElementById('cfSetup'), cfRun: document.getElementById('cfRun'),
+  cfWho: document.getElementById('cfWho'), cfTopic: document.getElementById('cfTopic'), cfTopicCustom: document.getElementById('cfTopicCustom'),
+  cfLength: document.getElementById('cfLength'), cfRead: document.getElementById('cfRead'), cfLog: document.getElementById('cfLog'),
+  cfStatus: document.getElementById('cfStatus'), cfSummary: document.getElementById('cfSummary'), cfInput: document.getElementById('cfInput'),
+  homeRecap: document.getElementById('homeRecap'), recapFigure: document.getElementById('recapFigure'),
+  recapPlay: document.getElementById('recapPlay'), recapRead: document.getElementById('recapRead'), recapText: document.getElementById('recapText'),
+  surpriseSheet: document.getElementById('surpriseSheet'), spDynamic: document.getElementById('spDynamic'), spTitle: document.getElementById('spTitle'),
+  spCast: document.getElementById('spCast'), spScene: document.getElementById('spScene'), spNarr: document.getElementById('spNarr'),
+  spGo: document.getElementById('spGo'), spAgain: document.getElementById('spAgain'), spClose: document.getElementById('spClose'),
+  homeSurpriseBtn: document.getElementById('homeSurpriseBtn'),
   soundLib: document.getElementById('soundLib'), libTabs: document.getElementById('libTabs'), libSearch: document.getElementById('libSearch'),
   libSort: document.getElementById('libSort'), libList: document.getElementById('libList'), libSummary: document.getElementById('libSummary'),
   navSounds: document.getElementById('navSounds'),
@@ -3168,8 +3270,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.64';
+const APP_VERSION = '1.67';
 const CHANGELOG = [
+  { v: '1.67', date: '2026-10-05', items: [
+    '🔥 Lagerfeuer (Startseite): Deine Figuren sitzen zusammen und reden untereinander - fragen sich aus, necken sich, verbünden sich, verraten Geheimnisse. Du hörst zu (mit Stimmen und Raumklang im Kreis, Kaminfeuer-Kulisse) oder liest nur, und kannst etwas einwerfen. Am Ende merkt sich jede Figur bis zu drei Dinge, und eine Beziehungskarte hält fest, wie sie zueinander stehen - das fließt in alle späteren Gespräche ein.',
+    '📖 Tagebuch: Nach einem Gespräch (bei „Neues Gespräch", nach einem Spiel oder über ⋯ → Tagebuch) schreibt jede beteiligte Figur ein paar Zeilen aus ihrer Sicht. Zu lesen in ihrer Figurenkarte; das Wichtigste wandert ins Gedächtnis.',
+    '🗓 Wochen-Rückblick: Sonntags (oder beim ersten Mal) erscheint auf der Startseite eine Karte - eine Figur deiner Wahl erzählt dir in einer Sprachnachricht, was die Woche los war: Sitzungen, Rekorde, Lagerfeuer-Klatsch, Tagebuch.',
+    'Gedächtnis der Figuren: Wird es zu lang, fallen jetzt die ältesten Einträge weg statt der neuesten.',
+  ]},
+  { v: '1.66', date: '2026-10-05', items: [
+    '🎲 Überrasch mich mit Inszenierung: Die Karte gleitet von unten herein, verdeckte Karten werden gemischt, während die Szene entsteht, dann wird aufgedeckt - erst die Dynamik, dann Figur für Figur mit einer Drehung, dann der Titel, und die Szene schreibt sich Buchstabe für Buchstabe.',
+  ]},
+  { v: '1.65', date: '2026-10-05', items: [
+    '🎲 Überrasch mich (Startseite): würfelt aus deinen Figuren eine Besetzung mit einer bewusst gewählten Dynamik - Gegensätze, Rivalinnen, Verschworene, Erfahrene und Neue, nur sie und du, zu dritt, unerwarteter Gast, Rollentausch - nie zweimal hintereinander dieselbe. Dazu eine überraschende Szene vom Elbenwald bis zum SM-Keller, ein Titel und manchmal ein Erzähler. „Los geht\'s" startet sofort das Live-Gespräch.',
+    '✏️ Figur aus Zeichnung erschaffen (unter Figuren): Das Modell schaut sich deine Zeichnung an und legt daraus eine echte, erwachsene Figur an - mit genauem Aussehen, Charakter, Markenzeichen und Stimmbeschreibung. Danach „Porträt erzeugen".',
+    'Ich-Figur: neues Feld „Intimbereich - nur für Bilder", auf Wunsch aus einem Foto beschrieben. Das Foto wird nicht gespeichert, nur die Beschreibung; sie wird nur verwendet, wenn du auf einem Bild nackt zu sehen bist.',
+  ]},
   { v: '1.64', date: '2026-10-05', items: [
     'Speichern repariert: Als App vom Startbildschirm landeten Sicherungen, Bilder und Videos oft nicht in den Downloads. Bilder und Videos öffnen dort jetzt das Teilen-Menü („In Dateien speichern", Drive …). Nach einer Sicherung erscheint zusätzlich der Knopf „⬇ Datei speichern", der garantiert aus einem frischen Tipp heraus speichert.',
   ]},
@@ -9778,6 +9894,7 @@ function endGame(reason) {
   if (autoPlaying) { autoPlaying = false; setAutoStatus(false); }
   logEvent('msg', { role: 'system', text: 'Spiel beendet (' + reason + ').' });
   if (reason === 'aufgegeben') addMsg('system', '🏳️ Challenge aufgegeben.');
+  try { writeDiaries(history.slice()); } catch (e) {}
   renderGameHud();
   updateGameOptions();
 }
@@ -9989,6 +10106,7 @@ function versionFromCharacter(c, versionNumber) {
     appearance: c.appearance || '',
     voiceDescription: c.voiceDescription || '',
     userStyle: c.userStyle || '',
+    intimate: c.intimate || '',
     isNarrator: !!c.isNarrator,
     // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
     // dadurch, dass eine Figur gerade mitspielt oder nicht.
@@ -10566,7 +10684,8 @@ function buildSceneImageRequest(momentText, castOverride, framing) {
     const looksAll = (c.appearance || '').trim();
     const clothes = ((looksAll.match(/^\s*Kleidung\s*:\s*(.+)$/mi) || [])[1] || '').trim();
     const looks = looksAll.replace(/^\s*Kleidung\s*:.*$/mi, '').trim();
-    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
+    const intim = c.isUser && (c.intimate || '').trim() ? ` Intimbereich - nur verwenden, wenn er im Bild nackt und dieser Bereich sichtbar ist: ${c.intimate.trim()}.` : '';
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}${intim}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
   }).join('\n');
   // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
   // Bild illustrieren soll.
@@ -11848,6 +11967,37 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       us.oninput = () => { c.userStyle = us.value; };
       card.appendChild(us);
 
+      const inLabel = document.createElement('label');
+      inLabel.textContent = 'Intimbereich - nur für Bilder (privat)';
+      card.appendChild(inLabel);
+      const inta = document.createElement('textarea');
+      inta.value = c.intimate || '';
+      inta.style.minHeight = '64px';
+      inta.placeholder = 'Englisch, sachlich - z. B. Größe und Proportionen, Form, beschnitten oder nicht, Behaarung. Wird nur verwendet, wenn du auf einem Bild nackt zu sehen bist.';
+      inta.oninput = () => { c.intimate = inta.value; };
+      card.appendChild(inta);
+      const inRow = document.createElement('div');
+      inRow.className = 'btn-row';
+      const inBtn = document.createElement('button');
+      inBtn.type = 'button'; inBtn.className = 'btn-secondary';
+      inBtn.textContent = '📷 Aus Foto beschreiben lassen';
+      const inFile = document.createElement('input');
+      inFile.type = 'file'; inFile.accept = 'image/*'; inFile.multiple = true; inFile.style.display = 'none';
+      inBtn.onclick = () => inFile.click();
+      inFile.onchange = async () => {
+        if (!inFile.files.length) return;
+        inBtn.disabled = true; inBtn.textContent = 'Schaue …';
+        try { await describeIntimateFromPhotos(inFile.files, inta); inBtn.textContent = '✓ Beschrieben - bitte prüfen und speichern'; }
+        catch (e) { inBtn.textContent = 'Fehlgeschlagen: ' + (e.message || e).slice(0, 60); }
+        finally { inBtn.disabled = false; inFile.value = ''; }
+      };
+      inRow.append(inBtn, inFile);
+      card.appendChild(inRow);
+      const inHint = document.createElement('p');
+      inHint.className = 'hint';
+      inHint.textContent = 'Das Foto wird nicht gespeichert - es geht einmal an deinen KI-Anbieter, gespeichert wird nur die Beschreibung. Erst „Speichern" unten übernimmt sie.';
+      card.appendChild(inHint);
+
       // Gehört zum Ich, nicht zu einer Version - sofort gesichert.
       if (c.figureId) {
         const pmLabel = document.createElement('label');
@@ -12951,6 +13101,8 @@ els.comeBtn.onclick = () => {
   sendTypedMessage();
 };
 els.figureSort.value = localStorage.getItem('companion_figureSort') || 'standard';
+document.getElementById('drawFigureBtn').onclick = () => document.getElementById('drawFigureInput').click();
+document.getElementById('drawFigureInput').onchange = (e) => { const f = e.target.files && e.target.files[0]; if (f) figureFromDrawing(f); e.target.value = ''; };
 els.figureSort.onchange = () => { safeSet('companion_figureSort', els.figureSort.value); renderFigureList(); };
 
 // Microphone, clipboard and local network access all hang on the same
@@ -13627,7 +13779,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${freedomBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${relationsBlock()}${freedomBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -14704,6 +14856,459 @@ function renderFigureSounds(host, version) {
   });
 }
 
+// ======================= ÜBERRASCH MICH =======================
+// Würfelt aus deinen vorhandenen Figuren eine Besetzung mit einer bewusst
+// gewählten Dynamik (nie zweimal hintereinander dieselbe) und lässt dazu eine
+// überraschende Szene schreiben - vom Elbenwald bis zum SM-Keller.
+const SURPRISE_DYNAMICS = [
+  { id: 'contrast', label: 'Gegensätze ziehen sich an', n: 2, hint: 'Die eine streng und fordernd, die andere sanft und zärtlich - sie ziehen in verschiedene Richtungen, und er ist dazwischen.' },
+  { id: 'rivals', label: 'Rivalinnen', n: 2, hint: 'Zwei starke Frauen, die sich nichts schenken und um ihn konkurrieren.' },
+  { id: 'allies', label: 'Verschworene Freundinnen', n: 2, hint: 'Zwei, die sich blind verstehen und gemeinsam einen Plan mit ihm haben.' },
+  { id: 'mentor', label: 'Die Erfahrene und die Neue', n: 2, hint: 'Eine führt, die andere ist zum ersten Mal dabei und lernt - mit ihm als Übungsobjekt.' },
+  { id: 'solo', label: 'Nur sie und du', n: 1, hint: 'Ganz allein mit einer Figur - intim, ungeteilt, intensiv.' },
+  { id: 'trio', label: 'Zu dritt mit Spannung', n: 3, hint: 'Drei sehr verschiedene Frauen, und jede will etwas anderes von ihm.' },
+  { id: 'stranger', label: 'Der unerwartete Gast', n: 2, hint: 'Eine vertraute Figur - und plötzlich taucht eine zweite auf, mit der keiner gerechnet hat.' },
+  { id: 'reversal', label: 'Rollentausch', n: 2, hint: 'Die sonst Dominante muss heute gehorchen, die sonst Sanfte hat das Sagen.' },
+];
+const SURPRISE_SETTINGS = ['ein verwunschener Elbenwald im Mondlicht', 'ein SM-Keller mit Andreaskreuz und Kerzenlicht', 'eine Sauna in einem eingeschneiten Berghotel', 'ein Nachtzug-Schlafabteil quer durch Europa',
+  'eine Luxusyacht vor der Côte d\'Azur', 'eine Bibliothek nach Schließung', 'eine Raumstation mit Blick auf die Erde', 'ein Fotostudio nach dem Shooting', 'ein Weinkeller in der Toskana',
+  'eine Dachterrasse im Sommerregen', 'eine Theatergarderobe nach der Premiere', 'ein Onsen in Japan unter Sternen', 'ein Büro im 40. Stock nach Feierabend', 'eine Strandhütte während eines Gewitters',
+  'ein Latex-Club in Berlin', 'ein Harem in einem orientalischen Palast', 'eine Massagepraxis kurz vor Ladenschluss', 'eine Burg mit Kamin und Fellen', 'ein Unterwasser-Hotelzimmer',
+  'eine Hütte am Polarkreis mit Nordlichtern', 'ein Zirkuszelt nach der letzten Vorstellung', 'ein Tanzstudio mit Spiegelwand', 'eine Gefängniszelle in einem Rollenspiel', 'ein Swingerclub mit Themenabend',
+  'ein Tempel einer vergessenen Göttin', 'ein Rennwagen-Fahrerlager in der Nacht', 'ein Zug-Speisewagen im Orient-Express', 'ein Gewächshaus voller exotischer Pflanzen', 'ein Kostümball in Venedig', 'eine Schmiede in einer Fantasywelt'];
+function surpriseHistory() { try { return JSON.parse(localStorage.getItem('companion_surpriseHist') || '{"d":[],"s":[]}'); } catch (e) { return { d: [], s: [] }; } }
+function surprisePool() {
+  return figureArchive.map(f => ({ f, v: latestVersion(f) }))
+    .filter(x => x.v && !x.v.isUser && !x.v.isNarrator && !ageIssue(x.v))
+    .map(x => ({ ...x, st: figureStats(x.f) }));
+}
+function pickCast(dyn, pool) {
+  const shuf = a => a.slice().sort(() => Math.random() - 0.5);
+  const byDom = shuf(pool).sort((a, b) => b.st.dom - a.st.dom);
+  const bySoft = shuf(pool).sort((a, b) => b.st.soft - a.st.soft);
+  const top = (list, k) => list.slice(0, Math.max(1, Math.min(k, list.length)));
+  const any = () => shuf(pool)[0];
+  const pickOne = list => shuf(top(list, 3))[0];
+  let picked = [];
+  if (dyn.id === 'contrast') { const a = pickOne(byDom); const b = pickOne(bySoft.filter(x => x !== a)); picked = [a, b]; }
+  else if (dyn.id === 'rivals') { const a = pickOne(byDom); const b = pickOne(byDom.filter(x => x !== a)); picked = [a, b]; }
+  else if (dyn.id === 'allies') { const a = any(); const sim = pool.filter(x => x !== a).sort((x, y) => (Math.abs(x.st.dom - a.st.dom) + Math.abs(x.st.soft - a.st.soft)) - (Math.abs(y.st.dom - a.st.dom) + Math.abs(y.st.soft - a.st.soft))); picked = [a, pickOne(sim)]; }
+  else if (dyn.id === 'mentor' || dyn.id === 'reversal') { const a = pickOne(byDom); const b = pickOne(byDom.slice().reverse().filter(x => x !== a)); picked = [a, b]; }
+  else if (dyn.id === 'solo') { const withPref = pool.filter(x => x.st.pref != null).sort((a, b) => b.st.pref - a.st.pref); picked = [Math.random() < 0.5 && withPref.length ? pickOne(withPref) : any()]; }
+  else if (dyn.id === 'trio') { const a = pickOne(byDom); const b = pickOne(bySoft.filter(x => x !== a)); const c = shuf(pool.filter(x => x !== a && x !== b))[0]; picked = [a, b, c]; }
+  else { picked = shuf(pool).slice(0, dyn.n); }
+  return [...new Set(picked.filter(Boolean))];
+}
+let surpriseDraft = null;
+let rollToken = 0;
+async function rollSurprise() {
+  rollToken++;
+  const pool = surprisePool();
+  if (!pool.length) { alert('Dafür braucht es mindestens eine Figur im Archiv.'); return; }
+  const hist = surpriseHistory();
+  const dyns = SURPRISE_DYNAMICS.filter(d => d.n <= pool.length && !hist.d.slice(-2).includes(d.id));
+  const dyn = (dyns.length ? dyns : SURPRISE_DYNAMICS.filter(d => d.n <= pool.length))[Math.floor(Math.random() * (dyns.length || 1))] || SURPRISE_DYNAMICS[4];
+  const settings = SURPRISE_SETTINGS.filter(x => !hist.s.slice(-6).includes(x));
+  const setting = settings[Math.floor(Math.random() * settings.length)];
+  const cast = pickCast(dyn, pool);
+  const narrs = narratorFigures();
+  const narrator = narrs.length && Math.random() < 0.6 ? narrs[Math.floor(Math.random() * narrs.length)] : null;
+  // Erst mischen: verdeckte Karten tanzen, während die Szene entsteht
+  els.spDynamic.textContent = 'Die Karten werden gemischt …';
+  els.spTitle.innerHTML = '<span class="sp-dice">🎲</span>';
+  els.spScene.textContent = '';
+  els.spNarr.textContent = '';
+  els.spGo.disabled = true;
+  els.spAgain.disabled = true;
+  els.spCast.innerHTML = cast.map(() => '<div class="sp-back"></div>').join('');
+  if (els.surpriseSheet.style.display !== 'flex') { els.surpriseSheet.style.display = 'flex'; }
+  const minShuffle = new Promise(r => setTimeout(r, 1100));
+  hist.d.push(dyn.id); hist.s.push(setting); hist.d = hist.d.slice(-8); hist.s = hist.s.slice(-12);
+  safeSet('companion_surpriseHist', JSON.stringify(hist));
+  const sys = `Du schreibst die Ausgangsszene für ein erotisches Live-Rollenspiel zwischen Erwachsenen (alle über 21). Ich bin Til.
+Ort bzw. Rahmen (frei und überraschend ausgestalten): ${setting}.
+Dynamik zwischen den Figuren: ${dyn.label} - ${dyn.hint}
+Es spielen mit:
+${cast.map(x => '- ' + describeCharacter(characterFromVersion(x.f))).join('\n')}
+
+Schreibe:
+1. einen kurzen, verführerischen Titel (2 bis 5 Wörter)
+2. eine Szenenbeschreibung in drei bis vier Sätzen, wie man sie ins Feld „Szene" schreibt: Ort mit Atmosphäre (Licht, Geräusche, Geruch), wie die Figuren dort sind und zueinander stehen, und ein Funke, der die Spannung sofort auslöst. In der Gegenwart, Til mit „du" ansprechen. Überraschend, nicht das Naheliegende.
+Antworte NUR als JSON: {"title": "...", "scene": "..."}`;
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 1.0, taskBudget('draft', 600), { task: 'draft' });
+    const m = String(raw).match(/\{[\s\S]*\}/);
+    const j = m ? JSON.parse(m[0]) : { title: '', scene: String(raw).trim() };
+    surpriseDraft = { dyn, setting, cast, narrator, title: String(j.title || '').trim(), scene: String(j.scene || '').trim() };
+    await minShuffle;
+    // Aufdecken: Dynamik, dann eine Karte nach der anderen, dann der Titel,
+    // dann die Szene Buchstabe für Buchstabe
+    els.spDynamic.textContent = dyn.label;
+    els.spDynamic.classList.remove('sp-fade'); void els.spDynamic.offsetWidth; els.spDynamic.classList.add('sp-fade');
+    els.spCast.innerHTML = cast.map((x, i) => `<div class="home-ava sp-flip" style="animation-delay:${180 + i * 260}ms"><div class="ava-ring"><div class="ava-in">${avaHtml(x.v.name, x.v.image)}</div></div><span>${esc(x.v.name.split(' ')[0])}</span></div>`).join('');
+    const titleAt = 300 + cast.length * 260;
+    setTimeout(() => { els.spTitle.textContent = surpriseDraft.title || 'Deine Szene'; els.spTitle.classList.remove('sp-fade'); void els.spTitle.offsetWidth; els.spTitle.classList.add('sp-fade'); }, titleAt);
+    setTimeout(() => {
+      const text = surpriseDraft.scene;
+      let i = 0;
+      const step = Math.max(1, Math.round(text.length / 90));
+      const tick = () => {
+        if (surpriseDraft === null || els.spScene.dataset.for !== String(rollToken)) return;
+        i = Math.min(text.length, i + step);
+        els.spScene.textContent = text.slice(0, i);
+        if (i < text.length) setTimeout(tick, 16);
+        else {
+          els.spNarr.textContent = narrator ? 'Erzähler: ' + latestVersion(narrator).name : 'Ohne Erzähler';
+          els.spNarr.classList.add('sp-fade');
+          els.spGo.disabled = !surpriseDraft.scene;
+          els.spAgain.disabled = false;
+        }
+      };
+      els.spScene.dataset.for = String(rollToken);
+      tick();
+    }, titleAt + 350);
+  } catch (e) {
+    await minShuffle;
+    els.spTitle.textContent = 'Das hat nicht geklappt';
+    els.spScene.textContent = e.message || String(e);
+    els.spAgain.disabled = false;
+  }
+}
+function startSurprise() {
+  const d = surpriseDraft; if (!d) return;
+  switchMode('live');
+  const meFig = figureArchive.find(f => (latestVersion(f) || {}).isUser);
+  const me = characters.find(c => c.isUser) || (meFig ? characterFromVersion(meFig) : null);
+  characters = [me, ...d.cast.map(x => characterFromVersion(x.f))].filter(Boolean);
+  saveCharacters();
+  safeSet('companion_narratorFigure', d.narrator ? d.narrator.id : '');
+  safeSet('companion_narratorEnabled', d.narrator ? 'true' : 'false');
+  safeSet('companion_sceneDesc', d.scene);
+  if (musicStyleSetting() !== 'auto') { /* Musik bleibt, wie gewählt */ }
+  renderLivePanel();
+  els.surpriseSheet.style.display = 'none';
+  els.gameSelect.value = ''; safeSet('companion_game', ''); updateGameOptions();
+  addMsg('system', `🎲 ${d.title || 'Überraschung'} - ${d.dyn.label}.`);
+  els.liveStartBtn.click();
+}
+
+// ======================= FIGUR AUS ZEICHNUNG =======================
+// Eine Zeichnung (oder ein beliebiges Bild) wird vom Modell genau beschrieben
+// und als echte, erwachsene Figur im Import-Format angelegt.
+async function readImageFile(file, max) {
+  const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
+  return await downscaleDataUrl(dataUrl, max || 1024);
+}
+async function figureFromDrawing(file) {
+  els.importFigureInfo.textContent = 'Schaue mir die Zeichnung an …';
+  try {
+    const img = await readImageFile(file, 1024);
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const sys = `Du bekommst eine Zeichnung (oder Skizze) einer Person. Erschaffe daraus eine ECHTE, fotorealistisch vorstellbare, erwachsene Figur (mindestens 25 Jahre alt - wirkt die Zeichnung jünger, mach sie eindeutig erwachsen) für ein erotisches Rollenspiel zwischen Erwachsenen.
+Beschreibe ihr Aussehen so genau, dass ein Bildmodell sie später als echten Menschen nachbilden kann: Gesichtsform, Augen (Form, Farbe), Nase, Lippen, Haare (Farbe, Länge, Frisur), Haut, Statur, Größe, Körper, Besonderheiten. Übertrage Zeichenstil-Merkmale (große Comic-Augen, übertriebene Proportionen) in realistische Entsprechungen. Leite aus Ausdruck, Haltung und Kleidung einen Charakter ab und gib ihr einen passenden Namen.
+Antworte NUR in diesem Format (deutsch):
+=== FIGUR ===
+Name der Figur: ...
+Geschlecht: weiblich oder männlich
+Aussehen:
+Art: Mensch, Frau
+Alter: (Zahl, mindestens 25)
+Statur: ...
+Gesicht: ...
+Augen: ...
+Haare: ...
+Haut: ...
+Kleidung: ...
+Eigenschaften: (drei bis sechs, mit Semikolon getrennt)
+Spricht emotional: ja
+Ist eine Erzählerstimme: nein
+Ergänzung in eigenen Worten:
+(vier bis sechs Sätze zu Wesen, Art zu verführen, wie sie mit Til umgeht)
+Tonfall-Beispielzeilen:
+(drei Beispielsätze)
+Markenzeichen: (eine typische Geste oder Bewegung)
+Länge der Antworten: kurz
+Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang, Ausdruck)
+=== ENDE ===`;
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist die Zeichnung.', image: img }], 0.7, taskBudget('draft', 1400), { task: 'chat' });
+    const msg = importFigures(String(raw));
+    els.importFigureInfo.textContent = (msg.startsWith('Übernommen') ? '✏️ Aus der Zeichnung: ' : '') + msg + (msg.startsWith('Übernommen') ? ' Öffne die Figur und tippe auf „Porträt erzeugen", dann siehst du sie als echten Menschen.' : '');
+  } catch (e) {
+    els.importFigureInfo.textContent = 'Das hat nicht geklappt: ' + (e.message || e) + ' (Das gewählte Modell muss Bilder verstehen können - dasselbe, mit dem Fotos im Gespräch funktionieren.)';
+  }
+}
+
+// ======================= ICH: INTIMES AUSSEHEN =======================
+async function describeIntimateFromPhotos(files, target) {
+  const imgs = [];
+  for (const f of [...files].slice(0, 3)) imgs.push(await readImageFile(f, 900));
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Du bekommst ein bis drei private Fotos des Intimbereichs eines erwachsenen Mannes (er hat sie selbst hochgeladen, für Bilder in seinem privaten Rollenspiel). Beschreibe sachlich und neutral, für ein Bildmodell, NUR die sichtbaren anatomischen Merkmale: geschätzte Größe und Proportionen im Verhältnis zum Körper, Dicke, Form und Krümmung, Eichel, beschnitten oder nicht, Hoden, Behaarung, Hautton. Keine Wertung, keine Gesichter, keine anderen Personen. 25 bis 45 Wörter, englisch, kommagetrennt. Antworte NUR mit der Beschreibung.`;
+  const msgs = imgs.map((im, i) => ({ role: 'user', content: i === imgs.length - 1 ? 'Hier die Fotos.' : 'Foto ' + (i + 1), image: im }));
+  // Mehrere Bilder: nacheinander als Teile derselben Nachricht wären je nach Anbieter verschieden - deshalb das schärfste (letzte) plus Hinweis
+  const raw = await callProvider(provider, sys, [msgs[msgs.length - 1]], 0.2, taskBudget('draft', 300), { task: 'chat' });
+  target.value = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').slice(0, 400);
+  target.dispatchEvent(new Event('input'));
+}
+
+// ======================= GEDÄCHTNIS-HELFER =======================
+// Neue Einträge hinten anfügen; wird es zu lang, fallen die ÄLTESTEN Zeilen
+// weg (vorher schnitt die Grenze das Neueste ab).
+function appendFigureMemory(figureId, lines) {
+  if (!figureId || !lines.length) return;
+  let all = (figureMemory(figureId) || '').split('\n').filter(Boolean).concat(lines);
+  while (all.join('\n').length > MEMORY_MAX_FIGURE && all.length > 1) all.shift();
+  setFigureMemory(figureId, all.join('\n'));
+}
+function relations() { try { return JSON.parse(localStorage.getItem('companion_relations') || '{}'); } catch (e) { return {}; } }
+function relKey(a, b) { return [a, b].sort().join('|'); }
+function relationsBlock() {
+  const names = characters.filter(c => !c.isUser && !c.isNarrator).map(c => c.name);
+  if (names.length < 2) return '';
+  const R = relations(); const out = [];
+  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) { const r = R[relKey(names[i], names[j])]; if (r && r.text) out.push(`${names[i]} und ${names[j]}: ${r.text}`); }
+  return out.length ? `\n\nWIE DIE FIGUREN ZUEINANDER STEHEN (aus früheren Begegnungen - spielt damit, es darf durchscheinen):\n${out.join('\n')}` : '';
+}
+function figureByName(name) { return figureArchive.find(f => (latestVersion(f) || {}).name === name); }
+function parseJsonLoose(raw) { const m = String(raw || '').match(/\{[\s\S]*\}/); try { return m ? JSON.parse(m[0]) : null; } catch (e) { return null; } }
+
+// ======================= LAGERFEUER =======================
+const cf = { running: false, lines: [], cast: [], target: 24, read: false, origCast: null, topic: '', ended: false };
+function openCampfire() {
+  els.campfire.style.display = 'block';
+  els.cfSetup.style.display = ''; els.cfRun.style.display = 'none';
+  const pool = surprisePool();
+  els.cfWho.innerHTML = pool.map(x => `<label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" value="${x.f.id}" checked style="width:auto;"><span style="font-size:14px;">${esc(x.v.name)}</span></label>`).join('') || '<p class="hint">Noch keine Figuren.</p>';
+}
+function cfAddLine(role, text) {
+  const v = role === 'Til' ? null : figureVersionByName(role);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; gap:10px; align-items:flex-start;';
+  row.innerHTML = `<div class="ava-in" style="width:38px; height:38px; flex:0 0 38px; border:1px solid ${role === 'Til' ? 'var(--line)' : 'var(--gold)'}; border-radius:50%;">${role === 'Til' ? 'T' : avaHtml(role, v && v.image)}</div><div style="flex:1;"><div style="font-size:12.5px; color:var(--gold);">${esc(role.split(' ')[0])}</div><div style="font-size:15px; line-height:1.45;">${esc(stripAudioTags(text))}</div></div>`;
+  els.cfLog.appendChild(row);
+  row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+async function startCampfire() {
+  const ids = [...els.cfWho.querySelectorAll('input:checked')].map(i => i.value);
+  const figs = ids.map(id => figureArchive.find(f => f.id === id)).filter(Boolean);
+  if (figs.length < 2) { alert('Mindestens zwei Figuren ans Feuer setzen.'); return; }
+  cf.cast = figs.map(f => characterFromVersion(f));
+  cf.lines = []; cf.ended = false;
+  cf.target = parseInt(els.cfLength.value, 10);
+  cf.read = els.cfRead.checked;
+  cf.topic = els.cfTopic.value === 'custom' ? els.cfTopicCustom.value.trim() : els.cfTopic.value;
+  cf.origCast = characters.slice();
+  characters = cf.cast.slice();   // Stimmen und Raumklang: im Kreis um dich herum
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  try { setMusic(null); setAmbience('fire'); } catch (e) {}
+  els.cfSetup.style.display = 'none'; els.cfRun.style.display = '';
+  els.cfLog.innerHTML = ''; els.cfSummary.innerHTML = '';
+  cf.running = true;
+  logEvent('msg', { role: 'system', text: 'Lagerfeuer: ' + cf.cast.map(c => c.name).join(', ') + (cf.topic ? ' · ' + cf.topic : '') });
+  campfireLoop();
+}
+function campfirePrompt() {
+  const R = relations();
+  const known = cf.cast.map(c => { const f = figureByName(c.name); const m = f ? (figureMemory(f.id) || '').split('\n').slice(-6).join(' ') : ''; return m ? `- ${c.name} weiß bereits: ${m.slice(0, 350)}` : ''; }).filter(Boolean).join('\n');
+  const rel = [];
+  for (let i = 0; i < cf.cast.length; i++) for (let j = i + 1; j < cf.cast.length; j++) { const r = R[relKey(cf.cast[i].name, cf.cast[j].name)]; if (r) rel.push(`${cf.cast[i].name} und ${cf.cast[j].name}: ${r.text}`); }
+  const so_far = cf.lines.slice(-30).map(l => `${l.role}: ${l.text}`).join('\n');
+  return `Ihr seid diese Figuren (alle erwachsen) und sitzt abends zusammen am Lagerfeuer - ganz privat, ohne Spiel, ohne Gerät. Til sitzt dabei und hört zu; manchmal wirft er etwas ein, dann geht ihr darauf ein.
+Ihr unterhaltet euch UNTEREINANDER: fragt euch gegenseitig aus, erzählt von euch, was ihr mögt und was nicht, neckt euch, verbündet euch, lästert auch mal, verratet Geheimnisse. Bleibt genau so, wie ihr beschrieben seid - eure Art zu sprechen, eure Akzente, euer Wesen. Antwortet auf Fragen der anderen, bevor ihr neue stellt.
+${cf.topic ? 'Thema des Abends: ' + cf.topic : 'Kein festes Thema - lasst es sich entwickeln.'}
+
+Die Figuren:
+${cf.cast.map(c => '- ' + describeCharacter(c)).join('\n')}
+${rel.length ? '\nWie sie zueinander stehen:\n' + rel.join('\n') : ''}
+${known ? '\nWas sie schon wissen:\n' + known : ''}
+
+${so_far ? 'Bisher gesagt:\n' + so_far : 'Das Gespräch beginnt gerade.'}
+
+Schreibe die nächsten 3 bis 5 Beiträge, jeder 1 bis 3 Sätze, im Format „Name: Text" - abwechselnd verschiedene Figuren, nicht immer dieselbe Reihenfolge. Keine Erzählzeilen. Kurze Klangmarken wie [lacht] sind erlaubt.`;
+}
+async function campfireLoop() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const names = cf.cast.map(c => c.name);
+  while (cf.running && cf.lines.filter(l => l.role !== 'Til').length < cf.target) {
+    els.cfStatus.textContent = '🔥 knistert …';
+    let raw = '';
+    try { raw = await callProvider(provider, campfirePrompt(), [{ role: 'user', content: 'Weiter.' }], 1.0, taskBudget('chat', 700), { task: 'chat' }); }
+    catch (e) { els.cfStatus.textContent = 'Fehler: ' + e.message; cf.running = false; break; }
+    const got = String(raw).split('\n').map(l => l.match(/^\s*\**\s*([^:*\n]{1,40}?)\s*\**\s*:\s*(.+)$/)).filter(Boolean)
+      .map(m => ({ role: matchSpeakerName(m[1], names), text: m[2].trim() })).filter(x => x.role && x.text);
+    if (!got.length) continue;
+    for (const ln of got) {
+      if (!cf.running) break;
+      cf.lines.push(ln);
+      cfAddLine(ln.role, ln.text);
+      els.cfStatus.textContent = '';
+      if (cf.read) await new Promise(r => setTimeout(r, 900 + ln.text.length * 25));
+      else { try { await prepareSpeech(ln.text, ln.role, false, { level: 0 }).play(); } catch (e) {} }
+    }
+  }
+  if (!cf.ended && cf.lines.length) finishCampfire();
+}
+async function finishCampfire() {
+  if (cf.ended) return;
+  cf.ended = true; cf.running = false;
+  try { interruptPlayback(); } catch (e) {}
+  els.cfStatus.textContent = 'Das Feuer glimmt aus - die Figuren merken sich den Abend …';
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const transcript = cf.lines.map(l => `${l.role}: ${l.text}`).join('\n');
+  const sys = `Hier ist ein Gespräch am Lagerfeuer zwischen diesen Figuren: ${cf.cast.map(c => c.name).join(', ')} (Til hat zugehört).
+Beschreibungen (dürfen NICHT widersprochen werden):
+${cf.cast.map(c => '- ' + describeCharacter(c)).join('\n')}
+
+Gespräch:
+${transcript.slice(-6000)}
+
+Halte fest, was hängen bleibt:
+1. Für jede Figur höchstens DREI kurze Gedächtnissätze (je höchstens 15 Wörter), aus ihrer Sicht in der dritten Person: was sie über sich verraten hat ODER über eine andere erfahren hat (z. B. „Weiß jetzt, dass Élodie heimlich Tango tanzt."). Nur, was im Gespräch wirklich vorkam und zur Beschreibung passt.
+2. Für Paare, zwischen denen sich etwas getan hat, ein Satz, wie sie jetzt zueinander stehen (z. B. „Freundschaftliche Rivalität, Katja hat Élodie verziehen.").
+Antworte NUR als JSON: {"memories": {"Name": ["...", "..."]}, "relations": [{"a": "Name", "b": "Name", "text": "..."}]}`;
+  let j = null;
+  try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.4, taskBudget('draft', 900), { task: 'draft' })); } catch (e) {}
+  const date = new Date().toLocaleDateString('de-DE');
+  const summary = [];
+  if (j && j.memories) Object.entries(j.memories).forEach(([name, list]) => {
+    const n = matchSpeakerName(name, cf.cast.map(c => c.name)); const f = n && figureByName(n);
+    const items = (Array.isArray(list) ? list : [list]).map(x => String(x).trim()).filter(Boolean).slice(0, 3);
+    if (f && items.length) { appendFigureMemory(f.id, items.map(x => `${date} 🔥 ${x}`)); summary.push(`<b>${esc(n.split(' ')[0])}</b> merkt sich: ${items.map(esc).join(' · ')}`); }
+  });
+  if (j && Array.isArray(j.relations)) {
+    const R = relations();
+    j.relations.slice(0, 10).forEach(r => {
+      const names = cf.cast.map(c => c.name);
+      const a = matchSpeakerName(r.a, names), b = matchSpeakerName(r.b, names);
+      if (a && b && a !== b && r.text) { R[relKey(a, b)] = { text: String(r.text).slice(0, 200), t: Date.now() }; summary.push(`💞 ${esc(a.split(' ')[0])} & ${esc(b.split(' ')[0])}: ${esc(r.text)}`); }
+    });
+    safeSet('companion_relations', JSON.stringify(R));
+  }
+  try { const L = JSON.parse(localStorage.getItem('companion_fireLog') || '[]'); L.push({ t: Date.now(), cast: cf.cast.map(c => c.name), topic: cf.topic, n: cf.lines.length, summary: summary.map(x => x.replace(/<[^>]+>/g, '')) }); safeSet('companion_fireLog', JSON.stringify(L.slice(-30))); } catch (e) {}
+  els.cfStatus.textContent = 'Das Feuer ist aus.';
+  els.cfSummary.innerHTML = summary.length ? summary.map(x => `<div style="margin:6px 0;">${x}</div>`).join('') : '<p class="hint">Diesmal ist nichts Besonderes hängen geblieben.</p>';
+  restoreCampfireCast();
+}
+function restoreCampfireCast() {
+  if (cf.origCast) { characters = cf.origCast; cf.origCast = null; saveCharacters(); }
+  try { setAmbience(null); } catch (e) {}
+}
+
+// ======================= TAGEBUCH =======================
+function diaries() { try { return JSON.parse(localStorage.getItem('companion_diary') || '{}'); } catch (e) { return {}; } }
+async function writeDiaries(snapshot, force) {
+  const msgs = (snapshot || history).filter(m => typeof m.content === 'string');
+  const sig = msgs.length + ':' + (msgs[msgs.length - 1] || {}).content?.slice(0, 40);
+  if (!force && (msgs.filter(m => m.role === 'assistant').length < 4 || localStorage.getItem('companion_diarySig') === sig)) return;
+  const cast = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId);
+  if (!cast.length) return;
+  safeSet('companion_diarySig', sig);
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const text = msgs.slice(-24).map(m => (m.role === 'user' ? 'Til: ' : '') + String(m.content).replace(/<<[^>]*>>/g, '')).join('\n').slice(-6000);
+  const sys = `Nach einem Treffen mit Til schreibt jede dieser Figuren ein paar Zeilen in ihr privates Tagebuch - in ihrer eigenen Stimme, Ich-Form, ehrlich, mit Gefühlen, kleinen Geheimnissen und Gedanken über Til und die anderen. Erwachsene, erotisch darf es sein.
+Figuren:
+${cast.map(c => '- ' + describeCharacter(c)).join('\n')}
+
+Was passiert ist:
+${text}
+
+Für jede Figur: "entry" = 3 bis 5 Sätze Tagebuch; "memory" = EIN kurzer Satz (höchstens 15 Wörter, dritte Person), was sie sich daraus merkt.
+Antworte NUR als JSON: {"Name": {"entry": "...", "memory": "..."}}`;
+  try {
+    const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, taskBudget('draft', 1400), { task: 'draft' }));
+    if (!j) return;
+    const D = diaries(); const date = new Date().toLocaleDateString('de-DE'); let n = 0;
+    Object.entries(j).forEach(([name, val]) => {
+      const nm = matchSpeakerName(name, cast.map(c => c.name)); const c = nm && cast.find(x => x.name === nm);
+      if (!c || !val || !val.entry) return;
+      (D[c.figureId] = D[c.figureId] || []).push({ t: Date.now(), text: String(val.entry).slice(0, 900) });
+      D[c.figureId] = D[c.figureId].slice(-40);
+      if (val.memory) appendFigureMemory(c.figureId, [`${date} 📖 ${String(val.memory).slice(0, 160)}`]);
+      n++;
+    });
+    safeSet('companion_diary', JSON.stringify(D));
+    if (n) logEvent('msg', { role: 'system', text: `Tagebuch: ${n} Einträge geschrieben.` });
+    return n;
+  } catch (e) { return 0; }
+}
+function renderDiary(host, figure) {
+  const list = (diaries()[figure.id] || []).slice().reverse();
+  if (!list.length) { host.innerHTML = ''; return; }
+  host.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:baseline; margin:18px 0 8px;"><span style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Tagebuch</span><span style="font-size:12px; color:var(--text-dim);">${list.length} Einträge</span></div>`
+    + list.slice(0, 3).map(e => `<div style="padding:10px 12px; border-radius:14px; background:var(--bg); border:1px solid var(--line); margin-bottom:6px;"><div style="font-size:11.5px; color:var(--text-dim);">${new Date(e.t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div><div style="font-family:var(--font-display); font-size:17px; line-height:1.45; font-style:italic;">${esc(e.text)}</div></div>`).join('')
+    + (list.length > 3 ? `<details><summary style="cursor:pointer; font-size:13px; color:var(--text-dim);">Ältere Einträge</summary>${list.slice(3).map(e => `<div style="padding:8px 0; border-top:1px solid var(--line);"><div style="font-size:11.5px; color:var(--text-dim);">${new Date(e.t).toLocaleDateString('de-DE')}</div><div style="font-size:14px; line-height:1.45;">${esc(e.text)}</div></div>`).join('')}</details>` : '');
+}
+
+// ======================= WOCHEN-RÜCKBLICK =======================
+function weekKey(d) { d = new Date(d); const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + '-' + Math.ceil(((t - y) / 86400000 + 1) / 7); }
+function recapDue() {
+  const last = localStorage.getItem('companion_recapWeek');
+  const now = new Date();
+  if (last === weekKey(now)) return false;
+  const since = Date.now() - 7 * 86400000;
+  const any = (hrLogLoad().sessions || []).some(S => S.start > since) || Object.values(diaries()).some(l => l.some(e => e.t > since)) || JSON.parse(localStorage.getItem('companion_fireLog') || '[]').some(x => x.t > since);
+  return any && (now.getDay() === 0 || !last);
+}
+function weekFacts() {
+  const since = Date.now() - 7 * 86400000;
+  const S = (hrLogLoad().sessions || []).filter(x => x.start > since);
+  const mins = Math.round(S.reduce((a, x) => a + (x.rows[x.rows.length - 1][0] - x.rows[0][0]) / 60, 0));
+  const edges = S.reduce((a, x) => a + (x.events || []).filter(e => e.type === 'edge').length, 0);
+  const comes = S.reduce((a, x) => a + (x.events || []).filter(e => e.type === 'came').length, 0);
+  const maxHr = S.length ? Math.max(...S.map(x => Math.max(...x.rows.map(r => r[1])))) : null;
+  const org = orgasmLog().filter(o => o.t > since && o.intensity);
+  const D = diaries(); const diaryLines = [];
+  Object.entries(D).forEach(([fid, l]) => l.filter(e => e.t > since).slice(-1).forEach(e => { const v = latestVersion(figureArchive.find(f => f.id === fid) || { versions: [] }); if (v) diaryLines.push(`${v.name} schrieb: ${e.text.slice(0, 200)}`); }));
+  const fires = JSON.parse(localStorage.getItem('companion_fireLog') || '[]').filter(x => x.t > since);
+  const r = gameRecords();
+  return [
+    S.length ? `${S.length} Sitzungen mit Pulsgurt, zusammen ${mins} Minuten, ${edges} Mal kurz davor, ${comes} Mal gekommen, höchster Puls ${maxHr}.` : 'Keine Sitzung mit Pulsgurt.',
+    org.length ? `Höhepunkte bewertet: im Schnitt ${(org.reduce((a, o) => a + o.intensity, 0) / org.length).toFixed(1)} von 4.` : '',
+    Object.keys(r.duelWins || {}).length ? 'Duell-Siege insgesamt: ' + Object.entries(r.duelWins).map(([n, c]) => n.split(' ')[0] + ' ' + c).join(', ') : '',
+    fires.length ? 'Lagerfeuer: ' + fires.map(x => (x.summary || []).slice(0, 3).join(' / ')).join(' | ') : '',
+    diaryLines.length ? 'Aus den Tagebüchern: ' + diaryLines.join(' | ') : '',
+  ].filter(Boolean).join('\n');
+}
+async function makeRecap() {
+  const fid = els.recapFigure.value; const f = figureArchive.find(x => x.id === fid);
+  if (!f) return null;
+  safeSet('companion_recapFigure', fid);
+  const c = characterFromVersion(f);
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Du bist ${c.name}. ${describeCharacter(c)}
+Erzähl Til in einer kurzen Sprachnachricht (6 bis 9 Sätze, gesprochen, deine Art, dein Akzent), was diese Woche los war - mit Wärme, Sticheleien und Klatsch über die anderen Figuren. Nenne ein, zwei Zahlen, aber mach daraus keine Statistik. Ende mit einer Einladung oder Herausforderung für nächste Woche.
+Was diese Woche passiert ist:
+${weekFacts()}`;
+  const text = String(await callProvider(provider, sys, [{ role: 'user', content: 'Deine Sprachnachricht:' }], 0.9, taskBudget('chat', 700), { task: 'chat' })).trim();
+  const L = JSON.parse(localStorage.getItem('companion_recaps') || '[]'); L.push({ t: Date.now(), by: c.name, text }); safeSet('companion_recaps', JSON.stringify(L.slice(-20)));
+  safeSet('companion_recapWeek', weekKey(new Date()));
+  return { c, text };
+}
+async function playRecap(speak) {
+  els.recapPlay.disabled = els.recapRead.disabled = true;
+  els.recapText.style.display = ''; els.recapText.textContent = 'Wird aufgenommen …';
+  try {
+    const r = await makeRecap();
+    if (!r) { els.recapText.textContent = 'Bitte eine Figur wählen.'; return; }
+    els.recapText.textContent = stripAudioTags(r.text);
+    if (speak) {
+      const orig = characters; characters = [r.c];
+      try { await prepareSpeech(r.text, r.c.name, false, { level: 0 }).play(); } finally { characters = orig; }
+    }
+  } catch (e) { els.recapText.textContent = 'Das hat nicht geklappt: ' + e.message; }
+  finally { els.recapPlay.disabled = els.recapRead.disabled = false; }
+}
+function renderRecapCard() {
+  const due = recapDue();
+  els.homeRecap.style.display = due ? '' : 'none';
+  if (!due) return;
+  const pool = surprisePool();
+  const saved = localStorage.getItem('companion_recapFigure');
+  els.recapFigure.innerHTML = pool.map(x => `<option value="${x.f.id}">${esc(x.v.name)}</option>`).join('');
+  if (saved && pool.some(x => x.f.id === saved)) els.recapFigure.value = saved;
+}
+
 // ======================= APP-HÜLLE =======================
 function setTab(which) {
   els.tabBar.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === which));
@@ -14785,6 +15390,7 @@ function renderHome() {
   els.homeSceneText.textContent = scene ? (firstSentence.length > 160 ? firstSentence.slice(0, 157) + '…' : firstSentence) : 'Noch keine Szene beschrieben - die Figuren wählen selbst einen Ort.';
   els.homeMusic.textContent = musicEnabled() ? '♪ ' + (MUSIC_STYLES[musicStyleSetting()] ? MUSIC_STYLES[musicStyleSetting()].label : 'automatisch') : '';
   renderTiles(els.homeTiles, gameTileDefs().slice(0, 2));
+  try { renderRecapCard(); } catch (e) {}
   let S = null; try { const all = hrLogLoad().sessions; S = all[all.length - 1]; } catch (e) {}
   els.homeLastLabel.style.display = S ? '' : 'none';
   els.homeLast.textContent = S ? `${new Date(S.start).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} · ${Math.round((S.rows[S.rows.length - 1][0] - S.rows[0][0]) / 60)} min · Puls bis ${Math.max(...S.rows.map(r => r[1]))} · ${(S.events || []).filter(e => e.type === 'edge').length} Kanten${(S.events || []).some(e => e.type === 'came') ? ' · 💦' : ''}` : '';
@@ -14849,6 +15455,7 @@ function showFigureCard(figure) {
       <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px;">${statRow('Dominant', s.dom, 'var(--accent)')}${statRow('Zärtlich', s.soft, '#b98fd6')}${s.pref != null ? statRow('Puls-Wert', 40 + s.pref * 6, 'var(--gold)') : ''}</div>
       ${v.signature ? `<div style="margin-top:14px; padding:12px; border-radius:14px; background:var(--bg); border:1px solid var(--line);"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14px; line-height:1.45; margin-top:4px;">${esc(v.signature)}</div></div>` : ''}
       ${bal.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">${bal.map(b => `<span class="chip" style="height:30px; font-size:12px;">${esc(b)}</span>`).join('')}</div>` : ''}
+      <div id="fcDiary"></div>
       <div id="fcSounds"></div>
       <div id="fcGallery"></div>
     </div>
@@ -14862,6 +15469,7 @@ function showFigureCard(figure) {
   document.getElementById('fcBack').onclick = () => { els.figCard.style.display = 'none'; };
   renderGallery(document.getElementById('fcGallery'), figure);
   if (!v.isUser) renderFigureSounds(document.getElementById('fcSounds'), v);
+  renderDiary(document.getElementById('fcDiary'), figure);
   document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
   document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; showFigures(); openFigureEditor(figure); };
   const cb = document.getElementById('fcCast');
@@ -14980,6 +15588,7 @@ document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
 
 els.navNewChat.onclick = () => {
   if (history.length && !confirm('Den bisherigen Verlauf verwerfen und neu beginnen?')) return;
+  try { writeDiaries(history.slice()); } catch (e) {}
   history = [];
   sceneStep = 0;
   readyGate = 'off';
@@ -16326,6 +16935,25 @@ els.tabBar.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 els.homeLiveBtn.onclick = () => { switchMode('live'); els.liveStartBtn.click(); };
 els.liveSetupChip.onclick = () => { els.liveSetup.style.display = ''; els.liveSetup.open = true; els.liveSetupChip.style.display = 'none'; };
 els.homeStoryBtn.onclick = () => switchMode('story');
+els.homeSurpriseBtn.onclick = rollSurprise;
+document.getElementById('homeFireBtn').onclick = openCampfire;
+els.cfTopic.onchange = () => { els.cfTopicCustom.style.display = els.cfTopic.value === 'custom' ? '' : 'none'; };
+document.getElementById('cfStart').onclick = startCampfire;
+document.getElementById('cfEnd').onclick = () => { if (cf.lines.length) finishCampfire(); };
+document.getElementById('cfBack').onclick = () => {
+  if (cf.running && !confirm('Lagerfeuer beenden? Was bisher gesagt wurde, wird noch gemerkt.')) return;
+  if (cf.running && cf.lines.length) finishCampfire(); else { cf.running = false; restoreCampfireCast(); }
+  els.campfire.style.display = 'none';
+};
+const cfSay = () => { const t = els.cfInput.value.trim(); if (!t || !cf.running) return; els.cfInput.value = ''; cf.lines.push({ role: 'Til', text: t }); cfAddLine('Til', t); };
+document.getElementById('cfSay').onclick = cfSay;
+els.cfInput.addEventListener('keydown', e => { if (e.key === 'Enter') cfSay(); });
+els.recapPlay.onclick = () => playRecap(true);
+els.recapRead.onclick = () => playRecap(false);
+document.getElementById('diaryBtn').onclick = async () => { const n = await writeDiaries(history, true); addMsg('system', n ? `📖 ${n} Figur${n > 1 ? 'en haben' : ' hat'} ins Tagebuch geschrieben - zu lesen in der Figurenkarte.` : 'Für das Tagebuch ist noch zu wenig passiert.'); };
+els.spAgain.onclick = rollSurprise;
+els.spGo.onclick = startSurprise;
+els.spClose.onclick = () => { els.surpriseSheet.style.display = 'none'; };
 els.showTracks.checked = localStorage.getItem('companion_showTracks') !== 'false';
 document.body.classList.toggle('hide-tracks', !els.showTracks.checked);
 els.showTracks.onchange = () => { safeSet('companion_showTracks', els.showTracks.checked ? 'true' : 'false'); document.body.classList.toggle('hide-tracks', !els.showTracks.checked); };
