@@ -3,22 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Notizen</title>
 <meta name="app-version" content="0.42">
 <style>
   :root {
-    --bg: #14141f;
-    --bg-panel: #1c1c2c;
-    --bg-panel-raised: #23233a;
-    --line: #33334d;
-    --text: #eae8f0;
-    --text-dim: #9d9ab3;
-    --accent: #d98a6c;
-    --accent-dim: #8a5a48;
-    --listening: #6fae8f;
-    --stop: #c2564f;
-    --font-display: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-    --font-body: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --bg: #140e11;
+    --bg-panel: #21171b;
+    --bg-panel-raised: #2a1d22;
+    --line: #3b2a31;
+    --text: #f4eae7;
+    --text-dim: #b8a5a2;
+    --accent: #d0516a;
+    --accent-dim: #7d2a3e;
+    --gold: #d9ad62;
+    --listening: #6fb6a8;
+    --stop: #e0605a;
+    --tabbar-h: 64px;
+    --font-display: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+    --font-body: 'Manrope', -apple-system, 'Segoe UI', sans-serif;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -701,6 +706,80 @@
   @media (prefers-reduced-motion: reduce) {
     .toast { transition: none; }
   }
+
+  /* ======== Samtnacht: App-Hülle ======== */
+  .btn-primary { color: #fff; border-radius: 999px; }
+  .btn-secondary { border-radius: 999px; }
+  .panel, details.panel { border-radius: 22px; }
+  h1, h2, .title { font-family: var(--font-display); }
+  .app { padding-bottom: calc(190px + var(--tabbar-h) + env(safe-area-inset-bottom)); }
+  .bottom-bar { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); border-top-left-radius: 22px; border-top-right-radius: 22px; }
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+    padding: 6px 6px env(safe-area-inset-bottom, 0px);
+    background: #170f13; border-top: 1px solid var(--line);
+    display: flex; justify-content: center;
+  }
+  .tabbar-inner { display: flex; width: 100%; max-width: 560px; justify-content: space-around; }
+  .tab {
+    background: none; border: none; color: var(--text-dim); font-family: var(--font-body);
+    display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px;
+    min-width: 56px; min-height: 48px; padding: 4px 6px; cursor: pointer;
+  }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.on { color: var(--accent); }
+  body.hide-tracks .motion-track, body.hide-tracks .motion-track-label { display: none !important; }
+  /* Startseite */
+  .home-hello { font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 6px 0 0; }
+  .home-sub { font-size: 13px; color: var(--text-dim); letter-spacing: 0.04em; }
+  .home-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin: 22px 0 10px; }
+  .home-cast { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+  .home-ava { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; background: none; border: none; color: var(--text); cursor: pointer; padding: 0; }
+  .ava-ring { width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--accent); padding: 3px; }
+  .ava-in { width: 100%; height: 100%; border-radius: 50%; background: var(--bg-panel-raised); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 24px; overflow: hidden; }
+  .ava-in img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+  .home-scene { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 24px; padding: 20px; margin-top: 22px; }
+  .home-scene h2 { font-weight: 600; font-size: 28px; margin: 8px 0 6px; }
+  .home-scene p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-dim); }
+  .home-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .home-tile { text-align: left; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 20px; padding: 16px; color: var(--text); font-family: var(--font-body); display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+  .home-tile b { font-size: 15px; }
+  .home-tile span { font-size: 12.5px; color: var(--text-dim); }
+  .home-tile svg { color: var(--gold); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 17px; background: var(--bg-panel); border: 1px solid var(--line); font-size: 13px; color: var(--text); }
+  /* Live-Bühne */
+  #liveStage { display: none; flex-direction: column; align-items: center; margin: 4px 0 14px; }
+  #liveStage .stage-ring { width: 120px; height: 120px; border-radius: 50%; border: 2px solid var(--accent); padding: 5px; }
+  #liveStage .stage-ring .ava-in { font-size: 52px; }
+  #liveStage .stage-name { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-top: 8px; }
+  #liveStage .stage-wave { display: flex; gap: 3px; align-items: center; height: 26px; margin-top: 4px; }
+  #liveStage .stage-wave span { width: 3px; height: 6px; border-radius: 2px; background: var(--accent); opacity: 0.45; }
+  #liveStage.talking .stage-wave span { opacity: 1; animation: stageWave 0.9s ease-in-out infinite; }
+  @keyframes stageWave { 0%,100% { height: 6px; } 50% { height: 24px; } }
+  /* Figuren als Karten */
+  #figureList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  #figureList > div:not(.figure-row), #figureList > p { grid-column: 1 / -1; }
+  @media (min-width: 760px) { #figureList { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .figure-row { position: relative; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px; margin: 0; border-radius: 18px; background: var(--bg-panel-raised); box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
+  .figure-row .thumb { width: 100%; height: auto; aspect-ratio: 3 / 4; border-radius: 12px; font-family: var(--font-display); font-size: 54px; color: var(--text); background: var(--accent-dim); }
+  .figure-row .who { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.05; }
+  .figure-row .gist { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .figure-row .act { position: absolute; left: 14px; top: 14px; background: rgba(20,14,17,0.7); border-color: rgba(255,255,255,0.15); }
+  .figure-row.in-cast { border-color: var(--accent); }
+  .fig-badge { position: absolute; right: 14px; top: 14px; height: 24px; padding: 0 9px; border-radius: 12px; background: rgba(20,14,17,0.75); font-size: 11.5px; display: flex; align-items: center; gap: 4px; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-dim); }
+  .stat > span:first-child { width: 58px; }
+  .stat-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .stat-bar i { display: block; height: 100%; border-radius: 2px; }
+  /* Kartendetail */
+  #figCard { display: none; position: fixed; inset: 0; z-index: 2050; background: var(--bg); overflow-y: auto; }
+  #figCard .fc-hero { position: relative; height: 46vh; min-height: 280px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 140px; }
+  #figCard .fc-hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+  #figCard .fc-body { max-width: 560px; margin: -36px auto 0; position: relative; background: var(--bg-panel-raised); border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
+  #figCard h1 { margin: 0; font-weight: 600; font-size: 32px; }
+  #figCard .fc-actions { max-width: 560px; margin: 16px auto calc(env(safe-area-inset-bottom, 0px) + 24px); display: flex; gap: 10px; padding: 0 16px; }
+  #figCard .fc-actions button { height: 52px; }
 </style>
 </head>
 <body>
@@ -1019,6 +1098,10 @@
         <span style="font-size:13.5px; color:var(--text);">Musik im Hintergrund</span>
       </label>
       <p class="hint">Eigens erzeugte Instrumentalmusik in drei Stimmungen - ruhig, sinnlich und treibend -, die der Intensität der Szene folgt und weich überblendet. Wird leiser, sobald jemand spricht. Jede Stimmung wird einmal bei ElevenLabs erzeugt und gespeichert; Musik kostet dort deutlich mehr als Geräusche.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:4px 0 4px 0;">
+        <input type="checkbox" id="liveMusicFollow" style="width:auto;">
+        <span style="font-size:13px; color:var(--text);">Musik wird bei hohem Tempo treibender</span>
+      </label>
       <div style="display:flex; align-items:center; gap:8px; margin:2px 0 4px 0;">
         <span style="font-size:13px;">Stil</span>
         <select id="musicStyle" style="flex:1;">
@@ -1108,6 +1191,19 @@
       <p class="hint" style="margin-left:18px;">Sobald du „kurz davor" meldest oder der Regler über 85 geht, bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt - und die Figur lässt dich zappeln. Erst nach der eingestellten Zahl darf es weitergehen bis zum Ende.</p>
 
     </details>
+    <details class="subsection">
+      <summary>Anzeige</summary>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="showTracks" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Gerätebalken am Bildschirmrand</span>
+      </label>
+      <p class="hint">Die senkrechten Balken, die zeigen, wo sich die Hülse gerade befindet.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="showStage" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Sprechende Figur groß im Live-Bereich</span>
+      </label>
+    </details>
+
     <details class="subsection">
       <summary>Pulsgurt</summary>
       <p class="hint">Ein Bluetooth-Pulsgurt (z. B. Polar H10, H9, H7, Verity Sense) verbindet sich direkt mit der App - in Chrome unter Android oder am Rechner. Die Polar-App dabei schließen, sonst ist der Gurt belegt.</p>
@@ -1206,6 +1302,34 @@
 
   </div>
 
+  <div id="homePanel" style="display:none">
+    <div class="home-sub" id="homeWhen"></div>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+      <h1 class="home-hello" id="homeHello">Guten Abend.</h1>
+      <span class="chip" id="homeHr" style="display:none;"></span>
+    </div>
+    <div class="home-label">Heute dabei</div>
+    <div class="home-cast" id="homeCast"></div>
+    <div class="home-scene">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Szene</span><span style="font-size:12px; color:var(--text-dim);" id="homeMusic"></span></div>
+      <h2 id="homeSceneTitle">Freie Szene</h2>
+      <p id="homeSceneText"></p>
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn-primary" id="homeLiveBtn" type="button">Live beginnen</button>
+        <button class="btn-secondary" id="homeStoryBtn" type="button" style="flex:0 0 auto; padding:12px 18px;">Geschichte</button>
+      </div>
+    </div>
+    <div class="home-tiles" id="homeTiles"></div>
+    <div class="home-label" id="homeLastLabel" style="display:none;">Letzte Sitzung</div>
+    <div id="homeLast" style="font-size:13.5px; color:var(--text-dim);"></div>
+  </div>
+
+  <div id="gamesPanel" style="display:none">
+    <h1 class="home-hello" style="font-size:36px;">Spiele</h1>
+    <p class="hint">Antippen, dann im Live-Bereich Einstellungen prüfen und „Los geht's".</p>
+    <div class="home-tiles" id="gamesTiles"></div>
+  </div>
+
   <div id="livePanel" style="display:none">
     <details class="panel" id="liveSetup" open>
       <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Szene und Besetzung</summary>
@@ -1291,6 +1415,7 @@
           <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discFig" style="width:auto;"><span style="font-size:13.5px;">Figuren</span></label>
           <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" id="discVoice" style="width:auto;"><span style="font-size:13.5px;">Stimmen (blind)</span></label>
         </div>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:6px 0 0 0;"><input type="checkbox" id="discConfirm" style="width:auto;"><span style="font-size:13.5px;"><b>Bestätigungsrunde</b>: nur Spitzenreiter und knappe Fälle nachtesten</span></label>
         <label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:6px 0 0 0;"><input type="checkbox" id="discAdaptive" checked style="width:auto;"><span style="font-size:13.5px;">Figuren und Stimmen schlau testen (je etwa 6 statt alle)</span></label>
         <div style="display:flex; gap:8px; margin-top:6px;">
           <select id="discBlock" style="flex:1;"><option value="60">60 s pro Test</option><option value="90" selected>90 s pro Test</option></select>
@@ -1469,6 +1594,7 @@
     <div id="storyText"></div>
   </div>
 
+  <div id="liveStage"><div class="stage-ring"><div class="ava-in" id="stageAva">·</div></div><div class="stage-name" id="stageName">Bereit</div><div class="stage-wave" id="stageWave"></div></div>
   <div id="transcript" class="transcript">
     <div class="msg system">Trage in der Einrichtung die IP deines Geräts ein und verbinde dich. Schreib eine Nachricht oder halte den Kreis gedrückt zum Sprechen.</div>
   </div>
@@ -1476,14 +1602,19 @@
 </div>
 
 <div id="padOverlay" style="display:none; position:fixed; inset:0; z-index:2000; background:#000; touch-action:none; user-select:none; -webkit-user-select:none;">
-  <img id="padImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 3s; filter:brightness(0.6) blur(1px); pointer-events:none;">
-  <img id="padImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 3s; filter:brightness(0.6) blur(1px); pointer-events:none;">
+  <img id="padImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity 3s; pointer-events:none;">
+  <img id="padImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity 3s; pointer-events:none;">
   <div id="padArea" style="position:absolute; inset:calc(env(safe-area-inset-top, 0px) + 56px) 18px calc(env(safe-area-inset-bottom, 0px) + 86px) 18px; border:1px solid #111; border-radius:18px;">
     <span style="position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">schneller ↑</span>
     <span style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#2a2a2a; font-size:12px;">↓ langsamer</span>
     <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#2a2a2a; font-size:12px;">← kurz</span>
     <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#2a2a2a; font-size:12px;">lang →</span>
     <div id="padDot" style="position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; background:#5a1020; box-shadow:0 0 18px 6px rgba(160,20,50,.35); left:50%; top:50%; opacity:.45;"></div>
+  </div>
+ <div id="padImgCtl" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 44px); right:14px; display:none; align-items:center; gap:6px; z-index:2;">
+    <span style="color:#555; font-size:12px;">☀︎</span>
+    <input type="range" id="padImgBright" min="10" max="100" step="5" style="width:90px; margin:0;">
+    <button id="padImgFit" type="button" style="background:none; border:1px solid #333; color:#666; border-radius:8px; font-size:11px; padding:2px 6px;">ganz</button>
   </div>
   <button id="padClose" type="button" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 12px); right:14px; background:none; border:none; color:#333; font-size:22px;">✕</button>
   <div id="padInfo" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 16px); left:18px; color:#2e2e2e; font-size:12px;"></div>
@@ -1546,6 +1677,8 @@
   </div>
 </div>
 
+<nav class="tabbar" id="tabBar"><div class="tabbar-inner"><button class="tab" type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Start</span></button><button class="tab" type="button" data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Live</span></button><button class="tab" type="button" data-tab="games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/></svg><span>Spiele</span></button><button class="tab" type="button" data-tab="figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6c3-2 13-2 16 0v5c0 5-4 8-8 8s-8-3-8-8z"/><path d="M8 11h2M14 11h2"/></svg><span>Figuren</span></button><button class="tab" type="button" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Auswertung</span></button></div></nav>
+<div id="figCard"></div>
 <div class="drawer-scrim" id="drawerScrim"></div>
 <nav class="drawer" id="drawer">
   <h2>Notizen</h2>
@@ -1562,6 +1695,7 @@
     <div class="drawer-group">Einstellungen</div>
     <button class="drawer-item" id="navChangelog"><span class="glyph">🕘</span><span>Was ist neu<span class="sub" id="navVersionLine"></span></span></button>
     <button class="drawer-item" id="navFigures"><span class="glyph">🎭</span><span>Figuren und Archiv</span></button>
+    <button class="drawer-item" id="navStats"><span class="glyph">📊</span><span>Auswertung<span class="sub">Puls, Tests, Spiele, Höhepunkte</span></span></button>
     <button class="drawer-item" id="navSetup"><span class="glyph">⚙</span><span>Einrichtung</span></button>
   </div>
 </nav>
@@ -1800,6 +1934,7 @@ const els = {
   discTempo: document.getElementById('discTempo'), discFetish: document.getElementById('discFetish'),
   discFig: document.getElementById('discFig'), discVoice: document.getElementById('discVoice'),
   discAdaptive: document.getElementById('discAdaptive'),
+  discConfirm: document.getElementById('discConfirm'),
   discBlock: document.getElementById('discBlock'), discReps: document.getElementById('discReps'),
   discInfo: document.getElementById('discInfo'),
   gameTurnT: document.getElementById('gameTurnT'),
@@ -1849,12 +1984,16 @@ const els = {
   liveMusic: document.getElementById('liveMusic'),
   musicVol: document.getElementById('musicVol'),
   musicStyle: document.getElementById('musicStyle'),
+  liveMusicFollow: document.getElementById('liveMusicFollow'),
   musicNow: document.getElementById('musicNow'),
   musicRedo: document.getElementById('musicRedo'),
   padImages: document.getElementById('padImages'),
   padAutoImage: document.getElementById('padAutoImage'),
   padImgA: document.getElementById('padImgA'),
   padImgB: document.getElementById('padImgB'),
+  padImgCtl: document.getElementById('padImgCtl'),
+  padImgBright: document.getElementById('padImgBright'),
+  padImgFit: document.getElementById('padImgFit'),
   ambVol: document.getElementById('ambVol'),
   ambNow: document.getElementById('ambNow'),
   ambRedo: document.getElementById('ambRedo'),
@@ -1996,6 +2135,20 @@ const els = {
   navNewChat: document.getElementById('navNewChat'),
   navStories: document.getElementById('navStories'),
   navFigures: document.getElementById('navFigures'),
+  navStats: document.getElementById('navStats'),
+  tabBar: document.getElementById('tabBar'),
+  homePanel: document.getElementById('homePanel'),
+  gamesPanel: document.getElementById('gamesPanel'),
+  homeWhen: document.getElementById('homeWhen'), homeHello: document.getElementById('homeHello'), homeHr: document.getElementById('homeHr'),
+  homeCast: document.getElementById('homeCast'), homeMusic: document.getElementById('homeMusic'),
+  homeSceneTitle: document.getElementById('homeSceneTitle'), homeSceneText: document.getElementById('homeSceneText'),
+  homeLiveBtn: document.getElementById('homeLiveBtn'), homeStoryBtn: document.getElementById('homeStoryBtn'),
+  homeTiles: document.getElementById('homeTiles'), homeLast: document.getElementById('homeLast'), homeLastLabel: document.getElementById('homeLastLabel'),
+  gamesTiles: document.getElementById('gamesTiles'),
+  liveStage: document.getElementById('liveStage'), stageAva: document.getElementById('stageAva'), stageName: document.getElementById('stageName'), stageWave: document.getElementById('stageWave'),
+  figCard: document.getElementById('figCard'),
+  showTracks: document.getElementById('showTracks'),
+  showStage: document.getElementById('showStage'),
   navSetup: document.getElementById('navSetup'),
   d1LimitMin: document.getElementById('d1LimitMin'),
   d1LimitMax: document.getElementById('d1LimitMax'),
@@ -2904,8 +3057,30 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.53';
+const APP_VERSION = '1.57';
 const CHANGELOG = [
+  { v: '1.57', date: '2026-10-05', items: [
+    'Neues Aussehen „Samtnacht": dunkles Weinrot und Gold, elegante Überschriften, runde Knöpfe - alle Funktionen sind geblieben.',
+    'Untere Leiste wie in einer App: Start, Live, Spiele, Figuren, Auswertung. Das Seitenmenü gibt es weiterhin.',
+    'Startseite: Begrüßung, wer heute dabei ist, die Szene mit „Live beginnen" und „Geschichte", Spiele und deine letzte Sitzung. Neue Seite „Spiele" mit allen Spielen auf einen Blick.',
+    'Live: Die sprechende Figur steht groß oben, mit Tonwelle, solange sie spricht.',
+    'Figuren als Karten: Bild, Name, Werte für Dominant, Zärtlich und Puls-Wert. Antippen öffnet die Figurenkarte mit Markenzeichen, Bilanz aus Spielen, Stimmprobe, „Bearbeiten" und „In die Szene".',
+    'Einstellungen → Anzeige: Gerätebalken am Rand und die große Figur im Live-Bereich lassen sich abschalten.',
+  ]},
+  { v: '1.56', date: '2026-10-05', items: [
+    'Musik gehört jetzt zum Ort, nicht zum Tempo: Sie bleibt ruhig, solange das Gerät steht, und sonst sinnlich im Stil des Ortes - kein plötzlicher Elektrobeat mitten im Elbenwald mehr. Treibend wird sie nur noch im Club. Wer das alte Verhalten mag: Haken „Musik wird bei hohem Tempo treibender" bei der Musik.',
+  ]},
+  { v: '1.55', date: '2026-10-05', items: [
+    'Bilder bleiben am richtigen Ort: Das Bildmodell bekommt jetzt die Beschreibung des letzten Bildes und den zuletzt im Gespräch genannten Ort mit - Ort, Licht, Einrichtung, Kleidungszustand und Aussehen bleiben, bis der Text ausdrücklich einen Wechsel beschreibt. Vorher wählte es ohne feste Szene bei jedem Bild einen neuen Ort.',
+    'Mehr Abwechslung beim Bildausschnitt: weite Aufnahme, halbnah, Gesicht in Nahaufnahme, aus deiner Sicht (POV), von unten, über die Schulter - und bei Handlung nahe Aufnahmen genau dessen, was gerade passiert. Nie zweimal hintereinander derselbe Ausschnitt.',
+  ]},
+  { v: '1.54', date: '2026-10-05', items: [
+    'Mond-Ansicht: Bilder deutlich heller und ohne Weichzeichner, standardmäßig ganz zu sehen statt hineingezoomt; oben rechts ein Helligkeitsregler und der Umschalter „ganz/füllen".',
+    'Auswertung als eigener Menüpunkt im Seitenmenü, mit neuen Grafiken: alle Tests im Vergleich, jeder gespeicherte Moment vor „Kurz davor"/„Gekommen" mit Puls- und Variabilitätskurve zum Durchblättern, Sitzungsverlauf mit Puls, Gerätetempo, Variabilität und Markierungen.',
+    'Höhepunkte bewerten: 90 Sekunden nach „Gekommen" erscheint eine kleine Karte (Intensität, Menge, Gefühl, Notiz). Die Auswertung zeigt, was zu den stärksten Höhepunkten führt - nach Kanten vorher, Tempo am Ende, Dauer und Figuren.',
+    '„✨ Auf mich optimierte Figur erzeugen": aus Testergebnissen, Tempo-Karte, Höhepunkt-Bewertungen und deiner stärksten Stimme entsteht ein Steckbrief, daraus direkt eine Figur. Der Steckbrief lässt sich auch kopieren.',
+    'Entdecken: Bestätigungsrunde - testet nur die Spitzenreiter und knappen Fälle, die bisher einmal gemessen wurden, noch einmal.',
+  ]},
   { v: '1.53', date: '2026-10-04', items: [
     'Entdecken: „Figuren und Stimmen schlau testen" - statt alle durchzuprobieren, testet die App zuerst drei möglichst verschiedene (nach Geschlecht, Alter, Akzent, Klang, Eigenschaften) und tastet sich dann an das heran, was dich am meisten packt: je etwa sechs Tests statt aller.',
     'Figuren ordnen „nach meinen Vorlieben (Puls)": aus Figurentest, Blindtest ihrer Stimme und deinem Puls, wenn sie sprach - mit Wert in der Liste.',
@@ -5076,6 +5251,8 @@ els.musicVol.oninput = () => {
   if (a) { try { a.volume = musicTargetVolume(); } catch (e) {} }
 };
 els.musicStyle.value = musicStyleSetting();
+els.liveMusicFollow.checked = musicFollowsIntensity();
+els.liveMusicFollow.onchange = () => safeSet('companion_musicFollow', els.liveMusicFollow.checked ? 'true' : 'false');
 els.musicStyle.onchange = () => { safeSet('companion_musicStyle', els.musicStyle.value); if (music.mood) setMusic(music.mood, false); };
 els.musicRedo.onclick = () => { music.blocked = false; if (music.mood) setMusic(music.mood, true); };
 els.padImages.checked = localStorage.getItem('companion_padImages') === 'true';
@@ -5115,12 +5292,21 @@ els.liveEdgeGoal.onchange = () => { safeSet('companion_edgeGoal', els.liveEdgeGo
 // Neuestes Szenenbild schwach hinter der Steuerfläche, mit Überblendung.
 let padImgFront = 'A';
 let padLastImage = null;
+// Helligkeit (10-100 %) und Darstellung (ganzes Bild / füllen) einstellbar
+function padImgLevel() { return parseInt(localStorage.getItem('companion_padImgBright') || '55', 10) / 100; }
+function padImgFitMode() { return localStorage.getItem('companion_padImgFit') || 'contain'; }
+function applyPadImgStyle() {
+  [els.padImgA, els.padImgB].forEach(im => { im.style.objectFit = padImgFitMode(); im.style.filter = `brightness(${0.55 + padImgLevel() * 0.45})`; });
+  const front = padImgFront === 'A' ? els.padImgA : els.padImgB;
+  if (front && front.src && front.style.opacity !== '0') front.style.opacity = String(padImgLevel());
+  els.padImgFit.textContent = padImgFitMode() === 'contain' ? 'ganz' : 'füllen';
+}
 function setPadImage(src) {
   padLastImage = src;
   if (localStorage.getItem('companion_padImages') !== 'true' || !els.padImgA) return;
   const next = padImgFront === 'A' ? els.padImgB : els.padImgA;
   const prev = padImgFront === 'A' ? els.padImgA : els.padImgB;
-  next.onload = () => { next.style.opacity = '0.22'; prev.style.opacity = '0'; };
+  next.onload = () => { applyPadImgStyle(); next.style.opacity = String(padImgLevel()); prev.style.opacity = '0'; };
   next.src = src;
   padImgFront = padImgFront === 'A' ? 'B' : 'A';
 }
@@ -5165,6 +5351,9 @@ function padUpdatePulse() {
 }
 async function openPad() {
   els.padOverlay.style.display = '';
+  els.padImgCtl.style.display = localStorage.getItem('companion_padImages') === 'true' ? 'flex' : 'none';
+  els.padImgBright.value = String(Math.round(padImgLevel() * 100));
+  applyPadImgStyle();
   if (localStorage.getItem('companion_padImages') === 'true' && padLastImage) setPadImage(padLastImage);
   else { els.padImgA.style.opacity = '0'; els.padImgB.style.opacity = '0'; }
   padPlaceDot();
@@ -5204,6 +5393,9 @@ els.padDot.addEventListener('dblclick', () => {
   padPlaceDot(); padUpdatePulse();
 });
 els.padBtn.onclick = openPad;
+els.padImgBright.oninput = () => { safeSet('companion_padImgBright', els.padImgBright.value); applyPadImgStyle(); };
+els.padImgFit.onclick = () => { safeSet('companion_padImgFit', padImgFitMode() === 'contain' ? 'cover' : 'contain'); applyPadImgStyle(); };
+['pointerdown', 'pointermove', 'pointerup'].forEach(ev => els.padImgCtl.addEventListener(ev, e => e.stopPropagation()));
 els.padClose.onclick = closePad;
 els.padStop.onclick = () => els.stopBtn.click();
 els.padEdge.onclick = () => els.edgeBtn.click();
@@ -6734,11 +6926,15 @@ function musicVolume() {
   return Math.max(0.05, Math.min(0.5, (Number.isFinite(v) ? v : 18) / 100));
 }
 function musicTargetVolume() { return musicVolume() * ((typeof spatial !== 'undefined' && spatial.speaking > 0) ? 0.45 : 1); }
+function musicFollowsIntensity() { return localStorage.getItem('companion_musicFollow') === 'true'; }
 function moodForNow() {
   const lvl = currentMotionLevel();
   const st = device1 && device1.getState ? device1.getState() : null;
   const moving = st && st.texture !== 'stop' && st.bpm > 0;
   if (!moving) return 'calm';
+  // Standard: Die Musik gehört zum Ort, nicht zum Tempo. Die Intensität tragen
+  // Figuren und Stimmen. Treibend wird es nur, wo der Ort selbst treibt (Club).
+  if (!musicFollowsIntensity()) return currentMusicStyle() === 'techno' && lvl === 2 ? 'driving' : 'sensual';
   return lvl === 2 ? 'driving' : lvl === 1 ? 'sensual' : 'calm';
 }
 async function musicBlob(mood, fresh) {
@@ -7083,7 +7279,8 @@ function hrRecordEvent(type) {
   const rest = hrRest() || Math.min(...curve.filter(v => v != null));
   const rel = curve.map(v => v == null ? null : Math.round((v - rest) * 10) / 10);
   const evs = hrEvents();
-  evs.push({ type, t: now, rel, rest, end: rel[rel.length - 1] ?? rel.filter(v => v != null).pop(), hrv: rmssd(now - 30000, now) });
+  const hrvCurve = curve.map((_, k) => { const t = now - HR_WINDOW + (k + 1) * HR_STEP; const r = rmssd(t - 20000, t); return r == null ? null : Math.round(r); });
+  evs.push({ type, t: now, rel, rest, end: rel[rel.length - 1] ?? rel.filter(v => v != null).pop(), hrv: rmssd(now - 30000, now), hrvCurve });
   if (evs.length > 120) evs.splice(0, evs.length - 120);
   safeSet('companion_hrEvents', JSON.stringify(evs));
   logEvent('msg', { role: 'system', text: `Pulsverlauf gespeichert (${type === 'edge' ? 'kurz davor' : 'gekommen'}): +${Math.round(rel[0] ?? 0)} → +${Math.round(rel[rel.length - 1] ?? 0)} über Ruhe.` });
@@ -7135,7 +7332,7 @@ function hrCheckPattern() {
 // wer spricht, welche Musik läuft, welches Spiel. Daraus rechnet die
 // Auswertung Zusammenhänge aus - auch ohne „Entdecken", aus jeder Sitzung.
 let currentSpeaker = null, currentSpeakerAt = 0;
-function noteSpeaker(role) { currentSpeaker = role === 'narrator' ? 'Erzähler' : role; currentSpeakerAt = Date.now(); }
+function noteSpeaker(role) { currentSpeaker = role === 'narrator' ? 'Erzähler' : role; currentSpeakerAt = Date.now(); try { updateStage(role); } catch (e) {} }
 const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5 };
 const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend'];
 // Atemfrequenz aus der Herzfrequenzvariabilität (respiratorische Sinusarrhythmie):
@@ -7190,7 +7387,7 @@ function hrLogEvent(type) { if (hrLog.session) { hrLog.session.events.push({ t: 
 function pct(arr, q) { const v = arr.slice().sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(v.length * q))] : null; }
 function mean(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }
 function sd(a) { const m = mean(a); return a.length > 1 ? Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)) : 0; }
-function pearson(x, y) {
+function pearsonR(x, y) {
   const n = x.length; if (n < 10) return null;
   const mx = mean(x), my = mean(y);
   let a = 0, b = 0, c = 0; for (let i = 0; i < n; i++) { a += (x[i] - mx) * (y[i] - my); b += (x[i] - mx) ** 2; c += (y[i] - my) ** 2; }
@@ -7219,7 +7416,7 @@ function labAnalyze() {
   for (let lag = 0; lag <= 12; lag++) {
     const x = [], y = [];
     bySession.forEach(list => { for (let i = 0; i + lag < list.length; i++) { x.push(list[i].bpm); y.push(list[i + lag].rel); } });
-    const r = pearson(x, y);
+    const r = pearsonR(x, y);
     if (r != null && (best.r == null || r > best.r)) best = { lag, r };
   }
   R.lagSec = best.lag * 5; R.lagR = best.r;
@@ -8363,7 +8560,9 @@ function updateGameOptions() {
   const counts = { fig: ad ? Math.min(ADAPT_BUDGET, discFigureItems().length) : discFigureItems().length, voice: ad ? Math.min(ADAPT_BUDGET, discVoiceItems().length) : discVoiceItems().length };
   const nItems = [['dyn', els.discDyn], ['loc', els.discLoc], ['tempo', els.discTempo], ['fetish', els.discFetish], ['fig', els.discFig], ['voice', els.discVoice]]
     .filter(([, el]) => el.checked).reduce((a, [k]) => a + (counts[k] ?? DISCOVER_ITEMS[k].items.length), 0) * parseInt(els.discReps.value, 10);
-  const mins = Math.round(nItems * (parseInt(els.discBlock.value, 10) + 30) / 60);
+  const nConf = els.discConfirm && els.discConfirm.checked ? confirmationItems().length : null;
+  const mins = Math.round((nConf ?? nItems) * (parseInt(els.discBlock.value, 10) + 30) / 60);
+  if (nConf != null) { els.discInfo.textContent = nConf ? `Bestätigungsrunde: ${nConf} Tests (Spitzenreiter und knappe Fälle, bisher nur einmal gemessen), etwa ${mins} Minuten.` : 'Für eine Bestätigungsrunde gibt es noch nichts nachzutesten - erst einmal „Entdecken" normal durchlaufen.'; return; }
   els.discInfo.textContent = `${nItems} Tests, etwa ${mins} Minuten. Braucht den Pulsgurt. Die Figuren spielen ein Thema nach dem anderen an, dazwischen kurze Ruhepausen; dein Puls zeigt, was dich packt. Was dir nicht gefällt: „⏭ Überspringen". Ergebnisse sammeln sich über alle Sitzungen - du kannst also gut einen Bereich pro Abend testen.`;
   const nT = aiCharacters().filter(c => !c.isNarrator).length;
   const titles = (r.tourWins || {});
@@ -8478,6 +8677,204 @@ function dashCurveSvg(patterns) {
     <text x="2" y="${y(0) + 3}" font-size="9" fill="currentColor" opacity="0.6">Ruhe</text>
     ${lines}</svg>`;
 }
+// Linien-Diagramm: series = [{ values, color, label }], beliebig viele, eigene Skala je Reihe optional
+function lineChart(series, opts) {
+  opts = opts || {};
+  const W = 340, H = opts.h || 130, pad = 26;
+  const n = Math.max(...series.map(s => s.values.length));
+  if (!n) return '';
+  const x = i => pad + i * (W - pad - 8) / Math.max(1, n - 1);
+  const paths = series.map(sr => {
+    const vals = sr.values.filter(v => v != null);
+    if (!vals.length) return '';
+    const lo = sr.min ?? Math.min(...vals), hi = sr.max ?? Math.max(...vals);
+    const y = v => H - pad - (v - lo) * (H - pad - 10) / ((hi - lo) || 1);
+    const pts = sr.values.map((v, i) => v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean).join(' ');
+    return `<polyline fill="none" stroke="${sr.color}" stroke-width="${sr.width || 2.2}" ${sr.dash ? 'stroke-dasharray="4 3"' : ''} points="${pts}"/>`;
+  }).join('');
+  const marks = (opts.marks || []).map(m => `<line x1="${x(m.i)}" y1="8" x2="${x(m.i)}" y2="${H - pad}" stroke="${m.color}" stroke-width="1.5" opacity="0.8"/><text x="${x(m.i) + 2}" y="16" font-size="10" fill="${m.color}">${m.label || ''}</text>`).join('');
+  const legend = series.filter(s => s.label).map(s => `<span style="color:${s.color}; margin-right:10px;">● ${s.label}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%; max-width:560px; height:auto;">${marks}${paths}
+    <text x="${pad}" y="${H - 6}" font-size="10" fill="currentColor" opacity="0.55">${opts.left || ''}</text>
+    <text x="${W - 40}" y="${H - 6}" font-size="10" fill="currentColor" opacity="0.55">${opts.right || ''}</text></svg>
+    <div style="font-size:12px; margin:-2px 0 6px 0;">${legend}</div>`;
+}
+// Vergleich aller Testbereiche in einem Diagramm
+function compareChart() {
+  const st = discStore();
+  const rows = Object.entries(st).filter(([, e]) => e.n).map(([id, e]) => ({ label: e.label, cat: e.cat || 'fetish', m: e.sum / e.n, n: e.n })).sort((a, b) => b.m - a.m).slice(0, 14);
+  if (!rows.length) return '<p class="hint">Noch keine Testergebnisse.</p>';
+  const colors = { dyn: '#e0526b', loc: '#52a0e0', tempo: '#e0a052', fetish: '#b052e0', fig: '#52e09a', voice: '#e0d052' };
+  const max = Math.max(5, ...rows.map(r => r.m));
+  return rows.map(r => `<div style="display:flex; align-items:center; gap:8px; margin:3px 0;"><span style="width:40%; font-size:13px;">${esc(r.label)}</span>${dashBar(Math.max(0, r.m), max, colors[r.cat] || '#888')}<span style="width:56px; text-align:right; font-size:12.5px;">${r.m >= 0 ? '+' : ''}${r.m.toFixed(1)}${r.n > 1 ? ' ✓' : ''}</span></div>`).join('')
+    + '<div style="font-size:12px; margin-top:4px;">' + Object.entries(colors).map(([k, c]) => `<span style="color:${c}; margin-right:10px;">● ${DISCOVER_ITEMS[k].label}</span>`).join('') + ' · ✓ = mehrfach gemessen</div>';
+}
+// Einzelne Momente zum Durchblättern
+let dashEventIdx = -1;
+function eventChart() {
+  const evs = hrEvents().filter(e => Array.isArray(e.rel));
+  if (!evs.length) return '<p class="hint">Noch keine gespeicherten Momente.</p>';
+  if (dashEventIdx < 0 || dashEventIdx >= evs.length) dashEventIdx = evs.length - 1;
+  const e = evs[dashEventIdx];
+  const series = [{ values: e.rel, color: '#e0526b', label: 'Puls über Ruhe' }];
+  if (Array.isArray(e.hrvCurve) && e.hrvCurve.some(v => v != null)) series.push({ values: e.hrvCurve, color: '#52a0e0', label: 'Variabilität (RMSSD)', dash: true });
+  const when = new Date(e.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><button type="button" class="btn-secondary" id="evPrev" style="width:auto; padding:4px 10px;">‹</button><span style="flex:1; text-align:center; font-size:13px;">${e.type === 'came' ? '💦 Gekommen' : '🔥 Kurz davor'} · ${when} · ${dashEventIdx + 1}/${evs.length}</span><button type="button" class="btn-secondary" id="evNext" style="width:auto; padding:4px 10px;">›</button></div>`
+    + lineChart(series, { left: '-60 s', right: 'jetzt' });
+}
+// Sitzungsverlauf: Puls, Gerätetempo, Ereignisse
+let dashSessionIdx = -1;
+function sessionChart() {
+  const all = hrLogLoad().sessions.slice();
+  if (hrLog.session && hrLog.session.rows.length >= 6 && !all.some(x => x.id === hrLog.session.id)) all.push(hrLog.session);
+  if (!all.length) return '<p class="hint">Noch keine Sitzung mit Pulsgurt aufgezeichnet.</p>';
+  if (dashSessionIdx < 0 || dashSessionIdx >= all.length) dashSessionIdx = all.length - 1;
+  const S = all[dashSessionIdx];
+  const step = Math.max(1, Math.floor(S.rows.length / 160));
+  const rows = S.rows.filter((_, i) => i % step === 0);
+  const t0 = S.rows[0][0], t1 = S.rows[S.rows.length - 1][0];
+  const marks = (S.events || []).map(ev => ({ i: Math.round((ev.t - t0) / Math.max(1, t1 - t0) * (rows.length - 1)), color: ev.type === 'came' ? '#e0526b' : '#e0a052', label: ev.type === 'came' ? '💦' : '🔥' }));
+  const when = new Date(S.start).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><button type="button" class="btn-secondary" id="sesPrev" style="width:auto; padding:4px 10px;">‹</button><span style="flex:1; text-align:center; font-size:13px;">${when} · ${Math.round((t1 - t0) / 60)} min · ${dashSessionIdx + 1}/${all.length}</span><button type="button" class="btn-secondary" id="sesNext" style="width:auto; padding:4px 10px;">›</button></div>`
+    + lineChart([
+      { values: rows.map(r => r[1]), color: '#e0526b', label: 'Puls' },
+      { values: rows.map(r => r[3]), color: '#e0a052', label: 'Gerätetempo', dash: true, min: 0, max: 230 },
+      { values: rows.map(r => r[2] >= 0 ? r[2] : null), color: '#52a0e0', label: 'Variabilität', width: 1.4 },
+    ], { marks, left: 'Start', right: 'Ende', h: 150 });
+}
+
+// ---------- Höhepunkt bewerten ----------
+function orgasmLog() { try { return JSON.parse(localStorage.getItem('companion_orgasms') || '[]'); } catch (e) { return []; } }
+let orgasmCardTimer = null;
+function scheduleOrgasmCard() {
+  clearTimeout(orgasmCardTimer);
+  // Kontext jetzt festhalten, die Karte kommt erst später
+  const S = hrLog.session;
+  const rows = S ? S.rows : [];
+  const last = rows.filter(r => r[0] >= (rows.length ? rows[rows.length - 1][0] - 60 : 0));
+  const ctx = {
+    t: Date.now(),
+    edges: S ? (S.events || []).filter(e => e.type === 'edge').length : null,
+    minutes: S && rows.length ? Math.round((rows[rows.length - 1][0] - rows[0][0]) / 6) / 10 : null,
+    tempo: last.length ? Math.round(mean(last.map(r => r[3]))) : (device1.getState() || {}).bpm || null,
+    peak: last.length ? Math.max(...last.map(r => r[1])) : (hr.bpm || null),
+    cast: aiCharacters().filter(c => !c.isNarrator).map(c => c.name),
+    game: game.running ? game.type : null,
+  };
+  orgasmCardTimer = setTimeout(() => showOrgasmCard(ctx), 90000);
+}
+function showOrgasmCard(ctx) {
+  if (document.getElementById('orgasmCard')) return;
+  const box = document.createElement('div');
+  box.id = 'orgasmCard';
+  box.style.cssText = 'position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom, 0px) + 150px); z-index:2200; width:min(420px, 92vw); background:var(--bg-panel, #1b1b1f); border:1px solid var(--line, #333); border-radius:16px; padding:12px 14px; box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+  const ans = {};
+  const q = (key, label, opts) => `<div style="margin:6px 0 2px; font-size:13px; opacity:0.8;">${label}</div><div style="display:flex; gap:6px; flex-wrap:wrap;">` + opts.map((o, i) => `<button type="button" data-k="${key}" data-v="${i + 1}" class="btn-secondary" style="width:auto; flex:1 1 auto; padding:6px 8px; font-size:13px;">${o}</button>`).join('') + '</div>';
+  box.innerHTML = '<div style="font-weight:600;">Wie war es? <span style="font-weight:400; opacity:0.6; font-size:12px;">(hilft der Auswertung)</span></div>'
+    + q('intensity', 'Intensität', ['schwach', 'gut', 'stark', 'Ekstase'])
+    + q('amount', 'Menge', ['wenig', 'normal', 'viel'])
+    + q('feel', 'Gefühl', ['eher mechanisch', 'schön', 'überwältigend'])
+    + '<input type="text" id="orgasmNote" placeholder="Notiz (optional)" style="margin-top:8px;">'
+    + '<div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-primary" id="orgasmSave">Speichern</button><button type="button" class="btn-secondary" id="orgasmSkip">Später nicht</button></div>';
+  document.body.appendChild(box);
+  box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => {
+    ans[b.dataset.k] = parseInt(b.dataset.v, 10);
+    box.querySelectorAll(`button[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('btn-primary', x === b));
+  });
+  box.querySelector('#orgasmSkip').onclick = () => box.remove();
+  box.querySelector('#orgasmSave').onclick = () => {
+    const list = orgasmLog();
+    list.push(Object.assign({}, ctx, ans, { note: box.querySelector('#orgasmNote').value.trim().slice(0, 200) }));
+    if (list.length > 300) list.splice(0, list.length - 300);
+    safeSet('companion_orgasms', JSON.stringify(list));
+    logEvent('msg', { role: 'system', text: `Höhepunkt bewertet: Intensität ${ans.intensity || '?'}/4, Menge ${ans.amount || '?'}/3, Gefühl ${ans.feel || '?'}/3.` });
+    box.remove();
+  };
+}
+// Was führt zu den besten Höhepunkten?
+function orgasmAnalysis() {
+  const list = orgasmLog().filter(o => o.intensity);
+  if (!list.length) return { html: '<p class="hint">Nach „Gekommen" erscheint 90 Sekunden später eine kleine Karte zum Bewerten. Je mehr Bewertungen, desto klarer wird, was dich am stärksten kommen lässt.</p>', fazit: [] };
+  const score = o => o.intensity + (o.feel ? (o.feel - 1) * 0.75 : 0);
+  const group = (fn) => { const g = {}; list.forEach(o => { const k = fn(o); if (k == null) return; (g[k] = g[k] || []).push(score(o)); }); return Object.entries(g).map(([k, v]) => ({ k, n: v.length, m: mean(v) })); };
+  const edges = group(o => o.edges == null ? null : o.edges >= 3 ? '3 und mehr Kanten' : o.edges + ' Kante' + (o.edges === 1 ? '' : 'n'));
+  const tempo = group(o => o.tempo == null ? null : o.tempo <= 80 ? 'Ende ruhig (≤80)' : o.tempo <= 140 ? 'Ende mittel (81-140)' : 'Ende schnell (>140)');
+  const dur = group(o => o.minutes == null ? null : o.minutes < 10 ? 'unter 10 min' : o.minutes < 20 ? '10-20 min' : 'über 20 min');
+  const figs = {}; list.forEach(o => (o.cast || []).forEach(n => (figs[n] = figs[n] || []).push(score(o))));
+  const cast = Object.entries(figs).map(([k, v]) => ({ k, n: v.length, m: mean(v) }));
+  const bars = (l) => { if (!l.length) return ''; const max = Math.max(1, ...l.map(x => x.m)); return l.sort((a, b) => b.m - a.m).map(x => `<div style="display:flex; align-items:center; gap:8px; margin:3px 0;"><span style="width:40%; font-size:13px;">${esc(x.k)}</span>${dashBar(x.m, max, '#e0526b')}<span style="width:56px; text-align:right; font-size:12.5px;">${x.m.toFixed(1)} (${x.n})</span></div>`).join(''); };
+  const avgI = mean(list.map(o => o.intensity));
+  let html = `<p class="hint" style="margin-top:0;">${list.length} bewertete Höhepunkte · Intensität im Mittel ${avgI.toFixed(1)} von 4. Wert = Intensität plus Gefühl.</p>`;
+  html += '<div style="font-size:13px; opacity:0.75; margin:8px 0 4px;">Nach Kanten vorher</div>' + bars(edges);
+  html += '<div style="font-size:13px; opacity:0.75; margin:8px 0 4px;">Nach Tempo in der letzten Minute</div>' + bars(tempo);
+  html += '<div style="font-size:13px; opacity:0.75; margin:8px 0 4px;">Nach Dauer</div>' + bars(dur);
+  if (cast.length) html += '<div style="font-size:13px; opacity:0.75; margin:8px 0 4px;">Wer dabei war</div>' + bars(cast);
+  const fz = [];
+  const bestE = edges.slice().sort((a, b) => b.m - a.m)[0];
+  if (bestE && edges.length > 1) fz.push(`Deine stärksten Höhepunkte kommen nach <b>${esc(bestE.k)}</b>.`);
+  const bestT = tempo.slice().sort((a, b) => b.m - a.m)[0];
+  if (bestT && tempo.length > 1) fz.push(`Am Ende wirkt <b>${esc(bestT.k.replace('Ende ', ''))}</b> am besten.`);
+  const bestC = cast.filter(x => x.n >= 2).sort((a, b) => b.m - a.m)[0];
+  if (bestC) fz.push(`Mit <b>${esc(bestC.k)}</b> waren die Höhepunkte im Schnitt am intensivsten.`);
+  return { html, fazit: fz };
+}
+
+// ---------- Auf mich optimierte Figur ----------
+function preferenceBrief() {
+  const st = discStore();
+  const m = (e) => e.n ? e.sum / e.n : null;
+  const byCat = cat => Object.values(st).filter(e => (e.cat || 'fetish') === cat && m(e) != null).sort((a, b) => m(b) - m(a));
+  const top = (cat, k) => byCat(cat).filter(e => m(e) > 2).slice(0, k).map(e => e.label);
+  const skipped = Object.values(st).filter(e => e.skips && (m(e) == null || m(e) < 3)).map(e => e.label);
+  let L = null; try { L = labAnalyze(); } catch (e) {}
+  const bestTempo = L && L.tempo && L.tempo.length ? L.tempo.slice().sort((a, b) => b.m - a.m)[0].k : null;
+  const bestVoice = byCat('voice')[0];
+  const vEntry = bestVoice ? Object.entries(st).find(([, e]) => e === bestVoice) : null;
+  const vid = vEntry ? vEntry[0].replace(/^voice_/, '') : null;
+  const vInfo = vid ? (elevenVoiceCache || []).find(x => x.voice_id === vid) : null;
+  const vFig = vid ? figureArchive.map(f => latestVersion(f)).find(x => x && x.elevenVoice === vid) : null;
+  const voiceDesc = vFig && vFig.voiceDescription ? vFig.voiceDescription : vInfo ? [vInfo.description, vInfo.labels && Object.values(vInfo.labels).join(', ')].filter(Boolean).join(' - ') : null;
+  const org = orgasmAnalysis().fazit.map(x => x.replace(/<[^>]+>/g, '').replace(/^Deine/, 'Seine').replace(/\.$/, ''));
+  const parts = [];
+  if (top('dyn', 2).length) parts.push('Ihre Art: ' + top('dyn', 2).join(' und '));
+  if (top('fetish', 4).length) parts.push('Sie liebt und setzt gezielt ein: ' + top('fetish', 4).join(', '));
+  if (top('loc', 2).length) parts.push('Lieblingsorte für Szenen: ' + top('loc', 2).join(', '));
+  if (bestTempo) parts.push('Tempo, das ihn am meisten packt: ' + bestTempo + ' Hübe pro Minute');
+  if (top('tempo', 2).length) parts.push('Bewegungen, die sie bevorzugt: ' + top('tempo', 2).join(', '));
+  if (skipped.length) parts.push('Vermeidet: ' + skipped.join(', '));
+  if (org.length) parts.push(org.join('. '));
+  if (voiceDesc) parts.push('Stimme wie: ' + voiceDesc);
+  return parts.length ? parts.join('. ') + '.' : '';
+}
+function createOptimizedFigure() {
+  const brief = preferenceBrief();
+  if (!brief) { alert('Dafür braucht es zuerst Testergebnisse aus „Entdecken".'); return; }
+  els.dashOverlay.style.display = 'none';
+  showFigures();
+  els.figureIdea.value = 'Eine erwachsene Frau (mindestens 25), die perfekt auf Til zugeschnitten ist - nach seinen gemessenen Vorlieben. ' + brief + ' Gib ihr einen eigenen, unverwechselbaren Charakter, einen Namen und ein Markenzeichen, das zu diesen Vorlieben passt.';
+  els.genFigureBtn.click();
+}
+async function copyBrief() {
+  const brief = preferenceBrief();
+  const text = 'Steckbrief aus meinen Messungen für eine auf mich optimierte Figur:\n' + (brief || '(noch keine Testergebnisse)');
+  try { await navigator.clipboard.writeText(text); alert('Steckbrief kopiert - einfach hier bei Claude einfügen.'); } catch (e) { prompt('Steckbrief:', text); }
+}
+
+// ---------- Bestätigungsrunde ----------
+function confirmationItems() {
+  const st = discStore();
+  const all = Object.entries(st).filter(([, e]) => e.n === 1).map(([id, e]) => ({ id, e, m: e.sum / e.n }));
+  const top = all.sort((a, b) => b.m - a.m).slice(0, 6);
+  const close = all.filter(x => x.m >= 2.5 && x.m < 5 && !top.includes(x)).slice(0, 3);
+  const lookup = id => {
+    for (const [cat, c] of Object.entries(DISCOVER_ITEMS)) { const it = c.items.find(x => x[0] === id); if (it) return { cat, it }; }
+    if (id.startsWith('fig_')) { const it = discFigureItems().find(x => x[0] === id); if (it) return { cat: 'fig', it }; }
+    if (id.startsWith('voice_')) { const it = discVoiceItems().find(x => x[0] === id); if (it) return { cat: 'voice', it }; }
+    return null;
+  };
+  return top.concat(close).map(x => lookup(x.id)).filter(Boolean);
+}
+
 function labBars(list, unit) {
   if (!list || !list.length) return '<p class="hint">Noch zu wenige Messpunkte.</p>';
   const max = Math.max(5, ...list.map(x => Math.abs(x.m)));
@@ -8571,6 +8968,12 @@ function renderDashboard() {
   const wins = (obj) => Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).map(([n, w]) => `${esc(n)} ${w}×`).join(', ') || '–';
   html += sec('Spiele', `${ch ? `<table style="width:100%; font-size:13.5px; border-collapse:collapse;"><tr style="opacity:0.7;"><td>Challenge</td><td>Rekord</td><td></td></tr>${ch}</table>` : '<p class="hint">Noch keine Challenge.</p>'}
     <p style="font-size:13.5px; margin:8px 0 0 0;">Duell-Siege: ${wins(rec.duelWins)}<br>Turniersiege: ${wins(rec.tourWins)}<br>Gewonnene Wetten: ${wins(rec.betWins)}</p>`);
+  // Vergleich, Momente, Sitzungen
+  html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Alles im Vergleich</h3>${compareChart()}</div>`;
+  html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Einzelne Momente: Puls und Variabilität</h3>${eventChart()}</div>`;
+  html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Sitzungsverlauf</h3>${sessionChart()}</div>`;
+  const OA = orgasmAnalysis();
+  html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">💦 Höhepunkte</h3>${OA.html}</div>`;
   // Puls-Labor
   const L = labAnalyze();
   html += labSections(L);
@@ -8589,17 +8992,27 @@ function renderDashboard() {
   if (pc) fazit.push(`Kurz bevor du kommst, liegst du etwa <b>${Math.round(pc.end)} Schläge über Ruhe</b>${pc.rise > 2 ? `, in der letzten Minute steigt es um rund ${Math.round(pc.rise)}` : ''}. Erkennt die App diesen Verlauf wieder, erfahren es die Figuren.`);
   else if (pe) fazit.push(`Bei „Kurz davor" liegst du etwa <b>${Math.round(pe.end)} Schläge über Ruhe</b> - die Figuren bekommen es mit, wenn sich das wiederholt.`);
   labFazit(L).forEach(f => fazit.push(f));
+  OA.fazit.forEach(f => fazit.push(f));
   if (untested.length) fazit.push(`Noch nie getestet: ${esc(untested.join(', '))}.`);
   if (thin) fazit.push(`${thin} Ergebnisse beruhen auf nur einer Messung - eine Wiederholung macht sie verlässlicher.`);
   html += sec('Fazit', fazit.length ? '<p style="font-size:14px; line-height:1.55;">' + fazit.join(' ') + '</p>' : '<p class="hint">Sobald Tests und Messungen vorliegen, steht hier deine Auswertung.</p>');
   html += `<div class="btn-row" style="margin-top:18px; flex-wrap:wrap;">
     <button class="btn-primary" id="dashToMem" type="button">✓ Ergebnisse ins Gedächtnis</button>
+    <button class="btn-primary" id="dashOptFig" type="button">✨ Auf mich optimierte Figur erzeugen</button>
+    <button class="btn-secondary" id="dashBrief" type="button">⧉ Steckbrief kopieren</button>
     <button class="btn-secondary" id="dashCopy" type="button">⧉ Messdaten kopieren</button>
     <button class="btn-secondary" id="dashResetEv" type="button">Pulsverläufe löschen</button>
     <button class="btn-secondary" id="dashResetAll" type="button">Alle Testergebnisse löschen</button>
   </div><p class="hint">Alle Werte liegen nur auf diesem Gerät und kommen mit der Sicherung (Teil „Einstellungen") mit.</p>`;
   els.dashBody.innerHTML = html;
   document.getElementById('dashCopy').onclick = copyMeasurements;
+  document.getElementById('dashOptFig').onclick = createOptimizedFigure;
+  document.getElementById('dashBrief').onclick = copyBrief;
+  const nav = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
+  nav('evPrev', () => { dashEventIdx = Math.max(0, dashEventIdx - 1); renderDashboard(); });
+  nav('evNext', () => { dashEventIdx++; renderDashboard(); });
+  nav('sesPrev', () => { dashSessionIdx = Math.max(0, dashSessionIdx - 1); renderDashboard(); });
+  nav('sesNext', () => { dashSessionIdx++; renderDashboard(); });
   document.getElementById('dashToMem').onclick = () => { game.discSummary = discSummary(discStore()); discToMemory(); };
   document.getElementById('dashResetEv').onclick = () => { if (confirm('Alle gespeicherten Pulsverläufe löschen?')) { localStorage.removeItem('companion_hrEvents'); renderDashboard(); } };
   document.getElementById('dashResetAll').onclick = () => { if (confirm('Alle Entdecken-Ergebnisse löschen? Spiele-Rekorde bleiben.')) { localStorage.removeItem('companion_discover'); renderDashboard(); } };
@@ -8790,6 +9203,16 @@ function startDiscover() {
   let trials = [];
   const adaptive = els.discAdaptive && els.discAdaptive.checked;
   const pool = {};
+  if (els.discConfirm && els.discConfirm.checked) {
+    DISCOVER_ITEMS.fig.items = discFigureItems();
+    DISCOVER_ITEMS.voice.items = discVoiceItems();
+    confirmationItems().forEach(({ cat, it }) => trials.push({ cat, id: it[0], label: it[1], x: it[2], rep: 1 }));
+    trials.sort(() => Math.random() - 0.5);
+    if (!trials.length) { addMsg('system', 'Für die Bestätigungsrunde gibt es noch nichts nachzutesten.'); game.running = false; return false; }
+    game.disc = { trials, idx: 0, phase: 'cool', phaseStart: Date.now(), blockMs: parseInt(els.discBlock.value, 10) * 1000, results: [], skipped: [], pool: {} };
+    addMsg('system', `🔬 Bestätigungsrunde: ${trials.length} Tests - nur, was bisher einmal stark oder knapp war.`);
+    return true;
+  }
   cats.forEach(cat => {
     let items = DISCOVER_ITEMS[cat].items;
     if (adaptive && (cat === 'fig' || cat === 'voice') && items.length > ADAPT_BUDGET) {
@@ -9936,7 +10359,47 @@ function fallbackPortraitPrompt(c) {
 // genau dieses Bild zum Leben erwecken.
 let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
 
-function buildSceneImageRequest(momentText, castOverride) {
+// ---------- Bild-Kontinuität und Abwechslung ----------
+// Das letzte Bild (als Beschreibung) und der zuletzt genannte Ort gehen mit,
+// damit Ort, Licht und Kleidung nicht ohne Grund springen. Der Bildausschnitt
+// wechselt reihum, damit nicht jedes Bild dieselbe Totale ist.
+const sceneImageMemory = { prompt: '', framings: [] };
+const FRAMINGS = [
+  ['wide', 'eine weite Aufnahme, die den ganzen Ort und alle Personen zeigt'],
+  ['medium', 'eine halbnahe Aufnahme von der Hüfte aufwärts, Körper und Gesichter'],
+  ['face', 'eine Nahaufnahme von Gesicht und Ausdruck der Frau - Blick, Lippen, Lust im Gesicht'],
+  ['pov', 'eine Aufnahme aus Tils eigener Sicht (POV), von oben auf das Geschehen hinab - von ihm selbst nur Hände, Brust, Beine und was im Moment beteiligt ist'],
+  ['action', 'eine nahe, explizite Aufnahme genau der Handlung, die gerade passiert - die beteiligten Körperteile im Mittelpunkt (z. B. ihr Gesicht und Mund bei Oralverkehr, Hände, Hüften)'],
+  ['low', 'eine Aufnahme von schräg unten, die die Frau dominant und überlegen wirken lässt'],
+  ['over', 'eine Aufnahme über ihre Schulter oder seinen Körper hinweg, mit Tiefe im Bild'],
+];
+function nextFraming(recentText) {
+  const t = String(recentText || '').toLowerCase();
+  const sexual = /(mund|lippen|zunge|saug|blas|leck|schwanz|penis|eichel|hoden|nackt|brüste|reitet|stöß|stoß|hülse|in mir|in dir)/.test(t);
+  const pool = FRAMINGS.filter(f => sexual || f[0] !== 'action');
+  const recent = sceneImageMemory.framings.slice(-2);
+  const options = pool.filter(f => !recent.includes(f[0]));
+  // Bei Handlung öfter nah dran
+  const weighted = options.flatMap(f => (sexual && (f[0] === 'action' || f[0] === 'pov' || f[0] === 'face')) ? [f, f] : [f]);
+  const pick = weighted[Math.floor(Math.random() * weighted.length)] || FRAMINGS[1];
+  return pick;
+}
+// Der zuletzt im ganzen Gespräch genannte Ort (auch wenn er länger zurückliegt)
+function lastNamedPlace() {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const txt = String(history[i].content || '').replace(/<<[^>]*>>/g, '');
+    const key = detectAmbienceIn([txt]);
+    if (key) {
+      const re = AMBIENCES[key].re; re.lastIndex = 0;
+      const sentences = txt.split(/(?<=[.!?…])\s+/);
+      const hit = sentences.reverse().find(x => { re.lastIndex = 0; return re.test(x.toLowerCase()); });
+      return { label: AMBIENCES[key].label, sentence: (hit || '').slice(0, 220) };
+    }
+  }
+  return null;
+}
+
+function buildSceneImageRequest(momentText, castOverride, framing) {
   const characters = castOverride || globalCast();
   const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 900);
   const people = characters.filter(c => !c.isNarrator).map(c => {
@@ -9962,7 +10425,11 @@ function buildSceneImageRequest(momentText, castOverride) {
 Die Personen:
 ${people}
 
-${scene ? `Der Ort und die Lage: ${scene}` : 'Kein fester Ort - wähle einen, der zum Gespräch passt.'}
+${scene ? `Der Ort und die Lage zu Beginn: ${scene}` : ''}
+${(() => { const pl = momentText ? null : lastNamedPlace(); return pl ? `Zuletzt genannter Ort im Gespräch: ${pl.label}${pl.sentence ? ` („${pl.sentence}")` : ''}. Dieser Ort gilt, bis der Text ausdrücklich einen Ortswechsel beschreibt.` : (!scene ? 'Kein Ort genannt - wähle einen, der zum Gespräch passt, und bleib dann dabei.' : ''); })()}
+${sceneImageMemory.prompt ? `DAS LETZTE BILD zeigte (für Kontinuität): ${sceneImageMemory.prompt.slice(0, 650)}
+Behalte Ort, Einrichtung, Licht und Kleidungszustand des letzten Bildes bei - außer der Text beschreibt seitdem ausdrücklich einen Ortswechsel, einen neuen Raum oder dass etwas aus- oder angezogen wurde. Die Personen müssen genauso aussehen wie dort.` : ''}
+${framing ? `BILDAUSSCHNITT für dieses Bild: ${framing[1]}. Wähle bewusst diesen Ausschnitt, nicht die übliche Totale - solange er zum aktuellen Moment passt.` : ''}
 
 ${momentText ? 'Die Geschichte bis hierher und der Abschnitt, den das Bild zeigen soll:' : 'Was zuletzt geschah (das letzte ist der aktuelle Moment):'}
 ${recent || '(noch nichts)'}
@@ -10094,7 +10561,9 @@ async function makeSceneImage(momentText, castOverride) {
   const key = apiKeyFor('companion_apiKey_venice');
   let model = modelFor('companion_imageModel') || 'venice-sd35';
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride), 'Gib den Bild-Prompt zurück.', 0.7, 1200);
+  const recentForFraming = momentText || history.slice(-4).map(m => String(m.content || '')).join(' ');
+  const framing = nextFraming(recentForFraming);
+  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride, framing), 'Gib den Bild-Prompt zurück.', 0.7, 1200);
   if (!prompt) throw new Error('Die Bildbeschreibung wurde abgelehnt oder war leer - kein Bild erzeugt.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
   prompt = withLookTags(prompt, castForTags).replace(/["„“”]/g, '');
@@ -10155,7 +10624,10 @@ async function makeSceneImage(momentText, castOverride) {
     logEvent('msg', { role: 'system', text: `Szenenbild verworfen (${violation ? 'Inhaltsfilter' : 'unkenntlich gemacht'}): ${prompt.slice(0, 300)}` });
     throw new Error('Der Anbieter hat das Bild unkenntlich gemacht - es wird nicht angezeigt.');
   }
-  logEvent('msg', { role: 'system', text: `Szenenbild (${model}): ${prompt.slice(0, 400)}` });
+  sceneImageMemory.prompt = prompt.replace(/\s*Adults only\.\s*/i, '').slice(0, 900);
+  sceneImageMemory.framings.push(framing[0]);
+  if (sceneImageMemory.framings.length > 6) sceneImageMemory.framings.shift();
+  logEvent('msg', { role: 'system', text: `Szenenbild (${model}, Ausschnitt ${framing[0]}): ${prompt.slice(0, 400)}` });
   try { setPadImage('data:image/webp;base64,' + base64); } catch (e) {}
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
 }
@@ -11751,8 +12223,8 @@ function renderFigureList() {
     if (version.image) thumb.src = version.image;
     else thumb.textContent = (version.name || '?').trim().charAt(0).toUpperCase() || '?';
     thumb.style.cursor = 'pointer';
-    thumb.title = 'Bild groß ansehen';
-    thumb.onclick = (e) => { e.stopPropagation(); showFullImage(version); };
+    thumb.title = 'Karte ansehen';
+    thumb.onclick = (e) => { e.stopPropagation(); showFigureCard(figure); };
     row.appendChild(thumb);
 
     const meta = document.createElement('div');
@@ -11768,8 +12240,16 @@ function renderFigureList() {
     if (inCast) gist.style.color = 'var(--accent)';
     meta.appendChild(who);
     meta.appendChild(gist);
+    if (!version.isUser && !version.isNarrator) {
+      const fs2 = figureStats(figure);
+      const sts = document.createElement('div');
+      sts.style.cssText = 'display:flex; flex-direction:column; gap:4px; margin-top:8px;';
+      sts.innerHTML = statRow('Dominant', fs2.dom, 'var(--accent)') + statRow('Zärtlich', fs2.soft, '#b98fd6') + (fs2.pref != null ? statRow('Puls-Wert', 40 + fs2.pref * 6, 'var(--gold)') : '');
+      meta.appendChild(sts);
+      if (fs2.pref != null) { const bd = document.createElement('span'); bd.className = 'fig-badge'; bd.textContent = '❤ ' + (fs2.pref >= 0 ? '+' : '') + fs2.pref.toFixed(1); row.appendChild(bd); }
+    }
     meta.style.cursor = 'pointer';
-    meta.onclick = () => openFigureEditor(figure);
+    meta.onclick = () => showFigureCard(figure);
     row.appendChild(meta);
 
     const play = document.createElement('button');
@@ -12160,7 +12640,7 @@ els.hrFigures.onchange = () => safeSet('companion_hrFigures', els.hrFigures.chec
 els.hrEdge.value = String(hrEdgeAt());
 els.hrEdge.onchange = () => safeSet('companion_hrEdge', els.hrEdge.value);
 els.comeBtn.onclick = () => {
-  if (currentMode === 'story') { try { hrRecordEvent('came'); } catch (e) {} setStoryStatus('Gekommen - schön. Die Geschichte läuft weiter.'); logEvent('msg', { role: 'system', text: 'Gekommen (Geschichte).' }); return; }
+  if (currentMode === 'story') { try { hrRecordEvent('came'); } catch (e) {} try { scheduleOrgasmCard(); } catch (e) {} setStoryStatus('Gekommen - schön. Die Geschichte läuft weiter.'); logEvent('msg', { role: 'system', text: 'Gekommen (Geschichte).' }); return; }
   els.textInput.value = 'Ich bin gekommen!';
   sendTypedMessage();
 };
@@ -13284,7 +13764,7 @@ async function askEnsemble(userText, options) {
   // Kopfhörern) schneidet ab.
   if (typeof music !== 'undefined') music.suspended = false;
   if (!(options && options.silent)) { try { applyEnvironmentWishes(userText); } catch (e) {} } else envNote = '';
-  if (!(options && options.silent) && /(ich bin (gerade |jetzt )?gekommen|bin gekommen|gekommen!)/i.test(String(userText || ''))) { try { hrRecordEvent('came'); } catch (e) {} }
+  if (!(options && options.silent) && /(ich bin (gerade |jetzt )?gekommen|bin gekommen|gekommen!)/i.test(String(userText || ''))) { try { hrRecordEvent('came'); } catch (e) {} try { scheduleOrgasmCard(); } catch (e) {} }
   if (!(options && options.silent)) { try { gameOnUserText(userText); } catch (e) {} if (game.running && game.type === 'adventure') { game.choices = []; renderGameHud(); } }
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
@@ -13642,6 +14122,8 @@ let figuresOpen = false;
 // above the conversation in every mode.
 function showOnly(which) {
   const parts = {
+    home: els.homePanel,
+    games: els.gamesPanel,
     live: els.livePanel,
     story: els.storyPanel,
     figures: els.figuresPanel,
@@ -13654,8 +14136,170 @@ function showOnly(which) {
   const conversational = which === 'live';
   els.transcript.style.display = conversational ? 'flex' : 'none';
   els.bottomBar.style.display = conversational ? 'block' : 'none';
+  els.liveStage.style.display = conversational && localStorage.getItem('companion_liveStage') !== 'false' ? 'flex' : 'none';
+  setTab(which === 'story' ? 'live' : which);
   figuresOpen = which === 'figures';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ======================= APP-HÜLLE =======================
+function setTab(which) {
+  els.tabBar.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === which));
+}
+function figureVersionByName(name) {
+  const f = figureArchive.find(x => (latestVersion(x) || {}).name === name);
+  return f ? latestVersion(f) : null;
+}
+function avaHtml(name, image) {
+  const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+  return image ? `<img src="${image}" alt="">` : esc(letter);
+}
+function castForHome() {
+  if (currentMode === 'live') return characters.filter(c => !c.isUser && !c.isNarrator);
+  try { const raw = JSON.parse(localStorage.getItem('companion_characters_live') || 'null'); if (Array.isArray(raw)) return raw.filter(c => !c.isUser && !c.isNarrator); } catch (e) {}
+  return characters.filter(c => !c.isUser && !c.isNarrator);
+}
+function gameTileDefs() {
+  const r = gameRecords();
+  const ch = Object.entries(r).filter(([k]) => k.startsWith('challenge_')).sort((a, b) => b[1].ms - a[1].ms)[0];
+  const duel = Object.entries(r.duelWins || {}).sort((a, b) => b[1] - a[1])[0];
+  const tour = Object.entries(r.tourWins || {}).sort((a, b) => b[1] - a[1])[0];
+  const disc = Object.values(discStore()).filter(e => e.n).length;
+  return [
+    ['challenge', 'Durchhalten', ch ? `Rekord ${fmtTime(ch[1].ms)}` : 'Wie lange hältst du durch?'],
+    ['duel', 'Duell', duel ? `${duel[0].split(' ')[0]} führt (${duel[1]})` : 'Zwei Figuren, du entscheidest'],
+    ['tournament', 'Turnier', tour ? `Titel: ${tour[0].split(' ')[0]}` : 'Alle gegen alle'],
+    ['adventure', 'Abenteuer', 'Du wählst, wie es weitergeht'],
+    ['discover', 'Entdecken', disc ? `${disc} Themen gemessen` : 'Was dir gefällt (Puls)'],
+    ['', 'Freies Gespräch', 'Ohne Spiel, einfach los'],
+  ];
+}
+const TILE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 1 2 2 3-3z"/></svg>';
+function pickGame(type) {
+  els.gameSelect.value = type;
+  safeSet('companion_game', type);
+  updateGameOptions();
+  switchMode('live');
+  els.liveSetup.open = true;
+  setTimeout(() => els.gameSelect.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+}
+function renderTiles(host, defs) {
+  host.innerHTML = '';
+  defs.forEach(([type, title, sub]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'home-tile';
+    b.innerHTML = `${TILE_ICON}<b>${esc(title)}</b><span>${esc(sub)}</span>`;
+    b.onclick = () => pickGame(type);
+    host.appendChild(b);
+  });
+}
+function renderHome() {
+  const now = new Date();
+  const h = now.getHours();
+  const greet = h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : 'Guten Abend';
+  const me = characters.find(c => c.isUser) || figureArchive.map(f => latestVersion(f)).find(v => v && v.isUser);
+  els.homeWhen.textContent = now.toLocaleDateString('de-DE', { weekday: 'long' }) + ' · ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  els.homeHello.textContent = `${greet}${me ? ', ' + me.name.split(' ')[0] : ''}.`;
+  els.homeHr.style.display = hr.connected && hr.bpm ? '' : 'none';
+  els.homeHr.textContent = '❤ ' + (hr.bpm || '');
+  els.homeCast.innerHTML = '';
+  castForHome().forEach(c => {
+    const v = figureVersionByName(c.name);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'home-ava';
+    b.innerHTML = `<div class="ava-ring"><div class="ava-in">${avaHtml(c.name, (v && v.image) || c.image)}</div></div><span>${esc(c.name.split(' ')[0])}</span>`;
+    b.onclick = () => { const f = figureArchive.find(x => (latestVersion(x) || {}).name === c.name); if (f) showFigureCard(f); };
+    els.homeCast.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.type = 'button'; add.className = 'home-ava';
+  add.innerHTML = '<div class="ava-ring" style="border-style:dashed; border-color:var(--line);"><div class="ava-in" style="background:none; color:var(--text-dim);">+</div></div><span style="color:var(--text-dim);">Figur</span>';
+  add.onclick = showFigures;
+  els.homeCast.appendChild(add);
+  const scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
+  const firstSentence = scene.split(/(?<=[.!?])\s/)[0] || '';
+  const place = (() => { try { const k = detectAmbienceIn([scene]); return k ? AMBIENCES[k].label : ''; } catch (e) { return ''; } })();
+  els.homeSceneTitle.textContent = place || (scene ? 'Deine Szene' : 'Freie Szene');
+  els.homeSceneText.textContent = scene ? (firstSentence.length > 160 ? firstSentence.slice(0, 157) + '…' : firstSentence) : 'Noch keine Szene beschrieben - die Figuren wählen selbst einen Ort.';
+  els.homeMusic.textContent = musicEnabled() ? '♪ ' + (MUSIC_STYLES[musicStyleSetting()] ? MUSIC_STYLES[musicStyleSetting()].label : 'automatisch') : '';
+  renderTiles(els.homeTiles, gameTileDefs().slice(0, 2));
+  let S = null; try { const all = hrLogLoad().sessions; S = all[all.length - 1]; } catch (e) {}
+  els.homeLastLabel.style.display = S ? '' : 'none';
+  els.homeLast.textContent = S ? `${new Date(S.start).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} · ${Math.round((S.rows[S.rows.length - 1][0] - S.rows[0][0]) / 60)} min · Puls bis ${Math.max(...S.rows.map(r => r[1]))} · ${(S.events || []).filter(e => e.type === 'edge').length} Kanten${(S.events || []).some(e => e.type === 'came') ? ' · 💦' : ''}` : '';
+}
+function showHome() {
+  showOnly('home');
+  els.topbarWhere.textContent = '';
+  renderHome();
+}
+function showGames() {
+  showOnly('games');
+  els.topbarWhere.textContent = ' · Spiele';
+  renderTiles(els.gamesTiles, gameTileDefs());
+}
+// Bühne im Live-Bereich: wer gerade spricht, groß
+let stageTimer = null;
+function updateStage(role) {
+  if (!els.liveStage) return;
+  const isNarr = role === 'narrator' || role === 'Erzähler';
+  const v = isNarr ? null : figureVersionByName(role);
+  els.stageAva.innerHTML = isNarr ? '<span style="font-size:40px;">❧</span>' : avaHtml(role, v && v.image);
+  els.stageName.textContent = isNarr ? 'Erzähler' : String(role || '').split(' ')[0];
+  els.liveStage.classList.add('talking');
+  clearTimeout(stageTimer);
+  stageTimer = setTimeout(() => els.liveStage.classList.remove('talking'), 6000);
+}
+// Figurenkarte (Detail)
+function traitScore(v, words) {
+  const txt = (v.traits || []).map(id => (typeof TRAIT_TEXT !== 'undefined' && TRAIT_TEXT[id]) || id).join(' ').toLowerCase() + ' ' + String(v.notes || '').toLowerCase().slice(0, 600);
+  const n = words.filter(w => txt.includes(w)).length;
+  return Math.min(100, 18 + n * 18);
+}
+function figureStats(figure) {
+  const v = latestVersion(figure);
+  const st = discStore();
+  const m = id => st[id] && st[id].n ? st[id].sum / st[id].n : null;
+  const parts = [[m('fig_' + figure.id), 1], [v.elevenVoice ? m('voice_' + v.elevenVoice) : null, 0.7]].filter(x => x[0] != null);
+  const pref = parts.length ? parts.reduce((a, [x, w]) => a + x * w, 0) / parts.reduce((a, [, w]) => a + w, 0) : null;
+  return {
+    dom: traitScore(v, ['führ', 'fuehrt', 'dominant', 'streng', 'selbstbewusst', 'fordernd', 'befiehl', 'herrin', 'bestimmt']),
+    soft: traitScore(v, ['zärtlich', 'zaertlich', 'warm', 'sanft', 'leise', 'liebevoll', 'flüster', 'zugewandt']),
+    pref,
+  };
+}
+function statRow(label, val, color) { return `<div class="stat"><span>${label}</span><span class="stat-bar"><i style="width:${Math.max(4, Math.min(100, val))}%; background:${color};"></i></span></div>`; }
+function showFigureCard(figure) {
+  const v = latestVersion(figure);
+  if (!v) return;
+  const s = figureStats(figure);
+  const r = gameRecords();
+  const inCast = characters.some(c => c.figureId === figure.id);
+  const bal = [];
+  if ((r.duelWins || {})[v.name]) bal.push(`${r.duelWins[v.name]}× Duell gewonnen`);
+  if ((r.tourWins || {})[v.name]) bal.push(`${r.tourWins[v.name]}× Turniersiegerin`);
+  if ((r.betWins || {})[v.name]) bal.push(`${r.betWins[v.name]}× Wette gewonnen`);
+  els.figCard.innerHTML = `<div class="fc-hero">${avaHtml(v.name, v.image)}
+    <button type="button" id="fcBack" class="btn-secondary" aria-label="Zurück" style="position:absolute; left:14px; top:calc(env(safe-area-inset-top, 0px) + 14px); width:44px; height:44px; padding:0; background:rgba(20,14,17,0.65);">‹</button>
+    ${s.pref != null ? `<span class="fig-badge" style="top:calc(env(safe-area-inset-top, 0px) + 22px); font-size:13px; height:30px;">❤ ${s.pref >= 0 ? '+' : ''}${s.pref.toFixed(1)} Puls-Wert</span>` : ''}</div>
+    <div class="fc-body">
+      <h1>${esc(v.name)}</h1>
+      <div style="font-size:13px; color:var(--text-dim); margin-top:4px;">${esc(figureGist(v))}</div>
+      <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px;">${statRow('Dominant', s.dom, 'var(--accent)')}${statRow('Zärtlich', s.soft, '#b98fd6')}${s.pref != null ? statRow('Puls-Wert', 40 + s.pref * 6, 'var(--gold)') : ''}</div>
+      ${v.signature ? `<div style="margin-top:14px; padding:12px; border-radius:14px; background:var(--bg); border:1px solid var(--line);"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14px; line-height:1.45; margin-top:4px;">${esc(v.signature)}</div></div>` : ''}
+      ${bal.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">${bal.map(b => `<span class="chip" style="height:30px; font-size:12px;">${esc(b)}</span>`).join('')}</div>` : ''}
+    </div>
+    <div class="fc-actions">
+      <button type="button" class="btn-secondary" id="fcPlay" aria-label="Stimme anhören" style="flex:0 0 52px; padding:0;">▶</button>
+      <button type="button" class="btn-secondary" id="fcEdit" style="flex:1;">Bearbeiten</button>
+      ${v.isUser || v.isNarrator ? '' : `<button type="button" class="btn-primary" id="fcCast" style="flex:1.3;" ${inCast ? 'disabled' : ''}>${inCast ? 'In der Szene ✓' : 'In die Szene'}</button>`}
+    </div>`;
+  els.figCard.style.display = 'block';
+  els.figCard.scrollTop = 0;
+  document.getElementById('fcBack').onclick = () => { els.figCard.style.display = 'none'; };
+  document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
+  document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; showFigures(); openFigureEditor(figure); };
+  const cb = document.getElementById('fcCast');
+  if (cb && !inCast) cb.onclick = () => { addFigureToCast(figure.id); saveCharacters(); cb.textContent = 'In der Szene ✓'; cb.disabled = true; try { renderFigureList(); } catch (e) {} };
 }
 
 function showFigures() {
@@ -13777,6 +14421,7 @@ els.navNewChat.onclick = () => {
   setAmbience(null);
   setMusic(null);
   motionWish.active = false; motionWish.rampStart = 0;
+  sceneImageMemory.prompt = ''; sceneImageMemory.framings = [];
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
@@ -14093,10 +14738,11 @@ els.liveStartBtn.onclick = () => {
 };
 els.gameSelect.value = localStorage.getItem('companion_game') || '';
 els.gameSelect.onchange = () => { safeSet('companion_game', els.gameSelect.value); updateGameOptions(); };
-[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn, els.discDyn, els.discLoc, els.discTempo, els.discFetish, els.discFig, els.discVoice, els.discAdaptive, els.discBlock, els.discReps].forEach(el => { el.onchange = updateGameOptions; });
+[els.gameDuration, els.gameDifficulty, els.gameRounds, els.gameTurn, els.discDyn, els.discLoc, els.discTempo, els.discFetish, els.discFig, els.discVoice, els.discAdaptive, els.discConfirm, els.discBlock, els.discReps].forEach(el => { el.onchange = updateGameOptions; });
 updateGameOptions();
 
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
+els.navStats.onclick = () => { setDrawer(false); openDashboard(); };
 els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
 els.navVersionLine.textContent = 'Version ' + APP_VERSION;
 
@@ -15095,6 +15741,24 @@ els.stopStoryBtn.onclick = () => {
 // the first mode switch. The saved mode is restored, falling back to live.
 const savedMode = localStorage.getItem('companion_mode');
 switchMode(savedMode === 'story' ? 'story' : 'live');
+// Neue Hülle: Tab-Leiste, Startseite, Anzeige-Schalter
+els.tabBar.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  const k = t.dataset.tab;
+  if (k === 'home') showHome();
+  else if (k === 'live') switchMode('live');
+  else if (k === 'games') showGames();
+  else if (k === 'figures') showFigures();
+  else if (k === 'stats') openDashboard();
+});
+els.homeLiveBtn.onclick = () => { switchMode('live'); els.liveStartBtn.click(); };
+els.homeStoryBtn.onclick = () => switchMode('story');
+els.showTracks.checked = localStorage.getItem('companion_showTracks') !== 'false';
+document.body.classList.toggle('hide-tracks', !els.showTracks.checked);
+els.showTracks.onchange = () => { safeSet('companion_showTracks', els.showTracks.checked ? 'true' : 'false'); document.body.classList.toggle('hide-tracks', !els.showTracks.checked); };
+els.showStage.checked = localStorage.getItem('companion_liveStage') !== 'false';
+els.showStage.onchange = () => { safeSet('companion_liveStage', els.showStage.checked ? 'true' : 'false'); if (currentMode === 'live' && els.livePanel.style.display !== 'none') els.liveStage.style.display = els.showStage.checked ? 'flex' : 'none'; };
+els.stageWave.innerHTML = Array.from({ length: 22 }, (_, i) => `<span style="animation-delay:${(i * 73) % 700}ms"></span>`).join('');
+showHome();
 
 els.stopBtn.addEventListener('click', () => {
   autoPlaying = false;
