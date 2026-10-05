@@ -7,6 +7,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Notizen</title>
+<script>
+  // Sperre vor allem anderen: Ist eine PIN gesetzt, bleibt die Seite verdeckt,
+  // bis sie eingegeben wurde - auch nicht kurz aufblitzend.
+  try { if (localStorage.getItem('companion_pinHash')) document.documentElement.classList.add('locked'); } catch (e) {}
+</script>
+<style>
+  html.locked body > *:not(#lockScreen) { display: none !important; }
+  #lockScreen { display: none; }
+  html.locked #lockScreen { display: flex; }
+</style>
 <meta name="app-version" content="0.42">
 <style>
   :root {
@@ -772,6 +782,37 @@
   .stat > span:first-child { width: 58px; }
   .stat-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
   .stat-bar i { display: block; height: 100%; border-radius: 2px; }
+  /* Kompakte Leiste */
+  .bottom-bar { padding: 8px 12px calc(8px) 12px; }
+  #arousalRow { gap: 6px !important; padding: 2px 0 6px !important; }
+  #arousalRow .btn-secondary { height: 40px; padding: 0 10px !important; font-size: 14px; }
+  #arousalRow .estop { flex: 0 0 auto; width: auto; height: 40px; padding: 0 14px; margin: 0; border-radius: 999px; font-size: 14px; }
+  .text-input-row { gap: 8px; align-items: center; }
+  .text-input-row input[type=text] { height: 46px; border-radius: 23px; padding: 0 16px; min-width: 0; }
+  .dock-round { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--text); cursor: pointer; }
+  .dock-main { flex-basis: 50px; width: 50px; height: 50px; background: var(--accent); border-color: var(--accent); color: #fff; font-size: 20px; }
+  .talk-btn.dock-round { min-width: 0; min-height: 0; line-height: 1; box-shadow: none; }
+  .talk-btn.dock-round.active { background: var(--stop); border-color: var(--stop); }
+  .more-sheet { display: none; position: absolute; right: 12px; bottom: calc(100% + 8px); width: min(260px, 80vw); background: var(--bg-panel-raised); border: 1px solid var(--line); border-radius: 18px; padding: 10px; box-shadow: 0 12px 30px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; z-index: 46; }
+  .more-sheet.open { display: flex; }
+  .more-sheet button { width: 100%; text-align: left; height: 44px; padding: 0 14px; }
+  /* Gerätebalken: endet über der Leiste, schmaler */
+  .motion-track { top: calc(env(safe-area-inset-top, 0px) + 120px); bottom: calc(var(--dock-h, 160px) + var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 14px); height: auto; transform: none; width: 12px; right: 6px; }
+  .motion-track.left { left: 6px; }
+  .motion-track-fill { left: 2px; right: 2px; bottom: 2px; }
+  @media (max-width: 759px) {
+    .motion-track-label { display: none; }
+    /* Bühne kompakt: Porträt links, Name und Tonwelle daneben */
+    #liveStage { flex-direction: row !important; justify-content: center; gap: 14px; margin: 0 0 10px; }
+    #liveStage .stage-ring { width: 64px; height: 64px; padding: 3px; }
+    #liveStage .stage-ring .ava-in { font-size: 28px; }
+    #liveStage .stage-name { margin-top: 0; font-size: 22px; }
+    #liveStage > .stage-name, #liveStage > .stage-wave { align-self: center; }
+    /* Tab-Leiste im Live-Bereich nur mit Symbolen */
+    body.in-live { --tabbar-h: 50px; }
+    body.in-live .tab span { display: none; }
+    body.in-live .tab { min-height: 40px; }
+  }
   /* Kartendetail */
   #figCard { display: none; position: fixed; inset: 0; z-index: 2050; background: var(--bg); overflow-y: auto; }
   #figCard .fc-hero { position: relative; height: 46vh; min-height: 280px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 140px; }
@@ -783,6 +824,13 @@
 </style>
 </head>
 <body>
+<div id="lockScreen" style="position:fixed; inset:0; z-index:99999; background:#0d0a0b; color:#e9e2df; flex-direction:column; align-items:center; justify-content:center; gap:22px; font-family:'Manrope', -apple-system, sans-serif; padding:24px; user-select:none; -webkit-user-select:none;">
+  <div style="font-family:'Cormorant Garamond', Georgia, serif; font-size:30px;">Notizen</div>
+  <div style="font-size:14px; color:#9c8a87;" id="lockMsg">PIN eingeben</div>
+  <div id="lockDots" style="display:flex; gap:14px; height:16px;"></div>
+  <div id="lockPad" style="display:grid; grid-template-columns:repeat(3, 72px); gap:14px;"></div>
+  <button type="button" id="lockForgot" style="background:none; border:none; color:#6f605d; font-size:13px; margin-top:6px; min-height:44px;">PIN vergessen?</button>
+</div>
 <div class="app">
 
   <div id="contextWarn" style="display:none; border:1px solid var(--stop); color:var(--stop); border-radius:12px; padding:11px 14px; font-size:13px; line-height:1.45; margin-bottom:12px;"></div>
@@ -1192,6 +1240,31 @@
 
     </details>
     <details class="subsection">
+      <summary>🔒 Sperre (PIN)</summary>
+      <p class="hint" id="pinStatus" style="margin-top:8px;">Keine PIN gesetzt.</p>
+      <label for="pinOld">Aktuelle PIN</label>
+      <input type="password" id="pinOld" inputmode="numeric" autocomplete="off" placeholder="nur zum Ändern oder Entfernen">
+      <label for="pinNew">Neue PIN (4 bis 8 Ziffern)</label>
+      <input type="password" id="pinNew" inputmode="numeric" autocomplete="off">
+      <label for="pinNew2">Neue PIN wiederholen</label>
+      <input type="password" id="pinNew2" inputmode="numeric" autocomplete="off">
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0 0;">
+        <span style="font-size:13px;">Auch sperren, wenn die App im Hintergrund war</span>
+        <select id="pinAuto" style="flex:1;">
+          <option value="-1">nein, nur beim Neuladen</option>
+          <option value="0">sofort</option>
+          <option value="60">nach 1 Minute</option>
+          <option value="300">nach 5 Minuten</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="pinSetBtn" type="button">PIN speichern</button>
+        <button class="btn-secondary" id="pinDelBtn" type="button">PIN entfernen</button>
+      </div>
+      <p class="hint">Die PIN wird nicht gespeichert, nur ein nicht umkehrbarer Fingerabdruck davon. Die Sperre schützt vor neugierigen Blicken auf deinem Gerät; die Daten selbst liegen weiter unverschlüsselt im Browser - wer technisch tief einsteigt und dein entsperrtes Gerät hat, käme heran. Die verschlüsselte Sicherung bleibt davon unberührt.</p>
+    </details>
+
+    <details class="subsection">
       <summary>Anzeige</summary>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="showTracks" style="width:auto;">
@@ -1331,6 +1404,7 @@
   </div>
 
   <div id="livePanel" style="display:none">
+    <button type="button" class="chip" id="liveSetupChip" style="display:none; margin:0 0 10px 0; cursor:pointer;">⚙ Szene &amp; Besetzung</button>
     <details class="panel" id="liveSetup" open>
       <summary style="font-family:var(--font-display); font-size:16px; color:var(--text);">Szene und Besetzung</summary>
 
@@ -1647,38 +1721,55 @@
     <div id="gameStatus" style="font-size:13px; color:var(--text); text-align:center;"></div>
     <div id="gameButtons" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:6px;"></div>
   </div>
-  <div id="arousalRow" style="display:none; padding:4px 0; align-items:center; gap:8px;">
+  <div id="arousalRow" style="display:flex; padding:4px 0; align-items:center; gap:8px;">
     <span id="hrVal" style="font-size:13px; min-width:56px; display:none;">❤️ –</span>
     <input type="range" id="arousalSlider" min="0" max="100" step="1" value="0" style="display:none;">
     <span id="arousalVal" style="font-size:12px; min-width:40px; text-align:center; color:var(--text-dim, #999);"></span>
     <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">🔥 Kurz davor</button>
     <button class="btn-secondary" id="comeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">💦 Gekommen</button>
+    <button class="estop" id="stopBtn" type="button" aria-label="Stopp">Stopp</button>
   </div>
   <div id="readyRow" style="display:none; padding:6px 0;">
     <button class="btn-primary" id="readyBtn" type="button" style="width:100%;">✓ Bereit - los geht's</button>
   </div>
   <div class="text-input-row">
-    <input type="text" id="textInput" placeholder="Nachricht schreiben...">
-    <button class="btn-secondary" id="padBtn" type="button" title="Augen zu - dunkler Bildschirm mit Steuerfläche" style="flex:0 0 auto; padding:10px 12px;">🌙</button>
-    <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken" style="flex:0 0 auto; padding:10px 12px;">📷</button>
-    <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
-    <button class="btn-primary" id="sendTextBtn">Senden</button>
+    <button class="dock-round" id="moreBtn" type="button" aria-label="Weitere Aktionen">⋯</button>
+    <button class="dock-round" id="padBtn" type="button" title="Augen zu - dunkler Bildschirm mit Steuerfläche" aria-label="Augen zu">🌙</button>
+    <input type="text" id="textInput" placeholder="Nachricht …">
+    <button class="dock-round dock-main" id="sendTextBtn" type="button" aria-label="Senden" style="display:none;">➤</button>
+    <button class="talk-btn dock-round dock-main" id="talkBtn" type="button" aria-label="Anruf starten" title="Anruf starten">📞</button>
   </div>
-  <div class="bottom-controls">
-    <div class="side-col">
-      <button class="btn-secondary side-btn" id="autoBtn">Automatik</button>
-      <button class="btn-secondary side-btn" id="rememberBtn" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
-    </div>
-    <button class="talk-btn" id="talkBtn">📞<br>Anruf<br>starten</button>
-    <div class="side-col">
-      <button class="estop side-btn" id="stopBtn">Stopp</button>
-      <button class="btn-secondary side-btn" id="sceneImageBtn" title="Ein Bild vom aktuellen Moment erzeugen">Bild</button>
-    </div>
+  <div class="more-sheet" id="moreSheet">
+    <button class="btn-secondary" id="autoBtn" type="button">Automatik</button>
+    <button class="btn-secondary" id="rememberBtn" type="button" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
+    <button class="btn-secondary" id="sceneImageBtn" type="button" title="Ein Bild vom aktuellen Moment erzeugen">🖼 Bild</button>
+    <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken">📷 Foto</button>
+    <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
   </div>
 </div>
 
 <nav class="tabbar" id="tabBar"><div class="tabbar-inner"><button class="tab" type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Start</span></button><button class="tab" type="button" data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Live</span></button><button class="tab" type="button" data-tab="games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/></svg><span>Spiele</span></button><button class="tab" type="button" data-tab="figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6c3-2 13-2 16 0v5c0 5-4 8-8 8s-8-3-8-8z"/><path d="M8 11h2M14 11h2"/></svg><span>Figuren</span></button><button class="tab" type="button" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Auswertung</span></button></div></nav>
 <div id="figCard"></div>
+<div id="soundLib" style="display:none; position:fixed; inset:0; z-index:2040; background:var(--bg); overflow-y:auto;">
+  <div style="max-width:640px; margin:0 auto; padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 40px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button type="button" class="btn-secondary" id="libBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
+      <h1 style="margin:0; font-weight:600; font-size:30px; flex:1;">Klangbibliothek</h1>
+    </div>
+    <p class="hint" id="libSummary" style="margin:8px 0 10px;"></p>
+    <div id="libTabs" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <input type="text" id="libSearch" placeholder="Suchen …" style="flex:1; min-width:0;">
+      <select id="libSort" style="flex:0 0 auto; width:auto;">
+        <option value="status">Vorhandene zuerst</option>
+        <option value="name">Name</option>
+        <option value="date">Neueste zuerst</option>
+        <option value="size">Größte zuerst</option>
+      </select>
+    </div>
+    <div id="libList" style="margin-top:12px;"></div>
+  </div>
+</div>
 <div class="drawer-scrim" id="drawerScrim"></div>
 <nav class="drawer" id="drawer">
   <h2>Notizen</h2>
@@ -1695,6 +1786,7 @@
     <div class="drawer-group">Einstellungen</div>
     <button class="drawer-item" id="navChangelog"><span class="glyph">🕘</span><span>Was ist neu<span class="sub" id="navVersionLine"></span></span></button>
     <button class="drawer-item" id="navFigures"><span class="glyph">🎭</span><span>Figuren und Archiv</span></button>
+    <button class="drawer-item" id="navSounds"><span class="glyph">🎵</span><span>Klangbibliothek<span class="sub">Musik, Kulissen, Geräusche, Laute</span></span></button>
     <button class="drawer-item" id="navStats"><span class="glyph">📊</span><span>Auswertung<span class="sub">Puls, Tests, Spiele, Höhepunkte</span></span></button>
     <button class="drawer-item" id="navSetup"><span class="glyph">⚙</span><span>Einrichtung</span></button>
   </div>
@@ -2145,8 +2237,15 @@ const els = {
   homeLiveBtn: document.getElementById('homeLiveBtn'), homeStoryBtn: document.getElementById('homeStoryBtn'),
   homeTiles: document.getElementById('homeTiles'), homeLast: document.getElementById('homeLast'), homeLastLabel: document.getElementById('homeLastLabel'),
   gamesTiles: document.getElementById('gamesTiles'),
-  liveStage: document.getElementById('liveStage'), stageAva: document.getElementById('stageAva'), stageName: document.getElementById('stageName'), stageWave: document.getElementById('stageWave'),
+  liveStage: document.getElementById('liveStage'),
+  liveSetupChip: document.getElementById('liveSetupChip'), stageAva: document.getElementById('stageAva'), stageName: document.getElementById('stageName'), stageWave: document.getElementById('stageWave'),
   figCard: document.getElementById('figCard'),
+  soundLib: document.getElementById('soundLib'), libTabs: document.getElementById('libTabs'), libSearch: document.getElementById('libSearch'),
+  libSort: document.getElementById('libSort'), libList: document.getElementById('libList'), libSummary: document.getElementById('libSummary'),
+  navSounds: document.getElementById('navSounds'),
+  pinStatus: document.getElementById('pinStatus'), pinOld: document.getElementById('pinOld'),
+  pinNew: document.getElementById('pinNew'), pinNew2: document.getElementById('pinNew2'),
+  pinAuto: document.getElementById('pinAuto'), pinSetBtn: document.getElementById('pinSetBtn'), pinDelBtn: document.getElementById('pinDelBtn'),
   showTracks: document.getElementById('showTracks'),
   showStage: document.getElementById('showStage'),
   navSetup: document.getElementById('navSetup'),
@@ -3057,8 +3156,24 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.57';
+const APP_VERSION = '1.61';
 const CHANGELOG = [
+  { v: '1.61', date: '2026-10-05', items: [
+    'Laute in der Figurenkarte: alle Füll-Laute, Zwischenlaute und Laute im Takt einer Figur, nach Gruppen aufklappbar, mit ▶ Anhören und ↻ Neu erzeugen. Sie gehören zur Stimme der Figur.',
+    'Neu im Seitenmenü: 🎵 Klangbibliothek. Musik (alle Stile und Stimmungen), Kulissen, Geräusche und Stimmen/Laute an einem Ort - auch was noch fehlt. Abspielen, neu erzeugen, erzeugen, löschen; suchen und sortieren nach Name, Datum, Größe oder „vorhandene zuerst". Gesammelt aufräumen: Vertonungen, Laute, Stimmproben.',
+  ]},
+  { v: '1.60', date: '2026-10-05', items: [
+    'Sperre mit PIN: Ist eine PIN gesetzt, zeigt die App beim Öffnen und Neuladen nur ein neutrales „Notizen" mit Ziffernfeld - vorher ist nichts zu sehen. Auf Wunsch sperrt sie auch, wenn sie im Hintergrund war (sofort, nach 1 oder 5 Minuten). Nach fünf Fehlversuchen wird es immer länger gewartet. Einstellungen → 🔒 Sperre (PIN).',
+  ]},
+  { v: '1.59', date: '2026-10-05', items: [
+    'Galerie je Figur: Jedes Szenenbild, Geschichtenbild, Porträt und Video landet automatisch bei allen Figuren, die darauf zu sehen sind. In der Figurenkarte als Raster mit Vorschaubildern - antippen öffnet groß, mit Blättern, Speichern, „Als Porträt" und „Aus Galerie". Mit dem Haken „Bilder" in der Sicherung kommt die Galerie mit.',
+  ]},
+  { v: '1.58', date: '2026-10-05', items: [
+    'Live auf dem Handy aufgeräumt: nur noch zwei schlanke Reihen unten - „Kurz davor", „Gekommen" und Stopp, darunter Mond, Eingabe und ein runder Knopf, der leer den Anruf startet und mit Text zu „Senden" wird. Automatik, Erinnern, Bild und Foto liegen hinter „⋯".',
+    'Die sprechende Figur ist auf dem Handy kompakt (Porträt neben Name und Tonwelle), auf dem Tablet weiter groß.',
+    'Der Gerätebalken ist schmaler und endet über der Bedienleiste - er überdeckt keine Knöpfe mehr.',
+    '„Szene und Besetzung" verschwindet nach dem Start ganz; ein kleiner Knopf „⚙ Szene & Besetzung" holt es zurück. Die Tab-Leiste zeigt im Live-Bereich nur Symbole.',
+  ]},
   { v: '1.57', date: '2026-10-05', items: [
     'Neues Aussehen „Samtnacht": dunkles Weinrot und Gold, elegante Überschriften, runde Knöpfe - alle Funktionen sind geblieben.',
     'Untere Leiste wie in einer App: Start, Live, Spiele, Figuren, Auswertung. Das Seitenmenü gibt es weiterhin.',
@@ -5037,7 +5152,10 @@ let callBusy = false;      // true while a reply is being fetched or spoken
 let restartTimer = null;
 
 function setCallButton() {
-  els.talkBtn.innerHTML = callActive ? '📞<br>Anruf<br>beenden' : '📞<br>Anruf<br>starten';
+  els.talkBtn.textContent = callActive ? '✕' : '📞';
+  els.talkBtn.title = callActive ? 'Anruf beenden' : 'Anruf starten';
+  els.talkBtn.setAttribute('aria-label', els.talkBtn.title);
+  updateDockMain();
   els.talkBtn.classList.toggle('active', callActive);
 }
 
@@ -5221,7 +5339,21 @@ function sendTypedMessage() {
     addMsg('system', 'Fehler beim Abrufen der Antwort: ' + (err && err.message ? err.message : err));
   });
 }
-els.sendTextBtn.onclick = sendTypedMessage;
+els.sendTextBtn.onclick = () => { sendTypedMessage(); updateDockMain(); };
+// Ein runder Knopf rechts: leer = Anruf, mit Text = Senden (wie bei Messengern)
+function updateDockMain() {
+  const typed = els.textInput.value.trim().length > 0;
+  els.sendTextBtn.style.display = typed ? '' : 'none';
+  els.talkBtn.style.display = typed && !(typeof callActive !== 'undefined' && callActive) ? 'none' : '';
+}
+els.textInput.addEventListener('input', updateDockMain);
+els.moreBtn = document.getElementById('moreBtn');
+els.moreSheet = document.getElementById('moreSheet');
+els.moreBtn.onclick = (e) => { e.stopPropagation(); els.moreSheet.classList.toggle('open'); };
+els.moreSheet.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') setTimeout(() => els.moreSheet.classList.remove('open'), 150); });
+document.addEventListener('click', (e) => { if (!els.moreSheet.contains(e.target) && e.target !== els.moreBtn) els.moreSheet.classList.remove('open'); });
+// Höhe der Leiste für den Gerätebalken merken
+try { new ResizeObserver(() => document.documentElement.style.setProperty('--dock-h', els.bottomBar.offsetHeight + 'px')).observe(els.bottomBar); } catch (e) {}
 els.arousalSlider.addEventListener('input', () => setArousal(parseInt(els.arousalSlider.value, 10), 'Regler', true));
 els.arousalSlider.addEventListener('change', () => setArousal(parseInt(els.arousalSlider.value, 10), 'Regler'));
 els.edgeBtn.onclick = () => {
@@ -5795,7 +5927,7 @@ async function fillerUrl(voiceId, modelId, rawText, fetchIfMissing) {
     });
     if (!res.ok) { convFailed(modelId, res.status, await errorDetail(res)); return null; }
     blob = await res.blob();
-    dbPut(STORE_AUDIO, k, blob).catch(() => {});
+    dbPut(STORE_AUDIO, k, blob).catch(() => {}); audioMetaTouch(k);
   }
   if (!blob) return null;
   const url = URL.createObjectURL(blob);
@@ -6777,7 +6909,7 @@ async function ambienceBlob(key, fresh) {
     return null;
   }
   const blob = await res.blob();
-  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {}); audioMetaTouch(dbKey);
   logEvent('msg', { role: 'system', text: 'Geräuschkulisse erzeugt: ' + AMBIENCES[key].label });
   return blob;
 }
@@ -6937,8 +7069,8 @@ function moodForNow() {
   if (!musicFollowsIntensity()) return currentMusicStyle() === 'techno' && lvl === 2 ? 'driving' : 'sensual';
   return lvl === 2 ? 'driving' : lvl === 1 ? 'sensual' : 'calm';
 }
-async function musicBlob(mood, fresh) {
-  const style = currentMusicStyle();
+async function musicBlob(mood, fresh, styleOverride) {
+  const style = styleOverride || currentMusicStyle();
   const dbKey = style === 'lounge' ? 'music_v1_' + mood : 'music_v1_' + style + '_' + mood;   // Lounge behält die alten Stücke
   if (fresh) { try { await dbDelete(STORE_AUDIO, dbKey); } catch (e) {} }
   else { try { const b = await dbGet(STORE_AUDIO, dbKey); if (b) return b; } catch (e) {} }
@@ -6961,7 +7093,7 @@ async function musicBlob(mood, fresh) {
     return null;
   }
   const blob = await res.blob();
-  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+  dbPut(STORE_AUDIO, dbKey, blob).catch(() => {}); audioMetaTouch(dbKey);
   logEvent('msg', { role: 'system', text: 'Musik erzeugt: ' + MUSIC_STYLES[style].label + ', ' + MUSIC_MOODS[mood].label });
   return blob;
 }
@@ -7065,7 +7197,7 @@ async function sfxUrl(ev) {
       return null;
     }
     blob = await res.blob();
-    dbPut(STORE_AUDIO, dbKey, blob).catch(() => {});
+    dbPut(STORE_AUDIO, dbKey, blob).catch(() => {}); audioMetaTouch(dbKey);
     logEvent('msg', { role: 'system', text: 'Geräusch erzeugt: ' + ev.label });
   }
   const url = URL.createObjectURL(blob);
@@ -7605,7 +7737,10 @@ function setArousal(v, source, quiet) {
 }
 function updateArousalUI() {
   if (!els.arousalRow) return;
-  els.arousalRow.style.display = arousalEnabled() ? 'flex' : 'none';
+  // Die Zeile bleibt immer sichtbar - Stopp sitzt darin. Nur die beiden
+  // Meldeknöpfe verschwinden, wenn sie ausgeschaltet sind.
+  els.arousalRow.style.display = 'flex';
+  [els.edgeBtn, els.comeBtn, els.arousalVal].forEach(b => { b.style.display = arousalEnabled() ? '' : 'none'; });
   if (document.activeElement !== els.arousalSlider) els.arousalSlider.value = String(arousal);
   // Statt der Zahl nur noch der Stand des Hinhaltens (Kanten / Ziel)
   els.arousalVal.textContent = edgingEnabled()
@@ -10629,6 +10764,9 @@ async function makeSceneImage(momentText, castOverride) {
   if (sceneImageMemory.framings.length > 6) sceneImageMemory.framings.shift();
   logEvent('msg', { role: 'system', text: `Szenenbild (${model}, Ausschnitt ${framing[0]}): ${prompt.slice(0, 400)}` });
   try { setPadImage('data:image/webp;base64,' + base64); } catch (e) {}
+  const figIds = castFigureIds(castOverride || characters);
+  galleryByImage.set(imageTag('data:image/webp;base64,' + base64), figIds);
+  galleryAdd('data:image/webp;base64,' + base64, 'image', figIds, momentText ? 'Geschichte' : 'Szenenbild');
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
 }
 
@@ -10867,6 +11005,7 @@ async function runSceneVideo(imageDataUrl, duration) {
     holder.appendChild(actions);
     els.transcript.scrollTop = els.transcript.scrollHeight;
     logEvent('msg', { role: 'system', text: `Video fertig nach ${Math.round((Date.now() - started) / 1000)} s (${Math.round(blob.size / 1024)} KB).` });
+    galleryAdd(blob, 'video', galleryByImage.get(imageTag(imageDataUrl)) || castFigureIds(characters), 'Video ' + duration, imageDataUrl);
     // Bei Venice aufräumen - das Video liegt jetzt nur noch hier.
     veniceVideoCall('complete', { model, queue_id: job.queue_id }, 20000).catch(() => {});
   } catch (err) {
@@ -11216,6 +11355,7 @@ async function generateCharacterImage(c, button) {
     dropFullImage(c.imageKey);
     c.imageKey = await storeFullImage(c.id, full);
     storeCharacterVersion(c, false);
+    if (c.figureId) galleryAdd(full, 'image', [c.figureId], 'Porträt');
     syncCastFromEdit(c);
     renderCharacters();
     if (figuresOpen) renderFigureList();
@@ -11250,6 +11390,124 @@ async function loadFullImage(key) {
     return '';
   }
 }
+
+// ---------- Galerie je Figur ----------
+// Jedes erzeugte Bild und Video landet bei allen Figuren, die darauf zu sehen
+// sind. Die Dateien liegen in der Bilddatenbank (Original + kleines
+// Vorschaubild), im Browser-Speicher nur ein schlanker Index - so wird die
+// Sicherung der Einstellungen nicht schwer. Mit dem Haken „Bilder" in der
+// Sicherung kommt die ganze Galerie mit.
+function galleryIndex() { try { return JSON.parse(localStorage.getItem('companion_gallery') || '[]'); } catch (e) { return []; } }
+function saveGalleryIndex(list) { safeSet('companion_gallery', JSON.stringify(list)); }
+const galleryByImage = new Map();   // Bildende -> Figuren (damit ein Video weiß, wer drauf ist)
+function imageTag(dataUrl) { return String(dataUrl || '').slice(-80); }
+function castFigureIds(cast) { return [...new Set((cast || characters).filter(c => !c.isUser && !c.isNarrator && c.figureId).map(c => c.figureId))]; }
+async function galleryAdd(data, type, figureIds, note, posterDataUrl) {
+  try {
+    figureIds = [...new Set((figureIds || []).filter(Boolean))];
+    if (!figureIds.length) return null;
+    const key = 'gal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const blob = typeof data === 'string' ? await (await fetch(data)).blob() : data;
+    await dbPut(STORE_IMAGES, key, blob);
+    const posterSrc = type === 'image' ? data : posterDataUrl;
+    if (posterSrc && typeof posterSrc === 'string') {
+      const thumb = await downscaleDataUrl(posterSrc, 220);
+      await dbPut(STORE_IMAGES, key + '_t', await (await fetch(thumb)).blob());
+    }
+    const list = galleryIndex();
+    list.push({ key, type, figs: figureIds, t: Date.now(), note: String(note || '').slice(0, 80) });
+    saveGalleryIndex(list);
+    logEvent('msg', { role: 'system', text: `Galerie: ${type === 'video' ? 'Video' : 'Bild'} bei ${figureIds.length} Figur${figureIds.length > 1 ? 'en' : ''} abgelegt.` });
+    return key;
+  } catch (e) { return null; }
+}
+function galleryFor(figureId) { return galleryIndex().filter(g => g.figs.includes(figureId)).sort((a, b) => b.t - a.t); }
+async function galleryRemove(entry, figureId) {
+  const list = galleryIndex();
+  const i = list.findIndex(g => g.key === entry.key);
+  if (i < 0) return;
+  list[i].figs = list[i].figs.filter(f => f !== figureId);
+  if (!list[i].figs.length) { dbDelete(STORE_IMAGES, entry.key).catch(() => {}); dbDelete(STORE_IMAGES, entry.key + '_t').catch(() => {}); list.splice(i, 1); }
+  saveGalleryIndex(list);
+}
+async function renderGallery(host, figure) {
+  const items = galleryFor(figure.id);
+  host.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:baseline; margin:18px 0 8px;"><span style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Galerie</span><span style="font-size:12px; color:var(--text-dim);">${items.length ? items.filter(x => x.type === 'image').length + ' Bilder' + (items.some(x => x.type === 'video') ? ' · ' + items.filter(x => x.type === 'video').length + ' Videos' : '') : 'noch leer'}</span></div>`;
+  if (!items.length) { host.insertAdjacentHTML('beforeend', '<p class="hint" style="margin:0;">Jedes Szenenbild, Porträt und Video, auf dem sie zu sehen ist, landet automatisch hier.</p>'); return; }
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;';
+  host.appendChild(grid);
+  for (let i = 0; i < items.length; i++) {
+    const g = items[i];
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.style.cssText = 'position:relative; aspect-ratio:3/4; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--bg); padding:0; cursor:pointer;';
+    cell.setAttribute('aria-label', g.type === 'video' ? 'Video öffnen' : 'Bild öffnen');
+    if (g.type === 'video') cell.insertAdjacentHTML('beforeend', '<span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#fff; text-shadow:0 2px 8px #000; z-index:1;">▶</span>');
+    cell.onclick = () => openGalleryViewer(items, i, figure);
+    grid.appendChild(cell);
+    dbGet(STORE_IMAGES, g.key + '_t').then(b => {
+      if (!b) return;
+      const im = document.createElement('img');
+      im.src = URL.createObjectURL(b);
+      im.alt = '';
+      im.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+      cell.prepend(im);
+    }).catch(() => {});
+  }
+}
+async function openGalleryViewer(items, index, figure) {
+  document.getElementById('galViewer')?.remove();
+  const g = items[index];
+  const blob = await dbGet(STORE_IMAGES, g.key).catch(() => null);
+  if (!blob) { alert('Die Datei ist nicht mehr da.'); return; }
+  const url = URL.createObjectURL(blob);
+  const v = document.createElement('div');
+  v.id = 'galViewer';
+  v.style.cssText = 'position:fixed; inset:0; z-index:2070; background:#000; display:flex; flex-direction:column;';
+  const media = g.type === 'video'
+    ? `<video src="${url}" controls loop playsinline autoplay muted style="max-width:100%; max-height:100%;"></video>`
+    : `<img src="${url}" alt="" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+  const when = new Date(g.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  v.innerHTML = `<div style="flex:1; min-height:0; display:flex; align-items:center; justify-content:center; position:relative;">${media}
+      <button type="button" id="galPrev" aria-label="Vorheriges" style="position:absolute; left:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px; ${index > 0 ? '' : 'visibility:hidden;'}">‹</button>
+      <button type="button" id="galNext" aria-label="Nächstes" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px; ${index < items.length - 1 ? '' : 'visibility:hidden;'}">›</button></div>
+    <div style="padding:10px 14px calc(env(safe-area-inset-bottom, 0px) + 12px); background:#0b0809;">
+      <div style="font-size:12px; color:#9c8a87; margin-bottom:8px;">${index + 1} von ${items.length} · ${when}${g.note ? ' · ' + esc(g.note) : ''}</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a class="btn-secondary" id="galSave" href="${url}" download="${g.type === 'video' ? 'video' : 'bild'}-${g.t}.${g.type === 'video' ? 'mp4' : 'webp'}" style="text-decoration:none; padding:10px 14px;">Speichern</a>
+        ${g.type === 'image' ? '<button type="button" class="btn-secondary" id="galPortrait">Als Porträt</button>' : ''}
+        <button type="button" class="btn-secondary" id="galDel">Aus Galerie</button>
+        <button type="button" class="btn-primary" id="galClose" style="margin-left:auto;">Schließen</button>
+      </div></div>`;
+  document.body.appendChild(v);
+  const close = () => { v.remove(); URL.revokeObjectURL(url); };
+  v.querySelector('#galClose').onclick = close;
+  v.querySelector('#galPrev').onclick = () => { close(); openGalleryViewer(items, index - 1, figure); };
+  v.querySelector('#galNext').onclick = () => { close(); openGalleryViewer(items, index + 1, figure); };
+  v.querySelector('#galDel').onclick = async () => {
+    if (!confirm('Aus der Galerie dieser Figur entfernen?')) return;
+    await galleryRemove(g, figure.id);
+    close();
+    const host = document.getElementById('fcGallery'); if (host) renderGallery(host, figure);
+  };
+  const pb = v.querySelector('#galPortrait');
+  if (pb) pb.onclick = async () => {
+    const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+    const c = characterFromVersion(figure);
+    c.image = await downscaleDataUrl(dataUrl, 192);
+    c.imageKey = await storeFullImage(c.id + '_' + Date.now(), dataUrl);
+    storeCharacterVersion(c, false);
+    try { syncCastFromEdit(c); } catch (e) {}
+    pb.textContent = 'Porträt gesetzt ✓'; pb.disabled = true;
+    try { renderFigureList(); } catch (e) {}
+  };
+}
+
+function audioMetaTouch(key) {
+  try { const m = JSON.parse(localStorage.getItem('companion_audioMeta') || '{}'); m[key] = Date.now(); safeSet('companion_audioMeta', JSON.stringify(m)); } catch (e) {}
+}
+function audioMeta() { try { return JSON.parse(localStorage.getItem('companion_audioMeta') || '{}'); } catch (e) { return {}; } }
 
 function dropFullImage(key) {
   if (key) dbDelete(STORE_IMAGES, key).catch(() => {});
@@ -12246,6 +12504,8 @@ function renderFigureList() {
       sts.style.cssText = 'display:flex; flex-direction:column; gap:4px; margin-top:8px;';
       sts.innerHTML = statRow('Dominant', fs2.dom, 'var(--accent)') + statRow('Zärtlich', fs2.soft, '#b98fd6') + (fs2.pref != null ? statRow('Puls-Wert', 40 + fs2.pref * 6, 'var(--gold)') : '');
       meta.appendChild(sts);
+      const gn = galleryFor(figure.id).length;
+      if (gn) { const gb = document.createElement('div'); gb.style.cssText = 'font-size:11px; color:var(--text-dim); margin-top:6px;'; gb.textContent = '🖼 ' + gn + ' in der Galerie'; meta.appendChild(gb); }
       if (fs2.pref != null) { const bd = document.createElement('span'); bd.className = 'fig-badge'; bd.textContent = '❤ ' + (fs2.pref >= 0 ? '+' : '') + fs2.pref.toFixed(1); row.appendChild(bd); }
     }
     meta.style.cursor = 'pointer';
@@ -14138,8 +14398,264 @@ function showOnly(which) {
   els.bottomBar.style.display = conversational ? 'block' : 'none';
   els.liveStage.style.display = conversational && localStorage.getItem('companion_liveStage') !== 'false' ? 'flex' : 'none';
   setTab(which === 'story' ? 'live' : which);
+  document.body.classList.toggle('in-live', conversational);
   figuresOpen = which === 'figures';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ======================= SPERRE (PIN) =======================
+async function pinDigest(pin, saltB64) {
+  const enc = new TextEncoder();
+  const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' }, key, 256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits)));
+}
+function pinIsSet() { return !!localStorage.getItem('companion_pinHash'); }
+async function pinCheck(pin) {
+  const salt = localStorage.getItem('companion_pinSalt');
+  if (!salt) return false;
+  return (await pinDigest(pin, salt)) === localStorage.getItem('companion_pinHash');
+}
+async function pinSave(pin) {
+  const salt = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+  safeSet('companion_pinSalt', salt);
+  safeSet('companion_pinHash', await pinDigest(pin, salt));
+}
+const lock = { entry: '', fails: 0, until: 0, hiddenAt: 0 };
+function lockNow() {
+  if (!pinIsSet()) return;
+  lock.entry = '';
+  document.documentElement.classList.add('locked');
+  renderLock();
+}
+function renderLock(msg) {
+  const dots = document.getElementById('lockDots');
+  dots.innerHTML = Array.from({ length: Math.max(4, lock.entry.length) }, (_, i) => `<span style="width:12px; height:12px; border-radius:50%; ${i < lock.entry.length ? 'background:#d0516a;' : 'border:1.5px solid #4a3a40;'}"></span>`).join('');
+  if (msg) document.getElementById('lockMsg').textContent = msg;
+}
+async function lockTry() {
+  if (Date.now() < lock.until) { renderLock(`Bitte ${Math.ceil((lock.until - Date.now()) / 1000)} s warten`); lock.entry = ''; return; }
+  if (await pinCheck(lock.entry)) {
+    lock.entry = ''; lock.fails = 0;
+    document.documentElement.classList.remove('locked');
+    renderLock('PIN eingeben');
+    return;
+  }
+  lock.fails++;
+  lock.entry = '';
+  if (lock.fails >= 5) { lock.until = Date.now() + 30000 * Math.pow(2, lock.fails - 5); renderLock('Zu viele Versuche - kurz warten'); }
+  else renderLock('Falsche PIN');
+  const pad = document.getElementById('lockPad');
+  pad.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 240 });
+}
+function buildLockPad() {
+  const pad = document.getElementById('lockPad');
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
+  pad.innerHTML = '';
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = k;
+    b.setAttribute('aria-label', k === '⌫' ? 'Löschen' : k || 'leer');
+    b.style.cssText = `width:72px; height:72px; border-radius:50%; font-size:26px; font-family:inherit; color:#e9e2df; ${k ? 'background:#1c1517; border:1px solid #33262b;' : 'visibility:hidden;'}`;
+    b.onclick = () => {
+      if (k === '⌫') lock.entry = lock.entry.slice(0, -1);
+      else if (lock.entry.length < 8) lock.entry += k;
+      renderLock();
+      // Ab 4 Ziffern prüfen - so funktionieren PINs von 4 bis 8 Stellen
+      if (k !== '⌫' && lock.entry.length >= 4) {
+        const len = parseInt(localStorage.getItem('companion_pinLen') || '0', 10);
+        if (!len || lock.entry.length === len) lockTry();
+      }
+    };
+    pad.appendChild(b);
+  });
+  document.getElementById('lockForgot').onclick = async () => {
+    if (!confirm('Ohne PIN geht es nur, wenn ALLE Daten dieser App auf diesem Gerät gelöscht werden - Figuren, Geschichten, Töne, Bilder, Einstellungen. Eine Sicherungsdatei kannst du danach wieder laden. Wirklich alles löschen?')) return;
+    if (!confirm('Letzte Rückfrage: unwiderruflich alles löschen?')) return;
+    try { localStorage.clear(); } catch (e) {}
+    try { indexedDB.deleteDatabase(DB_NAME); } catch (e) {}
+    location.reload();
+  };
+  renderLock();
+}
+buildLockPad();
+function pinAutoSec() { return parseInt(localStorage.getItem('companion_pinAuto') ?? '60', 10); }
+document.addEventListener('visibilitychange', () => {
+  if (!pinIsSet()) return;
+  const sec = pinAutoSec();
+  if (sec < 0) return;
+  if (document.visibilityState === 'hidden') { lock.hiddenAt = Date.now(); if (sec === 0) lockNow(); }
+  else if (lock.hiddenAt && Date.now() - lock.hiddenAt >= sec * 1000) lockNow();
+});
+function renderPinSettings() {
+  els.pinStatus.textContent = pinIsSet() ? 'PIN ist gesetzt - die App fragt beim Öffnen danach.' : 'Keine PIN gesetzt - jeder, der dein Gerät in die Hand bekommt, sieht die App.';
+  els.pinOld.parentElement && (els.pinOld.style.display = pinIsSet() ? '' : 'none');
+  document.querySelector('label[for="pinOld"]').style.display = pinIsSet() ? '' : 'none';
+  els.pinDelBtn.style.display = pinIsSet() ? '' : 'none';
+  els.pinAuto.value = String(pinAutoSec());
+}
+
+// ======================= KLANGBIBLIOTHEK =======================
+// Alles, was die App an Klang erzeugt und aufbewahrt, an einem Ort - auch das,
+// was es noch nicht gibt (zum gezielten Erzeugen). Abspielen, neu erzeugen,
+// löschen, sortieren, suchen.
+const lib = { tab: 'music', audio: null, playingKey: null, data: null };
+async function libLoad() {
+  const keys = await dbKeys(STORE_AUDIO).catch(() => []);
+  const vals = await dbAll(STORE_AUDIO).catch(() => []);
+  const size = {};
+  keys.forEach((k, i) => { const v = vals[i]; size[k] = v ? (v.size || (v.blob && v.blob.size) || 0) : 0; });
+  return { keys: new Set(keys), size, meta: audioMeta() };
+}
+function libEntries(D) {
+  const out = [];
+  if (lib.tab === 'music') {
+    Object.entries(MUSIC_STYLES).forEach(([st, def]) => Object.keys(MUSIC_MOODS).forEach(mood => {
+      const key = st === 'lounge' ? 'music_v1_' + mood : 'music_v1_' + st + '_' + mood;
+      out.push({ key, name: `${def.label} · ${MUSIC_MOODS[mood].label}`, group: def.label, kind: 'music', st, mood });
+    }));
+  } else if (lib.tab === 'amb') {
+    Object.entries(AMBIENCES).forEach(([k, a]) => out.push({ key: 'amb_v1_' + k, name: a.label, group: 'Kulisse', kind: 'amb', id: k }));
+  } else if (lib.tab === 'sfx') {
+    SFX_EVENTS.concat([BELL_SFX]).forEach(ev => out.push({ key: 'sfx_v1_' + ev.key, name: ev.label, group: 'Geräusch', kind: 'sfx', ev }));
+  } else if (lib.tab === 'voices') {
+    const tts = [...D.keys].filter(k => !/^(music_|amb_|sfx_|filler_|intro_)/.test(k));
+    const fill = [...D.keys].filter(k => k.startsWith('filler_'));
+    const intro = [...D.keys].filter(k => k.startsWith('intro_'));
+    const sum = arr => arr.reduce((a, k) => a + (D.size[k] || 0), 0);
+    out.push({ key: '__tts', name: `Gesprochene Antworten und Geschichten (${tts.length})`, group: 'Vertonungen', kind: 'bulk', keys: tts, bytes: sum(tts) });
+    out.push({ key: '__fill', name: `Laute aller Figuren (${fill.length})`, group: 'Laute', kind: 'bulk', keys: fill, bytes: sum(fill) });
+    out.push({ key: '__intro', name: `Stimmproben der Figuren (${intro.length})`, group: 'Stimmproben', kind: 'bulk', keys: intro, bytes: sum(intro) });
+  }
+  out.forEach(e => { if (e.kind !== 'bulk') { e.has = D.keys.has(e.key); e.bytes = D.size[e.key] || 0; e.t = D.meta[e.key] || 0; } });
+  return out;
+}
+function fmtBytes(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+function libStop() { if (lib.audio) { try { lib.audio.pause(); } catch (e) {} lib.audio = null; } lib.playingKey = null; }
+async function libPlay(e, btn) {
+  if (lib.playingKey === e.key) { libStop(); renderLib(); return; }
+  libStop();
+  const v = await dbGet(STORE_AUDIO, e.key).catch(() => null);
+  const blob = v && (v.blob || v);
+  if (!blob || !blob.size) return;
+  lib.audio = new Audio(URL.createObjectURL(blob));
+  lib.audio.loop = e.kind === 'amb';
+  lib.audio.volume = 0.8;
+  lib.playingKey = e.key;
+  lib.audio.onended = () => { lib.playingKey = null; renderLib(); };
+  lib.audio.play().catch(() => {});
+  renderLib();
+}
+async function libGenerate(e, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  libStop();
+  try {
+    if (e.kind === 'music') await musicBlob(e.mood, true, e.st);
+    else if (e.kind === 'amb') await ambienceBlob(e.id, true);
+    else if (e.kind === 'sfx') { try { await dbDelete(STORE_AUDIO, e.key); } catch (x) {} sfxUrls.delete(e.ev.key); await sfxUrl(e.ev); }
+  } catch (x) { alert('Erzeugen fehlgeschlagen: ' + (x.message || x)); }
+  await libRefresh();
+}
+async function libDelete(e) {
+  libStop();
+  const keys = e.kind === 'bulk' ? e.keys : [e.key];
+  if (!keys.length) return;
+  if (!confirm(e.kind === 'bulk' ? `${keys.length} Dateien (${fmtBytes(e.bytes)}) löschen? Sie werden bei Bedarf neu erzeugt - das kostet ElevenLabs-Guthaben.` : `„${e.name}" löschen?`)) return;
+  for (const k of keys) { try { await dbDelete(STORE_AUDIO, k); } catch (x) {} }
+  if (e.kind === 'sfx') sfxUrls.delete(e.ev.key);
+  if (e.key === '__fill') fillerUrls.clear();
+  await libRefresh();
+}
+async function libRefresh() { lib.data = await libLoad(); renderLib(); }
+function renderLib() {
+  const D = lib.data; if (!D) return;
+  const tabs = [['music', 'Musik'], ['amb', 'Kulissen'], ['sfx', 'Geräusche'], ['voices', 'Stimmen & Laute']];
+  els.libTabs.innerHTML = '';
+  tabs.forEach(([k, l]) => { const b = document.createElement('button'); b.type = 'button'; b.className = k === lib.tab ? 'btn-primary' : 'btn-secondary'; b.style.cssText = 'width:auto; height:36px; padding:0 14px; font-size:13.5px;'; b.textContent = l; b.onclick = () => { lib.tab = k; libStop(); renderLib(); }; els.libTabs.appendChild(b); });
+  const total = [...D.keys].reduce((a, k) => a + (D.size[k] || 0), 0);
+  els.libSummary.textContent = `${D.keys.size} Tondateien · ${fmtBytes(total)} auf diesem Gerät.`;
+  let list = libEntries(D);
+  const q = els.libSearch.value.trim().toLowerCase();
+  if (q) list = list.filter(e => e.name.toLowerCase().includes(q) || String(e.group).toLowerCase().includes(q));
+  const sort = els.libSort.value;
+  list.sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name, 'de')
+    : sort === 'date' ? (b.t || 0) - (a.t || 0)
+    : sort === 'size' ? (b.bytes || 0) - (a.bytes || 0)
+    : (Number(!!b.has) - Number(!!a.has)) || a.name.localeCompare(b.name, 'de'));
+  els.libList.innerHTML = '';
+  if (lib.tab === 'voices') els.libList.insertAdjacentHTML('beforeend', '<p class="hint" style="margin-top:0;">Die Laute einzelner Figuren hörst und erneuerst du in ihrer Figurenkarte. Hier räumst du gesammelt auf.</p>');
+  list.forEach(e => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px; background:var(--bg-panel); border:1px solid ' + (lib.playingKey === e.key ? 'var(--accent)' : 'var(--line)') + '; border-radius:16px;';
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1; min-width:0;';
+    const when = e.t ? new Date(e.t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+    info.innerHTML = `<div style="font-size:15px;">${esc(e.name)}</div><div style="font-size:12px; color:var(--text-dim);">${e.kind === 'bulk' ? fmtBytes(e.bytes) : e.has ? fmtBytes(e.bytes) + (when ? ' · ' + when : '') : 'noch nicht erzeugt'}</div>`;
+    const mk = (txt, label, fn, primary) => { const b = document.createElement('button'); b.type = 'button'; b.className = primary ? 'btn-primary' : 'btn-secondary'; b.textContent = txt; b.setAttribute('aria-label', label); b.title = label; b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px;'; b.onclick = () => fn(b); return b; };
+    if (e.kind === 'bulk') {
+      row.append(info);
+      if (e.keys.length) row.append(mk('🗑', 'Alle löschen', () => libDelete(e)));
+    } else if (e.has) {
+      row.append(mk(lib.playingKey === e.key ? '■' : '▶', lib.playingKey === e.key ? 'Stopp' : 'Abspielen', b => libPlay(e, b), lib.playingKey === e.key), info, mk('↻', 'Neu erzeugen', b => libGenerate(e, b)), mk('🗑', 'Löschen', () => libDelete(e)));
+    } else {
+      row.style.opacity = '0.75';
+      row.append(info, mk('＋', 'Erzeugen', b => libGenerate(e, b), true));
+    }
+    els.libList.appendChild(row);
+  });
+}
+async function openSoundLib() {
+  els.soundLib.style.display = 'block';
+  els.libList.innerHTML = '<p class="hint">Lade …</p>';
+  await libRefresh();
+}
+
+// Laute einer Figur (in ihrer Karte) - gehören zur Stimme der Figur
+function renderFigureSounds(host, version) {
+  host.innerHTML = '';
+  const head = document.createElement('div');
+  head.style.cssText = 'display:flex; justify-content:space-between; align-items:baseline; margin:18px 0 8px;';
+  head.innerHTML = '<span style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Laute</span><span style="font-size:12px; color:var(--text-dim);">gehören zu ihrer Stimme</span>';
+  host.appendChild(head);
+  if (!version.elevenVoice) { host.insertAdjacentHTML('beforeend', '<p class="hint" style="margin:0;">Keine ElevenLabs-Stimme gewählt - Laute gibt es nur mit eigener Stimme.</p>'); return; }
+  const fv = { voiceId: version.elevenVoice, modelId: elevenModelFor(version.emotional !== false) };
+  Object.keys(FILLER_SETS).forEach(set => {
+    const d = document.createElement('details');
+    d.style.cssText = 'border:1px solid var(--line); border-radius:14px; padding:8px 12px; margin-bottom:6px; background:var(--bg);';
+    const sum = document.createElement('summary');
+    sum.style.cssText = 'cursor:pointer; font-size:14px;';
+    sum.textContent = FILLER_LABELS[set] + ' (' + FILLER_SETS[set].length + ')';
+    d.appendChild(sum);
+    d.addEventListener('toggle', () => {
+      if (!d.open || d.dataset.built) return;
+      d.dataset.built = '1';
+      FILLER_SETS[set].forEach(t => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:6px; margin:6px 0;';
+        const label = document.createElement('span');
+        label.style.cssText = 'font-size:13px; flex:1;';
+        label.textContent = fillerSpoken(t, fv.modelId);
+        const play = document.createElement('button'); play.type = 'button'; play.className = 'btn-secondary'; play.textContent = '▶'; play.setAttribute('aria-label', 'Abspielen'); play.style.cssText = 'width:40px; height:40px; padding:0; flex:0 0 40px;';
+        const redo = document.createElement('button'); redo.type = 'button'; redo.className = 'btn-secondary'; redo.textContent = '↻'; redo.setAttribute('aria-label', 'Neu erzeugen'); redo.style.cssText = 'width:40px; height:40px; padding:0; flex:0 0 40px;';
+        play.onclick = async () => { play.disabled = true; try { const url = await fillerUrl(fv.voiceId, fv.modelId, t, true); if (url) playFillerPreview(url); else label.textContent += '  (Fehler)'; } finally { play.disabled = false; } };
+        redo.onclick = async () => {
+          redo.disabled = true;
+          try {
+            const k = fillerCacheKey(fv.voiceId, fv.modelId, t);
+            const old = fillerUrls.get(k); if (old) { URL.revokeObjectURL(old); fillerUrls.delete(k); }
+            try { await dbDelete(STORE_AUDIO, k); } catch (e) {}
+            const url = await fillerUrl(fv.voiceId, fv.modelId, t, true);
+            if (url) playFillerPreview(url); else label.textContent += '  (Fehler)';
+          } finally { redo.disabled = false; }
+        };
+        row.append(play, redo, label);
+        d.appendChild(row);
+      });
+    });
+    host.appendChild(d);
+  });
 }
 
 // ======================= APP-HÜLLE =======================
@@ -14287,6 +14803,8 @@ function showFigureCard(figure) {
       <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px;">${statRow('Dominant', s.dom, 'var(--accent)')}${statRow('Zärtlich', s.soft, '#b98fd6')}${s.pref != null ? statRow('Puls-Wert', 40 + s.pref * 6, 'var(--gold)') : ''}</div>
       ${v.signature ? `<div style="margin-top:14px; padding:12px; border-radius:14px; background:var(--bg); border:1px solid var(--line);"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14px; line-height:1.45; margin-top:4px;">${esc(v.signature)}</div></div>` : ''}
       ${bal.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">${bal.map(b => `<span class="chip" style="height:30px; font-size:12px;">${esc(b)}</span>`).join('')}</div>` : ''}
+      <div id="fcSounds"></div>
+      <div id="fcGallery"></div>
     </div>
     <div class="fc-actions">
       <button type="button" class="btn-secondary" id="fcPlay" aria-label="Stimme anhören" style="flex:0 0 52px; padding:0;">▶</button>
@@ -14296,6 +14814,8 @@ function showFigureCard(figure) {
   els.figCard.style.display = 'block';
   els.figCard.scrollTop = 0;
   document.getElementById('fcBack').onclick = () => { els.figCard.style.display = 'none'; };
+  renderGallery(document.getElementById('fcGallery'), figure);
+  if (!v.isUser) renderFigureSounds(document.getElementById('fcSounds'), v);
   document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
   document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; showFigures(); openFigureEditor(figure); };
   const cb = document.getElementById('fcCast');
@@ -14326,6 +14846,7 @@ function switchMode(mode) {
   try { localStorage.setItem('companion_mode', mode); } catch (e) {}
   showOnly(mode === 'story' ? 'story' : 'live');
   if (mode === 'live') renderLivePanel();
+  if (mode === 'live' && els.liveSetupChip && !history.length) { els.liveSetup.style.display = ''; els.liveSetupChip.style.display = 'none'; }
 
   els.topbarWhere.textContent = ' · ' + (MODE_LABELS[modeKey()] || '');
   if (els.drawer.classList.contains('open')) refreshDrawer();
@@ -14730,6 +15251,8 @@ els.liveStartBtn.onclick = () => {
   // Folded away once things are under way: from here on the conversation
   // should have the screen to itself.
   els.liveSetup.open = false;
+  els.liveSetup.style.display = 'none';
+  els.liveSetupChip.style.display = '';
   prewarmFillers();
   try { updateAmbience(); } catch (e) {}
   if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
@@ -14743,6 +15266,10 @@ updateGameOptions();
 
 els.navFigures.onclick = () => { setDrawer(false); showFigures(); };
 els.navStats.onclick = () => { setDrawer(false); openDashboard(); };
+els.navSounds.onclick = () => { setDrawer(false); openSoundLib(); };
+document.getElementById('libBack').onclick = () => { libStop(); els.soundLib.style.display = 'none'; };
+els.libSearch.oninput = renderLib;
+els.libSort.onchange = renderLib;
 els.navChangelog.onclick = () => { setDrawer(false); showChangelog(); };
 els.navVersionLine.textContent = 'Version ' + APP_VERSION;
 
@@ -15751,6 +16278,7 @@ els.tabBar.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   else if (k === 'stats') openDashboard();
 });
 els.homeLiveBtn.onclick = () => { switchMode('live'); els.liveStartBtn.click(); };
+els.liveSetupChip.onclick = () => { els.liveSetup.style.display = ''; els.liveSetup.open = true; els.liveSetupChip.style.display = 'none'; };
 els.homeStoryBtn.onclick = () => switchMode('story');
 els.showTracks.checked = localStorage.getItem('companion_showTracks') !== 'false';
 document.body.classList.toggle('hide-tracks', !els.showTracks.checked);
@@ -15759,6 +16287,32 @@ els.showStage.checked = localStorage.getItem('companion_liveStage') !== 'false';
 els.showStage.onchange = () => { safeSet('companion_liveStage', els.showStage.checked ? 'true' : 'false'); if (currentMode === 'live' && els.livePanel.style.display !== 'none') els.liveStage.style.display = els.showStage.checked ? 'flex' : 'none'; };
 els.stageWave.innerHTML = Array.from({ length: 22 }, (_, i) => `<span style="animation-delay:${(i * 73) % 700}ms"></span>`).join('');
 showHome();
+// PIN-Einstellungen
+renderPinSettings();
+els.pinAuto.onchange = () => safeSet('companion_pinAuto', els.pinAuto.value);
+els.pinSetBtn.onclick = async () => {
+  const n1 = els.pinNew.value.trim(), n2 = els.pinNew2.value.trim();
+  if (pinIsSet() && !(await pinCheck(els.pinOld.value.trim()))) { els.pinStatus.textContent = 'Die aktuelle PIN stimmt nicht.'; return; }
+  if (!/^\d{4,8}$/.test(n1)) { els.pinStatus.textContent = 'Die PIN muss aus 4 bis 8 Ziffern bestehen.'; return; }
+  if (n1 !== n2) { els.pinStatus.textContent = 'Die beiden neuen PINs sind nicht gleich.'; return; }
+  await pinSave(n1);
+  safeSet('companion_pinLen', String(n1.length));
+  if (localStorage.getItem('companion_pinAuto') == null) safeSet('companion_pinAuto', '60');
+  els.pinOld.value = els.pinNew.value = els.pinNew2.value = '';
+  renderPinSettings();
+  els.pinStatus.textContent = 'PIN gespeichert ✓ - ab dem nächsten Öffnen wird sie abgefragt.';
+};
+els.pinDelBtn.onclick = async () => {
+  if (!(await pinCheck(els.pinOld.value.trim()))) { els.pinStatus.textContent = 'Zum Entfernen bitte die aktuelle PIN eingeben.'; return; }
+  localStorage.removeItem('companion_pinHash'); localStorage.removeItem('companion_pinSalt'); localStorage.removeItem('companion_pinLen');
+  els.pinOld.value = '';
+  renderPinSettings();
+};
+// Einmalig nach dem Update: auf die neue Sperre hinweisen
+if (!pinIsSet() && !localStorage.getItem('companion_pinHint')) {
+  safeSet('companion_pinHint', '1');
+  setTimeout(() => { if (confirm('Neu: Die App lässt sich mit einer PIN sperren, damit niemand zufällig etwas sieht. Jetzt eine PIN festlegen?')) { showSettings(); const d = els.pinNew.closest('details'); if (d) { d.open = true; setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); } } }, 800);
+}
 
 els.stopBtn.addEventListener('click', () => {
   autoPlaying = false;
