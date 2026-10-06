@@ -739,7 +739,8 @@
   }
   .tab svg { width: 22px; height: 22px; }
   .tab.on { color: var(--accent); }
-  body.hide-tracks .motion-track, body.hide-tracks .motion-track-label { display: none !important; }
+  body.hide-tracks .motion-track, body.hide-tracks .motion-track-label,
+  body.off-stage .motion-track, body.off-stage .motion-track-label { display: none !important; }
   /* Startseite */
   .home-hello { font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 6px 0 0; }
   .home-sub { font-size: 13px; color: var(--text-dim); letter-spacing: 0.04em; }
@@ -1469,7 +1470,9 @@
       <input type="file" id="bkFile" style="width:100%; font-size:13px; color:var(--text-dim);">
       <div class="btn-row">
         <button class="btn-secondary" id="importSettingsBtn">Wiederherstellen</button>
+        <button class="btn-primary" id="importPortraitsBtn" type="button">Nur Porträts übernehmen</button>
       </div>
+      <p class="hint">„Wiederherstellen" ersetzt alles durch den Stand der Sicherung. „Nur Porträts übernehmen" holt aus einer älteren Sicherung nur die Porträts (in voller Größe) und Figuren, die es hier nicht mehr gibt - alles andere bleibt, wie es jetzt ist: Messdaten, Spiele, Galerie, Einstellungen, neue Figuren und Änderungen von heute.</p>
       <p class="hint" id="bkInfo">&nbsp;</p>
     </details>
 
@@ -1663,11 +1666,9 @@
           <option value="puls">nach meinen Vorlieben (Puls)</option>
         </select>
       </div>
-      <div class="btn-row" style="margin:0 0 10px;">
-        <button class="btn-primary" id="swipeOpenBtn" type="button">💘 Durchswipen</button>
-        <button class="btn-secondary" id="upgradeAllBtn" type="button">⟳ Alle Figuren auf aktuellen Stand</button>
-        <button class="btn-secondary" id="restorePortraitsBtn" type="button">🕘 Frühere Porträts zurückholen</button>
-        <button class="btn-secondary" id="rollbackBtn" type="button">↩︎ Heute zurücksetzen &amp; neu aufbereiten</button>
+      <div style="display:flex; gap:8px; margin:0 0 10px;">
+        <button class="btn-primary" id="swipeOpenBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">💘 Durchswipen</button>
+        <button class="btn-secondary" id="upgradeAllBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">⟳ Alle aktualisieren</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
@@ -3254,9 +3255,10 @@ els.exportSettingsBtn.onclick = async () => {
 els.importSettingsBtn.onclick = async () => {
   const file = els.bkFile.files && els.bkFile.files[0];
   const password = els.bkPass.value;
-  if (!file) { setBackupInfo('Bitte zuerst die Sicherungsdatei auswählen.', true); return; }
-  if (!password) { setBackupInfo('Bitte das Kennwort der Sicherung eintragen.', true); return; }
-  if (!confirm('Die Sicherung überschreibt vorhandene Einstellungen und Figuren. Fortfahren?')) return;
+  if (!file) { els.importSettingsBtn.dataset.mode = ''; setBackupInfo('Bitte zuerst die Sicherungsdatei auswählen.', true); return; }
+  if (!password) { els.importSettingsBtn.dataset.mode = ''; setBackupInfo('Bitte das Kennwort der Sicherung eintragen.', true); return; }
+  const portraitsOnly = els.importSettingsBtn.dataset.mode === 'portraits';
+  if (!confirm(portraitsOnly ? 'Aus der Sicherung nur die Porträts (und fehlende Figuren) übernehmen? Alles andere bleibt, wie es jetzt ist.' : 'Die Sicherung überschreibt vorhandene Einstellungen und Figuren. Fortfahren?')) { els.importSettingsBtn.dataset.mode = ''; return; }
 
   els.importSettingsBtn.disabled = true;
   els.bkInfo.textContent = 'Entschlüssele...';
@@ -3273,6 +3275,14 @@ els.importSettingsBtn.onclick = async () => {
       throw e;
     }
     els.bkInfo.textContent = 'Stelle wieder her...';
+    if (els.importSettingsBtn.dataset.mode === 'portraits') {
+      els.importSettingsBtn.dataset.mode = '';
+      const msg = await mergePortraitsFromBackup(bundle);
+      setBackupInfo(msg, true);
+      try { renderFigureList(); } catch (e) {}
+      els.importSettingsBtn.disabled = false;
+      return;
+    }
     const summary = await restoreBackup(bundle);
     els.bkInfo.textContent = `Wiederhergestellt: ${summary}. Die Seite wird neu geladen.`;
     setTimeout(() => location.reload(), 1200);
@@ -3281,6 +3291,8 @@ els.importSettingsBtn.onclick = async () => {
   }
   els.importSettingsBtn.disabled = false;
 };
+
+document.getElementById('importPortraitsBtn').onclick = () => { els.importSettingsBtn.dataset.mode = 'portraits'; els.importSettingsBtn.click(); };
 
 els.saveSettingsBtn.onclick = () => {
   try {
@@ -3394,8 +3406,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.79';
+const APP_VERSION = '1.81';
 const CHANGELOG = [
+  { v: '1.81', date: '2026-10-06', items: [
+    'Figuren aufgeräumt: oben nur noch „💘 Durchswipen" und „⟳ Alle aktualisieren" nebeneinander. „Frühere Porträts zurückholen" und „Heute zurücksetzen" sind wieder weg (einzelne frühere Versionen gibt es weiter in der Figurenkarte).',
+    'Die Gerätebalken am Rand erscheinen nur noch im Live-Bereich und in der Geschichte - nicht mehr auf Start, Figuren und den anderen Seiten.',
+  ]},
+  { v: '1.80', date: '2026-10-06', items: [
+    'Sicherung: neuer Knopf „Nur Porträts übernehmen". Holt aus einer älteren Sicherung die Porträts in voller Größe (und Figuren, die es hier nicht mehr gibt) - ohne den Rest anzufassen: Messdaten, Spiele, Galerie, Einstellungen, neue Figuren und heutige Änderungen bleiben. Es entstehen keine neuen Versionen; die Bild-Merkmale werden aus den zurückgeholten Porträts neu erkannt.',
+  ]},
   { v: '1.79', date: '2026-10-06', items: [
     '↩︎ Heute zurücksetzen & neu aufbereiten (unter Figuren): Für alle Figuren, die heute verändert wurden, werden die heutigen Versionen verworfen und der Stand davor wird wiederhergestellt - mit dem alten Porträt in voller Größe (aus der alten Version oder der Galerie). Gute Ergänzungen von heute (Markenzeichen, Tonfall-Beispiele, Stimmbeschreibung) werden übernommen, wo der alte Stand nichts hatte; Bild-Merkmale und feste Bildbeschreibung entstehen neu aus dem alten Porträt. Auch „Alle Figuren auf aktuellen Stand" fragt beim ersten Mal am Tag danach.',
   ]},
@@ -4471,6 +4490,40 @@ async function readEncryptedBackup(buffer, password) {
     throw new Error('Falsches Kennwort oder beschädigte Datei.');
   }
   return JSON.parse(new TextDecoder().decode(plain));
+}
+
+// Nur Porträts (und fehlende Figuren) aus einer Sicherung übernehmen - nichts
+// anderes wird angefasst, es entstehen keine neuen Versionen.
+async function mergePortraitsFromBackup(bundle) {
+  let oldArchive = [];
+  try { oldArchive = JSON.parse((bundle.settings || {}).companion_figureArchive || '[]'); } catch (e) {}
+  if (!oldArchive.length) throw new Error('In dieser Sicherung sind keine Figuren.');
+  const imgs = new Map((bundle.images || []).map(e => [e.k, e]));
+  const latestOf = f => f.versions.slice().sort((a, b) => b.v - a.v)[0];
+  let swapped = 0, added = 0, thumbOnly = 0; const touched = [];
+  for (const of of oldArchive) {
+    const ov = latestOf(of); if (!ov) continue;
+    const cur = figureArchive.find(f => f.id === of.id) || figureArchive.find(f => (latestVersion(f) || {}).name === ov.name);
+    if (!cur) {
+      // Figur gibt es hier nicht mehr: komplett zurückholen (mit ihren Bildern)
+      for (const v of of.versions) { if (v.imageKey && imgs.has(v.imageKey)) { const e = imgs.get(v.imageKey); await dbPut(STORE_IMAGES, v.imageKey, base64ToBlob(e.b, e.t)); } }
+      figureArchive.push(of); added++; touched.push(of.id); continue;
+    }
+    const cv = latestVersion(cur);
+    if (!ov.image || ov.image === cv.image) continue;
+    let key = '';
+    if (ov.imageKey && imgs.has(ov.imageKey)) { const e = imgs.get(ov.imageKey); key = 'img_' + cur.id + '_bk' + Date.now(); await dbPut(STORE_IMAGES, key, base64ToBlob(e.b, e.t)); }
+    else thumbOnly++;
+    cv.image = ov.image; cv.imageKey = key;
+    cv.lookTag = ''; cv.lookTagSrc = ''; cv.phantom = {};
+    swapped++; touched.push(cur.id);
+  }
+  saveArchive(); hiResCache.clear();
+  characters = characters.map(x => x.figureId && touched.includes(x.figureId) ? characterFromVersion(getFigure(x.figureId)) : x);
+  saveCharacters();
+  // Merkmale aus den zurückgeholten Porträts neu erkennen (im Hintergrund)
+  (async () => { for (const id of touched) { try { await autoPhantom(id, 'Porträt aus Sicherung'); } catch (e) {} } })();
+  return `${swapped} Porträts übernommen${thumbOnly ? ` (${thumbOnly} nur als Vorschau - in dieser Sicherung waren die Bilder nicht dabei)` : ''}${added ? `, ${added} fehlende Figuren zurückgeholt` : ''}. Alles andere ist unverändert.`;
 }
 
 async function restoreBackup(bundle) {
@@ -14939,6 +14992,7 @@ function showOnly(which) {
   els.liveStage.style.display = conversational && localStorage.getItem('companion_liveStage') !== 'false' ? 'flex' : 'none';
   setTab(which === 'story' ? 'live' : which);
   document.body.classList.toggle('in-live', conversational);
+  document.body.classList.toggle('off-stage', !conversational);
   figuresOpen = which === 'figures';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -15993,7 +16047,7 @@ Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
   return { name: v.name, changed };
 }
 async function upgradeAllFigures(btn) {
-  if (rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
+  if (false && rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
     safeSet('companion_rollbackAsked_' + startOfToday(), '1');
     if (confirm(`${rollbackCandidates().length} Figuren wurden heute schon verändert. Sollen die heutigen Versionen verworfen und vom Stand davor (mit dem alten Porträt) neu aufbereitet werden?\n\nOK = vom Stand vor heute ausgehen · Abbrechen = wie gehabt nur ergänzen`)) { await rollbackAndRefresh(btn); return; }
   }
@@ -16004,7 +16058,7 @@ async function upgradeAllFigures(btn) {
     if (btn) btn.textContent = `Aktualisiere ${i + 1} von ${list.length} …`;
     try { const r = await upgradeFigure(list[i], true); if (r && r.changed.length) report.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) { report.push(`${latestVersion(list[i]).name}: Fehler (${e.message})`); }
   }
-  if (btn) btn.textContent = '⟳ Alle Figuren auf aktuellen Stand';
+  if (btn) btn.textContent = '⟳ Alle aktualisieren';
   renderFigureList();
   alert(report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.');
 }
@@ -18082,8 +18136,7 @@ document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
-document.getElementById('restorePortraitsBtn').onclick = (e) => restoreAllPreviousPortraits(e.currentTarget);
-document.getElementById('rollbackBtn').onclick = (e) => {
+if (document.getElementById('rollbackBtn')) document.getElementById('rollbackBtn').onclick = (e) => {
   const n = rollbackCandidates().length;
   if (!n) { alert('Heute wurde keine Figur verändert, die es schon vorher gab.'); return; }
   if (!confirm(`${n} Figuren wurden heute verändert. Für alle: heutige Versionen verwerfen, vom Stand davor ausgehen (mit dem alten Porträt), Markenzeichen/Tonfall/Stimmbeschreibung von heute übernehmen, wo der alte Stand nichts hatte, und die Bild-Merkmale aus dem alten Porträt neu erkennen?\n\nHeutige Porträts bleiben in der Galerie.`)) return;
