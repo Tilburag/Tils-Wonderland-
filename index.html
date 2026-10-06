@@ -1353,15 +1353,8 @@
 
     <details class="subsection">
       <summary>🧩 Figuren-Konfigurator</summary>
-      <p class="hint" style="margin-top:8px;">Wie sollen neue Figuren gebaut sein? Wähle pro Merkmal, was dir gefällt - neue Figuren werden nur daraus gewürfelt. Was du offen lässt, bleibt offen (oder wird frei gewürfelt, je nach Modus). Aus einer Zeichnung übernimmt die Figur immer das, was du gezeichnet hast.</p>
-      <div style="display:flex; align-items:center; gap:8px; margin:8px 0;">
-        <span style="font-size:13.5px; flex:0 0 44%;">Neue Figuren</span>
-        <select id="cfgMode" style="flex:1;">
-          <option value="prefs">aus meinen Vorlieben würfeln</option>
-          <option value="random">frei würfeln</option>
-          <option value="off">nichts festlegen</option>
-        </select>
-      </div>
+      <p class="hint" style="margin-top:8px;">Optional: Was dir an Figuren gefällt. Der Figuren-Generator (und „Auf mich optimierte Figur") wählt das Aussehen neuer Figuren dann bevorzugt daraus - es steht ganz normal in ihrer Beschreibung. Nichts gewählt = freie Wahl. Bei einer Zeichnung gilt immer, was du gezeichnet hast.</p>
+      <select id="cfgMode" style="display:none;"><option value="prefs">prefs</option></select>
       <div id="cfgFields"></div>
     </details>
 
@@ -1404,6 +1397,19 @@
 
     <details class="subsection">
       <summary>Bilder</summary>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
+        <input type="checkbox" id="refPortfolio" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Portfolio: Porträt als Vorlage verwenden</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:6px 0 0 0;">
+        <input type="checkbox" id="refScenes" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Auch Szenenbilder mit genau einer Figur</span>
+      </label>
+      <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0;">
+        <span style="font-size:13px; flex:0 0 44%;">Bearbeitungsmodell</span>
+        <input type="text" id="refModel" placeholder="qwen-image-2-edit" style="flex:1;">
+      </div>
+      <p class="hint">Venice-Bildbearbeitung (experimentell): Das Porträt geht als Vorlage mit, damit Gesicht und Körper gleich bleiben. Lehnt das Modell ab oder scheitert es, entsteht das Bild wie bisher aus der Beschreibung. Im Protokoll steht, welcher Weg genommen wurde. Andere Modelle zum Ausprobieren: qwen-image-2-pro-edit, firered-image-edit.</p>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="padImages" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Szenenbilder in der Mond-Ansicht</span>
@@ -1660,6 +1666,8 @@
       <div class="btn-row" style="margin:0 0 10px;">
         <button class="btn-primary" id="swipeOpenBtn" type="button">💘 Durchswipen</button>
         <button class="btn-secondary" id="upgradeAllBtn" type="button">⟳ Alle Figuren auf aktuellen Stand</button>
+        <button class="btn-secondary" id="restorePortraitsBtn" type="button">🕘 Frühere Porträts zurückholen</button>
+        <button class="btn-secondary" id="rollbackBtn" type="button">↩︎ Heute zurücksetzen &amp; neu aufbereiten</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
@@ -3386,8 +3394,24 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.75';
+const APP_VERSION = '1.79';
 const CHANGELOG = [
+  { v: '1.79', date: '2026-10-06', items: [
+    '↩︎ Heute zurücksetzen & neu aufbereiten (unter Figuren): Für alle Figuren, die heute verändert wurden, werden die heutigen Versionen verworfen und der Stand davor wird wiederhergestellt - mit dem alten Porträt in voller Größe (aus der alten Version oder der Galerie). Gute Ergänzungen von heute (Markenzeichen, Tonfall-Beispiele, Stimmbeschreibung) werden übernommen, wo der alte Stand nichts hatte; Bild-Merkmale und feste Bildbeschreibung entstehen neu aus dem alten Porträt. Auch „Alle Figuren auf aktuellen Stand" fragt beim ersten Mal am Tag danach.',
+  ]},
+  { v: '1.78', date: '2026-10-06', items: [
+    '🕘 Frühere Versionen in der Figurenkarte: jede ältere Version mit ihrem Porträt. „Nur Bild" holt das alte Porträt in die aktuelle Version zurück, „Wiederherstellen" macht die alte Version wieder zur aktuellen - neuere Felder (Markenzeichen, Stimmbeschreibung, Merkmale …) werden ergänzt, wo die alte nichts hatte.',
+    'Unter Figuren: „🕘 Frühere Porträts zurückholen" für alle auf einmal. Das Original wird gesucht (alte Version oder Porträt in der Galerie); das aktuelle bleibt in der Galerie.',
+    'Ein neues Porträt überschreibt das alte Original nicht mehr - frühere Versionen behalten ihr Bild in voller Auflösung.',
+  ]},
+  { v: '1.77', date: '2026-10-06', items: [
+    'Porträt als Vorlage (Venice-Bildbearbeitung, experimentell): Das Portfolio nimmt das Porträt als Vorlage, damit Gesicht und Körper gleich bleiben - auf Wunsch auch Szenenbilder mit genau einer Figur. Lehnt das Modell ab, entsteht das Bild wie bisher. Einstellungen → Bilder.',
+    'Feste Bildbeschreibung ausführlicher (55-90 Wörter, Gesicht bis Körper in fester Reihenfolge) - bestehende werden beim nächsten Bild einmal neu erzeugt. Die automatischen Bild-Merkmale sind nur noch Ergänzung und überstimmen die Beschreibung nicht mehr.',
+  ]},
+  { v: '1.76', date: '2026-10-06', items: [
+    'Bild-Merkmale jetzt vollautomatisch: Kein Formular und kein Würfeln mehr im Editor. Die App erkennt die festen Merkmale selbst - aus dem Porträt (wie sie wirklich aussieht), sonst aus der Aussehens-Beschreibung - bei neuen Figuren, nach jedem neuen Porträt und wenn du das Aussehen änderst. Im Editor siehst du nur, was erkannt wurde, mit „↻ neu erkennen".',
+    'Figuren-Konfigurator: Deine Vorlieben fließen jetzt in die Beschreibung neuer Figuren ein, die der Generator schreibt - statt nachträglich gewürfelt zu werden.',
+  ]},
   { v: '1.75', date: '2026-10-06', items: [
     'Karten des Abends: Fehlt ein Bild (fehlgeschlagen oder Karten wieder geöffnet), malt die App es jetzt nach - eins nach dem anderen. Bis dahin zeigt die Karte das Porträt der Figur statt Schwarz; „↻ Bild" malt es neu. Fehler stehen im Protokoll.',
     'Karten des Abends: Text und Knopf ragen nicht mehr über den Rand, die Kopfzeile mit „Neu mischen" bleibt immer sichtbar.',
@@ -10426,7 +10450,7 @@ function castAgeProblems() {
 
 function addFigureToArchive(c) {
   setTimeout(() => { try { const f = figureArchive[figureArchive.length - 1]; const v = f && latestVersion(f); if (v && !v.isUser && !v.isNarrator && v.name === c.name && apiKeyFor('companion_apiKey_venice')) queuePortfolio(f.id); } catch (e) {} }, 1500);
-  if (c && !c.isUser && !c.isNarrator && (!c.phantom || !Object.keys(c.phantom).length) && localStorage.getItem('companion_autoPhantom') !== 'false') { try { rollPhantom(c, true); } catch (e) {} }
+  if (c && !c.isUser && !c.isNarrator && (!c.phantom || !Object.keys(c.phantom).length)) setTimeout(() => { try { const f = figureArchive.find(x => (latestVersion(x) || {}).name === c.name); if (f) autoPhantom(f.id, 'neue Figur'); } catch (e) {} }, 2500);
   const figure = { id: newFigureId(), versions: [versionFromCharacter(c, 1)] };
   figureArchive.push(figure);
   return figure;
@@ -10446,6 +10470,8 @@ function storeCharacterVersion(c, asNewVersion) {
     saveArchive();
     return figure.versions[0];
   }
+  const prevLook = (latestVersion(figure) || {}).appearance || '';
+  if (!c.isUser && !c.isNarrator && (c.appearance || '') !== prevLook) setTimeout(() => autoPhantom(figure.id, 'Aussehen geändert'), 800);
   if (asNewVersion) {
     const next = Math.max(...figure.versions.map(x => x.v)) + 1;
     const version = versionFromCharacter(c, next);
@@ -10896,7 +10922,7 @@ function buildSceneImageRequest(momentText, castOverride, framing) {
     const looks = looksAll.replace(/^\s*Kleidung\s*:.*$/mi, '').trim();
     const intim = c.isUser && intimatePhrase(c) ? ` Intimbereich - nur verwenden, wenn er im Bild nackt und dieser Bereich sichtbar ist, dann WÖRTLICH: "${intimatePhrase(c)}".` : '';
     const phantom = phantomPhrase(c.phantom, PHANTOM_FIELDS);
-    const fixedFeat = phantom ? ` FESTE MERKMALE - immer wörtlich und vollständig übernehmen, sie haben Vorrang vor allem anderen Aussehen: "${phantom}".` : '';
+    const fixedFeat = phantom ? ` Ergänzende Merkmale - nur verwenden, wo die feste Bildbeschreibung nichts dazu sagt, nie im Widerspruch dazu: "${phantom}".` : '';
     return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}${intim}${fixedFeat}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
   }).join('\n');
   // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
@@ -11059,6 +11085,39 @@ function splitState(out) {
 }
 
 async function makeSceneImage(momentText, castOverride) {
+  // Genau eine Figur mit Porträt im Bild? Dann zuerst über die Vorlage versuchen.
+  if (refOn('scene') && !makeSceneImage._noRef) {
+    const figs = (castOverride || characters).filter(c => !c.isUser && !c.isNarrator);
+    const f = figs.length === 1 && figs[0].figureId ? getFigure(figs[0].figureId) : null;
+    const fv = f && latestVersion(f);
+    if (fv && fv.imageKey) {
+      try {
+        makeSceneImage._noRef = true;
+        const plain = await makeSceneImage._promptOnly(momentText, castOverride);
+        const ref = await loadFullImage(fv.imageKey);
+        const url = await editFromReference(ref, referencePrompt(plain));
+        logEvent('msg', { role: 'system', text: `Szenenbild über Vorlage (${refModel()}).` });
+        try { setPadImage(url); } catch (e) {}
+        galleryAdd(url, 'image', [f.id], momentText ? 'Geschichte' : 'Szenenbild');
+        return { dataUrl: url, prompt: plain };
+      } catch (e) {
+        logEvent('msg', { role: 'system', text: 'Szenenbild: Vorlage ging nicht (' + e.message + ') - erzeuge aus der Beschreibung.' });
+      } finally { makeSceneImage._noRef = false; }
+    }
+  }
+  return makeSceneImageText(momentText, castOverride);
+}
+// Nur den Bild-Prompt schreiben (für die Vorlage)
+makeSceneImage._promptOnly = async function (momentText, castOverride) {
+  const recentForFraming = momentText || history.slice(-4).map(m => String(m.content || '')).join(' ');
+  const framing = nextFraming(recentForFraming);
+  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride, framing) + STATE_RULE, 'Gib den Bild-Prompt zurück, danach die STAND-Zeile.', 0.7, 1300);
+  const sp = splitState(prompt);
+  if (sp.state && !momentText) sceneImageMemory.state = sp.state;
+  sceneImageMemory.framings.push(framing[0]); if (sceneImageMemory.framings.length > 6) sceneImageMemory.framings.shift();
+  return sp.prompt.replace(/\s*Adults only\.?\s*$/i, '');
+};
+async function makeSceneImageText(momentText, castOverride) {
   const castForTags = (castOverride || characters).filter(x => !x.isNarrator);
   for (const c of castForTags) { try { await ensureLookTag(c); } catch (e) {} }
   const key = apiKeyFor('companion_apiKey_venice');
@@ -11118,7 +11177,7 @@ async function makeSceneImage(momentText, castOverride) {
     let d = ''; try { d = JSON.stringify(await res.clone().json()).slice(0, 160); } catch (e) {}
     logEvent('msg', { role: 'system', text: 'Bildfehler 400 mit Startwert (' + d + ') - versuche ohne.' });
     sceneImageMemory.seed = 0;
-    return makeSceneImage(momentText, castOverride);
+    return makeSceneImageText(momentText, castOverride);
   }
   if (!res.ok) {
     let detail = '';
@@ -11615,9 +11674,11 @@ async function ensureLookTag(c) {
   // ist, wird verworfen und neu erzeugt.
   // Auch verworfen: ein wahres Alter wie "235-year-old" - Bildmodelle malen
   // dann eine alte Frau, obwohl die Figur jung wirken soll.
-  const valid = t => t && !looksLikeThinking(t) && !/let me|the user/i.test(t) && t.length <= 420
+  const valid = t => t && !looksLikeThinking(t) && !/let me|the user/i.test(t) && t.length <= 760
     && !/\b(?:[7-9]\d|\d{3,})[- ]year[- ]old\b/i.test(t);
-  if (c.lookTag && c.lookTagSrc === src && valid(c.lookTag)) return c.lookTag;
+  // Regel 2: ausführlichere Beschreibung - ältere, kürzere werden einmal neu erzeugt
+  const rule = 'r2:' + src;
+  if (c.lookTag && c.lookTagSrc === rule && valid(c.lookTag)) return c.lookTag;
   if (c.lookTag && !valid(c.lookTag)) { c.lookTag = ''; c.lookTagSrc = ''; }
   const figure = c.figureId ? getFigure(c.figureId) : null;
   const version = figure ? findVersion(figure, c.version || latestVersion(figure).v) : null;
@@ -11625,8 +11686,8 @@ async function ensureLookTag(c) {
     version.lookTag = ''; version.lookTagSrc = '';
     try { saveArchive(); } catch (e) {}
   }
-  if (version && version.lookTag && version.lookTagSrc === src && valid(version.lookTag)) {
-    c.lookTag = version.lookTag; c.lookTagSrc = src;
+  if (version && version.lookTag && version.lookTagSrc === rule && valid(version.lookTag)) {
+    c.lookTag = version.lookTag; c.lookTagSrc = rule;
     return c.lookTag;
   }
   if (!(c.appearance || '').trim()) return '';
@@ -11637,15 +11698,15 @@ async function ensureLookTag(c) {
 
 ${gender ? 'Geschlecht: ' + gender + '\n' : ''}Aussehen: ${String(c.appearance).slice(0, APPEARANCE_MAX)}
 
-Regeln: 30 bis 50 Wörter, kommagetrennt. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), dann Typ bzw. Herkunft, Geschlecht und das Alter, wie die Figur WIRKT, in einem Zug ("adult 26-year-old Mediterranean woman", "adult 29-year-old Scandinavian man") - bei langlebigen Fantasiewesen nie ihr wahres Alter, sondern das scheinbare in Menschenjahren - der Typ gehört unbedingt dazu, sonst malen manche Bildmodelle standardmäßig ostasiatische Gesichter, dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
+Regeln: 55 bis 90 Wörter, kommagetrennt, sehr genau - so genau, dass zwei Bilder dieselbe Person zeigen. Reihenfolge: Gesicht (Form, Wangenknochen, Kinn), Augen (Form, Farbe, Brauen), Nase, Lippen, Haare (Farbe, Länge, Struktur, Frisur), Haut (Ton, Sommersprossen, Male), Körper (Größe, Statur, Brust, Taille, Hüfte, Po, Beine), Besonderheiten. Nur feste, sichtbare Merkmale: zuerst Art (bei Fantasiewesen mit Hautfarbe und nicht-menschlichen Merkmalen), dann Typ bzw. Herkunft, Geschlecht und das Alter, wie die Figur WIRKT, in einem Zug ("adult 26-year-old Mediterranean woman", "adult 29-year-old Scandinavian man") - bei langlebigen Fantasiewesen nie ihr wahres Alter, sondern das scheinbare in Menschenjahren - der Typ gehört unbedingt dazu, sonst malen manche Bildmodelle standardmäßig ostasiatische Gesichter, dann Gesichtsform, Augen, Nase, Lippen, Haare, Statur, Körper, Hautmerkmale mit Stelle. KEINE Kleidung, KEINE Pose, KEIN Ort, KEINE Stimmung. Die Figur ist erwachsen.
 Antworte NUR mit der Beschreibung, ohne Anführungszeichen.`,
     'Gib die Kurzbeschreibung zurück.', 0.2, 400);
-  let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
+  let tag = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 760);
   if (!tag || !valid(tag)) return '';
   if (!/\badult/i.test(tag)) tag = 'adult ' + tag;
-  c.lookTag = tag; c.lookTagSrc = src;
+  c.lookTag = tag; c.lookTagSrc = rule;
   if (version) {
-    version.lookTag = tag; version.lookTagSrc = src;
+    version.lookTag = tag; version.lookTagSrc = rule;
     try { saveArchive(); } catch (e) {}
   }
   logEvent('msg', { role: 'system', text: `Feste Bildbeschreibung für ${c.name}: ${tag}` });
@@ -11731,10 +11792,10 @@ async function generateCharacterImage(c, button) {
 
     const full = 'data:image/webp;base64,' + base64;
     c.image = await downscaleDataUrl(full, 512);
-    dropFullImage(c.imageKey);
-    c.imageKey = await storeFullImage(c.id, full);
+    // Altes Porträt bleibt erhalten (ältere Versionen zeigen weiter darauf)
+    c.imageKey = await storeFullImage(c.id + '_' + Date.now(), full);
     storeCharacterVersion(c, false);
-    if (c.figureId) galleryAdd(full, 'image', [c.figureId], 'Porträt');
+    if (c.figureId) { galleryAdd(full, 'image', [c.figureId], 'Porträt'); setTimeout(() => autoPhantom(c.figureId, 'neues Porträt'), 500); }
     syncCastFromEdit(c);
     renderCharacters();
     if (figuresOpen) renderFigureList();
@@ -12282,29 +12343,19 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     card.appendChild(styleArea);
 
     if (!c.isUser && !c.isNarrator) {
-      const ph = document.createElement('details');
-      ph.style.cssText = 'border:1px solid var(--line); border-radius:14px; padding:8px 12px; margin-top:12px;';
-      ph.innerHTML = '<summary style="cursor:pointer; font-size:14.5px;">🧩 Phantombild - Gesicht und Körper fürs Bild</summary><p class="hint" style="margin:6px 0;">Feste Merkmale machen sie auf jedem Bild wiedererkennbar. Was offen bleibt, nimmt das Bildmodell aus dem Aussehen oben.</p>';
-      const prev = document.createElement('p'); prev.className = 'hint';
-      const upd = () => { prev.textContent = phantomPhrase(c.phantom, PHANTOM_FIELDS) ? 'Fürs Bild: ' + phantomPhrase(c.phantom, PHANTOM_FIELDS) : ''; };
-      let editor = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd);
-      ph.appendChild(editor);
-      const row = document.createElement('div'); row.className = 'btn-row';
-      const dice = document.createElement('button'); dice.type = 'button'; dice.className = 'btn-secondary'; dice.textContent = '🎲 Würfeln';
-      dice.onclick = () => { rollPhantom(c); const ne = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd); ph.replaceChild(ne, editor); editor = ne; upd(); };
-      const fromImg = document.createElement('button'); fromImg.type = 'button'; fromImg.className = 'btn-secondary'; fromImg.textContent = '📷 Aus Bild';
-      const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.style.display = 'none';
-      fromImg.onclick = () => fi.click();
-      fi.onchange = async () => {
-        if (!fi.files.length) return;
-        fromImg.disabled = true; fromImg.textContent = 'Schaue …';
-        try { c.phantom = await phantomFromImage(await readImageFile(fi.files[0], 1024), PHANTOM_FIELDS, 'Foto, Porträt oder Zeichnung einer erwachsenen Person'); const ne = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd); ph.replaceChild(ne, editor); editor = ne; upd(); fromImg.textContent = '✓ Aus Bild'; }
-        catch (e) { fromImg.textContent = 'Fehler'; alert(e.message || e); }
-        finally { fromImg.disabled = false; fi.value = ''; }
-      };
-      row.append(dice, fromImg, fi);
-      ph.append(row, prev); upd();
-      card.appendChild(ph);
+      // Bild-Merkmale: werden automatisch erkannt - hier nur zur Info
+      const box = document.createElement('div');
+      box.style.cssText = 'margin-top:12px; padding:10px 12px; border:1px solid var(--line); border-radius:14px; font-size:12.5px; color:var(--text-dim);';
+      const phr = phantomPhrase(c.phantom, PHANTOM_FIELDS);
+      box.innerHTML = `<div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin-bottom:4px;">Bild-Merkmale · automatisch</div>${phr ? esc(phr) : 'Werden beim Speichern aus Porträt und Aussehen erkannt.'}`;
+      if (c.figureId) {
+        const re = document.createElement('button'); re.type = 'button'; re.className = 'btn-secondary';
+        re.style.cssText = 'width:auto; margin-top:8px; padding:6px 12px; font-size:12.5px;';
+        re.textContent = '↻ neu erkennen';
+        re.onclick = async () => { re.disabled = true; re.textContent = 'Erkenne …'; await autoPhantom(c.figureId, 'von Hand'); const v2 = latestVersion(getFigure(c.figureId)); c.phantom = v2 && v2.phantom; box.firstChild.nextSibling.textContent = phantomPhrase(c.phantom, PHANTOM_FIELDS) || '–'; re.textContent = '✓ erkannt'; re.disabled = false; };
+        box.appendChild(re);
+      }
+      card.appendChild(box);
     }
 
     if (!c.isUser) {
@@ -13101,6 +13152,11 @@ Antworte NUR mit JSON:
 {"name": "...", "gender": "...", "appearance": "...", "notes": "...", "userStyle": "..."}`;
 }
 
+function prefsHint() {
+  const P = phantomPrefs(); const parts = [];
+  PHANTOM_FIELDS.forEach(d => { const sel = (P[d.k] || []).map(en => (d.opts.find(o => o[0] === en) || [])[1]).filter(Boolean); if (sel.length) parts.push(`${d.label}: ${sel.join(' oder ')}`); });
+  return parts.length ? `\n\nVORLIEBEN DES NUTZERS fürs Aussehen (bevorzugt daraus wählen, sofern die Idee nichts anderes vorgibt; abwechslungsreich kombinieren): ${parts.join('; ')}.` : '';
+}
 function buildFigureDraftPrompt(idea) {
   const traitList = TRAIT_GROUPS
     .map(g => `${g.label}: ` + g.traits.map(([id, text]) => `"${id}" (${text})`).join(', '))
@@ -13143,7 +13199,7 @@ els.genFigureBtn.onclick = async () => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const extra = attempt === 0 ? '' : `\n\nPFLICHT: Die Figur ist mindestens ${MIN_AGE} Jahre alt und wird durchgehend als erwachsen beschrieben - in Aussehen, Notizen und Beispielzeilen.`;
       const raw = await callProvider(
-        provider, (asMe ? buildMeDraftPrompt(idea) : buildFigureDraftPrompt(idea)) + extra,
+        provider, (asMe ? buildMeDraftPrompt(idea) : buildFigureDraftPrompt(idea) + prefsHint()) + extra,
         [{ role: 'user', content: 'Gib die Figur als JSON zurück.' }],
         0.8, taskBudget('draft', 4500), { persona: true, task: 'draft' }
       );
@@ -15807,6 +15863,43 @@ function renderConfigurator() {
     wrap.appendChild(chips); host.appendChild(wrap);
   });
 }
+// ---------- Automatisch: Merkmale aus Porträt oder Beschreibung ----------
+// Du füllst nichts aus. Gibt es ein Porträt, liest das Bildverstehen die
+// Merkmale daraus (so sieht sie tatsächlich aus); sonst ordnet das Textmodell
+// die Aussehens-Beschreibung den festen Begriffen zu.
+async function phantomFromText(v) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Ordne diese Beschreibung einer erwachsenen Person festen Merkmalen zu - je Feld GENAU EINE der erlaubten Optionen (wörtlich) oder weglassen, wenn die Beschreibung dazu nichts sagt. Nichts erfinden.
+Geschlecht: ${v.gender || '?'}
+Aussehen:
+${v.appearance || ''}
+${optionsList(PHANTOM_FIELDS)}
+Antworte NUR als JSON-Objekt.`;
+  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.1, taskBudget('draft', 500), { task: 'draft' })) || {};
+  const out = {};
+  PHANTOM_FIELDS.forEach(d => { if (d.opts.some(o => o[0] === j[d.k])) out[d.k] = j[d.k]; });
+  return out;
+}
+const autoPhantomBusy = new Set();
+async function autoPhantom(figureId, why) {
+  if (autoPhantomBusy.has(figureId)) return;
+  const f = figureArchive.find(x => x.id === figureId); const v = f && latestVersion(f);
+  if (!v || v.isUser || v.isNarrator) return;
+  autoPhantomBusy.add(figureId);
+  try {
+    let ph = {};
+    if ((v.appearance || '').trim()) { try { ph = await phantomFromText(v); } catch (e) {} }
+    if (v.imageKey) {
+      try { const u = await loadFullImage(v.imageKey); if (u) ph = Object.assign(ph, await phantomFromImage(u, PHANTOM_FIELDS, 'Porträt der Figur')); } catch (e) {}
+    }
+    if (Object.keys(ph).length) {
+      const cur = latestVersion(f); cur.phantom = ph; saveArchive();
+      logEvent('msg', { role: 'system', text: `Bild-Merkmale für ${v.name} automatisch erkannt (${why}): ${phantomPhrase(ph, PHANTOM_FIELDS)}` });
+      try { if (figuresOpen) renderFigureList(); } catch (e) {}
+    }
+  } finally { autoPhantomBusy.delete(figureId); }
+}
+
 function rollPhantom(c, auto) {
   const P = phantomPrefs(), mode = phantomMode();
   if (auto && mode === 'off') return;
@@ -15867,7 +15960,7 @@ async function upgradeFigure(figure, quiet) {
   const v = latestVersion(figure); if (!v || v.isUser) return null;
   const c = characterFromVersion(figure);
   const missing = [];
-  if (!v.isNarrator && (!v.phantom || !Object.keys(v.phantom).length)) missing.push('phantom');
+  if (!v.isNarrator && (!v.phantom || !Object.keys(v.phantom).length)) { setTimeout(() => autoPhantom(figure.id, 'Aktualisierung'), 0); }
   if (!v.isNarrator && !(v.signature || '').trim()) missing.push('signature');
   if (!(v.styleExamples || '').trim()) missing.push('styleExamples');
   if (!(v.voiceDescription || '').trim()) missing.push('voiceDescription');
@@ -15900,6 +15993,10 @@ Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
   return { name: v.name, changed };
 }
 async function upgradeAllFigures(btn) {
+  if (rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
+    safeSet('companion_rollbackAsked_' + startOfToday(), '1');
+    if (confirm(`${rollbackCandidates().length} Figuren wurden heute schon verändert. Sollen die heutigen Versionen verworfen und vom Stand davor (mit dem alten Porträt) neu aufbereitet werden?\n\nOK = vom Stand vor heute ausgehen · Abbrechen = wie gehabt nur ergänzen`)) { await rollbackAndRefresh(btn); return; }
+  }
   const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser; });
   if (!confirm(`${list.length} Figuren prüfen und fehlende Felder ergänzen? Für jede, bei der etwas fehlt, entsteht eine neue Version - die alte bleibt erhalten.`)) return;
   const report = [];
@@ -15910,6 +16007,141 @@ async function upgradeAllFigures(btn) {
   if (btn) btn.textContent = '⟳ Alle Figuren auf aktuellen Stand';
   renderFigureList();
   alert(report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.');
+}
+
+// ======================= FRÜHERE VERSIONEN =======================
+// Das Originalbild einer älteren Version finden: über ihren eigenen Schlüssel
+// oder - falls der inzwischen überschrieben wurde - über das Porträt in der
+// Galerie, das vor der neueren Version entstanden ist.
+async function fullImageKeyFor(figure, old, newer) {
+  if (old.imageKey && (!newer || old.imageKey !== newer.imageKey)) { const u = await loadFullImage(old.imageKey).catch(() => null); if (u) return old.imageKey; }
+  const before = newer && newer.created ? Date.parse(newer.created) : Date.now();
+  const g = galleryFor(figure.id).filter(x => x.type === 'image' && /Porträt/.test(x.note || '') && x.t <= before + 60000).sort((a, b) => b.t - a.t)[0];
+  if (!g) return '';
+  const blob = await dbGet(STORE_IMAGES, g.key).catch(() => null);
+  if (!blob) return '';
+  const key = 'img_' + figure.id + '_r' + Date.now();
+  await dbPut(STORE_IMAGES, key, blob);
+  return key;
+}
+// Nur das Bild einer älteren Version in die aktuelle übernehmen
+async function restoreImageFrom(figure, vnum) {
+  const cur = latestVersion(figure), old = findVersion(figure, vnum);
+  if (!old || !old.image) return false;
+  const newerThanOld = figure.versions.filter(x => x.v > old.v).sort((a, b) => a.v - b.v)[0];
+  const key = await fullImageKeyFor(figure, old, newerThanOld);
+  cur.image = old.image; cur.imageKey = key || '';
+  cur.lookTag = ''; cur.lookTagSrc = '';
+  saveArchive();
+  hiResCache.clear();
+  setTimeout(() => autoPhantom(figure.id, 'Bild zurückgeholt'), 300);
+  return true;
+}
+// Ganze ältere Version wiederherstellen - neue Felder aus der aktuellen ergänzen
+async function restoreVersion(figure, vnum) {
+  const cur = latestVersion(figure), old = findVersion(figure, vnum);
+  if (!old) return false;
+  const c = characterFromVersion(figure, vnum, old.isUser);
+  ['signature', 'styleExamples', 'voiceDescription', 'intimate', 'userStyle'].forEach(k => { if (!(c[k] || '').trim() && (cur[k] || '').trim()) c[k] = cur[k]; });
+  if ((!c.phantom || !Object.keys(c.phantom).length) && cur.phantom) c.phantom = Object.assign({}, cur.phantom);
+  if ((!c.intimateFields || !Object.keys(c.intimateFields).length) && cur.intimateFields) c.intimateFields = Object.assign({}, cur.intimateFields);
+  if (!c.elevenVoice && cur.elevenVoice) c.elevenVoice = cur.elevenVoice;
+  if (old.image) { const newer = figure.versions.filter(x => x.v > old.v).sort((a, b) => a.v - b.v)[0]; c.image = old.image; c.imageKey = await fullImageKeyFor(figure, old, newer); }
+  c.lookTag = ''; c.lookTagSrc = '';
+  storeCharacterVersion(c, true);
+  saveArchive(); hiResCache.clear();
+  return true;
+}
+// ---------- Heute zurücksetzen und neu aufbereiten ----------
+// Für jede Figur: alle heute entstandenen Versionen verwerfen, vom letzten
+// Stand davor ausgehen (samt dessen Porträt), Gutes von heute übernehmen
+// (Markenzeichen, Tonfall, Stimmbeschreibung - wo der alte Stand nichts hatte)
+// und die Bild-Merkmale aus dem alten Porträt neu erkennen.
+function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function todaysVersions(f) { const cut = startOfToday(); return f.versions.filter(x => x.created && Date.parse(x.created) >= cut); }
+function rollbackCandidates() {
+  const cut = startOfToday();
+  return figureArchive.filter(f => { const v = latestVersion(f); if (!v || v.isUser) return false; const t = todaysVersions(f); return t.length && f.versions.some(x => !x.created || Date.parse(x.created) < cut); });
+}
+async function rollbackAndRefresh(btn) {
+  const cand = rollbackCandidates();
+  if (!cand.length) { alert('Heute wurde keine Figur verändert, die es schon vorher gab.'); return 0; }
+  const cut = startOfToday();
+  let n = 0; const report = [];
+  for (const f of cand) {
+    if (btn) btn.textContent = `Setze zurück … ${n + 1}/${cand.length}`;
+    try {
+      const today = todaysVersions(f).sort((a, b) => b.v - a.v);
+      const newestToday = today[0];
+      const base = f.versions.filter(x => !x.created || Date.parse(x.created) < cut).sort((a, b) => b.v - a.v)[0];
+      // Originalporträt von vorher sichern, bevor die heutigen Versionen verschwinden
+      let key = '';
+      if (base.image) {
+        const sameKey = today.some(x => x.imageKey && x.imageKey === base.imageKey);
+        if (base.imageKey && !sameKey && await loadFullImage(base.imageKey).catch(() => null)) key = base.imageKey;
+        else {
+          const g = galleryFor(f.id).filter(x => x.type === 'image' && /Porträt/.test(x.note || '') && x.t < cut).sort((a, b) => b.t - a.t)[0];
+          const blob = g && await dbGet(STORE_IMAGES, g.key).catch(() => null);
+          if (blob) { key = 'img_' + f.id + '_r' + Date.now(); await dbPut(STORE_IMAGES, key, blob); }
+        }
+      }
+      // Heutige Versionen verwerfen (ihre Bilder bleiben in der Galerie)
+      f.versions = f.versions.filter(x => !today.includes(x));
+      const c = characterFromVersion(f, base.v, false);
+      ['signature', 'styleExamples', 'voiceDescription'].forEach(k => { if (!(c[k] || '').trim() && (newestToday[k] || '').trim()) c[k] = newestToday[k]; });
+      if (!c.elevenVoice && newestToday.elevenVoice) c.elevenVoice = newestToday.elevenVoice;
+      c.image = base.image; c.imageKey = key;
+      c.lookTag = ''; c.lookTagSrc = ''; c.phantom = {};
+      storeCharacterVersion(c, true);
+      saveArchive();
+      // Besetzung auf den neuen Stand bringen
+      characters = characters.map(x => x.figureId === f.id ? characterFromVersion(f) : x);
+      n++; report.push(`${base.name}: Stand vom ${new Date(base.created || Date.now()).toLocaleDateString('de-DE')}${key ? ', Porträt in voller Größe' : (base.image ? ', Porträt nur als Vorschau' : '')}`);
+    } catch (e) { report.push(`${(latestVersion(f) || {}).name}: Fehler (${e.message})`); }
+  }
+  saveCharacters(); hiResCache.clear();
+  // Fehlende Felder ergänzen und Merkmale aus dem (alten) Porträt erkennen
+  for (let i = 0; i < cand.length; i++) {
+    if (btn) btn.textContent = `Bereite neu auf … ${i + 1}/${cand.length}`;
+    try { await upgradeFigure(cand[i], true); } catch (e) {}
+    try { await autoPhantom(cand[i].id, 'zurückgesetzt'); } catch (e) {}
+  }
+  if (btn) btn.textContent = '↩︎ Heute zurücksetzen & neu aufbereiten';
+  try { renderFigureList(); } catch (e) {}
+  alert(`${n} Figuren auf den Stand vor heute zurückgesetzt und neu aufbereitet:\n` + report.join('\n'));
+  return n;
+}
+
+async function restoreAllPreviousPortraits(btn) {
+  const cand = figureArchive.filter(f => { const vs = f.versions.slice().sort((a, b) => b.v - a.v); return vs.length > 1 && vs.slice(1).some(x => x.image && x.image !== vs[0].image); });
+  if (!cand.length) { alert('Keine Figur hat in einer früheren Version ein anderes Porträt.'); return; }
+  if (!confirm(`${cand.length} Figuren haben in einer früheren Version ein anderes Porträt. Für alle das jeweils letzte frühere Porträt zurückholen? Das aktuelle bleibt in der Galerie.`)) return;
+  let n = 0;
+  for (const f of cand) {
+    const vs = f.versions.slice().sort((a, b) => b.v - a.v);
+    const prev = vs.slice(1).find(x => x.image && x.image !== vs[0].image);
+    if (btn) btn.textContent = `Hole zurück … ${n + 1}/${cand.length}`;
+    try { if (await restoreImageFrom(f, prev.v)) n++; } catch (e) {}
+  }
+  if (btn) btn.textContent = '🕘 Frühere Porträts zurückholen';
+  renderFigureList();
+  alert(`${n} Porträts zurückgeholt. Wo das Original nicht mehr da war, ist es das (kleinere) Vorschaubild - dann lohnt sich ein Blick in die Galerie der Figur („Als Porträt").`);
+}
+function renderVersions(host, figure) {
+  const vs = figure.versions.slice().sort((a, b) => b.v - a.v);
+  if (vs.length < 2) { host.innerHTML = ''; return; }
+  host.innerHTML = `<details style="margin-top:18px;"><summary style="cursor:pointer; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">🕘 Frühere Versionen (${vs.length - 1})</summary><div id="verList"></div></details>`;
+  const list = host.querySelector('#verList');
+  vs.slice(1).forEach(old => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line);';
+    const date = old.created ? new Date(old.created).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+    row.innerHTML = `${old.image ? `<img src="${old.image}" alt="" style="width:48px; height:64px; object-fit:cover; border-radius:8px;">` : '<div style="width:48px; height:64px; border-radius:8px; background:var(--bg);"></div>'}<div style="flex:1; font-size:13px;">Version ${old.v}${date ? ' · ' + date : ''}<div style="font-size:12px; color:var(--text-dim);">${old.image && old.image !== vs[0].image ? 'anderes Porträt' : 'gleiches Porträt'}</div></div>`;
+    const mk = (t, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; padding:6px 10px; font-size:12.5px;'; b.textContent = t; b.onclick = fn; return b; };
+    if (old.image && old.image !== vs[0].image) row.appendChild(mk('Nur Bild', async (e) => { e.currentTarget.disabled = true; await restoreImageFrom(figure, old.v); showFigureCard(figure); }));
+    row.appendChild(mk('Wiederherstellen', async (e) => { if (!confirm(`Version ${old.v} als neue Version wiederherstellen? Neuere Felder (Markenzeichen, Stimme …) werden ergänzt, wo die alte Version nichts hatte.`)) return; e.currentTarget.disabled = true; await restoreVersion(figure, old.v); showFigureCard(figure); }));
+    list.appendChild(row);
+  });
 }
 
 // ======================= PORTFOLIO =======================
@@ -15934,6 +16166,29 @@ async function generateImageDirect(prompt, seed, noRetry) {
   if (!b64) throw new Error('Kein Bild erhalten.');
   return 'data:image/webp;base64,' + b64;
 }
+// ---------- Porträt als Vorlage (Venice /image/edit) ----------
+function refModel() { return (localStorage.getItem('companion_refModel') || '').trim() || 'qwen-image-2-edit'; }
+function refOn(kind) { return localStorage.getItem(kind === 'scene' ? 'companion_refScenes' : 'companion_refPortfolio') === (kind === 'scene' ? 'true' : 'true') || (kind !== 'scene' && localStorage.getItem('companion_refPortfolio') === null); }
+async function editFromReference(refDataUrl, prompt) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  if (!key) throw new Error('Kein Venice-Schlüssel.');
+  const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/edit', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: refModel(), prompt: prompt.slice(0, 1400), image: String(refDataUrl).split(',')[1] }),
+  });
+  if (!res.ok) { let d = ''; try { d = (await res.text()).slice(0, 200); } catch (e) {} throw new Error('Bearbeitung ' + res.status + (d ? ': ' + d : '')); }
+  if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('vom Anbieter unkenntlich gemacht');
+  const ct = res.headers.get('content-type') || '';
+  let blob;
+  if (/json/.test(ct)) { const j = await res.json(); const b64 = (j.images && j.images[0]) || (j.data && j.data[0] && j.data[0].b64_json); if (!b64) throw new Error('kein Bild in der Antwort'); blob = await (await fetch('data:image/png;base64,' + b64)).blob(); }
+  else blob = await res.blob();
+  if (!blob || blob.size < 2000) throw new Error('leeres Bild');
+  return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+}
+function referencePrompt(shot) {
+  return `Use the woman in the reference image as the exact same person: keep her face, facial features, hair, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
+}
+
 const PORTFOLIO_SHOTS = [
   ['Porträt', 'professional portrait photo, head and shoulders, wearing {outfit}, soft studio light, shallow depth of field, looking into the camera'],
   ['Outfit', 'full body fashion photo, standing, wearing {outfit}, {pose}, elegant interior, natural light'],
@@ -15950,11 +16205,25 @@ async function makePortfolio(figure, btn) {
   const pose = st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
   const nudepose = st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side on the bed, tender look' : 'kneeling on the bed, playful smile';
   let n = 0;
-  for (let i = 0; i < PORTFOLIO_SHOTS.length; i++) {
+  // Das vorhandene Porträt als Vorlage - das erste Bild (Porträt) ist es dann selbst
+  let ref = null;
+  if (refOn('portfolio') && v.imageKey) { try { ref = await loadFullImage(v.imageKey); } catch (e) {} }
+  if (ref) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } catch (e) {} }
+  for (let i = ref ? 1 : 0; i < PORTFOLIO_SHOTS.length; i++) {
     if (btn) btn.textContent = `Fotografiere ${i + 1}/4 …`;
     const [label, tpl] = PORTFOLIO_SHOTS[i];
     const prompt = `Photorealistic, adult woman. ${look}. ${tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose)}. Adults only.`;
-    try { const url = await generateImageDirect(prompt, seedFor(figure.id)); await galleryAdd(url, 'image', [figure.id], 'Portfolio · ' + label); n++; } catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): ${e.message}` }); }
+    let url = null, how = 'Beschreibung';
+    if (ref && i > 0) {
+      try { url = await editFromReference(ref, referencePrompt(tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose))); how = 'Vorlage (' + refModel() + ')'; }
+      catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.` }); }
+    }
+    try {
+      if (!url) url = await generateImageDirect(prompt, seedFor(figure.id));
+      await galleryAdd(url, 'image', [figure.id], 'Portfolio · ' + label);
+      logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}) über ${how}.` });
+      n++;
+    } catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): ${e.message}` }); }
   }
   if (btn) btn.textContent = n ? `✓ ${n} Bilder in der Galerie` : 'Fehlgeschlagen';
   return n;
@@ -16302,6 +16571,7 @@ function showFigureCard(figure) {
       ${v.signature ? `<div style="margin-top:14px; padding:12px; border-radius:14px; background:var(--bg); border:1px solid var(--line);"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14px; line-height:1.45; margin-top:4px;">${esc(v.signature)}</div></div>` : ''}
       ${bal.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">${bal.map(b => `<span class="chip" style="height:30px; font-size:12px;">${esc(b)}</span>`).join('')}</div>` : ''}
       <div id="fcDiary"></div>
+      <div id="fcVersions"></div>
       <div id="fcSounds"></div>
       <div id="fcGallery"></div>
     </div>
@@ -16331,6 +16601,7 @@ function showFigureCard(figure) {
   };
   if (!v.isUser) renderFigureSounds(document.getElementById('fcSounds'), v);
   renderDiary(document.getElementById('fcDiary'), figure);
+  renderVersions(document.getElementById('fcVersions'), figure);
   document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
   document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; showFigures(); openFigureEditor(figure); };
   const cb = document.getElementById('fcCast');
@@ -17797,6 +18068,11 @@ els.homeLiveBtn.onclick = () => { switchMode('live'); els.liveStartBtn.click(); 
 els.liveSetupChip.onclick = () => { els.liveSetup.style.display = ''; els.liveSetup.open = true; els.liveSetupChip.style.display = 'none'; };
 els.homeStoryBtn.onclick = () => switchMode('story');
 els.homeSurpriseBtn.onclick = rollSurprise;
+{ const rp = document.getElementById('refPortfolio'), rs = document.getElementById('refScenes'), rm = document.getElementById('refModel');
+  rp.checked = localStorage.getItem('companion_refPortfolio') !== 'false'; rs.checked = localStorage.getItem('companion_refScenes') === 'true'; rm.value = localStorage.getItem('companion_refModel') || '';
+  rp.onchange = () => safeSet('companion_refPortfolio', rp.checked ? 'true' : 'false');
+  rs.onchange = () => safeSet('companion_refScenes', rs.checked ? 'true' : 'false');
+  rm.oninput = () => safeSet('companion_refModel', rm.value.trim()); }
 document.getElementById('homePitchBtn').onclick = () => openPitches(false);
 document.getElementById('ptRefresh').onclick = () => openPitches(true);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
@@ -17806,6 +18082,13 @@ document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
+document.getElementById('restorePortraitsBtn').onclick = (e) => restoreAllPreviousPortraits(e.currentTarget);
+document.getElementById('rollbackBtn').onclick = (e) => {
+  const n = rollbackCandidates().length;
+  if (!n) { alert('Heute wurde keine Figur verändert, die es schon vorher gab.'); return; }
+  if (!confirm(`${n} Figuren wurden heute verändert. Für alle: heutige Versionen verwerfen, vom Stand davor ausgehen (mit dem alten Porträt), Markenzeichen/Tonfall/Stimmbeschreibung von heute übernehmen, wo der alte Stand nichts hatte, und die Bild-Merkmale aus dem alten Porträt neu erkennen?\n\nHeutige Porträts bleiben in der Galerie.`)) return;
+  rollbackAndRefresh(e.currentTarget);
+};
 document.getElementById('autoPortfolio').checked = localStorage.getItem('companion_autoPortfolio') !== 'false';
 document.getElementById('autoPortfolio').onchange = (e) => safeSet('companion_autoPortfolio', e.target.checked ? 'true' : 'false');
 renderConfigurator();
