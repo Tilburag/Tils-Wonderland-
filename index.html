@@ -838,9 +838,13 @@
   .sw-dots span.on { background: #fff; }
   .sw-back { position: absolute; inset: 0; padding: 22px; overflow-y: auto; background: var(--bg-panel-raised); }
   /* Karten des Abends */
-  .pt-card { position: relative; height: 100%; scroll-snap-align: start; overflow: hidden; }
-  .pt-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .pt-card .pt-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 20px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(transparent, rgba(8,5,6,0.95) 45%); }
+  #ptList { overflow-x: hidden; }
+  .pt-card { position: relative; height: 100%; width: 100%; scroll-snap-align: start; overflow: hidden; box-sizing: border-box; }
+  .pt-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; }
+  .pt-card .pt-info { position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; max-width: 100%; padding: 80px 20px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(transparent, rgba(8,5,6,0.95) 45%); overflow-wrap: anywhere; }
+  .pt-card .pt-info .btn-row { margin-right: 0; }
+  .pt-card .pt-info .btn-row button { width: 100%; }
+  .pt-wait { position: absolute; top: 45%; left: 0; right: 0; text-align: center; color: var(--text-dim); font-size: 13px; }
   /* Mond-Farbspiel */
   #padGlow { position: absolute; inset: 0; pointer-events: none; opacity: 0.25; transition: background 2s ease, opacity 1.5s ease; animation: padBreath 2s ease-in-out infinite; }
   @keyframes padBreath { 0%,100% { filter: brightness(0.8); } 50% { filter: brightness(1.25); } }
@@ -1892,7 +1896,7 @@
   </div>
 </div>
 <div id="pitchView" style="display:none; position:fixed; inset:0; z-index:2043; background:#0b0709;">
-  <div style="position:absolute; top:0; left:0; right:0; z-index:3; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 8px; background:linear-gradient(#0b0709, transparent);">
+  <div style="position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 14px; background:linear-gradient(rgba(11,7,9,0.95) 60%, transparent);">
     <button type="button" class="btn-secondary" id="ptBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
     <h1 style="margin:0; font-weight:600; font-size:24px; flex:1;">Karten des Abends</h1>
     <button type="button" class="btn-secondary" id="ptRefresh" style="width:auto; height:40px; padding:0 14px; font-size:13.5px;">🔄 Neu mischen</button>
@@ -3382,8 +3386,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.73';
+const APP_VERSION = '1.75';
 const CHANGELOG = [
+  { v: '1.75', date: '2026-10-06', items: [
+    'Karten des Abends: Fehlt ein Bild (fehlgeschlagen oder Karten wieder geöffnet), malt die App es jetzt nach - eins nach dem anderen. Bis dahin zeigt die Karte das Porträt der Figur statt Schwarz; „↻ Bild" malt es neu. Fehler stehen im Protokoll.',
+    'Karten des Abends: Text und Knopf ragen nicht mehr über den Rand, die Kopfzeile mit „Neu mischen" bleibt immer sichtbar.',
+  ]},
+  { v: '1.74', date: '2026-10-06', items: [
+    'Behoben: Portfolio-Bilder scheiterten mit „Bildfehler 400" - der feste Startwert (Seed) lag über der Grenze, die Venice erlaubt. Das betraf seit 1.69 auch die Szenenbilder. Jetzt im erlaubten Bereich; lehnt das Modell den Startwert trotzdem ab, versucht die App es ohne, und der genaue Fehlertext landet im Protokoll.',
+  ]},
   { v: '1.73', date: '2026-10-05', items: [
     'Duell und Turnier halten die Zeit ein: Beim Zugwechsel wird die laufende Antwort sofort beendet, die nächste Figur übernimmt direkt. Kurz vor Ende eines Zugs beginnt keine neue lange Antwort mehr, und die Figuren fassen sich kürzer, je weniger Zeit bleibt. Dadurch stimmt auch die Puls-Zuordnung zu den Figuren.',
   ]},
@@ -10835,7 +10846,8 @@ let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
 // Das letzte Bild (als Beschreibung) und der zuletzt genannte Ort gehen mit,
 // damit Ort, Licht und Kleidung nicht ohne Grund springen. Der Bildausschnitt
 // wechselt reihum, damit nicht jedes Bild dieselbe Totale ist.
-const sceneImageMemory = { prompt: '', framings: [], state: '', seed: Math.floor(Math.random() * 2147483647) };
+const SEED_MAX = 999999999;
+const sceneImageMemory = { prompt: '', framings: [], state: '', seed: 1 + Math.floor(Math.random() * SEED_MAX) };
 const FRAMINGS = [
   ['wide', 'eine weite Aufnahme, die den ganzen Ort und alle Personen zeigt'],
   ['medium', 'eine halbnahe Aufnahme von der Hüfte aufwärts, Körper und Gesichter'],
@@ -11098,9 +11110,16 @@ async function makeSceneImage(momentText, castOverride) {
       safe_mode: false,
       hide_watermark: true,
       // Gleicher Seed im ganzen Gespräch: Gesichter und Stil bleiben ähnlicher
-      seed: sceneImageMemory.seed,
+      ...(sceneImageMemory.seed ? { seed: sceneImageMemory.seed } : {}),
     })
   });
+  if (res.status === 400 && sceneImageMemory.seed) {
+    // Lehnt das Modell den Startwert ab, ohne ihn weiter - lieber ein Bild als keins
+    let d = ''; try { d = JSON.stringify(await res.clone().json()).slice(0, 160); } catch (e) {}
+    logEvent('msg', { role: 'system', text: 'Bildfehler 400 mit Startwert (' + d + ') - versuche ohne.' });
+    sceneImageMemory.seed = 0;
+    return makeSceneImage(momentText, castOverride);
+  }
   if (!res.ok) {
     let detail = '';
     try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
@@ -15894,17 +15913,21 @@ async function upgradeAllFigures(btn) {
 }
 
 // ======================= PORTFOLIO =======================
-function seedFor(id) { let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return Math.abs(h) % 2147483647; }
-async function generateImageDirect(prompt, seed) {
+function seedFor(id) { let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return 1 + (Math.abs(h) % SEED_MAX); }
+async function generateImageDirect(prompt, seed, noRetry) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) throw new Error('Kein Venice-Schlüssel.');
   const model = modelFor('companion_imageModel') || 'venice-sd35';
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
     method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, prompt: prompt.slice(0, 1400), negative_prompt: 'child, teen, minor, young-looking, childlike, text, watermark, distorted face, extra limbs, deformed hands'
-      + (/\b(nude|naked)\b/i.test(prompt) ? ', clothes, clothing, bra, panties' : ''), width: 832, height: 1216, format: 'webp', safe_mode: false, hide_watermark: true, seed }),
+      + (/\b(nude|naked)\b/i.test(prompt) ? ', clothes, clothing, bra, panties' : ''), width: 832, height: 1216, format: 'webp', safe_mode: false, hide_watermark: true, ...(seed ? { seed } : {}) }),
   });
-  if (!res.ok) throw new Error('Bildfehler ' + res.status);
+  if (!res.ok) {
+    let d = ''; try { d = JSON.stringify(await res.json()).slice(0, 200); } catch (e) {}
+    if (res.status === 400 && seed && !noRetry) return generateImageDirect(prompt, 0, true);
+    throw new Error('Bildfehler ' + res.status + (d ? ': ' + d : ''));
+  }
   if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('Vom Anbieter unkenntlich gemacht.');
   const body = await res.json();
   const b64 = (Array.isArray(body.images) && body.images[0]) || (body.data && body.data[0] && body.data[0].b64_json);
@@ -16055,22 +16078,30 @@ Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..
   const old = pitchesToday();
   const P = { day: dayKeyLocal(), cards, refreshes: (old ? old.refreshes || 0 : 0) + (old ? 1 : 0) };
   safeSet('companion_pitches', JSON.stringify(P));
-  // Bilder nach und nach
-  (async () => {
-    for (let i = 0; i < P.cards.length; i++) {
-      try {
-        const cast = P.cards[i].cast.map(n => characterFromVersion(figureByName(n))).filter(Boolean);
-        const { dataUrl } = await makeSceneImage(P.cards[i].scene, cast);
-        await dbPut(STORE_IMAGES, 'pitch_' + P.day + '_' + i, await (await fetch(dataUrl)).blob());
-        const el = document.getElementById('ptImg' + i); if (el) el.src = dataUrl;
-      } catch (e) {}
-    }
-  })();
-  return P;
+  return P;   // die Bilder holt renderPitches nach und nach
+}
+const pitchBusy = new Set();
+let pitchChain = Promise.resolve();
+function pitchImage(P, i, force) { pitchChain = pitchChain.then(() => pitchImageNow(P, i, force)).catch(() => {}); return pitchChain; }
+async function pitchImageNow(P, i, force) {
+  const id = P.day + '_' + i;
+  if (pitchBusy.has(id)) return;
+  pitchBusy.add(id);
+  const wait = document.getElementById('ptWait' + i);
+  if (wait) wait.textContent = 'Bild entsteht …';
+  try {
+    const cast = P.cards[i].cast.map(n => figureByName(n)).filter(Boolean).map(f => characterFromVersion(f));
+    const { dataUrl } = await makeSceneImage(P.cards[i].scene, cast);
+    await dbPut(STORE_IMAGES, 'pitch_' + id, await (await fetch(dataUrl)).blob());
+    const el = document.getElementById('ptImg' + i); if (el) { el.dataset.scene = '1'; el.src = dataUrl; }
+    const w2 = document.getElementById('ptWait' + i); if (w2) w2.textContent = '';
+  } catch (e) {
+    logEvent('msg', { role: 'system', text: `Karte ${i + 1}: Bild fehlgeschlagen - ${e.message}` });
+    if (wait) wait.textContent = 'Kein Bild bekommen - unten „↻ Bild" versuchen';
+  } finally { pitchBusy.delete(id); }
 }
 function renderPitches(P) {
   els.ptList.innerHTML = '';
-  if (P.refreshes >= 3) els.ptList.insertAdjacentHTML('beforeend', '');
   P.cards.forEach((c, i) => {
     const card = document.createElement('div'); card.className = 'pt-card';
     card.innerHTML = `<img id="ptImg${i}" alt=""><div class="pt-info">
@@ -16081,8 +16112,19 @@ function renderPitches(P) {
       <div class="btn-row" style="margin-top:14px;"><button type="button" class="btn-primary" data-i="${i}">Diese Karte spielen</button></div>
       ${i === P.cards.length - 1 ? `<p class="hint" style="margin-top:10px;">Das waren die Karten für heute${P.refreshes ? ` (heute ${P.refreshes}× neu gemischt)` : ''}.</p>` : ''}</div>`;
     els.ptList.appendChild(card);
-    dbGet(STORE_IMAGES, 'pitch_' + P.day + '_' + i).then(b => { if (b) card.querySelector('img').src = URL.createObjectURL(b); }).catch(() => {});
+    card.insertAdjacentHTML('afterbegin', `<div class="pt-wait" id="ptWait${i}"></div>`);
+    const img = card.querySelector('img');
+    // Bis das Szenenbild da ist: das Porträt der ersten Figur statt Schwarz
+    const f0 = figureByName(c.cast[0]); if (f0) hiResUrl(latestVersion(f0)).then(u => { if (u && !img.dataset.scene) img.src = u; });
+    dbGet(STORE_IMAGES, 'pitch_' + P.day + '_' + i).then(b => {
+      if (b) { img.dataset.scene = '1'; img.src = URL.createObjectURL(b); }
+      else pitchImage(P, i);   // fehlt (fehlgeschlagen oder noch nicht fertig) - jetzt nachholen
+    }).catch(() => {});
     card.querySelector('button[data-i]').onclick = () => playPitch(c);
+    const redo = document.createElement('button'); redo.type = 'button'; redo.className = 'btn-secondary'; redo.textContent = '↻ Bild';
+    redo.style.cssText = 'width:auto; flex:0 0 auto; padding:12px 16px;';
+    redo.onclick = () => pitchImage(P, i, true);
+    card.querySelector('.btn-row').appendChild(redo);
   });
 }
 function playPitch(c) {
@@ -16416,7 +16458,7 @@ els.navNewChat.onclick = () => {
   setAmbience(null);
   setMusic(null);
   motionWish.active = false; motionWish.rampStart = 0;
-  sceneImageMemory.prompt = ''; sceneImageMemory.framings = []; sceneImageMemory.state = ''; sceneImageMemory.seed = Math.floor(Math.random() * 2147483647);
+  sceneImageMemory.prompt = ''; sceneImageMemory.framings = []; sceneImageMemory.state = ''; sceneImageMemory.seed = 1 + Math.floor(Math.random() * SEED_MAX);
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
