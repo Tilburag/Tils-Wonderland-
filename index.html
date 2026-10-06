@@ -3406,8 +3406,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.81';
+const APP_VERSION = '1.82';
 const CHANGELOG = [
+  { v: '1.82', date: '2026-10-06', items: [
+    'Behoben: „Nur Porträts übernehmen" übersprang Figuren, deren Vorschaubild schon dem der Sicherung glich - auch wenn das Original in voller Größe fehlte (etwa nach dem Zurücksetzen). Jetzt wird dann das scharfe Original aus der Sicherung ergänzt. Die Meldung sagt genau, was passiert ist (getauscht, ergänzt, schon gleich, Bilder fehlen in der Sicherung).',
+  ]},
   { v: '1.81', date: '2026-10-06', items: [
     'Figuren aufgeräumt: oben nur noch „💘 Durchswipen" und „⟳ Alle aktualisieren" nebeneinander. „Frühere Porträts zurückholen" und „Heute zurücksetzen" sind wieder weg (einzelne frühere Versionen gibt es weiter in der Figurenkarte).',
     'Die Gerätebalken am Rand erscheinen nur noch im Live-Bereich und in der Geschichte - nicht mehr auf Start, Figuren und den anderen Seiten.',
@@ -4500,7 +4503,7 @@ async function mergePortraitsFromBackup(bundle) {
   if (!oldArchive.length) throw new Error('In dieser Sicherung sind keine Figuren.');
   const imgs = new Map((bundle.images || []).map(e => [e.k, e]));
   const latestOf = f => f.versions.slice().sort((a, b) => b.v - a.v)[0];
-  let swapped = 0, added = 0, thumbOnly = 0; const touched = [];
+  let swapped = 0, added = 0, thumbOnly = 0, matched = 0, same = 0, fullAdded = 0, noImage = 0; const touched = [];
   for (const of of oldArchive) {
     const ov = latestOf(of); if (!ov) continue;
     const cur = figureArchive.find(f => f.id === of.id) || figureArchive.find(f => (latestVersion(f) || {}).name === ov.name);
@@ -4510,9 +4513,18 @@ async function mergePortraitsFromBackup(bundle) {
       figureArchive.push(of); added++; touched.push(of.id); continue;
     }
     const cv = latestVersion(cur);
-    if (!ov.image || ov.image === cv.image) continue;
+    matched++;
+    if (!ov.image) { noImage++; continue; }
+    const hasFull = ov.imageKey && imgs.has(ov.imageKey);
+    if (ov.image === cv.image) {
+      // Gleiches Bild - aber fehlt hier das Original in voller Größe? Dann ergänzen.
+      const curFull = cv.imageKey ? await loadFullImage(cv.imageKey).catch(() => null) : null;
+      if (!curFull && hasFull) { const e = imgs.get(ov.imageKey); const key = 'img_' + cur.id + '_bk' + Date.now(); await dbPut(STORE_IMAGES, key, base64ToBlob(e.b, e.t)); cv.imageKey = key; cv.lookTag = ''; cv.lookTagSrc = ''; fullAdded++; touched.push(cur.id); }
+      else same++;
+      continue;
+    }
     let key = '';
-    if (ov.imageKey && imgs.has(ov.imageKey)) { const e = imgs.get(ov.imageKey); key = 'img_' + cur.id + '_bk' + Date.now(); await dbPut(STORE_IMAGES, key, base64ToBlob(e.b, e.t)); }
+    if (hasFull) { const e = imgs.get(ov.imageKey); key = 'img_' + cur.id + '_bk' + Date.now(); await dbPut(STORE_IMAGES, key, base64ToBlob(e.b, e.t)); }
     else thumbOnly++;
     cv.image = ov.image; cv.imageKey = key;
     cv.lookTag = ''; cv.lookTagSrc = ''; cv.phantom = {};
@@ -4523,7 +4535,13 @@ async function mergePortraitsFromBackup(bundle) {
   saveCharacters();
   // Merkmale aus den zurückgeholten Porträts neu erkennen (im Hintergrund)
   (async () => { for (const id of touched) { try { await autoPhantom(id, 'Porträt aus Sicherung'); } catch (e) {} } })();
-  return `${swapped} Porträts übernommen${thumbOnly ? ` (${thumbOnly} nur als Vorschau - in dieser Sicherung waren die Bilder nicht dabei)` : ''}${added ? `, ${added} fehlende Figuren zurückgeholt` : ''}. Alles andere ist unverändert.`;
+  const parts = [`${swapped} Porträts getauscht`];
+  if (fullAdded) parts.push(`${fullAdded} Porträts in voller Größe ergänzt (Bild war schon da, nur nicht scharf)`);
+  if (added) parts.push(`${added} fehlende Figuren zurückgeholt`);
+  if (same) parts.push(`${same} waren schon gleich`);
+  if (thumbOnly) parts.push(`${thumbOnly} nur als Vorschau - Bilder fehlen in der Sicherung`);
+  if (noImage) parts.push(`${noImage} ohne Porträt in der Sicherung`);
+  return parts.join(', ') + `. (Sicherung: ${oldArchive.length} Figuren, ${imgs.size} Bilddateien, ${matched} zugeordnet.) Alles andere ist unverändert.`;
 }
 
 async function restoreBackup(bundle) {
