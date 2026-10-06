@@ -790,6 +790,7 @@
   .text-input-row { gap: 8px; align-items: center; }
   .text-input-row input[type=text] { height: 46px; border-radius: 23px; padding: 0 16px; min-width: 0; }
   .dock-round { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--text); cursor: pointer; }
+  @media (max-width: 380px) { .dock-round { flex-basis: 42px; width: 42px; height: 42px; font-size: 17px; } .text-input-row { gap: 6px; } }
   .dock-main { flex-basis: 50px; width: 50px; height: 50px; background: var(--accent); border-color: var(--accent); color: #fff; font-size: 20px; }
   .talk-btn.dock-round { min-width: 0; min-height: 0; line-height: 1; box-shadow: none; }
   .talk-btn.dock-round.active { background: var(--stop); border-color: var(--stop); }
@@ -828,6 +829,22 @@
   .sp-dice { display: inline-block; animation: spDice 0.6s linear infinite; }
   @keyframes spDice { from { transform: rotate(0); } to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { #surpriseSheet *, #surpriseSheet > div { animation: none !important; } }
+  /* Swipen */
+  .sw-card { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: var(--bg-panel-raised); box-shadow: 0 16px 40px rgba(0,0,0,0.5); transition: transform 0.25s ease, opacity 0.25s ease; }
+  .sw-card img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
+  .sw-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 60px 18px 18px; background: linear-gradient(transparent, rgba(10,6,8,0.92)); }
+  .sw-dots { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; gap: 4px; }
+  .sw-dots span { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.35); }
+  .sw-dots span.on { background: #fff; }
+  .sw-back { position: absolute; inset: 0; padding: 22px; overflow-y: auto; background: var(--bg-panel-raised); }
+  /* Karten des Abends */
+  .pt-card { position: relative; height: 100%; scroll-snap-align: start; overflow: hidden; }
+  .pt-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pt-card .pt-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 20px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(transparent, rgba(8,5,6,0.95) 45%); }
+  /* Mond-Farbspiel */
+  #padGlow { position: absolute; inset: 0; pointer-events: none; opacity: 0.25; transition: background 2s ease, opacity 1.5s ease; animation: padBreath 2s ease-in-out infinite; }
+  @keyframes padBreath { 0%,100% { filter: brightness(0.8); } 50% { filter: brightness(1.25); } }
+  @media (prefers-reduced-motion: reduce) { #padGlow { animation: none; } }
   /* Kartendetail */
   #figCard { display: none; position: fixed; inset: 0; z-index: 2050; background: var(--bg); overflow-y: auto; }
   #figCard .fc-hero { position: relative; height: 46vh; min-height: 280px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 140px; }
@@ -839,6 +856,14 @@
 </style>
 </head>
 <body>
+<div id="limitScreen" style="display:none; position:fixed; inset:0; z-index:99998; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:28px; text-align:center;
+  font-family:-apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color:#3b3a30;
+  background-color:#fdf3b5; background-image:linear-gradient(90deg, transparent 46px, #f0a8a0 46px, #f0a8a0 48px, transparent 48px), repeating-linear-gradient(180deg, transparent 0 31px, #b9d3e8 31px 32px);">
+  <div style="font-size:24px; font-weight:600;">Notizen</div>
+  <div id="limitTitle" style="font-size:18px;">Für heute ist Schluss.</div>
+  <div id="limitText" style="font-size:15px; line-height:1.55; max-width:340px; color:#5b5847;"></div>
+  <div id="limitIdeas" style="font-size:14px; line-height:1.6; max-width:340px; color:#6d6a55; margin-top:6px;"></div>
+</div>
 <div id="lockScreen" style="position:fixed; inset:0; z-index:99999; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; user-select:none; -webkit-user-select:none;
   font-family:-apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color:#3b3a30;
   background-color:#fdf3b5; background-image:linear-gradient(90deg, transparent 46px, #f0a8a0 46px, #f0a8a0 48px, transparent 48px), repeating-linear-gradient(180deg, transparent 0 31px, #b9d3e8 31px 32px);">
@@ -1260,6 +1285,44 @@
 
     </details>
     <details class="subsection">
+      <summary>⏳ Gesunder Umgang</summary>
+      <p class="hint" id="wellStatus" style="margin-top:8px;"></p>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Tageslimit</span>
+        <select id="wellLimit" style="flex:1;">
+          <option value="0">keins</option><option value="30">30 Minuten</option><option value="45">45 Minuten</option><option value="60">1 Stunde</option>
+          <option value="90">1,5 Stunden</option><option value="120">2 Stunden</option><option value="180">3 Stunden</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Pause vorschlagen nach</span>
+        <select id="wellBreak" style="flex:1;">
+          <option value="0">nie</option><option value="20">20 Minuten</option><option value="30">30 Minuten</option><option value="45">45 Minuten</option><option value="60">1 Stunde</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Nachtruhe (gesperrt)</span>
+        <select id="wellNight" style="flex:1;">
+          <option value="">keine</option><option value="23">23 bis 6 Uhr</option><option value="0">0 bis 6 Uhr</option><option value="1">1 bis 6 Uhr</option><option value="2">2 bis 6 Uhr</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Freie Tage pro Woche (gesperrt)</span>
+        <select id="wellFree" style="flex:1;">
+          <option value="">keine</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Nach dem Höhepunkt</span>
+        <select id="wellAfter" style="flex:1;">
+          <option value="0">weiter wie bisher</option><option value="30">30 Minuten Pause</option><option value="120">2 Stunden Pause</option><option value="day">Feierabend für heute</option>
+        </select>
+      </div>
+      <p class="hint">Strengere Grenzen gelten sofort. Lockerungen - höheres Limit, weniger Nachtruhe, Grenze abschalten - gelten erst <b>ab dem nächsten Tag</b>. So lassen sie sich nicht im Moment umgehen. Kurz vor dem Limit leiten die Figuren einen Abschluss ein, dann ist bis zum nächsten Morgen (5 Uhr) Schluss.</p>
+      <p class="hint" id="wellPending"></p>
+    </details>
+
+    <details class="subsection">
       <summary>🔒 Sperre (PIN)</summary>
       <p class="hint" id="pinStatus" style="margin-top:8px;">Keine PIN gesetzt.</p>
       <label for="pinOld">Aktuelle PIN</label>
@@ -1282,6 +1345,20 @@
         <button class="btn-secondary" id="pinDelBtn" type="button">PIN entfernen</button>
       </div>
       <p class="hint">Die PIN wird nicht gespeichert, nur ein nicht umkehrbarer Fingerabdruck davon. Die Sperre schützt vor neugierigen Blicken auf deinem Gerät; die Daten selbst liegen weiter unverschlüsselt im Browser - wer technisch tief einsteigt und dein entsperrtes Gerät hat, käme heran. Die verschlüsselte Sicherung bleibt davon unberührt.</p>
+    </details>
+
+    <details class="subsection">
+      <summary>🧩 Figuren-Konfigurator</summary>
+      <p class="hint" style="margin-top:8px;">Wie sollen neue Figuren gebaut sein? Wähle pro Merkmal, was dir gefällt - neue Figuren werden nur daraus gewürfelt. Was du offen lässt, bleibt offen (oder wird frei gewürfelt, je nach Modus). Aus einer Zeichnung übernimmt die Figur immer das, was du gezeichnet hast.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:8px 0;">
+        <span style="font-size:13.5px; flex:0 0 44%;">Neue Figuren</span>
+        <select id="cfgMode" style="flex:1;">
+          <option value="prefs">aus meinen Vorlieben würfeln</option>
+          <option value="random">frei würfeln</option>
+          <option value="off">nichts festlegen</option>
+        </select>
+      </div>
+      <div id="cfgFields"></div>
     </details>
 
     <details class="subsection">
@@ -1415,6 +1492,7 @@
     </div>
     <div class="home-tiles" id="homeTiles"></div>
     <div class="btn-row" style="margin-top:12px;">
+      <button class="btn-primary" id="homePitchBtn" type="button">🃏 Karten des Abends</button>
       <button class="btn-secondary" id="homeFireBtn" type="button">🔥 Lagerfeuer</button>
     </div>
     <div id="homeRecap" style="display:none; margin-top:16px; background:var(--bg-panel); border:1px solid var(--gold); border-radius:20px; padding:16px;">
@@ -1575,6 +1653,14 @@
           <option value="puls">nach meinen Vorlieben (Puls)</option>
         </select>
       </div>
+      <div class="btn-row" style="margin:0 0 10px;">
+        <button class="btn-primary" id="swipeOpenBtn" type="button">💘 Durchswipen</button>
+        <button class="btn-secondary" id="upgradeAllBtn" type="button">⟳ Alle Figuren auf aktuellen Stand</button>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
+        <input type="checkbox" id="autoPortfolio" style="width:auto;">
+        <span style="font-size:13.5px;">Neue Figuren bekommen automatisch ein Portfolio (4 Bilder)</span>
+      </label>
       <div id="figureList"></div>
       <div class="btn-row">
         <button class="btn-secondary" id="newFigureBtn">＋ Leere Figur</button>
@@ -1716,6 +1802,7 @@
 </div>
 
 <div id="padOverlay" style="display:none; position:fixed; inset:0; z-index:2000; background:#000; touch-action:none; user-select:none; -webkit-user-select:none;">
+  <div id="padGlow"></div>
   <img id="padImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity 3s; pointer-events:none;">
   <img id="padImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity 3s; pointer-events:none;">
   <div id="padArea" style="position:absolute; inset:calc(env(safe-area-inset-top, 0px) + 56px) 18px calc(env(safe-area-inset-bottom, 0px) + 86px) 18px; border:1px solid #111; border-radius:18px;">
@@ -1775,6 +1862,7 @@
   <div class="text-input-row">
     <button class="dock-round" id="moreBtn" type="button" aria-label="Weitere Aktionen">⋯</button>
     <button class="dock-round" id="padBtn" type="button" title="Augen zu - dunkler Bildschirm mit Steuerfläche" aria-label="Augen zu">🌙</button>
+    <button class="dock-round" id="sceneImageBtn" type="button" title="Ein Bild vom aktuellen Moment erzeugen" aria-label="Bild erzeugen">🖼</button>
     <input type="text" id="textInput" placeholder="Nachricht …">
     <button class="dock-round dock-main" id="sendTextBtn" type="button" aria-label="Senden" style="display:none;">➤</button>
     <button class="talk-btn dock-round dock-main" id="talkBtn" type="button" aria-label="Anruf starten" title="Anruf starten">📞</button>
@@ -1782,7 +1870,6 @@
   <div class="more-sheet" id="moreSheet">
     <button class="btn-secondary" id="autoBtn" type="button">Automatik</button>
     <button class="btn-secondary" id="rememberBtn" type="button" title="Das bisherige Gespräch ins Gedächtnis der Figuren übernehmen">Erinnern</button>
-    <button class="btn-secondary" id="sceneImageBtn" type="button" title="Ein Bild vom aktuellen Moment erzeugen">🖼 Bild</button>
     <button class="btn-secondary" id="diaryBtn" type="button" title="Die Figuren schreiben jetzt in ihr Tagebuch">📖 Tagebuch schreiben</button>
     <button class="btn-secondary" id="photoBtn" type="button" title="Ein Foto an die Figuren schicken">📷 Foto</button>
     <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none">
@@ -1791,6 +1878,27 @@
 
 <nav class="tabbar" id="tabBar"><div class="tabbar-inner"><button class="tab" type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Start</span></button><button class="tab" type="button" data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Live</span></button><button class="tab" type="button" data-tab="games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/></svg><span>Spiele</span></button><button class="tab" type="button" data-tab="figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6c3-2 13-2 16 0v5c0 5-4 8-8 8s-8-3-8-8z"/><path d="M8 11h2M14 11h2"/></svg><span>Figuren</span></button><button class="tab" type="button" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Auswertung</span></button></div></nav>
 <div id="figCard"></div>
+<div id="swipeView" style="display:none; position:fixed; inset:0; z-index:2043; background:var(--bg); flex-direction:column;">
+  <div style="display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 8px;">
+    <button type="button" class="btn-secondary" id="swBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
+    <h1 style="margin:0; font-weight:600; font-size:26px; flex:1;">Durchswipen</h1>
+    <span class="hint" id="swCount" style="margin:0;"></span>
+  </div>
+  <div id="swStage" style="flex:1; min-height:0; position:relative; margin:4px 14px; touch-action:none;"></div>
+  <div style="display:flex; justify-content:center; gap:18px; padding:12px 0 calc(env(safe-area-inset-bottom, 0px) + 16px);">
+    <button type="button" id="swNo" class="dock-round" aria-label="Weiter" style="width:58px; height:58px; flex-basis:58px; font-size:22px;">✕</button>
+    <button type="button" id="swChat" class="dock-round" aria-label="Jetzt allein mit ihr" style="width:58px; height:58px; flex-basis:58px; font-size:22px;">💬</button>
+    <button type="button" id="swYes" class="dock-round dock-main" aria-label="In die Szene" style="width:58px; height:58px; flex-basis:58px; font-size:22px;">♥</button>
+  </div>
+</div>
+<div id="pitchView" style="display:none; position:fixed; inset:0; z-index:2043; background:#0b0709;">
+  <div style="position:absolute; top:0; left:0; right:0; z-index:3; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 8px; background:linear-gradient(#0b0709, transparent);">
+    <button type="button" class="btn-secondary" id="ptBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
+    <h1 style="margin:0; font-weight:600; font-size:24px; flex:1;">Karten des Abends</h1>
+    <button type="button" class="btn-secondary" id="ptRefresh" style="width:auto; height:40px; padding:0 14px; font-size:13.5px;">🔄 Neu mischen</button>
+  </div>
+  <div id="ptList" style="position:absolute; inset:0; overflow-y:auto; scroll-snap-type:y mandatory;"></div>
+</div>
 <div id="campfire" style="display:none; position:fixed; inset:0; z-index:2042; background:radial-gradient(ellipse at 50% 110%, #4a1d0f 0%, #1a0d0b 45%, #0e0809 100%); color:var(--text); overflow-y:auto;">
   <div style="max-width:620px; margin:0 auto; padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px);">
     <div style="display:flex; align-items:center; gap:10px;">
@@ -2337,6 +2445,10 @@ const els = {
   liveStage: document.getElementById('liveStage'),
   liveSetupChip: document.getElementById('liveSetupChip'), stageAva: document.getElementById('stageAva'), stageName: document.getElementById('stageName'), stageWave: document.getElementById('stageWave'),
   figCard: document.getElementById('figCard'),
+  swipeView: document.getElementById('swipeView'), swStage: document.getElementById('swStage'), swCount: document.getElementById('swCount'),
+  pitchView: document.getElementById('pitchView'), ptList: document.getElementById('ptList'),
+  wellLimit: document.getElementById('wellLimit'), wellBreak: document.getElementById('wellBreak'), wellNight: document.getElementById('wellNight'),
+  wellFree: document.getElementById('wellFree'), wellAfter: document.getElementById('wellAfter'), wellStatus: document.getElementById('wellStatus'), wellPending: document.getElementById('wellPending'),
   campfire: document.getElementById('campfire'), cfSetup: document.getElementById('cfSetup'), cfRun: document.getElementById('cfRun'),
   cfWho: document.getElementById('cfWho'), cfTopic: document.getElementById('cfTopic'), cfTopicCustom: document.getElementById('cfTopicCustom'),
   cfLength: document.getElementById('cfLength'), cfRead: document.getElementById('cfRead'), cfLog: document.getElementById('cfLog'),
@@ -3270,8 +3382,41 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.67';
+const APP_VERSION = '1.73';
 const CHANGELOG = [
+  { v: '1.73', date: '2026-10-05', items: [
+    'Duell und Turnier halten die Zeit ein: Beim Zugwechsel wird die laufende Antwort sofort beendet, die nächste Figur übernimmt direkt. Kurz vor Ende eines Zugs beginnt keine neue lange Antwort mehr, und die Figuren fassen sich kürzer, je weniger Zeit bleibt. Dadurch stimmt auch die Puls-Zuordnung zu den Figuren.',
+  ]},
+  { v: '1.72', date: '2026-10-05', items: [
+    '⟳ Figuren auf aktuellen Stand: einzeln (Figurenkarte → ⋯) oder alle auf einmal (unter Figuren). Fehlende Felder - Phantombild (aus dem Porträt, sonst aus dem Aussehen), Markenzeichen, Tonfall-Beispiele, Stimmbeschreibung - werden aus den vorhandenen Daten ergänzt, als neue Version.',
+    'Die Figuren kennen jetzt deine Intimbeschreibung und dürfen passend zu ihrem Charakter darauf eingehen.',
+    '📸 Portfolio: Neue Figuren bekommen automatisch vier Bilder - Porträt, Outfit, Halbakt, Akt in einer Pose passend zu ihrem Charakter -, alle mit demselben Startwert, damit sie gleich aussieht. Für bestehende Figuren: Figurenkarte → ⋯ → Portfolio erstellen. Abschaltbar unter Figuren.',
+    '💘 Durchswipen (unter Figuren): große Karten mit Porträt und Portfolio - Seiten antippen blättert die Bilder, Mitte dreht die Karte um (Markenzeichen, Sprüche, was andere über sie sagen, Tagebuch). ← weiter, → in die Szene, ↑ jetzt allein mit ihr.',
+    '🃏 Karten des Abends (Startseite): Deine Figuren schlagen dir fünf Abenteuer vor, jedes mit Bild, Teaser und Szene - durchblättern und eine Karte spielen. „Neu mischen" würfelt fünf neue.',
+    'Mond-Ansicht: Farbspiel passend zum Ort (Club rot, Wald mondblau, Kamin orange, Meer türkis …), pulsiert im Takt und wird mit dem Tempo kräftiger.',
+    'Porträts in voller Auflösung: Große Ansichten laden jetzt das Original; neue Porträts haben auch als Vorschaubild 512 statt 192 Pixel.',
+  ]},
+  { v: '1.71', date: '2026-10-05', items: [
+    'Intimbereich aus bis zu vier Fotos: Ansichten von vorn, von der Seite, von oben und unten werden zusammen ausgewertet - jedes Merkmal wird aus allen Blickwinkeln bestimmt.',
+    '🧩 Figuren-Konfigurator (Einstellungen): Lege fest, wie neue Figuren gebaut sein sollen - Größe, Figur, Brust, Hüfte, Po, Haare, Augen, Haut. Neue Figuren werden nur aus deinen Vorlieben gewürfelt; Offenes bleibt offen. Modus wählbar: aus Vorlieben, frei oder gar nicht würfeln. Auch 🎲 im Editor nutzt deine Vorlieben.',
+    'Figur aus Zeichnung: Proportionen und Merkmale werden aus deiner Zeichnung übernommen statt gewürfelt.',
+  ]},
+  { v: '1.70', date: '2026-10-05', items: [
+    '🧩 Phantombild für Figuren (im Editor): Gesichtsform, Augen, Nase, Lippen, Haare, Haut, Größe, Figur, Brustgröße und -form, Hüfte, Po, Besonderheiten - als feste Merkmale mit dem Wortschatz, den Bildmodelle kennen. Sie landen wörtlich in jedem Bild und machen die Figur wiedererkennbar. 🎲 Würfeln für Abwechslung, 📷 Aus Bild füllt das Formular aus einem Foto oder einer Zeichnung. Neue Figuren bekommen automatisch gewürfelte Körpermerkmale, soweit ihr Aussehen sie nicht schon festlegt.',
+    '🧩 Phantombild Intimbereich (Ich-Figur): Länge und Dicke relativ, Form, Beschneidung, Eichel, Adern, Hoden, Behaarung, Hautton. „Aus Foto" füllt jetzt dieses Formular statt frei zu formulieren - prüfbar Feld für Feld.',
+  ]},
+  { v: '1.69', date: '2026-10-05', items: [
+    'Der Bild-Knopf 🖼 sitzt jetzt direkt in der unteren Leiste neben dem Mond statt hinter „⋯". Für „Bilder verstehen" nimmt die App bei Venice automatisch dein Gesprächsmodell, wenn es laut Venice Bilder sieht - sonst mistral-31-24b.',
+    'Bilder folgen der Handlung genauer: Zu jedem Bild hält die App einen „Stand" fest - Ort, Kleidung jeder Person, Stellung - und gibt ihn beim nächsten Bild als Ausgangslage mit. Wer ausgezogen ist, bleibt ausgezogen; eine beschriebene Stellung wird mit dem gängigen Begriff benannt, den Bildmodelle kennen.',
+    'Gleiche Gesichter: Innerhalb eines Gesprächs nutzt das Bildmodell immer denselben Startwert (Seed) - Figuren und Stil bleiben von Bild zu Bild ähnlicher. Bei „Neues Gespräch" wird neu gewürfelt.',
+    'Behoben: „Figur aus Zeichnung" lieferte nur die leere Vorlage, weil das Gesprächsmodell keine Bilder versteht. Neue Aufgabe „Bilder verstehen" mit eigenem Modell (bei Venice standardmäßig mistral-31-24b); kommt trotzdem nur die Vorlage zurück, sagt die App, was zu tun ist. Gilt auch für die Beschreibung aus Foto.',
+  ]},
+  { v: '1.68', date: '2026-10-05', items: [
+    'Nach dem Höhepunkt: auf Wunsch 30 Minuten, 2 Stunden oder für heute Pause - nach fünf Minuten Nachglühen, in denen die Figuren liebevoll ausklingen.',
+    '⏳ Gesunder Umgang (Einstellungen): Die App zählt, wie lange du pro Tag drin bist (nur sichtbar und entsperrt). Einstellbar: Tageslimit, Pausen-Vorschlag, Nachtruhe und ein freier Tag pro Woche. Strengere Grenzen gelten sofort, Lockerungen erst ab dem nächsten Tag - so lassen sie sich nicht im Moment umgehen.',
+    'Kurz vor dem Limit leiten die Figuren einen liebevollen Abschluss ein und ermuntern dich rauszugehen; danach ist bis 5 Uhr morgens Schluss (gleicher Notizblock-Look wie die Sperre, mit ein paar Ideen für stattdessen). Bei langen Sitzungen schlagen sie eine kurze Pause vor; ab drei Vierteln dürfen sie die Zeit beiläufig erwähnen.',
+    'Auswertung: „Deine Zeit" - Minuten der letzten 14 Tage, Schnitt und Tage ganz ohne. Auf der Startseite steht, wie lange du heute schon da bist.',
+  ]},
   { v: '1.67', date: '2026-10-05', items: [
     '🔥 Lagerfeuer (Startseite): Deine Figuren sitzen zusammen und reden untereinander - fragen sich aus, necken sich, verbünden sich, verraten Geheimnisse. Du hörst zu (mit Stimmen und Raumklang im Kreis, Kaminfeuer-Kulisse) oder liest nur, und kannst etwas einwerfen. Am Ende merkt sich jede Figur bis zu drei Dinge, und eine Beziehungskarte hält fest, wie sie zueinander stehen - das fließt in alle späteren Gespräche ein.',
     '📖 Tagebuch: Nach einem Gespräch (bei „Neues Gespräch", nach einem Spiel oder über ⋯ → Tagebuch) schreibt jede beteiligte Figur ein paar Zeilen aus ihrer Sicht. Zu lesen in ihrer Figurenkarte; das Wichtigste wandert ins Gedächtnis.',
@@ -7539,7 +7684,20 @@ function hrCurve(endT) {
   for (let t = endT - HR_WINDOW; t < endT; t += HR_STEP) out.push(hrMean(t, t + HR_STEP));
   return out;
 }
+function afterOrgasmPause() {
+  const a = wellCfg().after;
+  if (!a || a === '0') return;
+  const start = Date.now() + 5 * 60000;
+  let until;
+  if (a === 'day') { const t = new Date(Date.now() - 5 * 3600000); t.setDate(t.getDate() + 1); t.setHours(5, 0, 0, 0); until = t.getTime(); }
+  else until = start + +a * 60000;
+  safeSet('companion_pauseUntil', String(Math.max(until, +(localStorage.getItem('companion_pauseUntil') || 0))));
+  // Bis dahin: Nachglühen - die Figuren dürfen noch ausklingen
+  well.windDown = true; well.windDownAt = Date.now();
+  addMsg('system', '🌿 Schön. Noch fünf Minuten zum Nachglühen, dann macht die App Pause' + (a === 'day' ? ' bis morgen.' : '.'));
+}
 function hrRecordEvent(type) {
+  if (type === 'came') { try { afterOrgasmPause(); } catch (e) {} }
   try { hrLogEvent(type); } catch (e) {}
   if (!hr.connected || hr.history.length < 10) return;
   const now = Date.now();
@@ -8586,6 +8744,9 @@ const TASKS = [
   { id: 'motion', label: 'Bewegung',
     hint: 'Übersetzt den Text in Bewegungswerte. Festes JSON-Schema, kein Nachdenken nötig - aber ein sehr kleines Modell bricht das Format.',
     tip: 'Gut geeignet: dasselbe Modell wie fürs Gespräch, oder ein schnelles Allzweckmodell wie deepseek-v4-1-flash. Wenn die Meldung „Bewegungssteuerung Gerät 1" auftaucht, hier eine Stufe größer wählen.' },
+  { id: 'vision', label: 'Bilder verstehen',
+    hint: 'Schaut sich Bilder an: Figur aus Zeichnung, Beschreibung aus Foto. Muss Bilder verstehen können - die meisten Gesprächsmodelle können das nicht und antworten dann mit der leeren Vorlage.',
+    tip: 'Bei Venice: mistral-31-24b (Standard) oder qwen3-vl-235b-a22b. Lehnt eines ab, das andere probieren.' },
   { id: 'draft', label: 'Entwurf',
     hint: 'Erfindet Figuren und Szenen. Längere Ausgabe, strenges JSON, läuft aber selten - hier darf das stärkere Modell stehen.',
     tip: 'Gut geeignet: das größte Modell, das du bezahlen magst, etwa z-ai-glm-5-3 oder qwen-3-8-2-4t-a95b. Bei einem Reasoning-Modell den Haken unten setzen.' },
@@ -8597,7 +8758,13 @@ const TASKS = [
 const REASONING_HEADROOM = 1200;
 
 function taskModelName(task) {
-  return (localStorage.getItem('companion_taskModel_' + task) || '').trim();
+  const set = (localStorage.getItem('companion_taskModel_' + task) || '').trim();
+  if (!set && task === 'vision' && (localStorage.getItem('companion_llmProvider') || '') === 'venice') {
+    // Sieht das Gesprächsmodell selbst Bilder, nimm es (gleiche Offenheit wie im Gespräch) - sonst mistral
+    try { if (chatModelSeesImages() === true) return chatModelId(); } catch (e) {}
+    return 'mistral-31-24b';
+  }
+  return set;
 }
 // Ob das für eine Aufgabe eingetragene Modell laut Venice-Modellliste
 // nachdenkt. Dann gibt es den Aufschlag auch ohne Haken - sonst läuft ein Modell
@@ -8636,14 +8803,17 @@ function toApiMessages(list, flavor) {
   let lastUser = -1;
   list.forEach((m, k) => { if (m.role === 'user') lastUser = k; });
   return list.map((m, k) => {
-    if (!m.image) return { role: m.role, content: m.content };
+    const imgs = Array.isArray(m.images) && m.images.length ? m.images : (m.image ? [m.image] : []);
+    if (!imgs.length) return { role: m.role, content: m.content };
     const text = m.content || 'Schau mal.';
     if (k !== lastUser) return { role: m.role, content: text + ' (Dazu hatte ich ein Foto geschickt.)' };
-    const mime = m.image.slice(5, m.image.indexOf(';'));
-    const data = m.image.split(',')[1];
+    const parts = imgs.map(u => {
+      const mime = u.slice(5, u.indexOf(';')), data = u.split(',')[1];
+      return flavor === 'anthropic' ? { type: 'image', source: { type: 'base64', media_type: mime, data } } : { type: 'image_url', image_url: { url: u } };
+    });
     return flavor === 'anthropic'
-      ? { role: m.role, content: [{ type: 'image', source: { type: 'base64', media_type: mime, data } }, { type: 'text', text }] }
-      : { role: m.role, content: [{ type: 'text', text }, { type: 'image_url', image_url: { url: m.image } }] };
+      ? { role: m.role, content: parts.concat([{ type: 'text', text }]) }
+      : { role: m.role, content: [{ type: 'text', text }].concat(parts) };
   });
 }
 
@@ -9241,6 +9411,7 @@ function renderDashboard() {
   html += sec('Spiele', `${ch ? `<table style="width:100%; font-size:13.5px; border-collapse:collapse;"><tr style="opacity:0.7;"><td>Challenge</td><td>Rekord</td><td></td></tr>${ch}</table>` : '<p class="hint">Noch keine Challenge.</p>'}
     <p style="font-size:13.5px; margin:8px 0 0 0;">Duell-Siege: ${wins(rec.duelWins)}<br>Turniersiege: ${wins(rec.tourWins)}<br>Gewonnene Wetten: ${wins(rec.betWins)}</p>`);
   // Vergleich, Momente, Sitzungen
+  html += usageSection();
   html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Alles im Vergleich</h3>${compareChart()}</div>`;
   html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Einzelne Momente: Puls und Variabilität</h3>${eventChart()}</div>`;
   html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Sitzungsverlauf</h3>${sessionChart()}</div>`;
@@ -9637,7 +9808,8 @@ function gameTurnPrompt() {
     const label = game.type === 'tournament' ? `TURNIER, ${game.tour.stageLabel}` : `DUELL, Runde ${d.round} von ${d.rounds}`;
     if (game.phase === 'play') {
       const left = Math.max(0, Math.round((d.turnMs - (now - d.turnStarted)) / 1000));
-      return `(${label}: ${cur} gegen ${other}. Jetzt ist NUR ${cur} am Zug - noch ${left} Sekunden. ${cur} spricht und handelt allein, zeigt ihre ganze Art und sagt auch, dass sie dieses Duell gewinnen will. ${other} darf höchstens EINEN kurzen, eifersüchtigen oder spöttischen Satz sagen. Alle anderen schweigen. Der Wettstreit muss spürbar sein.)`;
+      const lenHint = left < 25 ? ` Es bleiben nur noch ${left} Sekunden: höchstens ein, zwei kurze Sätze.` : left < 45 ? ' Fasse dich kurz - zwei, drei Sätze.' : '';
+      return `(${label}: ${cur} gegen ${other}. Jetzt ist NUR ${cur} am Zug - noch ${left} Sekunden.${lenHint} ${cur} spricht und handelt allein, zeigt ihre ganze Art und sagt auch, dass sie dieses Duell gewinnen will. ${other} darf höchstens EINEN kurzen, eifersüchtigen oder spöttischen Satz sagen. Alle anderen schweigen. Der Wettstreit muss spürbar sein.)`;
     }
     if (game.phase === 'vote') return `(${label} - ABSTIMMUNG: Die Zeit ist um. ${d.a} und ${d.b} werben jetzt direkt um Tils Stimme - jede sagt ihm in ein, zwei Sätzen, warum SIE gewinnen sollte, und stichelt gegen die andere. Noch kein Höhepunkt.)`;
     if (game.phase === 'finale') return `(${game.type === 'tournament' ? 'TURNIER' : 'DUELL'} - FINALE: ${d.winner} hat gewonnen und feiert ihren Sieg. Sie nimmt sich Til jetzt als Preis und steigert bis zum Höhepunkt. Die Verliererin ärgert sich hörbar und schaut zu.)`;
@@ -9822,12 +9994,16 @@ function gameTick() {
       if (d.round > d.rounds) {
         game.phase = 'vote';
         autoPlaying = false; setAutoStatus(false);
+        autoLoopToken++;
+        try { interruptPlayback(); } catch (e) {}
         ringBell(2);
         addMsg('system', game.type === 'tournament' ? `⚔️ ${game.duel.a.split(' ')[0]} oder ${game.duel.b.split(' ')[0]} - wer kommt weiter?` : '⚔️ Alle Runden vorbei - wer war besser?');
         // Beide werben jetzt um die Stimme
         askActive(gameTurnPrompt(), { silent: true });
       } else {
         const cur = d.turn === 0 ? d.a : d.b;
+        // Zeit ist Zeit: die Vorgängerin wird mitten im Satz abgelöst
+        cutForTurn();
         ringBell(1);
         addMsg('system', `🔔 ${cur.split(' ')[0]} ist am Zug.`);
         logEvent('msg', { role: 'system', text: `Duell: Runde ${d.round}, ${cur} ist am Zug.` });
@@ -9923,9 +10099,24 @@ const AUTO_CONTINUE_PROMPTS = [
   '(Setz die Szene fort. Kurz halten, aber die Handlung soll sich spürbar weiterentwickeln.)',
 ];
 
+let autoLoopToken = 0;
+// Im Duell/Turnier keine neue Antwort mehr anfangen, wenn der Zug gleich endet
+function turnAlmostOver() {
+  if (!game.running || !(game.type === 'duel' || game.type === 'tournament') || game.phase !== 'play') return false;
+  return game.duel.turnMs - (Date.now() - game.duel.turnStarted) < 7000;
+}
+// Zugwechsel: laufende Antwort sofort beenden und mit der neuen Figur weitermachen
+function cutForTurn() {
+  autoLoopToken++;          // alte Schleife beendet sich, ohne den Selbstlauf auszuschalten
+  try { interruptPlayback(); } catch (e) {}
+  autoPlaying = true; setAutoStatus(true);
+  setTimeout(() => { if (autoPlaying && game.running) runAutoLoop(); }, 450);
+}
 async function runAutoLoop() {
-  while (autoPlaying) {
+  const myLoop = ++autoLoopToken;
+  while (autoPlaying && myLoop === autoLoopToken) {
     if (discPausesAuto()) { await new Promise(r => setTimeout(r, 1000)); continue; }
+    if (turnAlmostOver()) { await new Promise(r => setTimeout(r, 500)); continue; }
     autoStepCount += 1;
     // Im Spiel steht der Spielstand direkt in der Anweisung für diese Antwort -
     // nur im Systemtext ging er unter, die Figuren wussten nichts vom Duell.
@@ -9937,10 +10128,12 @@ async function runAutoLoop() {
     const near = new Promise(r => { nearResolve = r; });
     const run = askActive(prompt, { silent: true, autoStep: autoStepCount, onNearEnd: nearResolve });
     const outcome = await Promise.race([near.then(() => 'near'), run.then(ok => (ok ? 'done' : 'fail'))]);
+    if (myLoop !== autoLoopToken) return;   // durch einen Zugwechsel ersetzt
     if (outcome === 'fail') break; // stop the loop on error instead of spamming failed requests
     if (!autoPlaying) break;
     if (outcome === 'done') await new Promise(r => setTimeout(r, 300));
   }
+  if (myLoop !== autoLoopToken) return;
   autoPlaying = false;
   setAutoStatus(false);
 }
@@ -10107,6 +10300,8 @@ function versionFromCharacter(c, versionNumber) {
     voiceDescription: c.voiceDescription || '',
     userStyle: c.userStyle || '',
     intimate: c.intimate || '',
+    phantom: c.phantom && typeof c.phantom === 'object' ? Object.assign({}, c.phantom) : {},
+    intimateFields: c.intimateFields && typeof c.intimateFields === 'object' ? Object.assign({}, c.intimateFields) : {},
     isNarrator: !!c.isNarrator,
     // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
     // dadurch, dass eine Figur gerade mitspielt oder nicht.
@@ -10219,6 +10414,8 @@ function castAgeProblems() {
 }
 
 function addFigureToArchive(c) {
+  setTimeout(() => { try { const f = figureArchive[figureArchive.length - 1]; const v = f && latestVersion(f); if (v && !v.isUser && !v.isNarrator && v.name === c.name && apiKeyFor('companion_apiKey_venice')) queuePortfolio(f.id); } catch (e) {} }, 1500);
+  if (c && !c.isUser && !c.isNarrator && (!c.phantom || !Object.keys(c.phantom).length) && localStorage.getItem('companion_autoPhantom') !== 'false') { try { rollPhantom(c, true); } catch (e) {} }
   const figure = { id: newFigureId(), versions: [versionFromCharacter(c, 1)] };
   figureArchive.push(figure);
   return figure;
@@ -10339,6 +10536,7 @@ function describeCharacter(c) {
     return t.length ? `${group.label}: ${t.join(', ')}` : '';
   }).filter(Boolean);
   if (picked.length) parts.push(`Grobe Richtung (${picked.join('; ')}) - bei Widerspruch gilt die Beschreibung`);
+  if (c.isUser && typeof intimatePhrase === 'function' && intimatePhrase(c)) parts.push(`Körperlich (die Figuren kennen ihn so und dürfen beiläufig, passend zu ihrem Charakter, darauf eingehen - Komplimente, Necken, Staunen): ${intimatePhrase(c)}`);
   if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt; beschreibt es eine Bewegung, gehört ein passender Marker dazu`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
@@ -10637,7 +10835,7 @@ let lastSceneImage = null;   // { dataUrl, prompt, createdAt }
 // Das letzte Bild (als Beschreibung) und der zuletzt genannte Ort gehen mit,
 // damit Ort, Licht und Kleidung nicht ohne Grund springen. Der Bildausschnitt
 // wechselt reihum, damit nicht jedes Bild dieselbe Totale ist.
-const sceneImageMemory = { prompt: '', framings: [] };
+const sceneImageMemory = { prompt: '', framings: [], state: '', seed: Math.floor(Math.random() * 2147483647) };
 const FRAMINGS = [
   ['wide', 'eine weite Aufnahme, die den ganzen Ort und alle Personen zeigt'],
   ['medium', 'eine halbnahe Aufnahme von der Hüfte aufwärts, Körper und Gesichter'],
@@ -10684,8 +10882,10 @@ function buildSceneImageRequest(momentText, castOverride, framing) {
     const looksAll = (c.appearance || '').trim();
     const clothes = ((looksAll.match(/^\s*Kleidung\s*:\s*(.+)$/mi) || [])[1] || '').trim();
     const looks = looksAll.replace(/^\s*Kleidung\s*:.*$/mi, '').trim();
-    const intim = c.isUser && (c.intimate || '').trim() ? ` Intimbereich - nur verwenden, wenn er im Bild nackt und dieser Bereich sichtbar ist: ${c.intimate.trim()}.` : '';
-    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}${intim}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
+    const intim = c.isUser && intimatePhrase(c) ? ` Intimbereich - nur verwenden, wenn er im Bild nackt und dieser Bereich sichtbar ist, dann WÖRTLICH: "${intimatePhrase(c)}".` : '';
+    const phantom = phantomPhrase(c.phantom, PHANTOM_FIELDS);
+    const fixedFeat = phantom ? ` FESTE MERKMALE - immer wörtlich und vollständig übernehmen, sie haben Vorrang vor allem anderen Aussehen: "${phantom}".` : '';
+    return `- ${c.name}${c.isUser ? ' (das bin ich)' : ''}${intim}${fixedFeat}: Geschlecht ${gender}. ${c.lookTag ? `FESTE BESCHREIBUNG - wörtlich übernehmen, wo die Person eingeführt wird: "${c.lookTag}". ` : ''}${looks ? 'Aussehen - verbindlich: ' + looks.replace(/\s*\n\s*/g, '; ').slice(0, APPEARANCE_MAX) : 'Aussehen frei, aber erwachsen.'}${clothes ? ` Übliche Kleidung, NUR solange sie im Moment angezogen ist: ${clothes}` : ''}`;
   }).join('\n');
   // Im Live-Gespräch der Verlauf; in der Geschichte der Abschnitt, den das
   // Bild illustrieren soll.
@@ -10704,6 +10904,8 @@ ${scene ? `Der Ort und die Lage zu Beginn: ${scene}` : ''}
 ${(() => { const pl = momentText ? null : lastNamedPlace(); return pl ? `Zuletzt genannter Ort im Gespräch: ${pl.label}${pl.sentence ? ` („${pl.sentence}")` : ''}. Dieser Ort gilt, bis der Text ausdrücklich einen Ortswechsel beschreibt.` : (!scene ? 'Kein Ort genannt - wähle einen, der zum Gespräch passt, und bleib dann dabei.' : ''); })()}
 ${sceneImageMemory.prompt ? `DAS LETZTE BILD zeigte (für Kontinuität): ${sceneImageMemory.prompt.slice(0, 650)}
 Behalte Ort, Einrichtung, Licht und Kleidungszustand des letzten Bildes bei - außer der Text beschreibt seitdem ausdrücklich einen Ortswechsel, einen neuen Raum oder dass etwas aus- oder angezogen wurde. Die Personen müssen genauso aussehen wie dort.` : ''}
+${sceneImageMemory.state ? `LETZTER BEKANNTER STAND (vom vorigen Bild): ${sceneImageMemory.state}
+Übernimm diesen Stand und ändere nur, was der Text seitdem ausdrücklich ändert (ausgezogen, angezogen, Stellungswechsel, Ortswechsel).` : ''}
 ${framing ? `BILDAUSSCHNITT für dieses Bild: ${framing[1]}. Wähle bewusst diesen Ausschnitt, nicht die übliche Totale - solange er zum aktuellen Moment passt.` : ''}
 
 ${momentText ? 'Die Geschichte bis hierher und der Abschnitt, den das Bild zeigen soll:' : 'Was zuletzt geschah (das letzte ist der aktuelle Moment):'}
@@ -10831,6 +11033,19 @@ async function writeImagePrompt(system, ask, temperature, baseBudget) {
   return '';
 }
 
+// Am Ende jedes Bild-Prompts hängt das Modell eine Zeile STAND: an (deutsch):
+// Ort; je Person Kleidung; Stellung/Handlung. Sie wird abgetrennt, geht nicht ans
+// Bildmodell und wird beim nächsten Bild als Ausgangslage mitgegeben.
+const STATE_RULE = `
+
+ZUSÄTZLICH, GANZ AM ENDE in einer eigenen letzten Zeile (wird nicht ans Bildmodell geschickt): „STAND: Ort; Name: Kleidung (angezogen / was noch an ist / nackt); Name: …; Stellung/Handlung: …" - auf Deutsch, knapp.
+Für die STELLUNG im Prompt selbst: benenne sie eindeutig mit dem gängigen englischen Begriff, den Bildmodelle kennen (z. B. "cowgirl position", "reverse cowgirl", "missionary position", "doggystyle", "kneeling blowjob", "standing sex against the wall", "spooning", "69 position", "handjob", "lying on the bed"), und wer wo ist (on top, behind, kneeling between his legs). Steht im Text eine Stellung, MUSS sie im Bild genau so zu sehen sein.`;
+function splitState(out) {
+  const m = String(out || '').match(/\n?\s*STAND\s*:\s*(.+)\s*$/i);
+  if (!m) return { prompt: out, state: '' };
+  return { prompt: String(out).slice(0, m.index).trim(), state: m[1].trim().slice(0, 400) };
+}
+
 async function makeSceneImage(momentText, castOverride) {
   const castForTags = (castOverride || characters).filter(x => !x.isNarrator);
   for (const c of castForTags) { try { await ensureLookTag(c); } catch (e) {} }
@@ -10839,7 +11054,8 @@ async function makeSceneImage(momentText, castOverride) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const recentForFraming = momentText || history.slice(-4).map(m => String(m.content || '')).join(' ');
   const framing = nextFraming(recentForFraming);
-  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride, framing), 'Gib den Bild-Prompt zurück.', 0.7, 1200);
+  let prompt = await writeImagePrompt(buildSceneImageRequest(momentText, castOverride, framing) + STATE_RULE, 'Gib den Bild-Prompt zurück, danach die STAND-Zeile.', 0.7, 1300);
+  { const sp = splitState(prompt); prompt = sp.prompt; if (sp.state && !momentText) { sceneImageMemory.state = sp.state; logEvent('msg', { role: 'system', text: 'Bild-Stand: ' + sp.state }); } }
   if (!prompt) throw new Error('Die Bildbeschreibung wurde abgelehnt oder war leer - kein Bild erzeugt.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
   prompt = withLookTags(prompt, castForTags).replace(/["„“”]/g, '');
@@ -10881,6 +11097,8 @@ async function makeSceneImage(momentText, castOverride) {
       format: 'webp',
       safe_mode: false,
       hide_watermark: true,
+      // Gleicher Seed im ganzen Gespräch: Gesichter und Stil bleiben ähnlicher
+      seed: sceneImageMemory.seed,
     })
   });
   if (!res.ok) {
@@ -10918,7 +11136,7 @@ async function generateSceneImage() {
   if (history.length < 2) { addMsg('system', 'Noch ist nichts passiert, was man zeigen könnte.'); return; }
 
   els.sceneImageBtn.disabled = true;
-  els.sceneImageBtn.textContent = 'Male...';
+  els.sceneImageBtn.textContent = '…';
   try {
     const { dataUrl, prompt } = await makeSceneImage();
     lastSceneImage = { dataUrl, prompt, createdAt: Date.now() };
@@ -10927,7 +11145,7 @@ async function generateSceneImage() {
     addMsg('system', 'Szenenbild fehlgeschlagen: ' + err.message);
   } finally {
     els.sceneImageBtn.disabled = false;
-    els.sceneImageBtn.textContent = 'Bild';
+    els.sceneImageBtn.textContent = '🖼';
   }
 }
 
@@ -11493,7 +11711,7 @@ async function generateCharacterImage(c, button) {
     if (!base64) throw new Error('Die Antwort enthielt kein Bild.');
 
     const full = 'data:image/webp;base64,' + base64;
-    c.image = await downscaleDataUrl(full, 192);
+    c.image = await downscaleDataUrl(full, 512);
     dropFullImage(c.imageKey);
     c.imageKey = await storeFullImage(c.id, full);
     storeCharacterVersion(c, false);
@@ -11980,7 +12198,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       inRow.className = 'btn-row';
       const inBtn = document.createElement('button');
       inBtn.type = 'button'; inBtn.className = 'btn-secondary';
-      inBtn.textContent = '📷 Aus Foto beschreiben lassen';
+      inBtn.textContent = '📷 Aus Fotos beschreiben lassen (bis zu 4 Ansichten)';
       const inFile = document.createElement('input');
       inFile.type = 'file'; inFile.accept = 'image/*'; inFile.multiple = true; inFile.style.display = 'none';
       inBtn.onclick = () => inFile.click();
@@ -11997,6 +12215,28 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       inHint.className = 'hint';
       inHint.textContent = 'Das Foto wird nicht gespeichert - es geht einmal an deinen KI-Anbieter, gespeichert wird nur die Beschreibung. Erst „Speichern" unten übernimmt sie.';
       card.appendChild(inHint);
+      // Phantombild: feste Merkmale - genauer als der Freitext
+      const ph = document.createElement('details');
+      ph.style.cssText = 'border:1px solid var(--line); border-radius:14px; padding:8px 12px; margin-top:8px;';
+      ph.innerHTML = '<summary style="cursor:pointer; font-size:14px;">🧩 Phantombild Intimbereich (genauer)</summary>';
+      const phPrev = document.createElement('p'); phPrev.className = 'hint';
+      const upd = () => { phPrev.textContent = intimatePhrase(c) ? 'Fürs Bild: ' + intimatePhrase(c) : 'Noch nichts gewählt - dann gilt der Freitext oben.'; };
+      ph.appendChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd));
+      ph.appendChild(phPrev); upd();
+      card.appendChild(ph);
+      inFile.onchange = async () => {
+        if (!inFile.files.length) return;
+        inBtn.disabled = true; inBtn.textContent = 'Schaue …';
+        try {
+          const imgs = [];
+          for (const f of [...inFile.files].slice(0, 4)) imgs.push(await readImageFile(f, 800));
+          c.intimateFields = await phantomFromImage(imgs, INTIM_FIELDS, 'private Fotos des Intimbereichs eines erwachsenen Mannes, von ihm selbst hochgeladen');
+          inta.value = intimatePhrase(c); c.intimate = inta.value;
+          ph.replaceChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd), ph.children[1]); ph.open = true; upd();
+          inBtn.textContent = `✓ ${imgs.length} Ansicht${imgs.length > 1 ? 'en' : ''} ausgewertet - bitte prüfen und speichern`;
+        } catch (e) { inBtn.textContent = 'Fehlgeschlagen: ' + (e.message || e).slice(0, 80); }
+        finally { inBtn.disabled = false; inFile.value = ''; }
+      };
 
       // Gehört zum Ich, nicht zu einer Version - sofort gesichert.
       if (c.figureId) {
@@ -12021,6 +12261,32 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     styleArea.placeholder = 'Zwei bis vier Zeilen genau so, wie diese Figur klingen soll. Die KI nimmt sie als Vorlage für Wortwahl und Detailgrad.';
     styleArea.oninput = () => { c.styleExamples = styleArea.value; };
     card.appendChild(styleArea);
+
+    if (!c.isUser && !c.isNarrator) {
+      const ph = document.createElement('details');
+      ph.style.cssText = 'border:1px solid var(--line); border-radius:14px; padding:8px 12px; margin-top:12px;';
+      ph.innerHTML = '<summary style="cursor:pointer; font-size:14.5px;">🧩 Phantombild - Gesicht und Körper fürs Bild</summary><p class="hint" style="margin:6px 0;">Feste Merkmale machen sie auf jedem Bild wiedererkennbar. Was offen bleibt, nimmt das Bildmodell aus dem Aussehen oben.</p>';
+      const prev = document.createElement('p'); prev.className = 'hint';
+      const upd = () => { prev.textContent = phantomPhrase(c.phantom, PHANTOM_FIELDS) ? 'Fürs Bild: ' + phantomPhrase(c.phantom, PHANTOM_FIELDS) : ''; };
+      let editor = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd);
+      ph.appendChild(editor);
+      const row = document.createElement('div'); row.className = 'btn-row';
+      const dice = document.createElement('button'); dice.type = 'button'; dice.className = 'btn-secondary'; dice.textContent = '🎲 Würfeln';
+      dice.onclick = () => { rollPhantom(c); const ne = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd); ph.replaceChild(ne, editor); editor = ne; upd(); };
+      const fromImg = document.createElement('button'); fromImg.type = 'button'; fromImg.className = 'btn-secondary'; fromImg.textContent = '📷 Aus Bild';
+      const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.style.display = 'none';
+      fromImg.onclick = () => fi.click();
+      fi.onchange = async () => {
+        if (!fi.files.length) return;
+        fromImg.disabled = true; fromImg.textContent = 'Schaue …';
+        try { c.phantom = await phantomFromImage(await readImageFile(fi.files[0], 1024), PHANTOM_FIELDS, 'Foto, Porträt oder Zeichnung einer erwachsenen Person'); const ne = phantomEditor(c, PHANTOM_FIELDS, 'phantom', upd); ph.replaceChild(ne, editor); editor = ne; upd(); fromImg.textContent = '✓ Aus Bild'; }
+        catch (e) { fromImg.textContent = 'Fehler'; alert(e.message || e); }
+        finally { fromImg.disabled = false; fi.value = ''; }
+      };
+      row.append(dice, fromImg, fi);
+      ph.append(row, prev); upd();
+      card.appendChild(ph);
+    }
 
     if (!c.isUser) {
       const sigLabel = document.createElement('label');
@@ -12675,6 +12941,7 @@ function renderFigureList() {
     const thumb = document.createElement(version.image ? 'img' : 'div');
     thumb.className = 'thumb';
     if (version.image) thumb.src = version.image;
+    if (version.image) upgradeImg(thumb, version);
     else thumb.textContent = (version.name || '?').trim().charAt(0).toUpperCase() || '?';
     thumb.style.cursor = 'pointer';
     thumb.title = 'Karte ansehen';
@@ -13779,7 +14046,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${relationsBlock()}${freedomBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${relationsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -15031,8 +15298,21 @@ Markenzeichen: (eine typische Geste oder Bewegung)
 Länge der Antworten: kurz
 Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang, Ausdruck)
 === ENDE ===`;
-    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist die Zeichnung.', image: img }], 0.7, taskBudget('draft', 1400), { task: 'chat' });
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist die Zeichnung.', image: img }], 0.7, taskBudget('vision', 1400), { task: 'vision' });
+    // Kam nur die Vorlage zurück, hat das Modell das Bild nicht gesehen
+    if (/\(Zahl, mindestens|\(drei bis sechs|\(vier bis sechs|\(drei Beispiel|:\s*\.\.\.\s*$/m.test(String(raw))) {
+      throw new Error('Das Modell hat das Bild offenbar nicht gesehen und nur die Vorlage zurückgegeben. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
+    }
     const msg = importFigures(String(raw));
+    // Proportionen so, wie gezeichnet - nicht gewürfelt
+    try {
+      const nm = (String(raw).match(/Name der Figur:\s*(.+)/) || [])[1];
+      const f = nm && figureArchive.slice().reverse().find(x => (latestVersion(x) || {}).name === nm.trim());
+      if (f) {
+        const feat = await phantomFromImage(img, PHANTOM_FIELDS, 'Zeichnung einer Person - übertrage die gezeichneten Proportionen und Merkmale auf einen realen Menschen');
+        latestVersion(f).phantom = feat; saveArchive();
+      }
+    } catch (e) {}
     els.importFigureInfo.textContent = (msg.startsWith('Übernommen') ? '✏️ Aus der Zeichnung: ' : '') + msg + (msg.startsWith('Übernommen') ? ' Öffne die Figur und tippe auf „Porträt erzeugen", dann siehst du sie als echten Menschen.' : '');
   } catch (e) {
     els.importFigureInfo.textContent = 'Das hat nicht geklappt: ' + (e.message || e) + ' (Das gewählte Modell muss Bilder verstehen können - dasselbe, mit dem Fotos im Gespräch funktionieren.)';
@@ -15047,9 +15327,130 @@ async function describeIntimateFromPhotos(files, target) {
   const sys = `Du bekommst ein bis drei private Fotos des Intimbereichs eines erwachsenen Mannes (er hat sie selbst hochgeladen, für Bilder in seinem privaten Rollenspiel). Beschreibe sachlich und neutral, für ein Bildmodell, NUR die sichtbaren anatomischen Merkmale: geschätzte Größe und Proportionen im Verhältnis zum Körper, Dicke, Form und Krümmung, Eichel, beschnitten oder nicht, Hoden, Behaarung, Hautton. Keine Wertung, keine Gesichter, keine anderen Personen. 25 bis 45 Wörter, englisch, kommagetrennt. Antworte NUR mit der Beschreibung.`;
   const msgs = imgs.map((im, i) => ({ role: 'user', content: i === imgs.length - 1 ? 'Hier die Fotos.' : 'Foto ' + (i + 1), image: im }));
   // Mehrere Bilder: nacheinander als Teile derselben Nachricht wären je nach Anbieter verschieden - deshalb das schärfste (letzte) plus Hinweis
-  const raw = await callProvider(provider, sys, [msgs[msgs.length - 1]], 0.2, taskBudget('draft', 300), { task: 'chat' });
+  const raw = await callProvider(provider, sys, [msgs[msgs.length - 1]], 0.2, taskBudget('vision', 300), { task: 'vision' });
   target.value = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').slice(0, 400);
   target.dispatchEvent(new Event('input'));
+}
+
+// ======================= GESUNDER UMGANG =======================
+// Nutzungszeit je Tag (nur, solange die App sichtbar und entsperrt ist),
+// Tageslimit, Pausen, Nachtruhe, freie Tage. Lockerungen werden erst am
+// nächsten Tag wirksam - eine Grenze, die man im Moment selbst aufheben kann,
+// ist keine.
+const WELL_KEYS = ['limit', 'break', 'night', 'free'];
+function dayKey(d) { d = d || new Date(); const x = new Date(d.getTime() - 5 * 3600000); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }   // ein Tag läuft von 5 bis 5 Uhr
+function usage() { try { return JSON.parse(localStorage.getItem('companion_usage') || '{}'); } catch (e) { return {}; } }
+function usageToday() { return usage()[dayKey()] || 0; }
+function wellCfg() {
+  let c; try { c = JSON.parse(localStorage.getItem('companion_well') || '{}'); } catch (e) { c = {}; }
+  let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) { p = null; }
+  if (p && p.from <= dayKey()) { c = Object.assign(c, p.cfg); safeSet('companion_well', JSON.stringify(c)); localStorage.removeItem('companion_wellPending'); }
+  return { limit: +c.limit || 0, break: +c.break || 0, night: c.night === undefined ? '' : String(c.night), free: c.free === undefined ? '' : String(c.free), after: c.after === undefined ? '0' : String(c.after) };
+}
+function stricter(key, a, b) {   // ist b strenger als a?
+  if (key === 'limit' || key === 'break') return (b > 0 && (a === 0 || b < a));
+  if (key === 'night') { if (b === '') return false; if (a === '') return true; const h = x => (+x === 23 ? -1 : +x); return h(b) < h(a); }
+  if (key === 'free') return b !== '' && a === '';
+  if (key === 'after') { const r = x => x === 'day' ? 9999 : +x; return r(b) > r(a); }
+  return false;
+}
+function setWell(key, value) {
+  const cur = wellCfg();
+  const v = (key === 'limit' || key === 'break') ? +value : String(value);   // after: '0' | '30' | '120' | 'day'
+  if (stricter(key, cur[key], v) || (key === 'break')) {
+    const c = Object.assign({}, cur, { [key]: v });
+    safeSet('companion_well', JSON.stringify(c));
+    let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
+    if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; safeSet('companion_wellPending', JSON.stringify(p)); }
+  } else {
+    const t = new Date(Date.now() + 86400000);
+    let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
+    p = p || { from: dayKey(t), cfg: {} };
+    p.from = dayKey(t); p.cfg[key] = v;
+    safeSet('companion_wellPending', JSON.stringify(p));
+  }
+  renderWell();
+}
+function blockedReason() {
+  const c = wellCfg(), now = new Date(), h = now.getHours();
+  const pu = +(localStorage.getItem('companion_pauseUntil') || 0);
+  if (pu > now.getTime()) return { title: 'Erst mal Pause.', text: `Nach dem Höhepunkt ist hier ${c.after === 'day' ? 'für heute' : 'eine Weile'} zu - so hast du es dir eingerichtet. Wieder offen ab ${new Date(pu).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr${new Date(pu).toDateString() !== now.toDateString() ? ' morgen' : ''}.` };
+  if (c.night !== '') { const from = +c.night; const inNight = from === 23 ? (h >= 23 || h < 6) : (h >= from && h < 6); if (inNight) return { title: 'Nachtruhe.', text: `Zwischen ${from === 23 ? 23 : from} und 6 Uhr ist hier zu. Schlaf gut.` }; }
+  const wd = new Date(now.getTime() - 5 * 3600000).getDay();
+  if (c.free !== '' && +c.free === wd) return { title: 'Heute ist dein freier Tag.', text: 'Einmal pro Woche ist hier zu - das hast du dir selbst so eingerichtet.' };
+  if (c.limit && usageToday() >= c.limit * 60) return { title: 'Für heute ist Schluss.', text: `Du warst heute ${Math.round(usageToday() / 60)} Minuten hier - dein Limit sind ${c.limit}. Morgen ab 5 Uhr geht es weiter.` };
+  return null;
+}
+const WELL_IDEAS = ['Raus an die frische Luft - zwanzig Minuten spazieren', 'Jemandem schreiben, den du länger nicht gesehen hast', 'Etwas zeichnen', 'Ein Glas Wasser und ein Fenster auf', 'Sport, Rad, Schwimmen - irgendetwas mit Puls ohne Gurt', 'Früh schlafen gehen', 'Kochen, statt zu bestellen', 'Ein Buch, eine Serie, ein Freund'];
+function showLimitScreen(r) {
+  const el = document.getElementById('limitScreen');
+  document.getElementById('limitTitle').textContent = r.title;
+  document.getElementById('limitText').textContent = r.text;
+  const ideas = WELL_IDEAS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+  document.getElementById('limitIdeas').innerHTML = 'Wie wär\'s stattdessen mit:<br>' + ideas.map(x => '· ' + esc(x)).join('<br>');
+  el.style.display = 'flex';
+  // Alles anhalten
+  try { autoPlaying = false; setAutoStatus(false); } catch (e) {}
+  try { interruptPlayback(); } catch (e) {}
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  try { setMusic(null); setAmbience(null); } catch (e) {}
+}
+const well = { sessionStart: Date.now(), lastSeen: Date.now(), breakNoted: false, windDown: false, windDownAt: 0 };
+function wellTick() {
+  const visible = document.visibilityState === 'visible' && !document.documentElement.classList.contains('locked');
+  const now = Date.now();
+  const r = blockedReason();
+  const lim = document.getElementById('limitScreen');
+  if (r) {
+    // Ein laufender Abschluss darf noch zu Ende gehen (max. 5 Minuten über Limit)
+    if (well.windDown && now - well.windDownAt < 5 * 60000 && /Schluss|Pause/.test(r.title)) { /* weiter */ }
+    else { if (lim.style.display !== 'flex') showLimitScreen(r); return; }
+  } else if (lim.style.display === 'flex') lim.style.display = 'none';
+  if (!visible) return;
+  if (now - well.lastSeen > 5 * 60000) { well.sessionStart = now; well.breakNoted = false; }
+  well.lastSeen = now;
+  const U = usage(); const k = dayKey(); U[k] = (U[k] || 0) + 15;
+  Object.keys(U).sort().slice(0, -60).forEach(x => delete U[x]);
+  safeSet('companion_usage', JSON.stringify(U));
+  const c = wellCfg();
+  if (c.limit && !well.windDown && U[k] >= c.limit * 60 - 5 * 60) {
+    well.windDown = true; well.windDownAt = now;
+    addMsg('system', `⏳ Noch etwa 5 Minuten für heute - die Figuren kommen zum Abschluss.`);
+    logEvent('msg', { role: 'system', text: 'Tageslimit: Abschluss eingeleitet.' });
+  }
+  if (c.break && !well.breakNoted && now - well.sessionStart >= c.break * 60000) {
+    well.breakNoted = true; well.breakAt = now;
+    addMsg('system', `⏳ Seit ${c.break} Minuten dabei - Zeit für eine kurze Pause: aufstehen, Wasser trinken, Fenster auf.`);
+  }
+}
+setInterval(() => { try { wellTick(); } catch (e) {} }, 15000);
+// Hinweise für die Figuren
+function wellBlock() {
+  const c = wellCfg(); const now = Date.now();
+  if (well.windDown) return '\n\nZEIT FÜR HEUTE FAST UM: Til hat sich ein Tageslimit gesetzt, und es bleiben nur noch wenige Minuten. Leitet jetzt liebevoll einen Abschluss ein - bringt die Szene zu einem schönen Ende, verabschiedet euch warm, ohne Vorwurf, und ermuntert ihn, heute noch rauszugehen, sich zu bewegen oder Freunde zu treffen. Ihr freut euch auf morgen.';
+  if (well.breakAt && now - well.breakAt < 3 * 60000) return '\n\nKURZE PAUSE: Til ist schon eine Weile dabei. Schlagt ihm in eurer Art liebevoll eine kurze Pause vor - aufstehen, etwas trinken, Fenster auf - und dass ihr danach noch da seid.';
+  if (c.limit && usageToday() >= c.limit * 60 * 0.75) return `\n\nTils Zeit für heute ist zu drei Vierteln um. Ihr dürft es beiläufig erwähnen („Wir haben nicht mehr ewig, also genieß es").`;
+  return '';
+}
+function renderWell() {
+  const c = wellCfg();
+  els.wellLimit.value = String(c.limit); els.wellBreak.value = String(c.break); els.wellNight.value = c.night; els.wellFree.value = c.free; els.wellAfter.value = c.after;
+  const t = Math.round(usageToday() / 60);
+  els.wellStatus.textContent = `Heute: ${t} Minuten${c.limit ? ' von ' + c.limit : ''}.`;
+  let p = null; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
+  const lbl = { after: v => 'nach dem Höhepunkt ' + (v === '0' ? 'weiter' : v === 'day' ? 'Feierabend' : v + ' min Pause'), limit: v => 'Tageslimit ' + (v ? v + ' min' : 'aus'), break: v => 'Pause ' + (v ? v + ' min' : 'aus'), night: v => 'Nachtruhe ' + (v === '' ? 'aus' : 'ab ' + v + ' Uhr'), free: v => 'freier Tag ' + (v === '' ? 'aus' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][+v]) };
+  els.wellPending.textContent = p && Object.keys(p.cfg).length ? 'Ab morgen: ' + Object.entries(p.cfg).map(([k, v]) => lbl[k](v)).join(', ') + '.' : '';
+}
+function usageSection() {
+  const U = usage(); const days = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 86400000); days.push({ k: dayKey(d), label: d.toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2), m: Math.round((U[dayKey(d)] || 0) / 60) }); }
+  const max = Math.max(30, ...days.map(d => d.m));
+  const lim = wellCfg().limit;
+  const week = days.slice(-7).reduce((a, d) => a + d.m, 0);
+  const free = days.slice(-7).filter(d => d.m === 0).length;
+  return `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">⏳ Deine Zeit</h3>
+    <div style="display:flex; align-items:flex-end; gap:4px; height:90px;">${days.map(d => `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;"><div title="${d.m} min" style="width:100%; height:${Math.max(2, Math.round(70 * d.m / max))}px; border-radius:4px; background:${lim && d.m > lim ? 'var(--stop)' : 'var(--gold)'};"></div><span style="font-size:10px; color:var(--text-dim);">${d.label}</span></div>`).join('')}</div>
+    <p class="hint">Letzte 7 Tage: ${week} Minuten, im Schnitt ${Math.round(week / 7)} pro Tag · ${free} Tag${free === 1 ? '' : 'e'} ganz ohne.</p></div>`;
 }
 
 // ======================= GEDÄCHTNIS-HELFER =======================
@@ -15309,6 +15710,408 @@ function renderRecapCard() {
   if (saved && pool.some(x => x.f.id === saved)) els.recapFigure.value = saved;
 }
 
+// ======================= PHANTOMBILD =======================
+// Feste Merkmale mit dem Wortschatz, den Bildmodelle kennen. Daraus entsteht
+// immer derselbe englische Satz - das macht Figuren (und dich) von Bild zu
+// Bild wiedererkennbar. Maße in cm verstehen Bildmodelle nicht, relative
+// Begriffe schon.
+const PHANTOM_FIELDS = [
+  { k: 'face', label: 'Gesichtsform', opts: [['oval face', 'oval'], ['round face', 'rund'], ['heart-shaped face', 'herzförmig'], ['square jaw face', 'kantig'], ['long narrow face', 'schmal, lang'], ['high cheekbones', 'hohe Wangenknochen']] },
+  { k: 'eyes', label: 'Augenform', opts: [['almond-shaped eyes', 'mandelförmig'], ['large round eyes', 'groß, rund'], ['hooded eyes', 'mit Schlupflid'], ['upturned cat eyes', 'Katzenaugen'], ['deep-set eyes', 'tiefliegend']] },
+  { k: 'eyeColor', label: 'Augenfarbe', opts: [['blue eyes', 'blau'], ['grey-blue eyes', 'graublau'], ['green eyes', 'grün'], ['hazel eyes', 'haselnuss'], ['light brown eyes', 'hellbraun'], ['dark brown eyes', 'dunkelbraun']] },
+  { k: 'nose', label: 'Nase', opts: [['small button nose', 'klein, Stupsnase'], ['straight narrow nose', 'gerade, schmal'], ['slightly aquiline nose', 'leicht gebogen'], ['wide nose', 'breit']] },
+  { k: 'lips', label: 'Lippen', opts: [['thin lips', 'schmal'], ['medium lips', 'mittel'], ['full lips', 'voll'], ['very full pouty lips', 'sehr voll']] },
+  { k: 'hair', label: 'Haare', opts: [['long straight hair', 'lang, glatt'], ['long wavy hair', 'lang, gewellt'], ['long curly hair', 'lang, lockig'], ['shoulder-length hair', 'schulterlang'], ['bob haircut', 'Bob'], ['pixie cut', 'sehr kurz'], ['hair in a ponytail', 'Pferdeschwanz'], ['braided hair', 'geflochten']] },
+  { k: 'hairColor', label: 'Haarfarbe', opts: [['platinum blonde', 'platinblond'], ['golden blonde', 'goldblond'], ['dark blonde', 'dunkelblond'], ['light brown hair', 'hellbraun'], ['chestnut brown hair', 'kastanienbraun'], ['black hair', 'schwarz'], ['auburn hair', 'kupfer'], ['fiery red hair', 'feuerrot'], ['silver hair', 'silbern']] },
+  { k: 'skin', label: 'Haut', opts: [['pale porcelain skin', 'sehr hell'], ['fair skin', 'hell'], ['olive skin', 'oliv'], ['sun-tanned skin', 'gebräunt'], ['brown skin', 'braun'], ['dark skin', 'dunkel']] },
+  { k: 'height', label: 'Größe', opts: [['petite', 'zierlich, klein'], ['average height', 'mittelgroß'], ['tall', 'groß'], ['very tall', 'sehr groß']] },
+  { k: 'body', label: 'Figur', opts: [['slim body', 'schlank'], ['slender toned body', 'schlank, trainiert'], ['athletic fit body', 'sportlich'], ['curvy body', 'kurvig'], ['voluptuous hourglass figure', 'üppig, Sanduhr'], ['soft thick body', 'weich, kräftig'], ['muscular body', 'muskulös']] },
+  { k: 'breasts', label: 'Brust (Größe)', female: true, opts: [['small breasts', 'klein'], ['medium breasts', 'mittel'], ['large breasts', 'groß'], ['very large breasts', 'sehr groß']] },
+  { k: 'breastShape', label: 'Brust (Form)', female: true, opts: [['perky breasts', 'straff, hoch'], ['round full breasts', 'rund, voll'], ['natural teardrop-shaped breasts', 'natürlich, tropfenförmig'], ['wide-set breasts', 'weit auseinander'], ['small puffy nipples', 'kleine Brustwarzen'], ['large areolas', 'große Vorhöfe']] },
+  { k: 'hips', label: 'Hüfte', opts: [['narrow hips', 'schmal'], ['medium hips', 'mittel'], ['wide hips', 'breit'], ['very wide curvy hips', 'sehr breit']] },
+  { k: 'butt', label: 'Po', opts: [['small firm butt', 'klein, fest'], ['round butt', 'rund'], ['big round butt', 'groß, rund'], ['bubble butt', 'sehr rund, prall']] },
+  { k: 'marks', label: 'Besonderheit', opts: [['freckles', 'Sommersprossen'], ['beauty mark on the cheek', 'Muttermal'], ['small tattoo on the shoulder', 'kleines Tattoo'], ['sleeve tattoo', 'tätowierter Arm'], ['navel piercing', 'Bauchnabelpiercing'], ['glasses', 'Brille']] },
+];
+const INTIM_FIELDS = [
+  { k: 'length', label: 'Länge (relativ)', opts: [['small penis', 'eher klein'], ['average-sized penis', 'durchschnittlich'], ['above-average penis', 'über dem Durchschnitt'], ['large penis', 'groß'], ['very large penis', 'sehr groß']] },
+  { k: 'girth', label: 'Dicke', opts: [['slim shaft', 'schlank'], ['average girth', 'durchschnittlich'], ['thick shaft', 'dick'], ['very thick shaft', 'sehr dick']] },
+  { k: 'shape', label: 'Form', opts: [['straight', 'gerade'], ['slightly curved upward', 'leicht nach oben'], ['slightly curved to the left', 'leicht nach links'], ['slightly curved to the right', 'leicht nach rechts'], ['slightly curved downward', 'leicht nach unten']] },
+  { k: 'cut', label: 'Beschnitten', opts: [['circumcised', 'ja'], ['uncircumcised with foreskin', 'nein']] },
+  { k: 'glans', label: 'Eichel', opts: [['small glans', 'klein'], ['average glans', 'mittel'], ['large prominent glans', 'groß, ausgeprägt'], ['mushroom-shaped glans', 'pilzförmig']] },
+  { k: 'veins', label: 'Adern', opts: [['smooth, barely visible veins', 'kaum sichtbar'], ['visible veins', 'sichtbar'], ['prominent veins', 'deutlich']] },
+  { k: 'balls', label: 'Hoden', opts: [['tight small testicles', 'klein, eng'], ['average testicles', 'mittel'], ['large hanging testicles', 'groß, hängend']] },
+  { k: 'hair', label: 'Behaarung', opts: [['fully shaved', 'rasiert'], ['neatly trimmed pubic hair', 'getrimmt'], ['natural pubic hair', 'natürlich'], ['dense natural pubic hair', 'kräftig']] },
+  { k: 'tone', label: 'Hautton dort', opts: [['same skin tone as body', 'wie der Körper'], ['slightly darker skin tone', 'etwas dunkler'], ['pinkish skin tone', 'rosiger']] },
+];
+function phantomPhrase(fields, defs) {
+  return defs.map(d => fields && fields[d.k]).filter(Boolean).join(', ');
+}
+function intimatePhrase(c) {
+  const p = phantomPhrase(c.intimateFields, INTIM_FIELDS);
+  return p || (c.intimate || '').trim();
+}
+// Eine Auswahl-Tabelle für den Editor
+function phantomEditor(c, defs, key, onChange) {
+  const box = document.createElement('div');
+  const isFemale = c.gender === 'weiblich' || c.gender === 'w' || /frau|weiblich/i.test(c.gender || '');
+  defs.filter(d => !d.female || isFemale).forEach(d => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin:6px 0;';
+    const lab = document.createElement('span'); lab.style.cssText = 'font-size:13.5px; flex:0 0 42%;'; lab.textContent = d.label;
+    const sel = document.createElement('select'); sel.style.flex = '1';
+    sel.innerHTML = '<option value="">- offen -</option>' + d.opts.map(([en, de]) => `<option value="${esc(en)}">${esc(de)}</option>`).join('');
+    sel.value = (c[key] || {})[d.k] || '';
+    sel.onchange = () => { c[key] = Object.assign({}, c[key] || {}); if (sel.value) c[key][d.k] = sel.value; else delete c[key][d.k]; onChange && onChange(); };
+    row.append(lab, sel); box.appendChild(row);
+  });
+  return box;
+}
+function phantomPrefs() { try { return JSON.parse(localStorage.getItem('companion_phantomPrefs') || '{}'); } catch (e) { return {}; } }
+function phantomMode() { return localStorage.getItem('companion_phantomMode') || 'prefs'; }
+function renderConfigurator() {
+  const host = document.getElementById('cfgFields'); if (!host) return;
+  const P = phantomPrefs();
+  host.innerHTML = '';
+  PHANTOM_FIELDS.filter(d => d.k !== 'marks').forEach(d => {
+    const wrap = document.createElement('div'); wrap.style.cssText = 'margin:10px 0 0;';
+    wrap.innerHTML = `<div style="font-size:13px; color:var(--text-dim); margin-bottom:4px;">${esc(d.label)}</div>`;
+    const chips = document.createElement('div'); chips.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px;';
+    d.opts.forEach(([en, de]) => {
+      const b = document.createElement('button'); b.type = 'button';
+      const on = (P[d.k] || []).includes(en);
+      b.className = on ? 'btn-primary' : 'btn-secondary';
+      b.style.cssText = 'width:auto; height:32px; padding:0 12px; font-size:12.5px;';
+      b.textContent = de;
+      b.onclick = () => { const Q = phantomPrefs(); const arr = new Set(Q[d.k] || []); arr.has(en) ? arr.delete(en) : arr.add(en); Q[d.k] = [...arr]; if (!Q[d.k].length) delete Q[d.k]; safeSet('companion_phantomPrefs', JSON.stringify(Q)); renderConfigurator(); };
+      chips.appendChild(b);
+    });
+    wrap.appendChild(chips); host.appendChild(wrap);
+  });
+}
+function rollPhantom(c, auto) {
+  const P = phantomPrefs(), mode = phantomMode();
+  if (auto && mode === 'off') return;
+  const isFemale = c.gender === 'weiblich' || /frau|weiblich/i.test(c.gender || '');
+  const p = auto ? Object.assign({}, c.phantom || {}) : {};
+  const ap = String(c.appearance || '').toLowerCase();
+  // Beim automatischen Würfeln nur Körpermerkmale, die das Aussehen nicht
+  // ohnehin festlegt - Gesicht, Haare, Haut bleiben so, wie beschrieben.
+  const covered = { body: /statur|schlank|kurvig|sportlich|athlet|muskul|üppig|mollig/, height: /\d{3}\s*cm|groß|klein|zierlich/, breasts: /brüst|brust|oberweite/, breastShape: /brüst|brust/, hips: /hüfte|hüften/, butt: /\bpo\b|hintern|gesäß/,
+    hair: /haare?\s*:|frisur|locken|zopf|bob\b/, hairColor: /haare?\s*:|blond|brünett|schwarzhaar|rothaar|kupfer/, eyeColor: /augen\s*:/, eyes: /augen\s*:/, skin: /haut\s*:|teint/, face: /gesicht\s*:/, nose: /nase/, lips: /lippen/, marks: /sommersprossen|tattoo|piercing|muttermal|brille/ };
+  PHANTOM_FIELDS.forEach(d => {
+    if (d.female && !isFemale) return;
+    if (auto && ((covered[d.k] && covered[d.k].test(ap)) || p[d.k])) return;
+    // frei würfeln automatisch nur beim Körper - Gesicht nur mit Vorliebe
+    if (auto && phantomMode() === 'random' && !['body', 'height', 'breasts', 'breastShape', 'hips', 'butt'].includes(d.k) && !(P[d.k] && P[d.k].length)) return;
+    if (d.k === 'marks' && Math.random() < 0.5) return;
+    // Vorlieben zuerst; ohne Vorliebe: im Modus „Vorlieben" offen lassen, sonst frei
+    const pool = (P[d.k] && P[d.k].length) ? P[d.k] : ((auto && mode === 'prefs') ? null : d.opts.map(o => o[0]));
+    if (!pool) return;
+    p[d.k] = pool[Math.floor(Math.random() * pool.length)];
+  });
+  // stimmig halten: zierlich + sehr große Brust ist selten - etwas glätten
+  if (!(P.breasts && P.breasts.length) && p.height === 'petite' && p.breasts === 'very large breasts' && Math.random() < 0.6) p.breasts = 'medium breasts';
+  c.phantom = p;
+}
+// Bildverstehen füllt das Formular statt frei zu formulieren
+async function phantomFromImage(img, defs, kind) {
+  const many = Array.isArray(img) ? img : [img];
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Du bekommst ${many.length > 1 ? many.length + ' Bilder derselben Person aus verschiedenen Blickwinkeln' : 'ein Bild'} (${kind}). ${many.length > 1 ? 'Nutze alle Ansichten zusammen (von vorn, von der Seite, von oben/unten), um jedes Merkmal möglichst sicher zu bestimmen. ' : ''}Fülle dieses Merkmalsformular aus - wähle je Feld GENAU EINE der erlaubten Optionen (wörtlich, englisch) oder lass das Feld weg, wenn es nicht sichtbar ist. Keine Wertung.
+${defs.map(d => `"${d.k}": ${d.opts.map(o => '"' + o[0] + '"').join(' | ')}`).join('\n')}
+Antworte NUR als JSON-Objekt, z. B. {"${defs[0].k}": "${defs[0].opts[1][0]}"}.`;
+  const raw = await callProvider(provider, sys, [{ role: 'user', content: many.length > 1 ? 'Hier die Bilder.' : 'Hier das Bild.', images: many }], 0.1, taskBudget('vision', 500), { task: 'vision' });
+  const j = parseJsonLoose(raw) || {};
+  const out = {};
+  defs.forEach(d => { const v = j[d.k]; if (v && d.opts.some(o => o[0] === v)) out[d.k] = v; });
+  if (!Object.keys(out).length) throw new Error('Das Modell hat das Formular nicht ausgefüllt (sieht es Bilder? Einstellungen → Modelle je Aufgabe → „Bilder verstehen").');
+  return out;
+}
+
+// ======================= HOCHAUFLÖSENDE PORTRÄTS =======================
+// In der Liste lag bisher nur ein Vorschaubild (192 px). Für Karten und
+// große Ansichten wird jetzt das gespeicherte Original nachgeladen.
+const hiResCache = new Map();
+async function hiResUrl(v) {
+  if (!v || !v.imageKey) return v && v.image || '';
+  if (hiResCache.has(v.imageKey)) return hiResCache.get(v.imageKey);
+  const u = await loadFullImage(v.imageKey).catch(() => null);
+  const url = u || v.image || '';
+  if (u) hiResCache.set(v.imageKey, url);
+  return url;
+}
+function upgradeImg(img, v) { if (!img || !v || !v.imageKey) return; hiResUrl(v).then(u => { if (u) img.src = u; }); }
+
+// ======================= FIGUR AUF AKTUELLEN STAND =======================
+function optionsList(defs) { return defs.map(d => `"${d.k}": ${d.opts.map(o => '"' + o[0] + '"').join(' | ')}`).join('\n'); }
+async function upgradeFigure(figure, quiet) {
+  const v = latestVersion(figure); if (!v || v.isUser) return null;
+  const c = characterFromVersion(figure);
+  const missing = [];
+  if (!v.isNarrator && (!v.phantom || !Object.keys(v.phantom).length)) missing.push('phantom');
+  if (!v.isNarrator && !(v.signature || '').trim()) missing.push('signature');
+  if (!(v.styleExamples || '').trim()) missing.push('styleExamples');
+  if (!(v.voiceDescription || '').trim()) missing.push('voiceDescription');
+  if (!missing.length) return { name: v.name, changed: [] };
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Hier ist eine Figur aus einem erotischen Rollenspiel zwischen Erwachsenen. Ergänze NUR die fehlenden Felder, passend zu allem, was schon da ist - nichts Widersprüchliches erfinden.
+${describeCharacter(c)}
+Aussehen: ${v.appearance || '(keins)'}
+
+Fehlend: ${missing.join(', ')}
+- "signature": ein Markenzeichen - eine typische Geste, Bewegung oder ein Satz, an dem man sie sofort erkennt (1 Satz).
+- "styleExamples": drei bis vier typische Sätze von ihr, je eine Zeile, in ihrer Sprechweise.
+- "voiceDescription": englische Stimmbeschreibung für ElevenLabs Voice Design (Alter, Akzent, Klangfarbe, Ausdruck; 1-2 Sätze).
+- "phantom": Objekt mit Merkmalen, je Feld genau eine der erlaubten Optionen oder weglassen, wenn das Aussehen nichts dazu sagt:
+${optionsList(PHANTOM_FIELDS)}
+Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
+  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.6, taskBudget('draft', 1200), { task: 'draft' })) || {};
+  const changed = [];
+  if (missing.includes('phantom')) {
+    let ph = {};
+    if (j.phantom && typeof j.phantom === 'object') PHANTOM_FIELDS.forEach(d => { if (d.opts.some(o => o[0] === j.phantom[d.k])) ph[d.k] = j.phantom[d.k]; });
+    // Gibt es ein Porträt, ist das Bild die bessere Quelle
+    try { if (v.imageKey) { const u = await loadFullImage(v.imageKey); if (u) ph = Object.assign(ph, await phantomFromImage(u, PHANTOM_FIELDS, 'Porträt der Figur')); } } catch (e) {}
+    if (Object.keys(ph).length) { c.phantom = ph; changed.push('Phantombild'); }
+  }
+  if (missing.includes('signature') && j.signature) { c.signature = String(j.signature).slice(0, 400); changed.push('Markenzeichen'); }
+  if (missing.includes('styleExamples') && j.styleExamples) { c.styleExamples = (Array.isArray(j.styleExamples) ? j.styleExamples.join('\n') : String(j.styleExamples)).slice(0, 1200); changed.push('Tonfall-Beispiele'); }
+  if (missing.includes('voiceDescription') && j.voiceDescription) { c.voiceDescription = String(j.voiceDescription).slice(0, 500); changed.push('Stimmbeschreibung'); }
+  if (changed.length) { storeCharacterVersion(c, true); saveArchive(); }
+  return { name: v.name, changed };
+}
+async function upgradeAllFigures(btn) {
+  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser; });
+  if (!confirm(`${list.length} Figuren prüfen und fehlende Felder ergänzen? Für jede, bei der etwas fehlt, entsteht eine neue Version - die alte bleibt erhalten.`)) return;
+  const report = [];
+  for (let i = 0; i < list.length; i++) {
+    if (btn) btn.textContent = `Aktualisiere ${i + 1} von ${list.length} …`;
+    try { const r = await upgradeFigure(list[i], true); if (r && r.changed.length) report.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) { report.push(`${latestVersion(list[i]).name}: Fehler (${e.message})`); }
+  }
+  if (btn) btn.textContent = '⟳ Alle Figuren auf aktuellen Stand';
+  renderFigureList();
+  alert(report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.');
+}
+
+// ======================= PORTFOLIO =======================
+function seedFor(id) { let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return Math.abs(h) % 2147483647; }
+async function generateImageDirect(prompt, seed) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  if (!key) throw new Error('Kein Venice-Schlüssel.');
+  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/generate', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, prompt: prompt.slice(0, 1400), negative_prompt: 'child, teen, minor, young-looking, childlike, text, watermark, distorted face, extra limbs, deformed hands'
+      + (/\b(nude|naked)\b/i.test(prompt) ? ', clothes, clothing, bra, panties' : ''), width: 832, height: 1216, format: 'webp', safe_mode: false, hide_watermark: true, seed }),
+  });
+  if (!res.ok) throw new Error('Bildfehler ' + res.status);
+  if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('Vom Anbieter unkenntlich gemacht.');
+  const body = await res.json();
+  const b64 = (Array.isArray(body.images) && body.images[0]) || (body.data && body.data[0] && body.data[0].b64_json);
+  if (!b64) throw new Error('Kein Bild erhalten.');
+  return 'data:image/webp;base64,' + b64;
+}
+const PORTFOLIO_SHOTS = [
+  ['Porträt', 'professional portrait photo, head and shoulders, wearing {outfit}, soft studio light, shallow depth of field, looking into the camera'],
+  ['Outfit', 'full body fashion photo, standing, wearing {outfit}, {pose}, elegant interior, natural light'],
+  ['Halbakt', 'sensual boudoir photo, wearing only lingerie, partly undressed, sitting on the edge of a bed, soft warm light, seductive look'],
+  ['Akt', 'artistic nude photo, fully naked, {nudepose}, bedroom with silk sheets, soft cinematic light, full body visible'],
+];
+async function makePortfolio(figure, btn) {
+  const v = latestVersion(figure); if (!v || v.isUser || v.isNarrator) return 0;
+  const c = characterFromVersion(figure);
+  try { await ensureLookTag(c); } catch (e) {}
+  const st = figureStats(figure);
+  const look = [c.lookTag || '', phantomPhrase(c.phantom, PHANTOM_FIELDS)].filter(Boolean).join(', ');
+  const outfit = ((String(v.appearance || '').match(/Kleidung\s*:\s*(.+)/i) || [])[1] || 'a stylish outfit').slice(0, 120);
+  const pose = st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
+  const nudepose = st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side on the bed, tender look' : 'kneeling on the bed, playful smile';
+  let n = 0;
+  for (let i = 0; i < PORTFOLIO_SHOTS.length; i++) {
+    if (btn) btn.textContent = `Fotografiere ${i + 1}/4 …`;
+    const [label, tpl] = PORTFOLIO_SHOTS[i];
+    const prompt = `Photorealistic, adult woman. ${look}. ${tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose)}. Adults only.`;
+    try { const url = await generateImageDirect(prompt, seedFor(figure.id)); await galleryAdd(url, 'image', [figure.id], 'Portfolio · ' + label); n++; } catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): ${e.message}` }); }
+  }
+  if (btn) btn.textContent = n ? `✓ ${n} Bilder in der Galerie` : 'Fehlgeschlagen';
+  return n;
+}
+const portfolioQueue = [];
+let portfolioBusy = false;
+function queuePortfolio(id) {
+  if (localStorage.getItem('companion_autoPortfolio') === 'false') return;
+  portfolioQueue.push(id);
+  if (portfolioBusy) return;
+  portfolioBusy = true;
+  (async () => { while (portfolioQueue.length) { const f = figureArchive.find(x => x.id === portfolioQueue.shift()); if (f) { try { await makePortfolio(f); } catch (e) {} } } portfolioBusy = false; })();
+}
+function portfolioImages(figure) { return galleryFor(figure.id).filter(g => g.type === 'image' && /Portfolio/.test(g.note || '')).reverse(); }
+
+// ======================= DURCHSWIPEN =======================
+const sw = { list: [], i: 0, img: 0, urls: [] };
+async function openSwipe() {
+  sw.list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; }).sort(() => Math.random() - 0.5);
+  sw.i = 0;
+  els.swipeView.style.display = 'flex';
+  renderSwipe();
+}
+async function swImages(figure) {
+  const v = latestVersion(figure); const urls = [];
+  const main = await hiResUrl(v); if (main) urls.push(main);
+  for (const g of portfolioImages(figure).slice(0, 5)) { const b = await dbGet(STORE_IMAGES, g.key).catch(() => null); if (b) urls.push(URL.createObjectURL(b)); }
+  return urls;
+}
+async function renderSwipe() {
+  const stage = els.swStage; stage.innerHTML = '';
+  if (sw.i >= sw.list.length) { stage.innerHTML = '<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;"><div style="font-size:40px;">✨</div><div>Alle durch.</div><button type="button" class="btn-secondary" id="swAgain" style="width:auto;">Nochmal von vorn</button></div>'; document.getElementById('swAgain').onclick = openSwipe; els.swCount.textContent = ''; return; }
+  const f = sw.list[sw.i], v = latestVersion(f), st = figureStats(f);
+  els.swCount.textContent = `${sw.i + 1}/${sw.list.length}`;
+  const card = document.createElement('div'); card.className = 'sw-card';
+  card.innerHTML = `<img alt="" src="${v.image || ''}"><div class="sw-dots"></div><div class="sw-info"><div style="font-family:var(--font-display); font-size:32px; font-weight:600;">${esc(v.name)}</div><div style="font-size:13.5px; color:var(--text-dim); margin:2px 0 8px;">${esc(figureGist(v))}</div>${statRow('Dominant', st.dom, 'var(--accent)')}${statRow('Zärtlich', st.soft, '#b98fd6')}${st.pref != null ? statRow('Puls-Wert', 40 + st.pref * 6, 'var(--gold)') : ''}<div style="font-size:12px; color:var(--text-dim); margin-top:8px;">Tippen: Rückseite · Seiten antippen: Bilder · ← weiter · → in die Szene · ↑ allein mit ihr</div></div>`;
+  stage.appendChild(card);
+  const img = card.querySelector('img'), dots = card.querySelector('.sw-dots');
+  sw.urls = await swImages(f); sw.img = 0;
+  const showImg = () => { if (sw.urls[sw.img]) img.src = sw.urls[sw.img]; dots.innerHTML = sw.urls.length > 1 ? sw.urls.map((_, k) => `<span class="${k === sw.img ? 'on' : ''}"></span>`).join('') : ''; };
+  showImg();
+  if (!portfolioImages(f).length && localStorage.getItem('companion_autoPortfolio') !== 'false') {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.textContent = '📸 Portfolio erstellen';
+    b.style.cssText = 'position:absolute; top:22px; right:14px; width:auto; padding:8px 12px; font-size:13px; z-index:2;';
+    b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; await makePortfolio(f, b); sw.urls = await swImages(f); showImg(); };
+    card.appendChild(b);
+  }
+  // Gesten
+  let x0 = 0, y0 = 0, dx = 0, dy = 0, down = false, moved = false;
+  card.addEventListener('pointerdown', e => { down = true; moved = false; x0 = e.clientX; y0 = e.clientY; dx = dy = 0; card.style.transition = 'none'; card.setPointerCapture(e.pointerId); });
+  card.addEventListener('pointermove', e => { if (!down) return; dx = e.clientX - x0; dy = e.clientY - y0; if (Math.abs(dx) + Math.abs(dy) > 8) moved = true; card.style.transform = `translate(${dx}px, ${Math.min(0, dy)}px) rotate(${dx / 20}deg)`; });
+  card.addEventListener('pointerup', e => {
+    down = false; card.style.transition = '';
+    if (dx > 110) return swipeAct('yes'); if (dx < -110) return swipeAct('no'); if (dy < -120) return swipeAct('chat');
+    card.style.transform = '';
+    if (!moved) {
+      const r = card.getBoundingClientRect(), rel = (e.clientX - r.left) / r.width;
+      if (rel < 0.28 && sw.img > 0) { sw.img--; showImg(); }
+      else if (rel > 0.72 && sw.img < sw.urls.length - 1) { sw.img++; showImg(); }
+      else flipSwipe(card, f);
+    }
+  });
+}
+function flipSwipe(card, f) {
+  const ex = card.querySelector('.sw-back'); if (ex) { ex.remove(); return; }
+  const v = latestVersion(f); const R = relations(); const rel = Object.entries(R).filter(([k]) => k.split('|').includes(v.name)).map(([k, r]) => `${k.split('|').find(n => n !== v.name)}: ${r.text}`);
+  const diary = (diaries()[f.id] || []).slice(-1)[0];
+  const back = document.createElement('div'); back.className = 'sw-back';
+  back.innerHTML = `<div style="font-family:var(--font-display); font-size:28px; font-weight:600;">${esc(v.name)}</div>
+    ${v.signature ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14.5px; line-height:1.5;">${esc(v.signature)}</div></div>` : ''}
+    ${v.styleExamples ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">So spricht sie</div>${v.styleExamples.split('\n').filter(Boolean).slice(0, 3).map(l => `<div style="font-family:var(--font-display); font-style:italic; font-size:17px; margin:4px 0;">„${esc(l)}"</div>`).join('')}</div>` : ''}
+    ${rel.length ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Was andere über sie sagen</div>${rel.map(r => `<div style="font-size:14px; margin:4px 0;">${esc(r)}</div>`).join('')}</div>` : ''}
+    ${diary ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Aus ihrem Tagebuch</div><div style="font-size:14px; line-height:1.5; font-style:italic;">${esc(diary.text.slice(0, 300))}</div></div>` : ''}
+    <div class="hint" style="margin-top:14px;">Tippen zum Umdrehen</div>`;
+  back.onclick = (e) => { e.stopPropagation(); back.remove(); };
+  card.appendChild(back);
+}
+function swipeAct(kind) {
+  const f = sw.list[sw.i]; if (!f) return;
+  const card = els.swStage.querySelector('.sw-card');
+  if (card) { card.style.transform = kind === 'yes' ? 'translateX(140%) rotate(18deg)' : kind === 'no' ? 'translateX(-140%) rotate(-18deg)' : 'translateY(-140%)'; card.style.opacity = '0'; }
+  setTimeout(() => {
+    if (kind === 'yes') { addFigureToCast(f.id); saveCharacters(); }
+    if (kind === 'chat') {
+      const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+      switchMode('live');
+      characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f)].filter(Boolean);
+      saveCharacters(); renderLivePanel(); els.swipeView.style.display = 'none'; els.liveStartBtn.click(); return;
+    }
+    sw.i++; renderSwipe();
+  }, 260);
+}
+
+// ======================= KARTEN DES ABENDS =======================
+function pitchesToday() { try { const j = JSON.parse(localStorage.getItem('companion_pitches') || 'null'); return j && j.day === dayKeyLocal() ? j : null; } catch (e) { return null; } }
+function dayKeyLocal() { const d = new Date(Date.now() - 5 * 3600000); return d.toISOString().slice(0, 10); }
+async function openPitches(force) {
+  els.pitchView.style.display = 'block';
+  let P = pitchesToday();
+  if (!P || force) {
+    els.ptList.innerHTML = '<div class="pt-card" style="display:flex; align-items:center; justify-content:center;"><div style="text-align:center;"><div class="sp-dice" style="font-size:40px;">🎲</div><p class="hint">Deine Figuren überlegen sich etwas …</p></div></div>';
+    P = await makePitches(); if (!P) return;
+  }
+  renderPitches(P);
+}
+async function makePitches() {
+  const pool = surprisePool();
+  if (!pool.length) { els.ptList.innerHTML = '<p class="hint" style="padding:90px 20px;">Erst ein paar Figuren anlegen.</p>'; return null; }
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const R = relations();
+  const sys = `Deine Figuren haben sich für heute Abend etwas für Til ausgedacht - fünf verschiedene Vorschläge, wie Karten zum Aussuchen. Erwachsene, erotisch, verführerisch.
+Figuren:
+${pool.slice(0, 14).map(x => '- ' + x.v.name + ': ' + figureGist(x.v)).join('\n')}
+${Object.keys(R).length ? 'Beziehungen: ' + Object.entries(R).slice(0, 8).map(([k, r]) => k.replace('|', ' & ') + ': ' + r.text).join('; ') : ''}
+Regeln: fünf deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen).
+Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}`;
+  let j = null;
+  try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 1.0, taskBudget('draft', 1600), { task: 'draft' })); } catch (e) { els.ptList.innerHTML = '<p class="hint" style="padding:90px 20px;">' + esc(e.message) + '</p>'; return null; }
+  const names = pool.map(x => x.v.name);
+  const cards = ((j && j.cards) || []).slice(0, 5).map(c => ({ title: String(c.title || ''), teaser: String(c.teaser || ''), scene: String(c.scene || ''), cast: (c.cast || []).map(n => matchSpeakerName(n, names)).filter(Boolean) })).filter(c => c.scene && c.cast.length);
+  const old = pitchesToday();
+  const P = { day: dayKeyLocal(), cards, refreshes: (old ? old.refreshes || 0 : 0) + (old ? 1 : 0) };
+  safeSet('companion_pitches', JSON.stringify(P));
+  // Bilder nach und nach
+  (async () => {
+    for (let i = 0; i < P.cards.length; i++) {
+      try {
+        const cast = P.cards[i].cast.map(n => characterFromVersion(figureByName(n))).filter(Boolean);
+        const { dataUrl } = await makeSceneImage(P.cards[i].scene, cast);
+        await dbPut(STORE_IMAGES, 'pitch_' + P.day + '_' + i, await (await fetch(dataUrl)).blob());
+        const el = document.getElementById('ptImg' + i); if (el) el.src = dataUrl;
+      } catch (e) {}
+    }
+  })();
+  return P;
+}
+function renderPitches(P) {
+  els.ptList.innerHTML = '';
+  if (P.refreshes >= 3) els.ptList.insertAdjacentHTML('beforeend', '');
+  P.cards.forEach((c, i) => {
+    const card = document.createElement('div'); card.className = 'pt-card';
+    card.innerHTML = `<img id="ptImg${i}" alt=""><div class="pt-info">
+      <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">${i + 1} von ${P.cards.length} · ${esc(c.cast.map(n => n.split(' ')[0]).join(', '))}</div>
+      <h2 style="margin:6px 0; font-size:32px; font-weight:600;">${esc(c.title)}</h2>
+      <p style="margin:0 0 8px; font-family:var(--font-display); font-style:italic; font-size:19px; line-height:1.4;">${esc(c.teaser)}</p>
+      <p style="margin:0; font-size:14px; line-height:1.5; color:var(--text-dim);">${esc(c.scene)}</p>
+      <div class="btn-row" style="margin-top:14px;"><button type="button" class="btn-primary" data-i="${i}">Diese Karte spielen</button></div>
+      ${i === P.cards.length - 1 ? `<p class="hint" style="margin-top:10px;">Das waren die Karten für heute${P.refreshes ? ` (heute ${P.refreshes}× neu gemischt)` : ''}.</p>` : ''}</div>`;
+    els.ptList.appendChild(card);
+    dbGet(STORE_IMAGES, 'pitch_' + P.day + '_' + i).then(b => { if (b) card.querySelector('img').src = URL.createObjectURL(b); }).catch(() => {});
+    card.querySelector('button[data-i]').onclick = () => playPitch(c);
+  });
+}
+function playPitch(c) {
+  const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+  switchMode('live');
+  characters = [meFig ? characterFromVersion(meFig) : null, ...c.cast.map(n => figureByName(n)).filter(Boolean).map(f => characterFromVersion(f))].filter(Boolean);
+  saveCharacters();
+  safeSet('companion_sceneDesc', c.scene);
+  safeSet('companion_narratorEnabled', 'false');
+  renderLivePanel();
+  els.pitchView.style.display = 'none';
+  addMsg('system', '🃏 ' + c.title);
+  els.liveStartBtn.click();
+}
+
+// ======================= MOND-FARBSPIEL =======================
+const PAD_COLORS = { club: '#c0183c', bar: '#c8892a', park: '#3d7fb8', lake: '#1f9e9a', fire: '#e0661e', rain: '#4a5f8a', shower: '#3fb7c9', city: '#8a4fc0', room: '#9b3048' };
+setInterval(() => {
+  const glow = document.getElementById('padGlow');
+  if (!glow || !els.padOverlay || els.padOverlay.style.display === 'none') return;
+  const key = (typeof amb !== 'undefined' && amb.key) || 'room';
+  const col = PAD_COLORS[key] || PAD_COLORS.room;
+  glow.style.background = `radial-gradient(ellipse at 50% 85%, ${col} 0%, transparent 70%)`;
+  const st = device1 && device1.getState ? device1.getState() : null;
+  const bpm = st && st.texture !== 'stop' && st.bpm > 0 ? st.bpm : 0;
+  glow.style.animationDuration = bpm ? Math.max(0.3, 60 / bpm) + 's' : '6s';
+  glow.style.opacity = String(bpm ? Math.min(0.55, 0.18 + bpm / 450) : 0.15);
+}, 1500);
+
 // ======================= APP-HÜLLE =======================
 function setTab(which) {
   els.tabBar.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === which));
@@ -15391,6 +16194,7 @@ function renderHome() {
   els.homeMusic.textContent = musicEnabled() ? '♪ ' + (MUSIC_STYLES[musicStyleSetting()] ? MUSIC_STYLES[musicStyleSetting()].label : 'automatisch') : '';
   renderTiles(els.homeTiles, gameTileDefs().slice(0, 2));
   try { renderRecapCard(); } catch (e) {}
+  try { const c = wellCfg(); const m = Math.round(usageToday() / 60); els.homeWhen.textContent += ` · heute ${m}${c.limit ? '/' + c.limit : ''} min`; } catch (e) {}
   let S = null; try { const all = hrLogLoad().sessions; S = all[all.length - 1]; } catch (e) {}
   els.homeLastLabel.style.display = S ? '' : 'none';
   els.homeLast.textContent = S ? `${new Date(S.start).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} · ${Math.round((S.rows[S.rows.length - 1][0] - S.rows[0][0]) / 60)} min · Puls bis ${Math.max(...S.rows.map(r => r[1]))} · ${(S.events || []).filter(e => e.type === 'edge').length} Kanten${(S.events || []).some(e => e.type === 'came') ? ' · 💦' : ''}` : '';
@@ -15462,12 +16266,27 @@ function showFigureCard(figure) {
     <div class="fc-actions">
       <button type="button" class="btn-secondary" id="fcPlay" aria-label="Stimme anhören" style="flex:0 0 52px; padding:0;">▶</button>
       <button type="button" class="btn-secondary" id="fcEdit" style="flex:1;">Bearbeiten</button>
+      ${v.isUser ? '' : '<button type="button" class="btn-secondary" id="fcMore" aria-label="Mehr" style="flex:0 0 52px; padding:0;">⋯</button>'}
       ${v.isUser || v.isNarrator ? '' : `<button type="button" class="btn-primary" id="fcCast" style="flex:1.3;" ${inCast ? 'disabled' : ''}>${inCast ? 'In der Szene ✓' : 'In die Szene'}</button>`}
     </div>`;
   els.figCard.style.display = 'block';
   els.figCard.scrollTop = 0;
+  upgradeImg(els.figCard.querySelector('.fc-hero img'), v);
   document.getElementById('fcBack').onclick = () => { els.figCard.style.display = 'none'; };
   renderGallery(document.getElementById('fcGallery'), figure);
+  const more = document.getElementById('fcMore');
+  if (more) more.onclick = () => {
+    const m = document.createElement('div');
+    m.className = 'more-sheet open';
+    m.style.cssText = 'position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 90px); z-index:2060;';
+    m.innerHTML = '<button type="button" class="btn-secondary" id="fmUp">⟳ Auf aktuellen Stand bringen</button>' + (v.isNarrator ? '' : '<button type="button" class="btn-secondary" id="fmPort">📸 Portfolio erstellen (4 Bilder)</button>');
+    document.body.appendChild(m);
+    const close = () => m.remove();
+    setTimeout(() => document.addEventListener('click', function h(e) { if (!m.contains(e.target)) { close(); document.removeEventListener('click', h); } }), 0);
+    m.querySelector('#fmUp').onclick = async (e) => { const b = e.currentTarget; b.disabled = true; b.textContent = 'Prüfe …'; try { const r = await upgradeFigure(figure); b.textContent = r && r.changed.length ? '✓ Ergänzt: ' + r.changed.join(', ') : '✓ War schon aktuell'; if (r && r.changed.length) setTimeout(() => { close(); showFigureCard(figure); }, 1200); } catch (x) { b.textContent = 'Fehler: ' + x.message; } };
+    const pb = m.querySelector('#fmPort');
+    if (pb) pb.onclick = async (e) => { const b = e.currentTarget; b.disabled = true; await makePortfolio(figure, b); renderGallery(document.getElementById('fcGallery'), figure); };
+  };
   if (!v.isUser) renderFigureSounds(document.getElementById('fcSounds'), v);
   renderDiary(document.getElementById('fcDiary'), figure);
   document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
@@ -15597,7 +16416,7 @@ els.navNewChat.onclick = () => {
   setAmbience(null);
   setMusic(null);
   motionWish.active = false; motionWish.rampStart = 0;
-  sceneImageMemory.prompt = ''; sceneImageMemory.framings = [];
+  sceneImageMemory.prompt = ''; sceneImageMemory.framings = []; sceneImageMemory.state = ''; sceneImageMemory.seed = Math.floor(Math.random() * 2147483647);
   els.transcript.innerHTML = '';
   addMsg('system', 'Neues Gespräch.');
   setDrawer(false);
@@ -16936,6 +17755,24 @@ els.homeLiveBtn.onclick = () => { switchMode('live'); els.liveStartBtn.click(); 
 els.liveSetupChip.onclick = () => { els.liveSetup.style.display = ''; els.liveSetup.open = true; els.liveSetupChip.style.display = 'none'; };
 els.homeStoryBtn.onclick = () => switchMode('story');
 els.homeSurpriseBtn.onclick = rollSurprise;
+document.getElementById('homePitchBtn').onclick = () => openPitches(false);
+document.getElementById('ptRefresh').onclick = () => openPitches(true);
+document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
+document.getElementById('swipeOpenBtn').onclick = openSwipe;
+document.getElementById('swBack').onclick = () => { els.swipeView.style.display = 'none'; try { renderFigureList(); } catch (e) {} };
+document.getElementById('swNo').onclick = () => swipeAct('no');
+document.getElementById('swYes').onclick = () => swipeAct('yes');
+document.getElementById('swChat').onclick = () => swipeAct('chat');
+document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
+document.getElementById('autoPortfolio').checked = localStorage.getItem('companion_autoPortfolio') !== 'false';
+document.getElementById('autoPortfolio').onchange = (e) => safeSet('companion_autoPortfolio', e.target.checked ? 'true' : 'false');
+renderConfigurator();
+document.getElementById('cfgMode').value = phantomMode();
+document.getElementById('cfgMode').onchange = (e) => safeSet('companion_phantomMode', e.target.value);
+[['limit', els.wellLimit], ['break', els.wellBreak], ['night', els.wellNight], ['free', els.wellFree], ['after', els.wellAfter]].forEach(([k, el]) => { el.onchange = () => setWell(k, el.value); });
+renderWell();
+// Gleich beim Öffnen prüfen (nach dem Entsperren erneut, siehe wellTick)
+setTimeout(() => { try { const r = blockedReason(); if (r) showLimitScreen(r); } catch (e) {} }, 300);
 document.getElementById('homeFireBtn').onclick = openCampfire;
 els.cfTopic.onchange = () => { els.cfTopicCustom.style.display = els.cfTopic.value === 'custom' ? '' : 'none'; };
 document.getElementById('cfStart').onclick = startCampfire;
