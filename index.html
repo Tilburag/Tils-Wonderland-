@@ -3406,8 +3406,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.82';
+const APP_VERSION = '1.83';
 const CHANGELOG = [
+  { v: '1.83', date: '2026-10-06', items: [
+    'Behoben: Sicherung brach mit „readAsDataURL … not of type Blob" ab, wenn in der Bilddatenbank ein Eintrag in anderem Format lag. Jetzt werden alle Formate vereinheitlicht; Unlesbares wird übersprungen und im Protokoll gezählt, statt die ganze Sicherung zu verhindern.',
+  ]},
   { v: '1.82', date: '2026-10-06', items: [
     'Behoben: „Nur Porträts übernehmen" übersprang Figuren, deren Vorschaubild schon dem der Sicherung glich - auch wenn das Original in voller Größe fehlte (etwa nach dem Zurücksetzen). Jetzt wird dann das scharfe Original aus der Sicherung ergänzt. Die Meldung sagt genau, was passiert ist (getauscht, ergänzt, schon gleich, Bilder fehlen in der Sicherung).',
   ]},
@@ -4391,6 +4394,16 @@ function collectSettings() {
   return data;
 }
 
+// Was in der Datenbank liegt, ist nicht immer ein Blob (alte Einträge,
+// Datenadressen, Objekte mit .blob). Für die Sicherung alles vereinheitlichen.
+async function asBlob(v) {
+  if (!v) return null;
+  if (v instanceof Blob) return v;
+  if (v.blob instanceof Blob) return v.blob;
+  if (typeof v === 'string' && v.startsWith('data:')) { try { return await (await fetch(v)).blob(); } catch (e) { return null; } }
+  if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) return new Blob([v]);
+  return null;
+}
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -4444,9 +4457,13 @@ async function buildEncryptedBackup(password, parts, onProgress) {
     const keys = await dbKeys(STORE_IMAGES).catch(() => []);
     const values = await dbAll(STORE_IMAGES).catch(() => []);
     bundle.images = [];
+    let skipped = 0;
     for (let i = 0; i < keys.length; i++) {
-      bundle.images.push({ k: keys[i], t: values[i].type, b: await blobToBase64(values[i]) });
+      const b = await asBlob(values[i]);
+      if (!b) { skipped++; continue; }
+      bundle.images.push({ k: keys[i], t: b.type, b: await blobToBase64(b) });
     }
+    if (skipped) logEvent('msg', { role: 'system', text: `Sicherung: ${skipped} unlesbare Bildeinträge übersprungen.` });
   }
 
   if (parts.audio) {
@@ -4455,7 +4472,7 @@ async function buildEncryptedBackup(password, parts, onProgress) {
     bundle.audio = [];
     for (let i = 0; i < keys.length; i++) {
       if (i % 20 === 0) onProgress(`Vertonung ${i} von ${keys.length}...`);
-      bundle.audio.push({ k: keys[i], t: values[i].type, b: await blobToBase64(values[i]) });
+      { const ab = await asBlob(values[i]); if (ab) bundle.audio.push({ k: keys[i], t: ab.type, b: await blobToBase64(ab) }); }
     }
   }
 
