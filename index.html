@@ -1408,7 +1408,7 @@
       </label>
       <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0;">
         <span style="font-size:13px; flex:0 0 44%;">Bearbeitungsmodell</span>
-        <input type="text" id="refModel" placeholder="qwen-image-2-edit" style="flex:1;">
+        <input type="text" id="refModel" placeholder="qwen-edit-uncensored" style="flex:1;">
       </div>
       <p class="hint">Venice-Bildbearbeitung (experimentell): Das Porträt geht als Vorlage mit, damit Gesicht und Körper gleich bleiben. Lehnt das Modell ab oder scheitert es, entsteht das Bild wie bisher aus der Beschreibung. Im Protokoll steht, welcher Weg genommen wurde. Andere Modelle zum Ausprobieren: qwen-image-2-pro-edit, firered-image-edit.</p>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
@@ -3406,8 +3406,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.85';
+const APP_VERSION = '1.86';
 const CHANGELOG = [
+  { v: '1.86', date: '2026-10-07', items: [
+    'Behoben: Bilder über die Vorlage (Stamm-Bild) scheiterten still, weil Venice bei der Bildbearbeitung standardmäßig den Jugendschutz anhat und das eingestellte Modell keine Aktbilder bearbeitet - die App fiel dann auf Text-Bilder zurück. Jetzt: safe_mode aus, Modell qwen-edit-uncensored (das einzige offene Bearbeitungsmodell bei Venice; ältere Einträge werden umgestellt), Hochformat 2:3.',
+    'Scheitert die Vorlage bei einer Figur mit Stamm-Bild, steht der Grund jetzt sichtbar im Verlauf statt nur im Protokoll.',
+    'Aussehen aus Profilbild: Das Bildverstehen bekommt die alte Beschreibung nicht mehr zu sehen (es hatte sie teils einfach abgeschrieben - daher wieder „kastanienbraun"). Kleidung und Größe werden danach aus der alten Beschreibung ergänzt, wenn das Bild sie nicht zeigt. Die App zeigt an, welche Haar- und Augenfarbe erkannt wurde und mit welchem Modell.',
+    'Beim Ableiten bekommt die Figur einen neuen Seed - Text-Bilder hängen dann nicht mehr am alten Aussehen.',
+  ]},
   { v: '1.85', date: '2026-10-07', items: [
     'Profilbild ist maßgeblich: Im Figureneditor heißt der Knopf unter dem Aussehen jetzt „🖼️ Aussehen aus Profilbild ableiten" (sobald sie ein Profilbild hat). Das Bildverstehen schreibt das Aussehen neu - nur, was zu sehen ist (Haarfarbe, Augen, Ohren, Gesicht, Körper); Kleidung und Größe bleiben, wenn das Bild sie nicht zeigt - dazu die feste Bildbeschreibung direkt aus dem Bild.',
     'Stamm-Bild: Das Profilbild, aus dem das Aussehen abgeleitet wurde, ist ab dann die Vorlage für alles - neue Porträts („✨ Bild"), Portfolio und Szenenbilder mit ihr entstehen als Abwandlung genau dieses Bildes statt aus Text. So bleibt sie wiedererkennbar.',
@@ -11207,7 +11213,8 @@ async function makeSceneImage(momentText, castOverride) {
         galleryAdd(url, 'image', [f.id], momentText ? 'Geschichte' : 'Szenenbild');
         return { dataUrl: url, prompt: plain };
       } catch (e) {
-        logEvent('msg', { role: 'system', text: 'Szenenbild: Vorlage ging nicht (' + e.message + ') - erzeuge aus der Beschreibung.' });
+        const t = 'Szenenbild: Vorlage ging nicht (' + e.message + ') - erzeuge aus der Beschreibung.';
+        if (fv.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t });
       } finally { makeSceneImage._noRef = false; }
     }
   }
@@ -15486,7 +15493,7 @@ async function readImageFile(file, max) {
 async function deriveLookFromImage(img, oldAppearance, gender) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Du siehst das Profilbild einer erwachsenen Figur aus einem Rollenspiel (KI-Bild). Beschreibe ihr Aussehen NUR nach dem, was auf dem Bild zu sehen ist - so genau, dass ein Bildmodell dieselbe Person wieder malt. Nichts erfinden: keine Tattoos, Piercings, Narben oder Schmuck, die nicht zu sehen sind. Haarfarbe und Augenfarbe exakt im sichtbaren Farbton. Fantasie-Merkmale (spitze Ohren, Hautfarbe, Hörner) unbedingt nennen. Das Alter ist das scheinbare (mindestens 25).
-${oldAppearance ? 'Bisherige Beschreibung - NUR für Dinge, die auf dem Bild nicht zu sehen sind (Kleidung bei Nacktheit, Größe in cm), sonst ignorieren:\n' + String(oldAppearance).slice(0, 1200) + '\n' : ''}
+Ist sie nackt, schreibe bei Kleidung: nackt. Ist die Größe nicht abzuschätzen, lass die cm weg.
 Antworte GENAU in diesem Format:
 === AUSSEHEN ===
 Art: ...
@@ -15508,7 +15515,19 @@ Auffällig: ...
   if (!ap || !/Haare\s*:/i.test(ap) || /Haare:\s*\.\.\.|\(Farbton/.test(ap)) throw new Error('Das Modell hat das Bild offenbar nicht gesehen. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
   tag = String(tag || '').trim().replace(/^["'`(]+|["'`)]+$/g, '').replace(/\s+/g, ' ').slice(0, 760);
   if (tag && !/\badult/i.test(tag)) tag = 'adult ' + tag;
-  let appearance = ap.trim().split('\n').map(l => l.trim()).filter(Boolean).join('\n').slice(0, APPEARANCE_MAX);
+  let lines = ap.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  // Was das Bild nicht zeigt, kommt aus der alten Beschreibung: Kleidung bei
+  // Nacktheit, Körpergröße in cm. Sonst nichts davon - das alte Aussehen sieht
+  // das Bildverstehen gar nicht erst, damit es nicht abschreibt.
+  const old = String(oldAppearance || '');
+  const oldLine = k => ((old.match(new RegExp('^' + k + ':\\s*(.+)$', 'mi')) || [])[1] || '').trim();
+  const oldCloth = oldLine('Kleidung');
+  lines = lines.map(l => {
+    if (/^Kleidung:\s*(nackt|keine|nicht sichtbar)/i.test(l) && oldCloth) return 'Kleidung: ' + oldCloth;
+    if (/^Statur:/i.test(l) && !/\d{3}\s*cm/.test(l)) { const cm = (old.match(/(\d{3})\s*cm/) || [])[1]; if (cm) return l.replace(/^Statur:\s*/i, 'Statur: ' + cm + ' cm, '); }
+    return l;
+  });
+  const appearance = lines.join('\n').slice(0, APPEARANCE_MAX);
   return { appearance, lookTag: tag };
 }
 // Wendet das Ergebnis auf eine Figur an (Editor-Objekt c), ohne zu speichern.
@@ -15523,6 +15542,9 @@ async function applyLookFromPortrait(c) {
   if (r.lookTag && r.lookTag.split(/\s+/).length >= 25) { c.lookTag = r.lookTag; c.lookTagSrc = 'r2:' + appearanceHash(r.appearance); }
   else { c.lookTag = ''; c.lookTagSrc = ''; }
   try { c.phantom = await phantomFromImage(img, PHANTOM_FIELDS, 'Profilbild der Figur'); } catch (e) {}
+  const fig = c.figureId ? getFigure(c.figureId) : null;
+  if (fig) { fig.seed = 1 + Math.floor(Math.random() * 999999998); try { saveArchive(); } catch (e) {} }
+  addMsg('system', `${c.name}: Aus dem Profilbild erkannt (${taskModelName('vision') || 'Gesprächsmodell'}) - ${(r.appearance.match(/^Haare:.*$/m) || [''])[0]} · ${(r.appearance.match(/^Augen:.*$/m) || [''])[0]}`);
   c._lookFromImage = true;
   return r;
 }
@@ -16440,14 +16462,23 @@ async function generateImageDirect(prompt, seed, noRetry) {
   return 'data:image/webp;base64,' + b64;
 }
 // ---------- Porträt als Vorlage (Venice /image/edit) ----------
-function refModel() { return (localStorage.getItem('companion_refModel') || '').trim() || 'qwen-image-2-edit'; }
+// Nur qwen-edit-uncensored erlaubt laut Venice Aktbilder; die anderen
+// Bearbeitungsmodelle lehnen ab oder machen unkenntlich. Ein früher
+// eingetragenes zensiertes Modell wird deshalb auf das offene umgestellt.
+function refModel() {
+  const set = (localStorage.getItem('companion_refModel') || '').trim();
+  if (!set || /^(qwen-image-2-edit|qwen-image-2-pro-edit|firered-image-edit)$/.test(set)) return 'qwen-edit-uncensored';
+  return set;
+}
 function refOn(kind) { return localStorage.getItem(kind === 'scene' ? 'companion_refScenes' : 'companion_refPortfolio') === (kind === 'scene' ? 'true' : 'true') || (kind !== 'scene' && localStorage.getItem('companion_refPortfolio') === null); }
 async function editFromReference(refDataUrl, prompt) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) throw new Error('Kein Venice-Schlüssel.');
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/edit', {
     method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: refModel(), prompt: prompt.slice(0, 1400), image: String(refDataUrl).split(',')[1] }),
+    // safe_mode steht bei Venice standardmäßig an - dann wird jedes Aktbild
+    // abgelehnt oder unkenntlich gemacht und die App fiel still auf Text zurück.
+    body: JSON.stringify({ model: refModel(), prompt: prompt.slice(0, 1400), image: String(refDataUrl).split(',')[1], safe_mode: false, aspect_ratio: '2:3', output_format: 'webp' }),
   });
   if (!res.ok) { let d = ''; try { d = (await res.text()).slice(0, 200); } catch (e) {} throw new Error('Bearbeitung ' + res.status + (d ? ': ' + d : '')); }
   if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('vom Anbieter unkenntlich gemacht');
@@ -16489,7 +16520,7 @@ async function makePortfolio(figure, btn) {
     let url = null, how = 'Beschreibung';
     if (ref && i > 0) {
       try { url = await editFromReference(ref, referencePrompt(tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose))); how = 'Vorlage (' + refModel() + ')'; }
-      catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.` }); }
+      catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
       if (!url) url = await generateImageDirect(prompt, seedFor(figure.id));
