@@ -3406,8 +3406,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.86';
+const APP_VERSION = '1.87';
 const CHANGELOG = [
+  { v: '1.87', date: '2026-10-07', items: [
+    'Behoben: Bilder über die Vorlage scheiterten mit „Bearbeitung 400 … image Required" - das Porträt wurde als browserinterne blob:-Adresse statt als Bild verschickt. Jetzt geht es als echtes Bild an Venice. Das betraf auch das automatische Erkennen der Bild-Merkmale aus dem Porträt.',
+    'Portfolio: jeder Durchgang mit neuem Seed - vorher kamen bei jedem Druck dieselben vier Bilder, wenn die Vorlage nicht ging.',
+  ]},
   { v: '1.86', date: '2026-10-07', items: [
     'Behoben: Bilder über die Vorlage (Stamm-Bild) scheiterten still, weil Venice bei der Bildbearbeitung standardmäßig den Jugendschutz anhat und das eingestellte Modell keine Aktbilder bearbeitet - die App fiel dann auf Text-Bilder zurück. Jetzt: safe_mode aus, Modell qwen-edit-uncensored (das einzige offene Bearbeitungsmodell bei Venice; ältere Einträge werden umgestellt), Hochformat 2:3.',
     'Scheitert die Vorlage bei einer Figur mit Stamm-Bild, steht der Grund jetzt sichtbar im Verlauf statt nur im Protokoll.',
@@ -16222,7 +16226,7 @@ function rollPhantom(c, auto) {
 }
 // Bildverstehen füllt das Formular statt frei zu formulieren
 async function phantomFromImage(img, defs, kind) {
-  const many = Array.isArray(img) ? img : [img];
+  const many = await Promise.all((Array.isArray(img) ? img : [img]).map(u => asDataUrl(u, 1024)));
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Du bekommst ${many.length > 1 ? many.length + ' Bilder derselben Person aus verschiedenen Blickwinkeln' : 'ein Bild'} (${kind}). ${many.length > 1 ? 'Nutze alle Ansichten zusammen (von vorn, von der Seite, von oben/unten), um jedes Merkmal möglichst sicher zu bestimmen. ' : ''}Fülle dieses Merkmalsformular aus - wähle je Feld GENAU EINE der erlaubten Optionen (wörtlich, englisch) oder lass das Feld weg, wenn es nicht sichtbar ist. Keine Wertung.
 ${defs.map(d => `"${d.k}": ${d.opts.map(o => '"' + o[0] + '"').join(' | ')}`).join('\n')}
@@ -16471,9 +16475,23 @@ function refModel() {
   return set;
 }
 function refOn(kind) { return localStorage.getItem(kind === 'scene' ? 'companion_refScenes' : 'companion_refPortfolio') === (kind === 'scene' ? 'true' : 'true') || (kind !== 'scene' && localStorage.getItem('companion_refPortfolio') === null); }
+// Bilder aus der Datenbank kommen als blob:-Adresse - die kennt nur dieser
+// Browser. Für Venice muss daraus echtes Base64 werden (vorher ging statt des
+// Bildes nichts mit: „image: Required").
+async function asDataUrl(u, max) {
+  u = String(u || '');
+  if (!u) return '';
+  if (!u.startsWith('data:')) {
+    const blob = await (await fetch(u)).blob();
+    u = await new Promise((r, j) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.onerror = j; fr.readAsDataURL(blob); });
+  }
+  return max ? await downscaleDataUrl(u, max) : u;
+}
 async function editFromReference(refDataUrl, prompt) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) throw new Error('Kein Venice-Schlüssel.');
+  refDataUrl = await asDataUrl(refDataUrl, 1536);
+  if (!refDataUrl.includes(',') || refDataUrl.length < 1000) throw new Error('Vorlage nicht lesbar');
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/edit', {
     method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
     // safe_mode steht bei Venice standardmäßig an - dann wird jedes Aktbild
@@ -16523,7 +16541,8 @@ async function makePortfolio(figure, btn) {
       catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
-      if (!url) url = await generateImageDirect(prompt, seedFor(figure.id));
+      // Jedes Mal ein neuer Seed - sonst kamen bei jedem Druck dieselben Bilder
+      if (!url) url = await generateImageDirect(prompt, 1 + Math.floor(Math.random() * (SEED_MAX - 1)));
       await galleryAdd(url, 'image', [figure.id], 'Portfolio · ' + label);
       logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}) über ${how}.` });
       n++;
