@@ -3426,8 +3426,20 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.00';
+const APP_VERSION = '2.03';
 const CHANGELOG = [
+  { v: '2.03', date: '2026-10-07', items: [
+    'Szenenbilder mit zwei oder drei Figuren sehen ihnen jetzt auch ähnlich: Jede Figur bringt ihr Stamm-Bild bzw. Porträt als eigene Vorlage mit (Venice „multi-edit", bis zu 3 Bilder, mit qwen-edit-uncensored). Kommst du selbst im Bild vor und deine Ich-Figur hat ein Porträt, bist du dabei, solange Platz ist. Gilt im Live-Gespräch, in der Geschichte und bei Begegnungen zu zweit. Geht es nicht, entsteht das Bild wie bisher aus der Beschreibung.',
+    'Zufallsbegegnung: Standard wieder „alle Bilder über das Stamm-Bild" (sieht ihr am ähnlichsten) - Bildabstand bleibt 60 s, Vorbereiten erst nach 20 s. Unter „Bilder & Kosten" umstellbar.',
+  ]},
+  { v: '2.02', date: '2026-10-07', items: [
+    'Zufallsbegegnung deutlich günstiger: Ein Bild über das Stamm-Bild (qwen-edit-uncensored) kostet bei Venice 4 Cent, ein normal erzeugtes 1 Cent - am 7.10. waren das über 100 Bearbeitungen. Jetzt standardmäßig: nur das Einstiegsbild über das Stamm-Bild, alle weiteren normal (sie sieht ihr trotzdem ähnlich, weil die feste Beschreibung aus ihrem Bild stammt); neues Bild alle 60 statt 30 Sekunden; die nächste Begegnung wird erst vorbereitet, wenn du 20 Sekunden geblieben bist.',
+    'Unten unter „Bilder & Kosten" einstellbar: Bildabstand (30/60/90 s oder nur auf 📸), Ähnlichkeit über Stamm-Bild (nur Einstieg / alle / nie) und ob die nächste Begegnung vorbereitet wird.',
+  ]},
+  { v: '2.01', date: '2026-10-07', items: [
+    'Zufallsbegegnung: Ist das Venice-Guthaben leer (Fehler 402), fragt die App nicht mehr alle paar Sekunden weiter, sondern hält an, stoppt das Gerät und sagt es dir im Bild.',
+    'Figuren ohne eigene ElevenLabs-Stimme sprachen in der Zufallsbegegnung mit der Android-Stimme. Jetzt bekommen sie beim Vorbereiten bzw. Betreten eine gewürfelte Stimme aus deinen vorhandenen.',
+  ]},
   { v: '2.00', date: '2026-10-07', items: [
     'Zufallsbegegnung: Die nächste Begegnung wird vorbereitet, während du noch bei der aktuellen bist - mit einem Einstiegsbild wie ein Webcam-Standbild: Du erwischst sie beim Umziehen, frisch aus der Dusche, heimlich unter der Decke, ganz nah vor dem Laptop, beim Posieren vor dem Spiegel … Ihr erster Satz passt zu genau dieser Szene. Ist noch nichts vorbereitet (die erste Begegnung), entsteht das Einstiegsbild sofort.',
   ]},
@@ -5676,6 +5688,7 @@ function headphoneMode() {
 let playbackChain = Promise.resolve();
 let chainEpoch = 0;
 let activeReplies = 0;
+let creditsEmptyAt = 0;   // Venice meldete „Guthaben leer" (402)
 
 function interruptPlayback() {
   chainEpoch += 1;
@@ -11291,6 +11304,30 @@ async function makeSceneImage(momentText, castOverride) {
     const figs = (castOverride || characters).filter(c => !c.isUser && !c.isNarrator);
     const f = figs.length === 1 && figs[0].figureId ? getFigure(figs[0].figureId) : null;
     const fv = f && latestVersion(f);
+    // Zwei oder drei Figuren, alle mit Bild: jede bringt ihr Vorlagenbild mit
+    const multi = figs.length >= 2 && figs.length <= 3 && figs.every(c => c.figureId && getFigure(c.figureId))
+      ? figs.map(c => latestVersion(getFigure(c.figureId))) : null;
+    if (multi && multi.every(v => v.anchorKey || v.imageKey) && (multi.some(v => v.anchorKey) || refOn('scene'))) {
+      try {
+        makeSceneImage._noRef = true;
+        const plain = await makeSceneImage._promptOnly(momentText, castOverride);
+        const refs = [];
+        for (const mv of multi) refs.push({ url: await loadFullImage(mv.anchorKey || mv.imageKey), who: `${mv.name}, a ${/männ/i.test(mv.gender || '') ? 'man' : 'woman'}` });
+        // Ich-Figur mit Porträt kommt dazu, wenn Platz ist und ich im Bild vorkomme
+        const me = (castOverride || characters).find(c => c.isUser);
+        const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
+        if (refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && String(plain).toLowerCase().includes(String(meV.name).toLowerCase())) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
+        if (refs.every(r => r.url)) {
+          const url = await multiEditFromReferences(refs, multiReferencePrompt(refs, plain));
+          logEvent('msg', { role: 'system', text: `Szenenbild über ${refs.length} Vorlagen (${refModel()}): ${refs.map(r => r.who.split(',')[0]).join(', ')}.` });
+          try { setPadImage(url); } catch (e) {}
+          galleryAdd(url, 'image', multi.map((mv, k) => figs[k].figureId), momentText ? 'Geschichte' : 'Szenenbild');
+          return { dataUrl: url, prompt: plain };
+        }
+      } catch (e) {
+        logEvent('msg', { role: 'system', text: 'Szenenbild mit mehreren Vorlagen ging nicht (' + e.message + ') - erzeuge aus der Beschreibung.' });
+      } finally { makeSceneImage._noRef = false; }
+    }
     // Mit Stamm-Bild immer über die Vorlage, sonst nur wenn eingeschaltet
     if (fv && (fv.anchorKey || (refOn('scene') && fv.imageKey))) {
       try {
@@ -15142,6 +15179,7 @@ async function askEnsemble(userText, options) {
     return true;
   } catch (err) {
     if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
+    if (/\b402\b|insufficient .*balance/i.test(String(err.message || ''))) creditsEmptyAt = Date.now();
     return false;
   } finally {
     stopFillers(false);
@@ -16865,6 +16903,27 @@ async function editFromReference(refDataUrl, prompt) {
   if (!blob || blob.size < 2000) throw new Error('leeres Bild');
   return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
 }
+// Mehrere Personen: Venice „multi-edit" nimmt bis zu 3 Bilder. Jede Person
+// bekommt ihr eigenes Vorlagenbild; der Prompt sagt, wer auf welchem ist.
+async function multiEditFromReferences(refs, prompt) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  if (!key) throw new Error('Kein Venice-Schlüssel.');
+  const images = [];
+  for (const r of refs.slice(0, 3)) images.push(await asDataUrl(r.url, 1280));
+  const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/multi-edit', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modelId: refModel(), prompt: prompt.slice(0, 1800), images, safe_mode: false, aspect_ratio: '2:3', output_format: 'webp' }),
+  });
+  if (!res.ok) { let d = ''; try { d = (await res.text()).slice(0, 200); } catch (e) {} throw new Error('Mehrfach-Bearbeitung ' + res.status + (d ? ': ' + d : '')); }
+  if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('vom Anbieter unkenntlich gemacht');
+  const blob = await res.blob();
+  if (!blob || blob.size < 2000) throw new Error('leeres Bild');
+  return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+}
+function multiReferencePrompt(refs, scene) {
+  const who = refs.map((r, i) => `image ${i + 1} shows ${r.who}`).join('; ');
+  return `Reference photos: ${who}. Create ONE new photorealistic photo showing all ${refs.length} of these people together, each one exactly as in their own reference image - same face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions. Do not merge or swap their features. Scene: ${scene}. Adults only.`;
+}
 function referencePrompt(shot) {
   return `Use the woman in the reference image as the exact same person: keep her face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
 }
@@ -17095,12 +17154,26 @@ function rlView() {
         <button type="button" id="rlLiveBtn" class="rl-round" aria-label="Ins Gespräch" style="width:52px; height:52px; background:#1d1719; border:2px solid #d9b26b; font-size:22px;">💬</button>
         <button type="button" id="rlPic" class="rl-round" aria-label="Neues Bild" style="width:52px; height:52px; background:#1d1719; border:2px solid #8fb3d9; font-size:22px;">📸</button>
       </div>
-      <div style="text-align:center; font-size:11px; color:#a8968f; margin-top:6px;">✕ nächste · 💬 ins Gespräch · 📸 neues Bild · Bild links/rechts antippen = blättern</div>
+      <div style="text-align:center; font-size:11px; color:#a8968f; margin-top:6px;">✕ nächste · 💬 ins Gespräch · 📸 neues Bild · Bild links/rechts antippen = blättern · <a href="#" id="rlSetLink" style="color:#d9b26b;">Bilder &amp; Kosten</a></div>
+      <div id="rlSettings" style="display:none; margin-top:8px; padding:10px 12px; border-radius:14px; background:#141012; font-size:13px; line-height:1.4;">
+        <label style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin:0 0 8px;">Neues Bild alle
+          <select id="rlSetSec" style="width:auto; height:34px;"><option value="30">30 s</option><option value="60">60 s</option><option value="90">90 s</option><option value="0">nur auf 📸</option></select></label>
+        <label style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin:0 0 8px;">Ähnlichkeit über Stamm-Bild (4 ¢)
+          <select id="rlSetEdit" style="width:auto; height:34px;"><option value="all">alle Bilder</option><option value="first">nur Einstiegsbild</option><option value="never">nie (alles 1 ¢)</option></select></label>
+        <label style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin:0;">Nächste Begegnung vorbereiten
+          <select id="rlSetPrep" style="width:auto; height:34px;"><option value="true">ja, nach 20 s</option><option value="false">nein</option></select></label>
+      </div>
     </div>`;
   document.body.appendChild(v);
   v.querySelector('#rlClose').onclick = () => closeRoulette(false);
   v.querySelector('#rlNext').onclick = () => rlNextFigure();
   v.querySelector('#rlLiveBtn').onclick = () => closeRoulette(true);
+  v.querySelector('#rlSetLink').onclick = (e) => { e.preventDefault(); const box = v.querySelector('#rlSettings'); box.style.display = box.style.display === 'none' ? 'block' : 'none'; };
+  const ss = v.querySelector('#rlSetSec'), se = v.querySelector('#rlSetEdit'), sp = v.querySelector('#rlSetPrep');
+  ss.value = localStorage.getItem('companion_rlImageSec') ?? '60'; se.value = rlEditMode(); sp.value = localStorage.getItem('companion_rlPrep') === 'false' ? 'false' : 'true';
+  ss.onchange = () => safeSet('companion_rlImageSec', ss.value);
+  se.onchange = () => safeSet('companion_rlEdit', se.value);
+  sp.onchange = () => { safeSet('companion_rlPrep', sp.value); if (sp.value === 'false') rl.prep = null; };
   v.querySelector('#rlPic').onclick = () => rlImage(rl.token, 'Er möchte mehr von ihr sehen - noch gewagter als eben.');
   v.querySelector('#rlCC').onclick = () => { rl.caption = !rl.caption; safeSet('companion_rlCaption', rl.caption ? 'true' : 'false'); v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none'; v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.5)'; };
   const send = () => { const inp = v.querySelector('#rlInput'); const t = inp.value.trim(); if (!t || !rl.active) return; inp.value = ''; inp.blur(); rl.lastUser = Date.now(); addUserMsg(t); askActive(t); };
@@ -17146,7 +17219,7 @@ function openRoulette() {
   // Wen du länger nicht gesehen hast, kommt eher dran
   const st = rlStats();
   rl.list = all.map(f => ({ f, k: Math.random() * 3 - ((st[f.id] && st[f.id].visits) || 0) * 0.4 })).sort((a, b) => b.k - a.k).map(x => x.f);
-  rl.i = -1; rl.active = true;
+  rl.i = -1; rl.active = true; rl.halted = false;
   rl.caption = localStorage.getItem('companion_rlCaption') === 'true';
   const v = rlView();
   v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none';
@@ -17198,6 +17271,8 @@ async function rlNextFigure() {
   const f = rl.fig = rl.list[rl.i];
   const pick = prep || rlPickPair(f);
   rl.fig2 = pick.fig2;
+  // Ohne eigene Stimme sprach sie mit der Android-Stimme - jetzt wird eine gewürfelt
+  [f, rl.fig2].filter(Boolean).forEach(x => { const xv = latestVersion(x); if (!xv.elevenVoice && apiKeyFor('companion_elevenKey')) ensureVoiceReady(x.id).then(() => { const ch = characters.find(c => c.figureId === x.id); if (ch) ch.elevenVoice = latestVersion(x).elevenVoice; }); });
   const v = latestVersion(f);
   const my = rl.token;
   const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
@@ -17215,6 +17290,8 @@ async function rlNextFigure() {
   const st = rlStats()[rlKey()];
   view.querySelector('#rlMeta').textContent = (rl.fig2 ? 'Zu zweit · ' : '') + (st ? `Dein Rekord ${rl.fig2 ? 'bei den beiden' : 'bei ihr'}: ${rlFmt(st.bestMs)} · ${st.visits}× getroffen` : 'Neue Begegnung');
   view.querySelector('#rlCaption').textContent = '';
+  view.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none';
+  if (rl.halted) { rlCreditsEmpty(); return; }
   view.querySelector('#rlImgA').style.opacity = '0'; view.querySelector('#rlImgB').style.opacity = '0';
   // Erst Galeriebilder, die sich langsam abwechseln - bis ihr erstes neues Bild da ist
   let urls = await rlGalleryUrls(f);
@@ -17229,8 +17306,9 @@ async function rlNextFigure() {
   rlPaint();
   rl.galTimer = setInterval(() => { if (rl.gotImage || rl.shown.length < 2 || (rl.manual && Date.now() - rl.manual < 12000)) return; rl.pos = (rl.pos + 1) % rl.shown.length; rlPaint(); }, 7000);
   rl.imgTimer = setInterval(() => {
-    if (Date.now() - rl.lastImg > rlImageGap()) rlImage(my, rl.imgCount === 0 ? rl.opener.img : '');
-    else if (!rl.prep && rl.gotImage && !rl.imgBusy && Date.now() - rl.start > 8000) rlPrepareNext();
+    if (rl.imgCount === 0 && !rl.imgBusy && !rl.gotImage && Date.now() - rl.lastImg > 8000) rlImage(my, rl.opener.img);
+    else if (Date.now() - rl.lastImg > rlImageGap()) rlImage(my, '');
+    else if (!rl.prep && rl.gotImage && !rl.imgBusy && localStorage.getItem('companion_rlPrep') !== 'false' && Date.now() - rl.start > 20000) rlPrepareNext();
   }, 3000);
   rlLoop(my);
 }
@@ -17246,19 +17324,39 @@ function rlPrepareNext() {
   const i = (rl.i + 1) % rl.list.length, f = rl.list[i];
   if (!f || f === rl.fig) return;
   const pick = rlPickPair(f);
+  [f, pick.fig2].filter(Boolean).forEach(x => { if (!latestVersion(x).elevenVoice && apiKeyFor('companion_elevenKey')) ensureVoiceReady(x.id); });
   const cast = [characterFromVersion(f), pick.fig2 ? characterFromVersion(pick.fig2) : null].filter(Boolean);
   const names = cast.map(c => c.name).join(' und ');
   rl.imgBusy = true;
   const url = (async () => {
     try {
-      const res = await makeSceneImage(`Standbild aus einem Zufalls-Videochat, aus Sicht seiner Kamera: ${names}${cast.length > 1 ? ' zusammen' : ''}. ${pick.opener.img}${cast.length > 1 ? ', both women in frame' : ''}.`, cast);
+      const res = await rlMakeImage(`Standbild aus einem Zufalls-Videochat, aus Sicht seiner Kamera: ${names}${cast.length > 1 ? ' zusammen' : ''}. ${pick.opener.img}${cast.length > 1 ? ', both women in frame' : ''}.`, cast, true);
       return res && res.dataUrl;
     } finally { rl.imgBusy = false; if (prep) prep.done = true; }
   })();
   url.catch(() => {});
   const prep = rl.prep = { i, fig2: pick.fig2, opener: pick.opener, url, done: false };
 }
-function rlImageGap() { return (+(localStorage.getItem('companion_rlImageSec') || 30)) * 1000; }
+// Venice-Guthaben leer: nicht weiter alle paar Sekunden anfragen, sondern anhalten und es sagen
+function rlCreditsEmpty() {
+  if (!rl.active) return;
+  rl.token++; clearInterval(rl.imgTimer); clearInterval(rl.galTimer); rl.prep = null;
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  rl.halted = true;
+  const v = rlView();
+  v.querySelector('#rlCaption').style.display = 'block';
+  v.querySelector('#rlCaption').innerHTML = '<span style="font-style:normal; font-family:inherit; font-size:15px; background:rgba(0,0,0,0.65); padding:10px 14px; border-radius:14px; display:inline-block;">💳 Dein Venice-Guthaben ist aufgebraucht - Antworten und Bilder gehen gerade nicht. Auf venice.ai unter Einstellungen → API aufladen, dann ✕ und neu starten.</span>';
+}
+// Kosten: Bearbeitung über das Stamm-Bild (qwen-edit) kostet bei Venice 4 Cent,
+// ein normal erzeugtes Bild 1 Cent. Standard: nur das Einstiegsbild über die
+// Vorlage (Ähnlichkeit zählt dort am meisten), alles danach günstig.
+function rlEditMode() { return localStorage.getItem('companion_rlEdit') || 'all'; }   // first | all | never
+function rlMakeImage(moment, cast, isOpener) {
+  const mode = rlEditMode();
+  const useRef = mode === 'all' || (mode === 'first' && isOpener);
+  return useRef ? makeSceneImage(moment, cast) : makeSceneImageText(moment, cast);
+}
+function rlImageGap() { const v = +(localStorage.getItem('companion_rlImageSec') ?? 60); return v > 0 ? v * 1000 : Infinity; }   // 0 = nur auf 📸
 async function rlImage(my, why) {
   if (rl.imgBusy || my !== rl.token || !apiKeyFor('companion_apiKey_venice')) return;
   rl.imgBusy = true; rl.lastImg = Date.now();
@@ -17268,9 +17366,12 @@ async function rlImage(my, why) {
     const STAGES = ['flirty selfie for the camera, teasing look, revealing outfit', 'pulling her top down, showing cleavage and lingerie, seductive', 'topless, breasts bare, biting her lip, inviting look', 'fully nude, posing explicitly for the camera, touching herself', 'fully nude, explicit close-up pose, legs apart, aroused, intense eye contact'];
     const stage = STAGES[Math.min(STAGES.length - 1, rl.imgCount + (Date.now() - rl.start > 90000 ? 1 : 0))];
     const moment = `${rlName()} im Videochat, ${rl.fig2 ? 'zu zweit' : 'allein'} vor der Webcam oder Handykamera bei sich zuhause, ${rl.fig2 ? 'sie schauen' : 'sie schaut'} direkt in die Kamera, Bild wie aus einem Videoanruf. Bildinhalt: ${rl.imgCount === 0 && rl.opener ? rl.opener.img : stage}. ${why && why !== rl.opener.img ? why : ''} ${last ? 'Was sie gerade sagt: ' + String(last.content).slice(0, 300) : ''}`;
-    const res = await makeSceneImage(moment, characters.filter(c => !c.isUser));
+    const res = await rlMakeImage(moment, characters.filter(c => !c.isUser), rl.imgCount === 0);
     if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rl.imgCount++; rlShow(res.dataUrl, true); }
-  } catch (e) { logEvent('msg', { role: 'system', text: 'Zufallsbegegnung: Bild ging nicht (' + e.message + ').' }); }
+  } catch (e) {
+    logEvent('msg', { role: 'system', text: 'Zufallsbegegnung: Bild ging nicht (' + e.message + ').' });
+    if (/\b402\b|insufficient .*balance/i.test(String(e.message || ''))) { creditsEmptyAt = Date.now(); rlCreditsEmpty(); }
+  }
   finally { rl.imgBusy = false; rl.lastImg = Date.now(); }
 }
 function rlPrompt(n) {
@@ -17297,7 +17398,10 @@ async function rlLoop(my) {
     n++;
     const ok = await askActive(rlPrompt(n), { silent: true, autoStep: n, speak: true });
     if (my !== rl.token || !rl.active) return;
-    if (!ok) { await new Promise(r => setTimeout(r, 4000)); continue; }
+    if (!ok) {
+      if (Date.now() - creditsEmptyAt < 15000) { rlCreditsEmpty(); return; }
+      await new Promise(r => setTimeout(r, 4000)); continue;
+    }
     const last = history.slice().reverse().find(m => m.role === 'assistant');
     const txt = last ? String(last.content) : '';
     if (rl.caption) rlView().querySelector('#rlCaption').textContent = txt.replace(/^[^:]{1,30}:\s*/gm, '').replace(/\s+/g, ' ').slice(0, 220);
@@ -17309,7 +17413,7 @@ async function rlLoop(my) {
   }
 }
 function rlTick() {
-  if (!rl.active) return;
+  if (!rl.active || rl.halted) return;
   const v = rlView();
   const P = rlPulse();
   if (P && rl.fig) { if (!rl.hrStart) rl.hrStart = P.bpm; rl.hrPeak = Math.max(rl.hrPeak || 0, P.bpm); }
