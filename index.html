@@ -3393,8 +3393,11 @@ async function fetchWithRetry(url, options, attempts) {
   let lastError = null;
   for (let attempt = 0; attempt < total; attempt++) {
     const control = new AbortController();
-    inFlight.add(control);
-    const limit = (options && options.timeoutMs) || REQUEST_TIMEOUT_MS;
+    // Bilder werden nicht mehr bei jeder neuen Antwort mit abgebrochen - sie
+    // kamen sonst im laufenden Gespräch nie an. Dafür eine kürzere Frist.
+    const isImage = /api\.venice\.ai\/api\/v1\/image\//.test(String(url));
+    if (!isImage) inFlight.add(control);
+    const limit = (options && options.timeoutMs) || (isImage ? 90000 : REQUEST_TIMEOUT_MS);
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; control.abort(); }, limit);
     try {
@@ -3426,8 +3429,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.03';
+const APP_VERSION = '2.04';
 const CHANGELOG = [
+  { v: '2.04', date: '2026-10-07', items: [
+    'Behoben: Szenenbilder mit mehreren Vorlagen scheiterten bei langen Szenen („Prompt exceeds 1500 character limit") und fielen auf ein langsames Textbild zurück. Die festen Beschreibungen fliegen jetzt aus dem Szenentext (das Aussehen steckt ja in den Vorlagen), und alles bleibt unter der Grenze.',
+    'Bilder werden nicht mehr bei jeder neuen Antwort mit abgebrochen - im laufenden Gespräch kamen sie sonst oft nie an. Eigene Frist von 90 Sekunden.',
+    'Im Live-Gespräch: Sagt eine Figur, dass sie dir ein Foto zeigt oder schickt, kommt jetzt auch eins (höchstens alle 45 Sekunden).',
+    'Bei Bildern aus deiner Sicht (POV) kommt dein eigenes Porträt nicht mehr als Vorlage dazu - sonst landete dein Kopf mitten im Bild.',
+    'Von der Zufallsbegegnung ins Gespräch: Die Szene wird jetzt ein echtes Treffen bei ihr zuhause - vorher blieb es ein Videochat, und die Bilder zeigten euch vor einem Bildschirm.',
+  ]},
   { v: '2.03', date: '2026-10-07', items: [
     'Szenenbilder mit zwei oder drei Figuren sehen ihnen jetzt auch ähnlich: Jede Figur bringt ihr Stamm-Bild bzw. Porträt als eigene Vorlage mit (Venice „multi-edit", bis zu 3 Bilder, mit qwen-edit-uncensored). Kommst du selbst im Bild vor und deine Ich-Figur hat ein Porträt, bist du dabei, solange Platz ist. Gilt im Live-Gespräch, in der Geschichte und bei Begegnungen zu zweit. Geht es nicht, entsteht das Bild wie bisher aus der Beschreibung.',
     'Zufallsbegegnung: Standard wieder „alle Bilder über das Stamm-Bild" (sieht ihr am ähnlichsten) - Bildabstand bleibt 60 s, Vorbereiten erst nach 20 s. Unter „Bilder & Kosten" umstellbar.',
@@ -11316,9 +11326,17 @@ async function makeSceneImage(momentText, castOverride) {
         // Ich-Figur mit Porträt kommt dazu, wenn Platz ist und ich im Bild vorkomme
         const me = (castOverride || characters).find(c => c.isUser);
         const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
-        if (refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && String(plain).toLowerCase().includes(String(meV.name).toLowerCase())) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
+        const pov = /\bpov\b|point of view|first[- ]person|from his perspective|viewer's perspective/i.test(plain);
+        if (!pov && refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && String(plain).toLowerCase().includes(String(meV.name).toLowerCase())) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
         if (refs.every(r => r.url)) {
-          const url = await multiEditFromReferences(refs, multiReferencePrompt(refs, plain));
+          // Aussehen steckt in den Vorlagen - die festen Beschreibungen fliegen aus der Szene,
+          // und das Ganze bleibt unter Venices Grenze von 1500 Zeichen.
+          let scene = String(plain);
+          figs.concat(me ? [me] : []).forEach(c => { if (c.lookTag) scene = scene.split(c.lookTag).join(c.name); });
+          scene = scene.replace(/\s+/g, ' ').trim();
+          const room = 1480 - multiReferencePrompt(refs, '').length;
+          if (scene.length > room) scene = scene.slice(0, room).replace(/[^.,;]*$/, '');
+          const url = await multiEditFromReferences(refs, multiReferencePrompt(refs, scene));
           logEvent('msg', { role: 'system', text: `Szenenbild über ${refs.length} Vorlagen (${refModel()}): ${refs.map(r => r.who.split(',')[0]).join(', ')}.` });
           try { setPadImage(url); } catch (e) {}
           galleryAdd(url, 'image', multi.map((mv, k) => figs[k].figureId), momentText ? 'Geschichte' : 'Szenenbild');
@@ -11447,6 +11465,22 @@ async function makeSceneImageText(momentText, castOverride) {
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
 }
 
+// Sagt eine Figur im Gespräch, dass sie ein Foto zeigt oder schickt, kommt
+// jetzt auch eins - vorher blieb es beim Versprechen.
+let promisedPhotoAt = 0;
+function maybeSendPromisedPhoto(text) {
+  if (typeof rl !== 'undefined' && rl.active) return;   // die Zufallsbegegnung macht das selbst
+  if (!apiKeyFor('companion_apiKey_venice') || Date.now() - promisedPhotoAt < 45000) return;
+  if (!/\b(foto|fotos|bild|selfie)\b/i.test(text) || !/\b(zeig|schick|sieh|schau|guck|hier ist|hier hast)/i.test(text)) return;
+  promisedPhotoAt = Date.now();
+  const line = String(text).split('\n').find(l => /\b(foto|bild|selfie)\b/i.test(l)) || text;
+  (async () => {
+    try {
+      const res = await makeSceneImage(`Ein Foto, das sie Til gerade zeigt: ${line.slice(0, 300)}`);
+      if (res && res.dataUrl) { lastSceneImage = { dataUrl: res.dataUrl, prompt: res.prompt, createdAt: Date.now() }; addSceneImageMsg(res.dataUrl); }
+    } catch (e) { logEvent('msg', { role: 'system', text: 'Versprochenes Foto ging nicht: ' + e.message }); }
+  })();
+}
 async function generateSceneImage() {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) { addMsg('system', 'Für Szenenbilder wird ein Venice-Schlüssel gebraucht.'); return; }
@@ -15013,6 +15047,7 @@ async function askEnsemble(userText, options) {
     }
     history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
     sceneStep += 1;
+    try { maybeSendPromisedPhoto(replyText); } catch (e) {}
     safeSet(lastSeenKey(), String(Date.now()));
 
     // Warten, bis die vorige Antwort zu Ende gesprochen ist - dann übernehmen.
@@ -16912,7 +16947,7 @@ async function multiEditFromReferences(refs, prompt) {
   for (const r of refs.slice(0, 3)) images.push(await asDataUrl(r.url, 1280));
   const res = await fetchWithRetry('https://api.venice.ai/api/v1/image/multi-edit', {
     method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ modelId: refModel(), prompt: prompt.slice(0, 1800), images, safe_mode: false, aspect_ratio: '2:3', output_format: 'webp' }),
+    body: JSON.stringify({ modelId: refModel(), prompt: prompt.slice(0, 1490), images, safe_mode: false, aspect_ratio: '2:3', output_format: 'webp' }),
   });
   if (!res.ok) { let d = ''; try { d = (await res.text()).slice(0, 200); } catch (e) {} throw new Error('Mehrfach-Bearbeitung ' + res.status + (d ? ': ' + d : '')); }
   if (res.headers.get('x-venice-is-blurred') === 'true' || res.headers.get('x-venice-is-content-violation') === 'true') throw new Error('vom Anbieter unkenntlich gemacht');
@@ -17431,7 +17466,9 @@ function closeRoulette(toLive) {
     rl.fig = null;
     switchMode('live');
     saveCharacters(); renderLivePanel();
-    els.liveScene.value = RL_SCENE + ' Aus dem Zufallschat ist ein richtiges Gespräch geworden.';
+    const names = characters.filter(c => !c.isUser).map(c => c.name).join(' und ');
+    els.liveScene.value = `Aus dem Zufalls-Videochat ist ein echtes Treffen geworden: Til ist jetzt bei ${names} zuhause, ihr seid im selben Raum - kein Bildschirm mehr dazwischen.`;
+    try { sceneImageMemory.state = ''; } catch (e) {}
     els.liveStartBtn.click();
     return;
   }
