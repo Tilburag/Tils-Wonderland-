@@ -1519,6 +1519,7 @@
       <button class="btn-primary" id="homePitchBtn" type="button">🃏 Karten des Abends</button>
       <button class="btn-secondary" id="homeFireBtn" type="button">🔥 Lagerfeuer</button>
     </div>
+    <button class="btn-primary" id="homeRouletteBtn" type="button" style="width:100%; margin-top:10px; height:52px;">📹 Zufallsbegegnung</button>
     <div id="homeRecap" style="display:none; margin-top:16px; background:var(--bg-panel); border:1px solid var(--gold); border-radius:20px; padding:16px;">
       <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">🗓 Dein Wochen-Rückblick ist da</div>
       <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
@@ -3425,8 +3426,20 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.95';
+const APP_VERSION = '1.98';
 const CHANGELOG = [
+  { v: '1.98', date: '2026-10-07', items: [
+    'Zufallsbegegnung mit Puls: Ist der Pulsgurt verbunden, sieht die Figur deinen Puls und ob er gerade steigt oder sinkt - steigt er, bleibt sie dran und steigert; sinkt er, wechselt sie die Taktik. Oben steht ♥ mit Pfeil.',
+    'Zufallsbegegnung zu zweit: Etwa jede vierte Begegnung landest du bei zwei Figuren, die schon zusammen vor der Kamera sind und dich gemeinsam halten wollen - abwechselnd, mit ein bisschen Konkurrenz. Bilder aus beiden Galerien.',
+    'Auswertung: neue Rangliste „📹 Wer hält dich am längsten" - Rekord am Stück, Gesamtzeit, Anzahl Treffen und stärkster Pulsanstieg, Paare extra.',
+  ]},
+  { v: '1.97', date: '2026-10-07', items: [
+    '📹 Zufallsbegegnung (auf der Startseite): wie ein Zufalls-Videochat. Du landest bei einer Figur, die dich gerade „sieht" und nur ein Ziel hat - dass du bleibst. Sie spricht dich an, verführt, provoziert, bewegt das Gerät (wenn verbunden), zeigt dir Bilder. Kein Verlauf in Zeilen, nur ihr Bild: erst aus ihrer Galerie, dann alle 30 Sekunden ein neues zum Moment - und sofort eins, wenn sie dir „etwas zeigen" will. Antworten per Text oder 🎤. Wischen nach oben/links oder „Weiter" = nächste Figur; „💬 Ins Gespräch" = direkt weiter im Live-Gespräch mit ihr, Verlauf bleibt. CC blendet Untertitel ein.',
+    'Die App merkt sich, wie lange du bei wem geblieben bist (Rekord, Anzahl Begegnungen) - die Figur weiß davon und will ihren Rekord schlagen. Wen du länger nicht gesehen hast, kommt eher dran. Nach dem Beenden ist dein vorheriges Live-Gespräch wieder da.',
+  ]},
+  { v: '1.96', date: '2026-10-07', items: [
+    'Behoben: Figuren mit „Spricht emotional" sprachen Sätze manchmal doppelt. Sie liefen bei v3/v4 mit der Stufe „Creative" (Stabilität 0,0), die laut ElevenLabs zu Halluzinationen neigt - dazu gehören wiederholte Sätze. Jetzt „Natural" (0,5) - in Gespräch, Geschichte und Stimmprobe; Seufzen, Lachen und Flüstern über die Regieanweisungen bleiben.',
+  ]},
   { v: '1.95', date: '2026-10-07', items: [
     'Portfolio an passenden Orten: Für jede Figur denkt sich die App einmal acht Orte aus, die zu Art, Herkunft, Beruf und Wesen passen (Elfe: Wald, Lichtung, Bachlauf …), und zieht bei jedem Durchgang neu daraus - kein Schlafzimmer und Schloss mehr bei allen.',
     'Neuer Knopf unter Figuren: „📸 Neue Bilder für alle" - je drei neue Galeriebilder für jede Figur an ihren Orten. Daneben „🖼️ Aussehen aus Bildern" (vorher eigene Zeile).',
@@ -6251,8 +6264,8 @@ function dynamicVoiceSettings(base, modelId, level) {
   const s = Object.assign({}, base);
   if (isV3(modelId)) {
     // v3 kennt nur 0.0 / 0.5 / 1.0.
-    if (level === 2) s.stability = 0.0;
-    else if (level === 0) s.stability = Math.max(0.5, base.stability || 0);
+    // Hohe Intensität nur über „[breathless]", nicht über Stabilität 0,0 (doppelte Sätze)
+    s.stability = Math.max(0.5, base.stability || 0);
     return s;
   }
   const d = V2_DYNAMICS[level];
@@ -6627,7 +6640,7 @@ function fetchElevenAudio(text, role, ctx) {
   // the lowest of those rather than a freely chosen number. The older model
   // does take a continuous value plus a style weight.
   const voiceSettings = narratorVoiceSettings(role, modelId) || (isV3(modelId)
-    ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
+    ? { stability: 0.5, similarity_boost: 0.75 }  /* nicht 0,0 „Creative" - neigt zu doppelten Sätzen */
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
       : { stability: 0.5, similarity_boost: 0.75 });
@@ -6745,7 +6758,7 @@ async function previewVoice(voiceId, customText) {
         text: sample,
         model_id: modelId,
         voice_settings: modelId === 'eleven_v3'
-          ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
+          ? { stability: 0.5, similarity_boost: 0.75 }  /* nicht 0,0 „Creative" - neigt zu doppelten Sätzen */
           : { stability: 0.5, similarity_boost: 0.75 }
       })
     });
@@ -6855,7 +6868,7 @@ function fetchElevenAudioTimed(text, role, ctx) {
   const emotional = resolveVoice(role).emotional;
   const modelId = elevenModelFor(emotional);
   const voiceSettings = narratorVoiceSettings(role, modelId) || (isV3(modelId)
-    ? { stability: emotional ? 0.0 : 0.5, similarity_boost: 0.75 }
+    ? { stability: 0.5, similarity_boost: 0.75 }  /* nicht 0,0 „Creative" - neigt zu doppelten Sätzen */
     : emotional
       ? { stability: 0.3, similarity_boost: 0.75, style: 0.6, use_speaker_boost: true }
       : { stability: 0.5, similarity_boost: 0.75 });
@@ -9609,6 +9622,13 @@ function renderDashboard() {
   const wins = (obj) => Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).map(([n, w]) => `${esc(n)} ${w}×`).join(', ') || '–';
   html += sec('Spiele', `${ch ? `<table style="width:100%; font-size:13.5px; border-collapse:collapse;"><tr style="opacity:0.7;"><td>Challenge</td><td>Rekord</td><td></td></tr>${ch}</table>` : '<p class="hint">Noch keine Challenge.</p>'}
     <p style="font-size:13.5px; margin:8px 0 0 0;">Duell-Siege: ${wins(rec.duelWins)}<br>Turniersiege: ${wins(rec.tourWins)}<br>Gewonnene Wetten: ${wins(rec.betWins)}</p>`);
+  // Zufallsbegegnung: wer hält dich am längsten
+  { const R = Object.entries(rlStats()).map(([k, e]) => {
+      const nm = e.name || (getFigure(k) ? latestVersion(getFigure(k)).name : null);
+      return nm ? { nm, ...e } : null; }).filter(Boolean).sort((a, b) => b.bestMs - a.bestMs);
+    html += sec('📹 Wer hält dich am längsten (Zufallsbegegnung)', R.length
+      ? `<table style="width:100%; font-size:13.5px; border-collapse:collapse;"><tr style="opacity:0.7;"><td></td><td>Rekord</td><td>Gesamt</td><td>Treffen</td><td>Puls</td></tr>${R.slice(0, 15).map((e, i) => `<tr><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] + ' ' : ''}${esc(e.nm)}${e.duo ? ' <span style="opacity:0.6">(zu zweit)</span>' : ''}</td><td>${rlFmt(e.bestMs)}</td><td>${rlFmt(e.totalMs)}</td><td>${e.visits}×</td><td>${e.bestRise ? '+' + e.bestRise : '–'}</td></tr>`).join('')}</table><p class="hint">Rekord = längste Zeit am Stück, bevor du weitergewischt hast. Puls = stärkster Anstieg während einer Begegnung (mit Pulsgurt).</p>`
+      : '<p class="hint">Noch keine Begegnungen - auf der Startseite „📹 Zufallsbegegnung" starten.</p>'); }
   // Vergleich, Momente, Sitzungen
   html += usageSection();
   html += `<div style="margin-top:22px;"><h3 style="margin:0 0 8px 0; font-size:16px;">Alles im Vergleich</h3>${compareChart()}</div>`;
@@ -13067,7 +13087,7 @@ async function elevenIntroAudio(text, v) {
   const key = apiKeyFor('companion_elevenKey');
   const modelId = elevenModelFor(v.emotional);
   const voiceSettings = isV3(modelId)
-    ? { stability: 0.0, similarity_boost: 0.75 }
+    ? { stability: 0.5, similarity_boost: 0.75 }
     : { stability: 0.5, similarity_boost: 0.75 };
   const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${v.elevenVoice}`, {
     method: 'POST',
@@ -16999,6 +17019,246 @@ function swipeAct(kind) {
   }, 260);
 }
 
+// ======================= ZUFALLSBEGEGNUNG =======================
+// Wie ein Zufalls-Videochat: Du landest bei einer Figur, sie hat dich gerade
+// "gesehen" und will dich halten - redet, verführt, provoziert, bewegt das
+// Gerät, schickt Bilder. Gefällt es dir nicht, wischst du weiter. Kein
+// Gesprächsverlauf als Zeilen, nur ihr Bild. Von hier direkt ins Live-Gespräch.
+const RL_SCENE = 'Zufalls-Videochat: Til und die Figur sehen sich über die Kamera. Sie ist bei sich zuhause oder an ihrem Lieblingsort, er bei sich. Sie kennen sich nicht - noch nicht.';
+const rl = { active: false, list: [], i: 0, fig: null, fig2: null, hrStart: 0, hrPeak: 0, token: 0, start: 0, backup: null, imgBusy: false, lastImg: 0, galTimer: null, imgTimer: null, uiTimer: null, front: 'A', gotImage: false, lastUser: 0, caption: false };
+function rlStats() { try { return JSON.parse(localStorage.getItem('companion_rlStats') || '{}'); } catch (e) { return {}; } }
+function rlFmt(ms) { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function rlView() {
+  let v = document.getElementById('rouletteView');
+  if (v) return v;
+  v = document.createElement('div');
+  v.id = 'rouletteView';
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; touch-action:none;';
+  v.innerHTML = `
+    <img id="rlImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1.2s ease; opacity:0;">
+    <img id="rlImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1.2s ease; opacity:0;">
+    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%); pointer-events:none;"></div>
+    <div style="position:absolute; left:0; right:0; top:0; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 8px;">
+      <button type="button" id="rlClose" aria-label="Beenden" style="width:42px; height:42px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:20px;">✕</button>
+      <div style="flex:1; min-width:0;">
+        <div id="rlName" style="font-family:var(--font-display); font-size:24px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 8px #000;"></div>
+        <div id="rlMeta" style="font-size:12.5px; color:#e6d6d0; text-shadow:0 1px 4px #000;"></div>
+      </div>
+      <span id="rlLive" style="font-size:12px; padding:4px 9px; border-radius:999px; background:#c0394b; font-weight:600; letter-spacing:0.08em;">● LIVE</span>
+      <button type="button" id="rlCC" aria-label="Untertitel" style="width:42px; height:42px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:13px; font-weight:700;">CC</button>
+    </div>
+    <div id="rlStatus" style="position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 70px); text-align:center; font-size:13px; color:#f2e6e1; text-shadow:0 1px 4px #000;"></div>
+    <div id="rlCaption" style="display:none; position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 150px); text-align:center; font-family:var(--font-display); font-size:19px; font-style:italic; line-height:1.35; text-shadow:0 2px 8px #000;"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; padding:0 14px calc(env(safe-area-inset-bottom, 0px) + 14px);">
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <input id="rlInput" type="text" placeholder="Sag etwas …" autocomplete="off" style="flex:1; min-width:0; height:46px; border-radius:23px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.45); color:#fff; padding:0 16px; font-size:15px;">
+        <button type="button" id="rlMic" aria-label="Sprechen" style="width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:19px;">🎤</button>
+        <button type="button" id="rlSend" aria-label="Senden" style="width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:19px;">➤</button>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="rlLiveBtn" style="flex:1; height:52px; border-radius:26px; border:1px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.45); color:#fff; font-size:15px;">💬 Ins Gespräch</button>
+        <button type="button" id="rlNext" style="flex:1; height:52px; border-radius:26px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:600;">Weiter ⏭</button>
+      </div>
+      <div style="text-align:center; font-size:11.5px; color:#bfaea9; margin-top:8px;">Nach oben oder links wischen = nächste</div>
+    </div>`;
+  document.body.appendChild(v);
+  v.querySelector('#rlClose').onclick = () => closeRoulette(false);
+  v.querySelector('#rlNext').onclick = () => rlNextFigure();
+  v.querySelector('#rlLiveBtn').onclick = () => closeRoulette(true);
+  v.querySelector('#rlCC').onclick = () => { rl.caption = !rl.caption; safeSet('companion_rlCaption', rl.caption ? 'true' : 'false'); v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none'; v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.45)'; };
+  const send = () => { const inp = v.querySelector('#rlInput'); const t = inp.value.trim(); if (!t || !rl.active) return; inp.value = ''; inp.blur(); rl.lastUser = Date.now(); addUserMsg(t); askActive(t); };
+  v.querySelector('#rlSend').onclick = send;
+  v.querySelector('#rlInput').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+  v.querySelector('#rlMic').onclick = () => { if (!recognizer) { alert('Dieser Browser kann keine Spracherkennung.'); return; } rl.lastUser = Date.now(); try { recognizer.start(); setMicStatus(true); } catch (e) {} };
+  // Wischen nach oben oder links: nächste
+  let x0 = null, y0 = 0;
+  v.addEventListener('pointerdown', e => { if (e.target.closest('button, input')) return; x0 = e.clientX; y0 = e.clientY; });
+  v.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (dy < -90 || dx < -90) rlNextFigure(); });
+  return v;
+}
+function rlShow(url) {
+  if (!url) return;
+  const v = rlView();
+  const next = v.querySelector(rl.front === 'A' ? '#rlImgB' : '#rlImgA');
+  const prev = v.querySelector(rl.front === 'A' ? '#rlImgA' : '#rlImgB');
+  next.onload = () => { next.style.opacity = '1'; prev.style.opacity = '0'; };
+  next.src = url;
+  rl.front = rl.front === 'A' ? 'B' : 'A';
+}
+async function rlGalleryUrls(f) {
+  const out = [];
+  const pics = galleryFor(f.id).filter(g => g.type === 'image').slice().sort(() => Math.random() - 0.5).slice(0, 8);
+  for (const g of pics) { const b = await dbGet(STORE_IMAGES, g.key).catch(() => null); if (b) out.push(URL.createObjectURL(b)); }
+  if (!out.length) { const u = await hiResUrl(latestVersion(f)); if (u) out.push(u); }
+  return out;
+}
+function openRoulette() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const all = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator && !ageIssue(characterFromVersion(f)); });
+  if (!all.length) { alert('Keine Figuren zum Begegnen.'); return; }
+  try { interruptPlayback(); } catch (e) {}
+  autoPlaying = false; try { setAutoStatus(false); } catch (e) {}
+  rl.backup = { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate };
+  // Wen du länger nicht gesehen hast, kommt eher dran
+  const st = rlStats();
+  rl.list = all.map(f => ({ f, k: Math.random() * 3 - ((st[f.id] && st[f.id].visits) || 0) * 0.4 })).sort((a, b) => b.k - a.k).map(x => x.f);
+  rl.i = -1; rl.active = true;
+  rl.caption = localStorage.getItem('companion_rlCaption') === 'true';
+  const v = rlView();
+  v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none';
+  v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.45)';
+  v.style.display = 'block';
+  safeSet('companion_sceneDesc', RL_SCENE);
+  clearInterval(rl.uiTimer);
+  rl.uiTimer = setInterval(rlTick, 500);
+  rlNextFigure();
+}
+// Schlüssel für die Statistik: eine Figur allein oder ein Paar
+function rlKey() { return rl.fig2 ? [rl.fig.id, rl.fig2.id].sort().join('+') : rl.fig.id; }
+function rlName() { return rl.fig2 ? `${latestVersion(rl.fig).name} & ${latestVersion(rl.fig2).name}` : latestVersion(rl.fig).name; }
+function rlRecord() {
+  if (!rl.fig || !rl.start) return;
+  const ms = Date.now() - rl.start, st = rlStats(), key = rlKey(), e = st[key] || { visits: 0, totalMs: 0, bestMs: 0 };
+  e.visits += 1; e.totalMs += ms; e.bestMs = Math.max(e.bestMs, ms); e.name = rlName(); e.duo = !!rl.fig2;
+  const rise = rl.hrStart && rl.hrPeak ? Math.round(rl.hrPeak - rl.hrStart) : 0;
+  if (rise > 0) e.bestRise = Math.max(e.bestRise || 0, rise);
+  st[key] = e; safeSet('companion_rlStats', JSON.stringify(st));
+  logEvent('msg', { role: 'system', text: `Zufallsbegegnung: ${e.name} ${rlFmt(ms)} gehalten${rise ? `, Puls +${rise}` : ''}.` });
+}
+// Puls: aktueller Wert, Veränderung der letzten halben Minute
+function rlPulse() {
+  try {
+    if (!hr.connected || !hr.bpm) return null;
+    const now = Date.now();
+    const past = hrMean(now - 40000, now - 25000);
+    return { bpm: Math.round(hr.bpm), d: past ? Math.round(hr.bpm - past) : 0, rise: rl.hrStart ? Math.round(hr.bpm - rl.hrStart) : 0 };
+  } catch (e) { return null; }
+}
+function rlHalt() {
+  rl.token++;
+  clearInterval(rl.galTimer); clearInterval(rl.imgTimer);
+  try { interruptPlayback(); } catch (e) {}
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+}
+async function rlNextFigure() {
+  if (!rl.active) return;
+  rlRecord();
+  rlHalt();
+  rl.i++;
+  if (rl.i >= rl.list.length) { rl.list.sort(() => Math.random() - 0.5); rl.i = 0; }
+  const f = rl.fig = rl.list[rl.i];
+  // Ab und zu sind schon zwei zusammen im Chat
+  const duoShare = +(localStorage.getItem('companion_rlDuo') ?? 25) / 100;
+  rl.fig2 = null;
+  if (rl.list.length >= 2 && Math.random() < duoShare) {
+    const others = rl.list.filter(x => x !== f);
+    rl.fig2 = others[Math.floor(Math.random() * others.length)];
+  }
+  const v = latestVersion(f);
+  const my = rl.token;
+  const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+  characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f), rl.fig2 ? characterFromVersion(rl.fig2) : null].filter(Boolean);
+  rl.hrPeak = 0; rl.hrStart = 0;
+  try { if (hr.connected && hr.bpm) { rl.hrStart = hrMean(Date.now() - 20000, Date.now()) || hr.bpm; rl.hrPeak = rl.hrStart; } } catch (e) {}
+  history = [];
+  sceneStep = INTRO_STEPS + 1;   // kein Kennenlern-Stillstand - sie darf sofort
+  readyGate = 'ready';
+  rl.start = Date.now(); rl.gotImage = false; rl.lastImg = Date.now(); rl.lastUser = 0;
+  const view = rlView();
+  view.querySelector('#rlName').textContent = rlName();
+  const st = rlStats()[rlKey()];
+  view.querySelector('#rlMeta').textContent = (rl.fig2 ? 'Zu zweit · ' : '') + (st ? `Dein Rekord ${rl.fig2 ? 'bei den beiden' : 'bei ihr'}: ${rlFmt(st.bestMs)} · ${st.visits}× getroffen` : 'Neue Begegnung');
+  view.querySelector('#rlCaption').textContent = '';
+  view.querySelector('#rlImgA').style.opacity = '0'; view.querySelector('#rlImgB').style.opacity = '0';
+  // Erst Galeriebilder, die sich langsam abwechseln - bis ihr erstes neues Bild da ist
+  let urls = await rlGalleryUrls(f);
+  if (rl.fig2) { const u2 = await rlGalleryUrls(rl.fig2); urls = urls.flatMap((u, k) => [u, u2[k]]).concat(u2.slice(urls.length)).filter(Boolean); }
+  if (my !== rl.token) return;
+  let k = 0; rlShow(urls[0]);
+  rl.galTimer = setInterval(() => { if (rl.gotImage || urls.length < 2) return; k = (k + 1) % urls.length; rlShow(urls[k]); }, 7000);
+  rl.imgTimer = setInterval(() => { if (Date.now() - rl.lastImg > rlImageGap()) rlImage(my); }, 3000);
+  rlLoop(my);
+}
+function rlImageGap() { return (+(localStorage.getItem('companion_rlImageSec') || 30)) * 1000; }
+async function rlImage(my, why) {
+  if (rl.imgBusy || my !== rl.token || !apiKeyFor('companion_apiKey_venice')) return;
+  rl.imgBusy = true; rl.lastImg = Date.now();
+  try {
+    const last = history.slice().reverse().find(m => m.role === 'assistant');
+    const moment = `${rlName()} im Videochat, ${rl.fig2 ? 'zu zweit' : 'allein'} vor der Kamera, ${rl.fig2 ? 'sie schauen' : 'sie schaut'} den Betrachter an. ${why || ''} ${last ? String(last.content).slice(0, 400) : ''}`;
+    const res = await makeSceneImage(moment, characters.filter(c => !c.isUser));
+    if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rlShow(res.dataUrl); }
+  } catch (e) { logEvent('msg', { role: 'system', text: 'Zufallsbegegnung: Bild ging nicht (' + e.message + ').' }); }
+  finally { rl.imgBusy = false; rl.lastImg = Date.now(); }
+}
+function rlPrompt(n) {
+  const dev = (() => { try { return device1.isConnected() && deviceAware(); } catch (e) { return false; } })();
+  const devLine = dev ? 'Sein Gerät ist mit dir verbunden - du darfst es sofort bewegen, wann und wie du willst; das ist eine deiner Waffen.' : '';
+  const st = rlStats()[rlKey()];
+  const P = rlPulse();
+  const pulseLine = !P ? '' : `Sein Puls (Pulsgurt, er weiß nicht, dass ${rl.fig2 ? 'ihr ihn seht' : 'du ihn siehst'}): ${P.bpm}${P.rise ? `, ${P.rise > 0 ? '+' : ''}${P.rise} seit er da ist` : ''}. ${P.d >= 4 ? 'Er steigt gerade - was ihr tut, wirkt: dranbleiben und steigern.' : P.d <= -4 ? 'Er sinkt - ihr verliert ihn gerade, wechselt die Taktik.' : 'Kaum Veränderung - noch habt ihr ihn nicht gepackt.'}`.replace(/ihr tut|ihr verliert|wechselt|habt ihr/g, m => rl.fig2 ? m : ({ 'ihr tut': 'du tust', 'ihr verliert': 'du verlierst', 'wechselt': 'wechsle', 'habt ihr': 'hast du' })[m]);
+  if (rl.fig2) {
+    const a = latestVersion(rl.fig).name, b = latestVersion(rl.fig2).name;
+    if (n === 1) return `(ZUFALLS-VIDEOCHAT ZU ZWEIT. Til landet in einem Videochat, in dem ${a} und ${b} schon zusammen vor der Kamera sind - er ist ein Fremder für euch beide. Er kann jederzeit wegwischen. Euer Ziel: dass er bleibt. Spielt euch die Bälle zu, neckt euch gegenseitig, wetteifert ein bisschen, wer ihn mehr fesselt - und überrascht ihn gemeinsam. Beide sprechen, abwechselnd, kurz. ${devLine} Ihr könnt ihm jederzeit ein Foto zeigen - sagt es einfach. ${pulseLine}${st ? ` Er war schon ${st.visits}× bei euch beiden, am längsten ${rlFmt(st.bestMs)}.` : ''})`;
+    const spoke2 = rl.lastUser && Date.now() - rl.lastUser < 20000;
+    return `(Videochat zu zweit läuft seit ${rlFmt(Date.now() - rl.start)}. ${spoke2 ? 'Er hat euch eben geantwortet - geht darauf ein.' : 'Er sagt nichts, schaut nur zu - er könnte jeden Moment weiterwischen.'} Haltet ihn: steigert, wechselt euch ab, überrascht ihn. ${pulseLine} ${devLine} Kurz.)`;
+  }
+  if (n === 1) return `(ZUFALLS-VIDEOCHAT. Til ist eben in deinem Videochat aufgetaucht - ein Fremder, ihr kennt euch nicht. Er sieht dich über die Kamera und kann dich jederzeit wegwischen, dann ist er weg und kommt vielleicht nie wieder. Dein einziges Ziel: dass er bleibt. Überrasche, verführe, provoziere, bring ihn zum Lachen, zeig ihm etwas - ganz so, wie es zu dir passt. Sprich ihn direkt an, kurz: ein bis drei Sätze, kein Vorgeplänkel. ${devLine} Du kannst ihm jederzeit ein Foto von dir zeigen - sag es einfach („Warte, ich zeig dir was …").${st ? ` Er war schon ${st.visits}× bei dir, am längsten ${rlFmt(st.bestMs)} - das willst du schlagen.` : ''} ${pulseLine})`;
+  const since = rlFmt(Date.now() - rl.start);
+  const spoke = rl.lastUser && Date.now() - rl.lastUser < 20000;
+  return `(Videochat läuft seit ${since}. ${spoke ? 'Er hat dir eben geantwortet - geh darauf ein.' : 'Er sagt nichts, schaut nur zu - er könnte jeden Moment weiterwischen.'} Halte ihn: steigere, wechsle die Taktik, überrasche ihn. ${pulseLine} ${devLine} Kurz.)`;
+}
+async function rlLoop(my) {
+  let n = 0;
+  while (rl.active && my === rl.token) {
+    if (activeReplies > 0) { await new Promise(r => setTimeout(r, 500)); continue; }
+    n++;
+    const ok = await askActive(rlPrompt(n), { silent: true, autoStep: n });
+    if (my !== rl.token || !rl.active) return;
+    if (!ok) { await new Promise(r => setTimeout(r, 4000)); continue; }
+    const last = history.slice().reverse().find(m => m.role === 'assistant');
+    const txt = last ? String(last.content) : '';
+    if (rl.caption) rlView().querySelector('#rlCaption').textContent = txt.replace(/^[^:]{1,30}:\s*/gm, '').replace(/\s+/g, ' ').slice(0, 220);
+    // Will sie etwas zeigen? Dann gleich ein Bild
+    if (/\b(foto|bild|zeig(e)? dir|schick(e)? dir|schau (mal )?her|sieh (mal )?her)/i.test(txt) && Date.now() - rl.lastImg > 8000) rlImage(my, 'Sie zeigt ihm gerade etwas Besonderes, überraschend und verführerisch.');
+    // Kurze Pause, wie im echten Gespräch - antwortest du, geht es sofort weiter
+    const wait = 2500 + Math.random() * 4500, t0 = Date.now(), lu = rl.lastUser;
+    while (Date.now() - t0 < wait && my === rl.token && rl.lastUser === lu) await new Promise(r => setTimeout(r, 250));
+  }
+}
+function rlTick() {
+  if (!rl.active) return;
+  const v = rlView();
+  const P = rlPulse();
+  if (P && rl.fig) { if (!rl.hrStart) rl.hrStart = P.bpm; rl.hrPeak = Math.max(rl.hrPeak || 0, P.bpm); }
+  v.querySelector('#rlStatus').textContent = rl.fig ? `${rlFmt(Date.now() - rl.start)} ${rl.fig2 ? 'bei den beiden' : 'bei ihr'}${P ? ` · ♥ ${P.bpm}${P.d >= 4 ? ' ↑' : P.d <= -4 ? ' ↓' : ''}` : ''}${activeReplies > 0 ? ' · …' : ''}` : '';
+}
+function closeRoulette(toLive) {
+  if (!rl.active) return;
+  rlRecord();
+  rl.active = false;
+  clearInterval(rl.uiTimer);
+  const v = rlView(); v.style.display = 'none';
+  if (toLive && rl.fig) {
+    // Weiter im Live-Gespräch: Besetzung und Verlauf bleiben, wie sie sind
+    rl.token++; clearInterval(rl.galTimer); clearInterval(rl.imgTimer);
+    rl.fig = null;
+    switchMode('live');
+    saveCharacters(); renderLivePanel();
+    els.liveScene.value = RL_SCENE + ' Aus dem Zufallschat ist ein richtiges Gespräch geworden.';
+    els.liveStartBtn.click();
+    return;
+  }
+  rlHalt();
+  rl.fig = null;
+  const b = rl.backup; rl.backup = null;
+  if (b) {
+    characters = b.characters; history = b.history; sceneStep = b.sceneStep; readyGate = b.readyGate;
+    if (b.scene === null) localStorage.removeItem('companion_sceneDesc'); else safeSet('companion_sceneDesc', b.scene);
+    try { saveCharacters(); } catch (e) {}
+  }
+}
+
 // ======================= KARTEN DES ABENDS =======================
 function pitchesToday() { try { const j = JSON.parse(localStorage.getItem('companion_pitches') || 'null'); return j && j.day === dayKeyLocal() ? j : null; } catch (e) { return null; } }
 function dayKeyLocal() { const d = new Date(Date.now() - 5 * 3600000); return d.toISOString().slice(0, 10); }
@@ -18756,6 +19016,7 @@ els.homeSurpriseBtn.onclick = rollSurprise;
   rs.onchange = () => safeSet('companion_refScenes', rs.checked ? 'true' : 'false');
   rm.oninput = rm.onchange = () => safeSet('companion_refModel', rm.value.trim()); }
 document.getElementById('homePitchBtn').onclick = () => openPitches(false);
+document.getElementById('homeRouletteBtn').onclick = () => openRoulette();
 document.getElementById('ptRefresh').onclick = () => openPitches(true);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
 document.getElementById('swipeOpenBtn').onclick = openSwipe;
