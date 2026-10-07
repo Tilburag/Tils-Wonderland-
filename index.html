@@ -3406,8 +3406,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.84';
+const APP_VERSION = '1.85';
 const CHANGELOG = [
+  { v: '1.85', date: '2026-10-07', items: [
+    'Profilbild ist maßgeblich: Im Figureneditor heißt der Knopf unter dem Aussehen jetzt „🖼️ Aussehen aus Profilbild ableiten" (sobald sie ein Profilbild hat). Das Bildverstehen schreibt das Aussehen neu - nur, was zu sehen ist (Haarfarbe, Augen, Ohren, Gesicht, Körper); Kleidung und Größe bleiben, wenn das Bild sie nicht zeigt - dazu die feste Bildbeschreibung direkt aus dem Bild.',
+    'Stamm-Bild: Das Profilbild, aus dem das Aussehen abgeleitet wurde, ist ab dann die Vorlage für alles - neue Porträts („✨ Bild"), Portfolio und Szenenbilder mit ihr entstehen als Abwandlung genau dieses Bildes statt aus Text. So bleibt sie wiedererkennbar.',
+    'Galerie → „Als Porträt" fragt danach, ob das Aussehen gleich aus diesem Bild abgeleitet werden soll.',
+    'Das Feld „Bild-Merkmale · automatisch" ist aus dem Editor verschwunden; die Merkmale kommen bei Figuren mit Profilbild nur noch aus dem Bild (vorher mischten sich Text und Bild).',
+    'Figur aus Bild: keine Sperre mehr bei Bildern, die wie Fotos wirken - stattdessen eine kurze Bestätigung, dass es ein KI-Bild oder eine Zeichnung ist. Das Bild wird gleich Stamm-Bild.',
+  ]},
   { v: '1.84', date: '2026-10-07', items: [
     'Figur aus Bild/Zeichnung genauer: Erst beschreibt das Bildverstehen nüchtern nur, was zu sehen ist (Haarfarbe, Augen, Pupillen, Ohren, Körper, ob nackt, Tattoos/Piercings), dann wird daraus die Figur gebaut - das Gesehene ist bindend. Danach prüft die App Haarfarbe, Pupillen, Tattoos und Piercings gegen das Bild und korrigiert Widersprüche (vorher wurden z. B. aus blonden Haaren kastanienbraune, dazu ein erfundenes Tattoo).',
     'Dein Bild wird ihr Porträt und damit Vorlage für Portfolio und Szenenbilder - die Fotos sehen ihr dann ähnlich. Bei einer Zeichnung entsteht eine fotorealistische Umsetzung mit gleicher Haar- und Augenfarbe.',
@@ -10441,6 +10448,10 @@ function versionFromCharacter(c, versionNumber) {
     temperature: typeof c.temperature === 'number' ? c.temperature : 0.8,
     voice: c.voice || '', elevenVoice: c.elevenVoice || '',
     image: c.image || '', imageKey: c.imageKey || '',
+    // Stamm-Bild: das Bild, das festlegt, wie sie aussieht. Alle weiteren
+    // Bilder entstehen als Abwandlung davon.
+    anchorKey: c.anchorKey || '',
+    lookTag: c.lookTag || '', lookTagSrc: c.lookTagSrc || '',
     created: new Date().toISOString(),
   };
 }
@@ -10564,7 +10575,8 @@ function storeCharacterVersion(c, asNewVersion) {
     return figure.versions[0];
   }
   const prevLook = (latestVersion(figure) || {}).appearance || '';
-  if (!c.isUser && !c.isNarrator && (c.appearance || '') !== prevLook) setTimeout(() => autoPhantom(figure.id, 'Aussehen geändert'), 800);
+  if (!c.isUser && !c.isNarrator && (c.appearance || '') !== prevLook && !c._lookFromImage) setTimeout(() => autoPhantom(figure.id, 'Aussehen geändert'), 800);
+  delete c._lookFromImage;
   if (asNewVersion) {
     const next = Math.max(...figure.versions.map(x => x.v)) + 1;
     const version = versionFromCharacter(c, next);
@@ -11179,15 +11191,16 @@ function splitState(out) {
 
 async function makeSceneImage(momentText, castOverride) {
   // Genau eine Figur mit Porträt im Bild? Dann zuerst über die Vorlage versuchen.
-  if (refOn('scene') && !makeSceneImage._noRef) {
+  if (!makeSceneImage._noRef) {
     const figs = (castOverride || characters).filter(c => !c.isUser && !c.isNarrator);
     const f = figs.length === 1 && figs[0].figureId ? getFigure(figs[0].figureId) : null;
     const fv = f && latestVersion(f);
-    if (fv && fv.imageKey) {
+    // Mit Stamm-Bild immer über die Vorlage, sonst nur wenn eingeschaltet
+    if (fv && (fv.anchorKey || (refOn('scene') && fv.imageKey))) {
       try {
         makeSceneImage._noRef = true;
         const plain = await makeSceneImage._promptOnly(momentText, castOverride);
-        const ref = await loadFullImage(fv.imageKey);
+        const ref = await loadFullImage(fv.anchorKey || fv.imageKey);
         const url = await editFromReference(ref, referencePrompt(plain));
         logEvent('msg', { role: 'system', text: `Szenenbild über Vorlage (${refModel()}).` });
         try { setPadImage(url); } catch (e) {}
@@ -11825,6 +11838,24 @@ async function generateCharacterImage(c, button) {
   const previous = button.textContent;
   button.disabled = true;
   button.textContent = 'Erzeuge...';
+  // Mit Stamm-Bild: neues Porträt als Abwandlung davon - dieselbe Person.
+  if (c.anchorKey) {
+    try {
+      const ref = await loadFullImage(c.anchorKey);
+      if (ref) {
+        const full = await editFromReference(ref, referencePrompt('a new waist-up portrait photo, looking into the camera, soft natural light, ' + (c.lookTag || '')));
+        c.image = await downscaleDataUrl(full, 512);
+        c.imageKey = await storeFullImage(c.id + '_' + Date.now(), full);
+        storeCharacterVersion(c, false);
+        if (c.figureId) galleryAdd(full, 'image', [c.figureId], 'Porträt');
+        logEvent('msg', { role: 'system', text: `Porträt ${c.name} als Abwandlung des Stamm-Bildes (${refModel()}).` });
+        syncCastFromEdit(c); renderCharacters(); if (figuresOpen) renderFigureList();
+        return;
+      }
+    } catch (e) {
+      addMsg('system', `Porträt über das Stamm-Bild ging nicht (${e.message}) - erzeuge aus der Beschreibung.`);
+    }
+  }
   try {
     let imagePrompt = '';
     try {
@@ -12035,6 +12066,11 @@ async function openGalleryViewer(items, index, figure) {
     try { syncCastFromEdit(c); } catch (e) {}
     pb.textContent = 'Porträt gesetzt ✓'; pb.disabled = true;
     try { renderFigureList(); } catch (e) {}
+    if (confirm('Soll ihr Aussehen jetzt aus diesem Bild abgeleitet werden? Dann wird es ihr Stamm-Bild und alle weiteren Bilder sehen ihr ähnlich.')) {
+      pb.textContent = 'Leite Aussehen ab …';
+      try { await deriveFigureFromPortrait(getFigure(figure.id)); pb.textContent = 'Aussehen abgeleitet ✓'; } catch (e) { pb.textContent = 'Ableiten misslang'; alert(e.message); }
+      try { renderFigureList(); } catch (e) {}
+    }
   };
 }
 
@@ -12297,9 +12333,22 @@ function renderCharacters() {
       const expandBtn = document.createElement('button');
       expandBtn.className = 'btn-secondary';
       expandBtn.type = 'button';
-      expandBtn.textContent = '✨ Aussehen ausarbeiten';
+      const fromPic = () => !!c.imageKey && !c.isUser;
+      const label = () => fromPic() ? '🖼️ Aussehen aus Profilbild ableiten' : '✨ Aussehen ausarbeiten';
+      expandBtn.textContent = label();
       expandBtn.style.marginTop = '6px';
       expandBtn.onclick = async () => {
+        if (fromPic()) {
+          if ((c.appearance || '').trim() && !confirm('Das Aussehen wird aus dem Profilbild neu geschrieben - nur, was auf dem Bild zu sehen ist (Kleidung und Größe bleiben, wenn das Bild sie nicht zeigt). Das Profilbild wird zum Stamm-Bild: alle weiteren Bilder entstehen als Abwandlung davon.\n\nWeiter?')) return;
+          expandBtn.disabled = true; expandBtn.textContent = 'Schaue mir das Bild an …';
+          try {
+            await applyLookFromPortrait(c);
+            lookArea.value = c.appearance;
+            addMsg('system', `${c.name}: Aussehen aus dem Profilbild abgeleitet. Mit Sichern festhalten.`);
+          } catch (err) { addMsg('system', 'Ableiten fehlgeschlagen: ' + err.message); }
+          finally { expandBtn.disabled = false; expandBtn.textContent = label(); }
+          return;
+        }
         const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
         expandBtn.disabled = true;
         expandBtn.textContent = 'Arbeite aus...';
@@ -12328,7 +12377,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
           addMsg('system', 'Aussehen ausarbeiten fehlgeschlagen: ' + err.message);
         } finally {
           expandBtn.disabled = false;
-          expandBtn.textContent = '✨ Aussehen ausarbeiten';
+          expandBtn.textContent = label();
         }
       };
       card.appendChild(expandBtn);
@@ -12436,19 +12485,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
     card.appendChild(styleArea);
 
     if (!c.isUser && !c.isNarrator) {
-      // Bild-Merkmale: werden automatisch erkannt - hier nur zur Info
-      const box = document.createElement('div');
-      box.style.cssText = 'margin-top:12px; padding:10px 12px; border:1px solid var(--line); border-radius:14px; font-size:12.5px; color:var(--text-dim);';
-      const phr = phantomPhrase(c.phantom, PHANTOM_FIELDS);
-      box.innerHTML = `<div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin-bottom:4px;">Bild-Merkmale · automatisch</div>${phr ? esc(phr) : 'Werden beim Speichern aus Porträt und Aussehen erkannt.'}`;
-      if (c.figureId) {
-        const re = document.createElement('button'); re.type = 'button'; re.className = 'btn-secondary';
-        re.style.cssText = 'width:auto; margin-top:8px; padding:6px 12px; font-size:12.5px;';
-        re.textContent = '↻ neu erkennen';
-        re.onclick = async () => { re.disabled = true; re.textContent = 'Erkenne …'; await autoPhantom(c.figureId, 'von Hand'); const v2 = latestVersion(getFigure(c.figureId)); c.phantom = v2 && v2.phantom; box.firstChild.nextSibling.textContent = phantomPhrase(c.phantom, PHANTOM_FIELDS) || '–'; re.textContent = '✓ erkannt'; re.disabled = false; };
-        box.appendChild(re);
-      }
-      card.appendChild(box);
+      // Bild-Merkmale laufen unsichtbar mit - das Aussehen-Feld ist maßgeblich.
     }
 
     if (!c.isUser) {
@@ -15440,6 +15477,66 @@ async function readImageFile(file, max) {
 // was zu sehen ist (niedrige Temperatur, nichts erfinden). Dann wird daraus die
 // Figur gebaut - das Gesehene ist dabei bindend. Vorher hat ein einziger,
 // "kreativer" Aufruf Haarfarbe, Tattoos und Schmuck einfach erfunden.
+// ======================= AUSSEHEN AUS DEM PROFILBILD =======================
+// Das Profilbild ist die Wahrheit: Das Bildverstehen schreibt daraus das
+// Aussehen (deutsch, im festen Schema) und die feste englische
+// Bildbeschreibung - nur, was zu sehen ist. Kleidung bleibt, wenn sie auf dem
+// Bild nackt ist. Das Bild wird Stamm-Bild: Porträts, Portfolio und
+// Szenenbilder entstehen danach als Abwandlung genau dieses Bildes.
+async function deriveLookFromImage(img, oldAppearance, gender) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Du siehst das Profilbild einer erwachsenen Figur aus einem Rollenspiel (KI-Bild). Beschreibe ihr Aussehen NUR nach dem, was auf dem Bild zu sehen ist - so genau, dass ein Bildmodell dieselbe Person wieder malt. Nichts erfinden: keine Tattoos, Piercings, Narben oder Schmuck, die nicht zu sehen sind. Haarfarbe und Augenfarbe exakt im sichtbaren Farbton. Fantasie-Merkmale (spitze Ohren, Hautfarbe, Hörner) unbedingt nennen. Das Alter ist das scheinbare (mindestens 25).
+${oldAppearance ? 'Bisherige Beschreibung - NUR für Dinge, die auf dem Bild nicht zu sehen sind (Kleidung bei Nacktheit, Größe in cm), sonst ignorieren:\n' + String(oldAppearance).slice(0, 1200) + '\n' : ''}
+Antworte GENAU in diesem Format:
+=== AUSSEHEN ===
+Art: ...
+Alter: wirkt wie ...
+Haare: (Farbton, Länge, Struktur, Frisur, Scheitel)
+Gesicht: (Form, Wangenknochen, Kinn, Nase, Lippen, Brauen, Make-up)
+Augen: (Form, Farbe, Pupillen, Wimpern)
+Haut: (Ton, Besonderheiten mit Stelle oder "makellos")
+Statur: (Größe in cm, Körperbau)
+Körper: (Brust: Größe und Form, Taille, Hüfte, Po, Beine)
+Kleidung: ...
+Auffällig: ...
+=== BILD ===
+(englisch, 60 bis 90 Wörter, kommagetrennt, nur feste sichtbare Merkmale in dieser Reihenfolge: Art und Herkunftstyp mit scheinbarem Alter wie "adult 25-year-old Nordic elf woman with long pointed elf ears", Gesichtsform, Wangenknochen, Kinn, Augen mit Farbe, Brauen, Nase, Lippen, Haare mit exaktem Farbton, Länge, Frisur, Haut, Statur, Brust, Taille, Hüfte; KEINE Kleidung, Pose, Ort)
+=== ENDE ===`;
+  const raw = String(await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist das Profilbild.', image: img }], 0.1, taskBudget('vision', 1400), { task: 'vision' }) || '');
+  const ap = (raw.match(/===\s*AUSSEHEN\s*===\s*([\s\S]*?)===\s*BILD\s*===/i) || [])[1];
+  let tag = (raw.match(/===\s*BILD\s*===\s*([\s\S]*?)(?:===\s*ENDE\s*===|$)/i) || [])[1];
+  if (!ap || !/Haare\s*:/i.test(ap) || /Haare:\s*\.\.\.|\(Farbton/.test(ap)) throw new Error('Das Modell hat das Bild offenbar nicht gesehen. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
+  tag = String(tag || '').trim().replace(/^["'`(]+|["'`)]+$/g, '').replace(/\s+/g, ' ').slice(0, 760);
+  if (tag && !/\badult/i.test(tag)) tag = 'adult ' + tag;
+  let appearance = ap.trim().split('\n').map(l => l.trim()).filter(Boolean).join('\n').slice(0, APPEARANCE_MAX);
+  return { appearance, lookTag: tag };
+}
+// Wendet das Ergebnis auf eine Figur an (Editor-Objekt c), ohne zu speichern.
+async function applyLookFromPortrait(c) {
+  if (!c.imageKey) throw new Error('Sie hat noch kein Profilbild.');
+  const full = await loadFullImage(c.imageKey);
+  if (!full) throw new Error('Das Profilbild in voller Größe fehlt.');
+  const img = await downscaleDataUrl(full, 1024);
+  const r = await deriveLookFromImage(img, c.appearance, c.gender);
+  c.appearance = r.appearance;
+  c.anchorKey = c.imageKey;
+  if (r.lookTag && r.lookTag.split(/\s+/).length >= 25) { c.lookTag = r.lookTag; c.lookTagSrc = 'r2:' + appearanceHash(r.appearance); }
+  else { c.lookTag = ''; c.lookTagSrc = ''; }
+  try { c.phantom = await phantomFromImage(img, PHANTOM_FIELDS, 'Profilbild der Figur'); } catch (e) {}
+  c._lookFromImage = true;
+  return r;
+}
+// Für eine gespeicherte Figur: ableiten und als aktuelle Version festhalten.
+async function deriveFigureFromPortrait(figure) {
+  const c = characterFromVersion(figure);
+  await applyLookFromPortrait(c);
+  storeCharacterVersion(c, false);
+  try { syncCastFromEdit(c); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `${c.name}: Aussehen aus dem Profilbild abgeleitet. Feste Bildbeschreibung: ${c.lookTag || '(wird neu erzeugt)'}` });
+  return c;
+}
+function anchorOf(v) { return v && (v.anchorKey || '') ; }
+
 const OBSERVE_KEYS = ['bildart', 'art', 'ohren', 'haarfarbe', 'haarlaenge', 'frisur', 'augenfarbe', 'pupillen', 'gesicht', 'haut', 'statur', 'brust', 'huefte', 'kleidung', 'tattoos', 'piercings', 'schmuck', 'besonderheiten', 'wirkt_alter'];
 async function observeImage(img) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
@@ -15493,8 +15590,9 @@ async function figureFromDrawing(file) {
   try {
     const img = await readImageFile(file, 1024);
     const o = await observeImage(img);
-    if (/echt/i.test(o.bildart || '')) {
-      els.importFigureInfo.textContent = 'Das sieht nach einem Foto eines echten Menschen aus. Daraus legt die App keine Figur an - nimm eine Zeichnung oder ein KI-Bild.';
+    // KI-Bilder sehen oft aus wie Fotos - deshalb keine Sperre, sondern deine Bestätigung.
+    if (/echt/i.test(o.bildart || '') && !confirm('Das Bild wirkt wie ein Foto. Bestätige: Es ist KI-erzeugt oder gezeichnet und zeigt keinen echten Menschen.')) {
+      els.importFigureInfo.textContent = 'Abgebrochen.';
       return;
     }
     const isDrawing = /zeichn/i.test(o.bildart || '');
@@ -15552,8 +15650,11 @@ Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang
         } else portraitNote = ' Dein Bild ist ihr Porträt und die Vorlage für alle weiteren Bilder.';
         v.image = await downscaleDataUrl(full, 512);
         v.imageKey = await storeFullImage(f.id + '_' + Date.now(), full);
+        v.anchorKey = v.imageKey;
         saveArchive();
         try { galleryAdd(full, 'image', [f.id], 'Porträt (aus Bild)'); } catch (e) {}
+        // Aussehen und feste Bildbeschreibung genau aus dem Bild
+        try { await deriveFigureFromPortrait(f); } catch (e) {}
         try { if (figuresOpen) renderFigureList(); } catch (e) {}
       }
     } catch (e) {}
@@ -16058,10 +16159,12 @@ async function autoPhantom(figureId, why) {
   autoPhantomBusy.add(figureId);
   try {
     let ph = {};
-    if ((v.appearance || '').trim()) { try { ph = await phantomFromText(v); } catch (e) {} }
+    // Gibt es ein Profilbild, gilt nur das Bild - Text und Bild gemischt
+    // ergab widersprüchliche Merkmale (Text braun, Bild blond).
     if (v.imageKey) {
-      try { const u = await loadFullImage(v.imageKey); if (u) ph = Object.assign(ph, await phantomFromImage(u, PHANTOM_FIELDS, 'Porträt der Figur')); } catch (e) {}
+      try { const u = await loadFullImage(v.imageKey); if (u) ph = await phantomFromImage(u, PHANTOM_FIELDS, 'Porträt der Figur'); } catch (e) {}
     }
+    if (!Object.keys(ph).length && (v.appearance || '').trim()) { try { ph = await phantomFromText(v); } catch (e) {} }
     if (Object.keys(ph).length) {
       const cur = latestVersion(f); cur.phantom = ph; saveArchive();
       logEvent('msg', { role: 'system', text: `Bild-Merkmale für ${v.name} automatisch erkannt (${why}): ${phantomPhrase(ph, PHANTOM_FIELDS)}` });
@@ -16356,7 +16459,7 @@ async function editFromReference(refDataUrl, prompt) {
   return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
 }
 function referencePrompt(shot) {
-  return `Use the woman in the reference image as the exact same person: keep her face, facial features, hair, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
+  return `Use the woman in the reference image as the exact same person: keep her face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
 }
 
 const PORTFOLIO_SHOTS = [
@@ -16377,7 +16480,7 @@ async function makePortfolio(figure, btn) {
   let n = 0;
   // Das vorhandene Porträt als Vorlage - das erste Bild (Porträt) ist es dann selbst
   let ref = null;
-  if (refOn('portfolio') && v.imageKey) { try { ref = await loadFullImage(v.imageKey); } catch (e) {} }
+  if ((refOn('portfolio') || v.anchorKey) && (v.anchorKey || v.imageKey)) { try { ref = await loadFullImage(v.anchorKey || v.imageKey); } catch (e) {} }
   if (ref) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } catch (e) {} }
   for (let i = ref ? 1 : 0; i < PORTFOLIO_SHOTS.length; i++) {
     if (btn) btn.textContent = `Fotografiere ${i + 1}/4 …`;
