@@ -3426,8 +3426,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.98';
+const APP_VERSION = '2.00';
 const CHANGELOG = [
+  { v: '2.00', date: '2026-10-07', items: [
+    'Zufallsbegegnung: Die nächste Begegnung wird vorbereitet, während du noch bei der aktuellen bist - mit einem Einstiegsbild wie ein Webcam-Standbild: Du erwischst sie beim Umziehen, frisch aus der Dusche, heimlich unter der Decke, ganz nah vor dem Laptop, beim Posieren vor dem Spiegel … Ihr erster Satz passt zu genau dieser Szene. Ist noch nichts vorbereitet (die erste Begegnung), entsteht das Einstiegsbild sofort.',
+  ]},
+  { v: '1.99', date: '2026-10-07', items: [
+    'Zufallsbegegnung: Die Figuren sprechen jetzt sofort los, ohne dass du erst schreiben musst (die Antworten wurden erzeugt, aber nur im Selbstlauf gesprochen). Jede Begegnung beginnt anders - erwischt beim Umziehen, freche Wette, Verwechslung, Countdown, unverschämte Frage …',
+    'Bilder: das erste neue Bild entsteht sofort, danach alle 30 Sekunden - und sie werden schnell gewagter. 📸 erzwingt ein neues. Links/rechts aufs Bild tippen blättert durch alle Bilder dieser Begegnung (Striche oben zeigen, wo du bist).',
+    'Kein Wegwischen mehr per Geste (ging zu leicht beim Blättern los): unten Tasten wie bei Tinder - ✕ nächste, 💬 ins Gespräch, 📸 neues Bild.',
+    'Handy-Ansicht neu aufgeteilt: oben Leiste, Bild in der Mitte, Bedienung darunter - nichts ragt mehr über den Rand.',
+  ]},
   { v: '1.98', date: '2026-10-07', items: [
     'Zufallsbegegnung mit Puls: Ist der Pulsgurt verbunden, sieht die Figur deinen Puls und ob er gerade steigt oder sinkt - steigt er, bleibt sie dran und steigert; sinkt er, wechselt sie die Taktik. Oben steht ♥ mit Pfeil.',
     'Zufallsbegegnung zu zweit: Etwa jede vierte Begegnung landest du bei zwei Figuren, die schon zusammen vor der Kamera sind und dich gemeinsam halten wollen - abwechselnd, mit ein bisschen Konkurrenz. Bilder aus beiden Galerien.',
@@ -15109,7 +15118,7 @@ async function askEnsemble(userText, options) {
       if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
-      if (!autoPlaying && silent) break;
+      if (!autoPlaying && silent && !(options && options.speak)) break;   // Zufallsbegegnung spricht auch ohne Selbstlauf
       playIndex = i;
       const current = prep(i);
       prep(i + 1); prep(i + 2);   // zwei Abschnitte Vorlauf
@@ -17024,8 +17033,24 @@ function swipeAct(kind) {
 // "gesehen" und will dich halten - redet, verführt, provoziert, bewegt das
 // Gerät, schickt Bilder. Gefällt es dir nicht, wischst du weiter. Kein
 // Gesprächsverlauf als Zeilen, nur ihr Bild. Von hier direkt ins Live-Gespräch.
+// Einstieg: was sie tut, wenn du reinkommst - und wie das erste Bild aussieht
+// (wie ein Webcam-Standbild, kein Porträt).
+const RL_OPENERS = [
+  { t: 'Du wurdest mitten beim Umziehen erwischt - und machst einfach weiter, als wäre er nicht da. Fast.', img: 'webcam view from a laptop on her bed, she is caught mid-undress pulling her top over her head, surprised half-smile at the camera, bedroom lamp light' },
+  { t: 'Du sitzt ganz nah vor dem Laptop und schaust in die Kamera, als hättest du nur auf ihn gewartet.', img: 'close webcam view, she leans in towards the laptop camera, face lit by the blue screen glow, dark cozy room behind her, intense eye contact, slightly distorted wide-angle webcam look' },
+  { t: 'Du liegst bäuchlings auf dem Bett, das Handy vor dir, die Beine in der Luft, und tust gelangweilt - bis du ihn siehst.', img: 'phone selfie video-call view, she lies on her stomach on the bed, legs up behind her, chin on her hand, playful bored expression turning curious, soft evening light' },
+  { t: 'Du kommst gerade aus der Dusche, nur ein Handtuch, und hast vergessen, dass der Chat noch an ist.', img: 'webcam view of a steamy bathroom, she just stepped out of the shower wrapped only in a small towel, wet hair, caught off guard, looking into the camera with a mischievous grin' },
+  { t: 'Du sagst kein Wort, sondern zeigst ihm sofort etwas - und lachst dann über sein Gesicht.', img: 'webcam view, she holds her top open towards the camera with a cheeky laugh, lingerie visible, messy room behind her' },
+  { t: 'Du flüsterst, als dürfte niemand mitbekommen, dass du gerade online bist - vielleicht ist jemand nebenan.', img: 'dim webcam view at night, she hides under a blanket with the laptop, finger on her lips in a shush gesture, only the screen light on her face' },
+  { t: 'Du begrüßt ihn mit einer frechen Wette, bevor er Hallo sagen kann.', img: 'webcam view, she sits cross-legged on a desk chair in a tank top and panties, holding up one finger in a challenge, confident smirk' },
+  { t: 'Du hast dich gerade zurechtgemacht und posierst vor der Kamera, als wärst du allein vor dem Spiegel.', img: 'webcam view, she stands in front of a mirror in her room, posing in tight lingerie, glancing over her shoulder at the camera, warm fairy lights' },
+  { t: 'Du tust so, als hättest du ihn mit jemand anderem verwechselt - und entscheidest dann, dass er auch reicht.', img: 'webcam view, she is lying back on pillows, waving at the camera with a surprised then amused face, loose shirt slipping off one shoulder' },
+  { t: 'Du startest einen Countdown und versprichst ihm, was passiert, wenn er bis null bleibt.', img: 'webcam view, she holds up ten fingers towards the camera, kneeling on her bed in a short nightie, teasing smile' },
+  { t: 'Du bist mitten in einem Selbstgespräch über ihn - als hättest du ihn schon eine Weile beobachtet.', img: 'webcam view, she sits close to the screen biting her finger, studying the viewer with curious, hungry eyes, candlelight' },
+  { t: 'Du bist gerade dabei, dich selbst zu berühren, und hörst nicht auf, als er reinkommt.', img: 'webcam view from the foot of the bed, she lies back with one hand slipping under her panties, eyes half closed, looking at the camera, dim warm light' },
+];
 const RL_SCENE = 'Zufalls-Videochat: Til und die Figur sehen sich über die Kamera. Sie ist bei sich zuhause oder an ihrem Lieblingsort, er bei sich. Sie kennen sich nicht - noch nicht.';
-const rl = { active: false, list: [], i: 0, fig: null, fig2: null, hrStart: 0, hrPeak: 0, token: 0, start: 0, backup: null, imgBusy: false, lastImg: 0, galTimer: null, imgTimer: null, uiTimer: null, front: 'A', gotImage: false, lastUser: 0, caption: false };
+const rl = { prep: null, shown: [], pos: 0, manual: 0, imgCount: 0, opener: '', active: false, list: [], i: 0, fig: null, fig2: null, hrStart: 0, hrPeak: 0, token: 0, start: 0, backup: null, imgBusy: false, lastImg: 0, galTimer: null, imgTimer: null, uiTimer: null, front: 'A', gotImage: false, lastUser: 0, caption: false };
 function rlStats() { try { return JSON.parse(localStorage.getItem('companion_rlStats') || '{}'); } catch (e) { return {}; } }
 function rlFmt(ms) { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function rlView() {
@@ -17033,57 +17058,76 @@ function rlView() {
   if (v) return v;
   v = document.createElement('div');
   v.id = 'rouletteView';
-  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; touch-action:none;';
-  v.innerHTML = `
-    <img id="rlImgA" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1.2s ease; opacity:0;">
-    <img id="rlImgB" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1.2s ease; opacity:0;">
-    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%); pointer-events:none;"></div>
-    <div style="position:absolute; left:0; right:0; top:0; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 8px;">
-      <button type="button" id="rlClose" aria-label="Beenden" style="width:42px; height:42px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:20px;">✕</button>
-      <div style="flex:1; min-width:0;">
-        <div id="rlName" style="font-family:var(--font-display); font-size:24px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 8px #000;"></div>
-        <div id="rlMeta" style="font-size:12.5px; color:#e6d6d0; text-shadow:0 1px 4px #000;"></div>
+  // Spalte: oben Leiste, Mitte Bild, unten Bedienung - nichts ragt über den Rand
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column; width:100vw; height:100dvh;';
+  v.innerHTML = `<style>
+      #rouletteView *, #rouletteView *::before { box-sizing:border-box; }
+      #rouletteView button, #rouletteView input { margin:0; min-width:0; max-width:none; font-family:inherit; }
+      #rouletteView .rl-round { flex:0 0 auto; border:none; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; padding:0; }
+    </style>
+    <div id="rlStage" style="position:relative; flex:1 1 auto; min-height:0; overflow:hidden;">
+      <img id="rlImgA" alt="" draggable="false" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1s ease; opacity:0; z-index:0;">
+      <img id="rlImgB" alt="" draggable="false" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1s ease; opacity:0; z-index:0;">
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.75) 100%);"></div>
+      <div id="rlDots" style="position:absolute; z-index:2; top:calc(env(safe-area-inset-top, 0px) + 6px); left:10px; right:10px; display:flex; gap:3px;"></div>
+      <div style="position:absolute; z-index:2; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 14px); display:flex; align-items:center; gap:8px; padding:0 10px;">
+        <button type="button" id="rlClose" class="rl-round" aria-label="Beenden" style="width:40px; height:40px; background:rgba(0,0,0,0.5); font-size:18px;">✕</button>
+        <div style="flex:1 1 auto; min-width:0;">
+          <div id="rlName" style="font-family:var(--font-display); font-size:22px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 8px #000;"></div>
+          <div id="rlMeta" style="font-size:12px; color:#eaddd8; text-shadow:0 1px 4px #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+        </div>
+        <span style="flex:0 0 auto; font-size:11px; padding:4px 8px; border-radius:999px; background:#c0394b; font-weight:700; letter-spacing:0.06em;">● LIVE</span>
+        <button type="button" id="rlCC" class="rl-round" aria-label="Untertitel" style="width:40px; height:40px; background:rgba(0,0,0,0.5); font-size:12px; font-weight:700;">CC</button>
       </div>
-      <span id="rlLive" style="font-size:12px; padding:4px 9px; border-radius:999px; background:#c0394b; font-weight:600; letter-spacing:0.08em;">● LIVE</span>
-      <button type="button" id="rlCC" aria-label="Untertitel" style="width:42px; height:42px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:13px; font-weight:700;">CC</button>
+      <div id="rlStatus" style="position:absolute; z-index:2; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 62px); text-align:center; font-size:12.5px; color:#f2e6e1; text-shadow:0 1px 4px #000;"></div>
+      <div id="rlTapL" style="position:absolute; z-index:1; left:0; top:20%; bottom:12%; width:33%;"></div>
+      <div id="rlTapR" style="position:absolute; z-index:1; right:0; top:20%; bottom:12%; width:33%;"></div>
+      <div id="rlCaption" style="display:none; position:absolute; z-index:2; left:14px; right:14px; bottom:14px; text-align:center; font-family:var(--font-display); font-size:18px; font-style:italic; line-height:1.35; text-shadow:0 2px 8px #000;"></div>
     </div>
-    <div id="rlStatus" style="position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 70px); text-align:center; font-size:13px; color:#f2e6e1; text-shadow:0 1px 4px #000;"></div>
-    <div id="rlCaption" style="display:none; position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 150px); text-align:center; font-family:var(--font-display); font-size:19px; font-style:italic; line-height:1.35; text-shadow:0 2px 8px #000;"></div>
-    <div style="position:absolute; left:0; right:0; bottom:0; padding:0 14px calc(env(safe-area-inset-bottom, 0px) + 14px);">
-      <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <input id="rlInput" type="text" placeholder="Sag etwas …" autocomplete="off" style="flex:1; min-width:0; height:46px; border-radius:23px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.45); color:#fff; padding:0 16px; font-size:15px;">
-        <button type="button" id="rlMic" aria-label="Sprechen" style="width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:19px;">🎤</button>
-        <button type="button" id="rlSend" aria-label="Senden" style="width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:19px;">➤</button>
+    <div style="flex:0 0 auto; padding:10px 12px calc(env(safe-area-inset-bottom, 0px) + 12px); background:#000;">
+      <div style="display:flex; gap:8px; align-items:center; width:100%;">
+        <input id="rlInput" type="text" placeholder="Sag etwas …" autocomplete="off" style="flex:1 1 auto; width:0; height:44px; border-radius:22px; border:1px solid rgba(255,255,255,0.25); background:#141012; color:#fff; padding:0 14px; font-size:15px;">
+        <button type="button" id="rlMic" class="rl-round" aria-label="Sprechen" style="width:44px; height:44px; background:#241c1f; font-size:18px;">🎤</button>
+        <button type="button" id="rlSend" class="rl-round" aria-label="Senden" style="width:44px; height:44px; background:#241c1f; font-size:18px;">➤</button>
       </div>
-      <div style="display:flex; gap:10px;">
-        <button type="button" id="rlLiveBtn" style="flex:1; height:52px; border-radius:26px; border:1px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.45); color:#fff; font-size:15px;">💬 Ins Gespräch</button>
-        <button type="button" id="rlNext" style="flex:1; height:52px; border-radius:26px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:600;">Weiter ⏭</button>
+      <div style="display:flex; justify-content:center; align-items:center; gap:26px; margin-top:12px;">
+        <button type="button" id="rlNext" class="rl-round" aria-label="Weiter" style="width:64px; height:64px; background:#1d1719; border:2px solid #e0526b; color:#e0526b; font-size:28px;">✕</button>
+        <button type="button" id="rlLiveBtn" class="rl-round" aria-label="Ins Gespräch" style="width:52px; height:52px; background:#1d1719; border:2px solid #d9b26b; font-size:22px;">💬</button>
+        <button type="button" id="rlPic" class="rl-round" aria-label="Neues Bild" style="width:52px; height:52px; background:#1d1719; border:2px solid #8fb3d9; font-size:22px;">📸</button>
       </div>
-      <div style="text-align:center; font-size:11.5px; color:#bfaea9; margin-top:8px;">Nach oben oder links wischen = nächste</div>
+      <div style="text-align:center; font-size:11px; color:#a8968f; margin-top:6px;">✕ nächste · 💬 ins Gespräch · 📸 neues Bild · Bild links/rechts antippen = blättern</div>
     </div>`;
   document.body.appendChild(v);
   v.querySelector('#rlClose').onclick = () => closeRoulette(false);
   v.querySelector('#rlNext').onclick = () => rlNextFigure();
   v.querySelector('#rlLiveBtn').onclick = () => closeRoulette(true);
-  v.querySelector('#rlCC').onclick = () => { rl.caption = !rl.caption; safeSet('companion_rlCaption', rl.caption ? 'true' : 'false'); v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none'; v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.45)'; };
+  v.querySelector('#rlPic').onclick = () => rlImage(rl.token, 'Er möchte mehr von ihr sehen - noch gewagter als eben.');
+  v.querySelector('#rlCC').onclick = () => { rl.caption = !rl.caption; safeSet('companion_rlCaption', rl.caption ? 'true' : 'false'); v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none'; v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.5)'; };
   const send = () => { const inp = v.querySelector('#rlInput'); const t = inp.value.trim(); if (!t || !rl.active) return; inp.value = ''; inp.blur(); rl.lastUser = Date.now(); addUserMsg(t); askActive(t); };
   v.querySelector('#rlSend').onclick = send;
   v.querySelector('#rlInput').onkeydown = (e) => { if (e.key === 'Enter') send(); };
   v.querySelector('#rlMic').onclick = () => { if (!recognizer) { alert('Dieser Browser kann keine Spracherkennung.'); return; } rl.lastUser = Date.now(); try { recognizer.start(); setMicStatus(true); } catch (e) {} };
-  // Wischen nach oben oder links: nächste
-  let x0 = null, y0 = 0;
-  v.addEventListener('pointerdown', e => { if (e.target.closest('button, input')) return; x0 = e.clientX; y0 = e.clientY; });
-  v.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (dy < -90 || dx < -90) rlNextFigure(); });
+  // Blättern durch die Bilder dieser Begegnung (kein Wischen - das war zu leicht ausgelöst)
+  v.querySelector('#rlTapL').onclick = () => { if (rl.pos > 0) { rl.manual = Date.now(); rl.pos--; rlPaint(); } };
+  v.querySelector('#rlTapR').onclick = () => { if (rl.pos < rl.shown.length - 1) { rl.manual = Date.now(); rl.pos++; rlPaint(); } };
   return v;
 }
-function rlShow(url) {
+function rlPaint() {
+  const v = rlView(), url = rl.shown[rl.pos];
+  v.querySelector('#rlDots').innerHTML = rl.shown.length > 1 ? rl.shown.map((_, k) => `<span style="flex:1; height:3px; border-radius:2px; background:${k === rl.pos ? '#fff' : 'rgba(255,255,255,0.35)'};"></span>`).join('') : '';
   if (!url) return;
-  const v = rlView();
   const next = v.querySelector(rl.front === 'A' ? '#rlImgB' : '#rlImgA');
   const prev = v.querySelector(rl.front === 'A' ? '#rlImgA' : '#rlImgB');
   next.onload = () => { next.style.opacity = '1'; prev.style.opacity = '0'; };
   next.src = url;
   rl.front = rl.front === 'A' ? 'B' : 'A';
+}
+// Neues Bild anhängen; springt nur dorthin, wenn du nicht gerade selbst blätterst
+function rlShow(url, isNew) {
+  if (!url) return;
+  rl.shown.push(url);
+  if (!isNew || !rl.manual || Date.now() - rl.manual > 12000 || rl.pos === rl.shown.length - 2) rl.pos = rl.shown.length - 1;
+  rlPaint();
 }
 async function rlGalleryUrls(f) {
   const out = [];
@@ -17106,8 +17150,8 @@ function openRoulette() {
   rl.caption = localStorage.getItem('companion_rlCaption') === 'true';
   const v = rlView();
   v.querySelector('#rlCaption').style.display = rl.caption ? 'block' : 'none';
-  v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.45)';
-  v.style.display = 'block';
+  v.querySelector('#rlCC').style.background = rl.caption ? 'var(--accent)' : 'rgba(0,0,0,0.5)';
+  v.style.display = 'flex';
   safeSet('companion_sceneDesc', RL_SCENE);
   clearInterval(rl.uiTimer);
   rl.uiTimer = setInterval(rlTick, 500);
@@ -17137,23 +17181,23 @@ function rlPulse() {
 function rlHalt() {
   rl.token++;
   clearInterval(rl.galTimer); clearInterval(rl.imgTimer);
-  try { interruptPlayback(); } catch (e) {}
+  // Läuft noch das vorbereitete Einstiegsbild der nächsten, darf der Abbruch es
+  // nicht mitreißen - laufende Anfragen enden dann von selbst und werden verworfen.
+  if (rl.prep && !rl.prep.done) { const keep = inFlight; inFlight = new Set(); try { interruptPlayback(); } catch (e) {} inFlight = keep; }
+  else { try { interruptPlayback(); } catch (e) {} }
   try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
 }
 async function rlNextFigure() {
   if (!rl.active) return;
   rlRecord();
   rlHalt();
-  rl.i++;
-  if (rl.i >= rl.list.length) { rl.list.sort(() => Math.random() - 0.5); rl.i = 0; }
+  // Die nächste Begegnung ist meist schon vorbereitet (Figur, Einstieg, erstes Bild)
+  const prep = rl.prep && rl.prep.i === (rl.i + 1) % rl.list.length ? rl.prep : null;
+  rl.prep = null;
+  if (prep) { rl.i = prep.i; } else { rl.i++; if (rl.i >= rl.list.length) { rl.list.sort(() => Math.random() - 0.5); rl.i = 0; } }
   const f = rl.fig = rl.list[rl.i];
-  // Ab und zu sind schon zwei zusammen im Chat
-  const duoShare = +(localStorage.getItem('companion_rlDuo') ?? 25) / 100;
-  rl.fig2 = null;
-  if (rl.list.length >= 2 && Math.random() < duoShare) {
-    const others = rl.list.filter(x => x !== f);
-    rl.fig2 = others[Math.floor(Math.random() * others.length)];
-  }
+  const pick = prep || rlPickPair(f);
+  rl.fig2 = pick.fig2;
   const v = latestVersion(f);
   const my = rl.token;
   const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
@@ -17163,7 +17207,9 @@ async function rlNextFigure() {
   history = [];
   sceneStep = INTRO_STEPS + 1;   // kein Kennenlern-Stillstand - sie darf sofort
   readyGate = 'ready';
-  rl.start = Date.now(); rl.gotImage = false; rl.lastImg = Date.now(); rl.lastUser = 0;
+  rl.start = Date.now(); rl.gotImage = false; rl.lastImg = 0; rl.lastUser = 0;   // erstes neues Bild sofort
+  rl.shown = []; rl.pos = 0; rl.manual = 0; rl.imgCount = 0;
+  rl.opener = pick.opener;
   const view = rlView();
   view.querySelector('#rlName').textContent = rlName();
   const st = rlStats()[rlKey()];
@@ -17174,10 +17220,43 @@ async function rlNextFigure() {
   let urls = await rlGalleryUrls(f);
   if (rl.fig2) { const u2 = await rlGalleryUrls(rl.fig2); urls = urls.flatMap((u, k) => [u, u2[k]]).concat(u2.slice(urls.length)).filter(Boolean); }
   if (my !== rl.token) return;
-  let k = 0; rlShow(urls[0]);
-  rl.galTimer = setInterval(() => { if (rl.gotImage || urls.length < 2) return; k = (k + 1) % urls.length; rlShow(urls[k]); }, 7000);
-  rl.imgTimer = setInterval(() => { if (Date.now() - rl.lastImg > rlImageGap()) rlImage(my); }, 3000);
+  // Ihre Galerie zum Durchblättern; bis das erste neue Bild da ist, wechselt sie von selbst
+  rl.shown = urls.slice(); rl.pos = 0;
+  // Vorbereitetes Einstiegsbild zuerst - du „erwischst" sie bei etwas
+  const firstUrl = prep && prep.url ? await prep.url.catch(() => null) : null;
+  if (my !== rl.token) return;
+  if (firstUrl) { rl.shown.unshift(firstUrl); rl.gotImage = true; rl.imgCount = 1; rl.lastImg = Date.now(); }
+  rlPaint();
+  rl.galTimer = setInterval(() => { if (rl.gotImage || rl.shown.length < 2 || (rl.manual && Date.now() - rl.manual < 12000)) return; rl.pos = (rl.pos + 1) % rl.shown.length; rlPaint(); }, 7000);
+  rl.imgTimer = setInterval(() => {
+    if (Date.now() - rl.lastImg > rlImageGap()) rlImage(my, rl.imgCount === 0 ? rl.opener.img : '');
+    else if (!rl.prep && rl.gotImage && !rl.imgBusy && Date.now() - rl.start > 8000) rlPrepareNext();
+  }, 3000);
   rlLoop(my);
+}
+function rlPickPair(f) {
+  const duoShare = +(localStorage.getItem('companion_rlDuo') ?? 25) / 100;
+  let fig2 = null;
+  if (rl.list.length >= 2 && Math.random() < duoShare) { const others = rl.list.filter(x => x !== f); fig2 = others[Math.floor(Math.random() * others.length)]; }
+  return { fig2, opener: RL_OPENERS[Math.floor(Math.random() * RL_OPENERS.length)] };
+}
+// Während du bei einer bist, entsteht schon das Einstiegsbild der nächsten
+function rlPrepareNext() {
+  if (!rl.active || !apiKeyFor('companion_apiKey_venice')) return;
+  const i = (rl.i + 1) % rl.list.length, f = rl.list[i];
+  if (!f || f === rl.fig) return;
+  const pick = rlPickPair(f);
+  const cast = [characterFromVersion(f), pick.fig2 ? characterFromVersion(pick.fig2) : null].filter(Boolean);
+  const names = cast.map(c => c.name).join(' und ');
+  rl.imgBusy = true;
+  const url = (async () => {
+    try {
+      const res = await makeSceneImage(`Standbild aus einem Zufalls-Videochat, aus Sicht seiner Kamera: ${names}${cast.length > 1 ? ' zusammen' : ''}. ${pick.opener.img}${cast.length > 1 ? ', both women in frame' : ''}.`, cast);
+      return res && res.dataUrl;
+    } finally { rl.imgBusy = false; if (prep) prep.done = true; }
+  })();
+  url.catch(() => {});
+  const prep = rl.prep = { i, fig2: pick.fig2, opener: pick.opener, url, done: false };
 }
 function rlImageGap() { return (+(localStorage.getItem('companion_rlImageSec') || 30)) * 1000; }
 async function rlImage(my, why) {
@@ -17185,9 +17264,12 @@ async function rlImage(my, why) {
   rl.imgBusy = true; rl.lastImg = Date.now();
   try {
     const last = history.slice().reverse().find(m => m.role === 'assistant');
-    const moment = `${rlName()} im Videochat, ${rl.fig2 ? 'zu zweit' : 'allein'} vor der Kamera, ${rl.fig2 ? 'sie schauen' : 'sie schaut'} den Betrachter an. ${why || ''} ${last ? String(last.content).slice(0, 400) : ''}`;
+    // Die Bilder werden schnell gewagter - sie will dich halten
+    const STAGES = ['flirty selfie for the camera, teasing look, revealing outfit', 'pulling her top down, showing cleavage and lingerie, seductive', 'topless, breasts bare, biting her lip, inviting look', 'fully nude, posing explicitly for the camera, touching herself', 'fully nude, explicit close-up pose, legs apart, aroused, intense eye contact'];
+    const stage = STAGES[Math.min(STAGES.length - 1, rl.imgCount + (Date.now() - rl.start > 90000 ? 1 : 0))];
+    const moment = `${rlName()} im Videochat, ${rl.fig2 ? 'zu zweit' : 'allein'} vor der Webcam oder Handykamera bei sich zuhause, ${rl.fig2 ? 'sie schauen' : 'sie schaut'} direkt in die Kamera, Bild wie aus einem Videoanruf. Bildinhalt: ${rl.imgCount === 0 && rl.opener ? rl.opener.img : stage}. ${why && why !== rl.opener.img ? why : ''} ${last ? 'Was sie gerade sagt: ' + String(last.content).slice(0, 300) : ''}`;
     const res = await makeSceneImage(moment, characters.filter(c => !c.isUser));
-    if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rlShow(res.dataUrl); }
+    if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rl.imgCount++; rlShow(res.dataUrl, true); }
   } catch (e) { logEvent('msg', { role: 'system', text: 'Zufallsbegegnung: Bild ging nicht (' + e.message + ').' }); }
   finally { rl.imgBusy = false; rl.lastImg = Date.now(); }
 }
@@ -17199,11 +17281,11 @@ function rlPrompt(n) {
   const pulseLine = !P ? '' : `Sein Puls (Pulsgurt, er weiß nicht, dass ${rl.fig2 ? 'ihr ihn seht' : 'du ihn siehst'}): ${P.bpm}${P.rise ? `, ${P.rise > 0 ? '+' : ''}${P.rise} seit er da ist` : ''}. ${P.d >= 4 ? 'Er steigt gerade - was ihr tut, wirkt: dranbleiben und steigern.' : P.d <= -4 ? 'Er sinkt - ihr verliert ihn gerade, wechselt die Taktik.' : 'Kaum Veränderung - noch habt ihr ihn nicht gepackt.'}`.replace(/ihr tut|ihr verliert|wechselt|habt ihr/g, m => rl.fig2 ? m : ({ 'ihr tut': 'du tust', 'ihr verliert': 'du verlierst', 'wechselt': 'wechsle', 'habt ihr': 'hast du' })[m]);
   if (rl.fig2) {
     const a = latestVersion(rl.fig).name, b = latestVersion(rl.fig2).name;
-    if (n === 1) return `(ZUFALLS-VIDEOCHAT ZU ZWEIT. Til landet in einem Videochat, in dem ${a} und ${b} schon zusammen vor der Kamera sind - er ist ein Fremder für euch beide. Er kann jederzeit wegwischen. Euer Ziel: dass er bleibt. Spielt euch die Bälle zu, neckt euch gegenseitig, wetteifert ein bisschen, wer ihn mehr fesselt - und überrascht ihn gemeinsam. Beide sprechen, abwechselnd, kurz. ${devLine} Ihr könnt ihm jederzeit ein Foto zeigen - sagt es einfach. ${pulseLine}${st ? ` Er war schon ${st.visits}× bei euch beiden, am längsten ${rlFmt(st.bestMs)}.` : ''})`;
+    if (n === 1) return `(ZUFALLS-VIDEOCHAT ZU ZWEIT. Til landet in einem Videochat, in dem ${a} und ${b} schon zusammen vor der Kamera sind - er ist ein Fremder für euch beide. Er kann jederzeit wegwischen. Euer Ziel: dass er bleibt. Euer Einstieg diesmal: ${rl.opener.t.replace(/^Du /, 'Ihr ')} Ihr dürft schnell offen sexuell werden. Spielt euch die Bälle zu, neckt euch gegenseitig, wetteifert ein bisschen, wer ihn mehr fesselt - und überrascht ihn gemeinsam. Beide sprechen, abwechselnd, kurz. ${devLine} Ihr könnt ihm jederzeit ein Foto zeigen - sagt es einfach. ${pulseLine}${st ? ` Er war schon ${st.visits}× bei euch beiden, am längsten ${rlFmt(st.bestMs)}.` : ''})`;
     const spoke2 = rl.lastUser && Date.now() - rl.lastUser < 20000;
     return `(Videochat zu zweit läuft seit ${rlFmt(Date.now() - rl.start)}. ${spoke2 ? 'Er hat euch eben geantwortet - geht darauf ein.' : 'Er sagt nichts, schaut nur zu - er könnte jeden Moment weiterwischen.'} Haltet ihn: steigert, wechselt euch ab, überrascht ihn. ${pulseLine} ${devLine} Kurz.)`;
   }
-  if (n === 1) return `(ZUFALLS-VIDEOCHAT. Til ist eben in deinem Videochat aufgetaucht - ein Fremder, ihr kennt euch nicht. Er sieht dich über die Kamera und kann dich jederzeit wegwischen, dann ist er weg und kommt vielleicht nie wieder. Dein einziges Ziel: dass er bleibt. Überrasche, verführe, provoziere, bring ihn zum Lachen, zeig ihm etwas - ganz so, wie es zu dir passt. Sprich ihn direkt an, kurz: ein bis drei Sätze, kein Vorgeplänkel. ${devLine} Du kannst ihm jederzeit ein Foto von dir zeigen - sag es einfach („Warte, ich zeig dir was …").${st ? ` Er war schon ${st.visits}× bei dir, am längsten ${rlFmt(st.bestMs)} - das willst du schlagen.` : ''} ${pulseLine})`;
+  if (n === 1) return `(ZUFALLS-VIDEOCHAT. Til ist eben in deinem Videochat aufgetaucht - ein Fremder, ihr kennt euch nicht. Er sieht dich über die Kamera und kann dich jederzeit wegwischen, dann ist er weg und kommt vielleicht nie wieder. Dein einziges Ziel: dass er bleibt. Überrasche, verführe, provoziere, bring ihn zum Lachen, zeig ihm etwas - ganz so, wie es zu dir passt. Sprich ihn direkt an, kurz: ein bis drei Sätze, kein Vorgeplänkel. Dein Einstieg diesmal: ${rl.opener.t} Du darfst schnell offen sexuell werden - zeigen, ausziehen, berühren -, alles, was ihn hält. ${devLine} Du kannst ihm jederzeit ein Foto von dir zeigen - sag es einfach („Warte, ich zeig dir was …").${st ? ` Er war schon ${st.visits}× bei dir, am längsten ${rlFmt(st.bestMs)} - das willst du schlagen.` : ''} ${pulseLine})`;
   const since = rlFmt(Date.now() - rl.start);
   const spoke = rl.lastUser && Date.now() - rl.lastUser < 20000;
   return `(Videochat läuft seit ${since}. ${spoke ? 'Er hat dir eben geantwortet - geh darauf ein.' : 'Er sagt nichts, schaut nur zu - er könnte jeden Moment weiterwischen.'} Halte ihn: steigere, wechsle die Taktik, überrasche ihn. ${pulseLine} ${devLine} Kurz.)`;
@@ -17213,7 +17295,7 @@ async function rlLoop(my) {
   while (rl.active && my === rl.token) {
     if (activeReplies > 0) { await new Promise(r => setTimeout(r, 500)); continue; }
     n++;
-    const ok = await askActive(rlPrompt(n), { silent: true, autoStep: n });
+    const ok = await askActive(rlPrompt(n), { silent: true, autoStep: n, speak: true });
     if (my !== rl.token || !rl.active) return;
     if (!ok) { await new Promise(r => setTimeout(r, 4000)); continue; }
     const last = history.slice().reverse().find(m => m.role === 'assistant');
@@ -17236,7 +17318,7 @@ function rlTick() {
 function closeRoulette(toLive) {
   if (!rl.active) return;
   rlRecord();
-  rl.active = false;
+  rl.active = false; rl.prep = null;
   clearInterval(rl.uiTimer);
   const v = rlView(); v.style.display = 'none';
   if (toLive && rl.fig) {
