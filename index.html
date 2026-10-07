@@ -851,6 +851,9 @@
   @keyframes padBreath { 0%,100% { filter: brightness(0.8); } 50% { filter: brightness(1.25); } }
   @media (prefers-reduced-motion: reduce) { #padGlow { animation: none; } }
   /* Kartendetail */
+  #figureEditor.as-sheet { position: fixed; inset: 0; z-index: 2060; margin: 0; border-radius: 0; border: none; overflow-y: auto; background: var(--bg); padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 90px); }
+  #figureEditor.as-sheet > summary { display: none; }
+  #feSheetBar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 2px 10px; background: var(--bg); border-bottom: 1px solid var(--line); margin: 0 -12px 10px; padding-left: 12px; padding-right: 12px; }
   #figCard { display: none; position: fixed; inset: 0; z-index: 2050; background: var(--bg); overflow-y: auto; }
   #figCard .fc-hero { position: relative; height: 46vh; min-height: 280px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 140px; }
   #figCard .fc-hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
@@ -1678,6 +1681,7 @@
         <button class="btn-primary" id="swipeOpenBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">💘 Durchswipen</button>
         <button class="btn-secondary" id="upgradeAllBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">⟳ Alle aktualisieren</button>
       </div>
+      <button class="btn-secondary" id="deriveAllBtn" type="button" style="width:100%; height:42px; margin:0 0 10px; white-space:nowrap;">🖼️ Aussehen aller Figuren aus ihrem Profilbild</button>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
         <span style="font-size:13.5px;">Neue Figuren bekommen automatisch ein Portfolio (4 Bilder)</span>
@@ -3418,8 +3422,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.92';
+const APP_VERSION = '1.94';
 const CHANGELOG = [
+  { v: '1.94', date: '2026-10-07', items: [
+    '„Bearbeiten" in der Figurenkarte öffnet den Editor jetzt als eigene Seite direkt darüber - kein Springen mehr ans Ende der Figurenliste. „‹ Zurück zur Karte" oder Sichern führt zurück zur Karte.',
+    'Neue Figuren sind sofort einsatzbereit: Fehlt die Stimmbeschreibung, wird sie geschrieben; fehlt eine ElevenLabs-Stimme, wird eine aus deinen vorhandenen gewürfelt (passendes Geschlecht, möglichst noch nicht vergeben). Eine neue Stimme wird dabei nicht erzeugt - das geht weiter von Hand im Editor.',
+  ]},
+  { v: '1.93', date: '2026-10-07', items: [
+    'Neuer Knopf unter Figuren: „🖼️ Aussehen aller Figuren aus ihrem Profilbild" - leitet für alle Figuren mit Profilbild nacheinander das Aussehen ab und macht das Bild zum Stamm-Bild. Bereits abgeleitete werden übersprungen. Am Ende eine Übersicht, was geklappt hat.',
+    'Automatisch beim Sichern: Hat eine Figur ein neues Profilbild (etwa nach „✨ Bild", bis eins gefällt), wird beim Sichern das Aussehen daraus abgeleitet und das Bild wird ihr Stamm-Bild. Vorher kannst du beliebig oft neu erzeugen.',
+    '„✨ Bild" bei einer Figur mit Stamm-Bild fragt: Abwandlung (dieselbe Person, neues Foto) oder ganz neu aus der Beschreibung.',
+  ]},
   { v: '1.92', date: '2026-10-07', items: [
     'Behoben, und das war der eigentliche Grund für die falschen Haarfarben: Bei allen Bild-Aufgaben (Aussehen aus Profilbild, Figur aus Bild, Bild-Merkmale, Beschreibung aus Foto) wurde das Bild gar nicht mitgeschickt - nur der Text. Die Modelle haben daher geraten („dunkelbraun, wirkt wie 30") oder um das Bild gebeten. Jetzt geht das Bild wirklich mit.',
   ]},
@@ -10491,7 +10504,7 @@ function versionFromCharacter(c, versionNumber) {
     image: c.image || '', imageKey: c.imageKey || '',
     // Stamm-Bild: das Bild, das festlegt, wie sie aussieht. Alle weiteren
     // Bilder entstehen als Abwandlung davon.
-    anchorKey: c.anchorKey || '',
+    anchorKey: c.anchorKey || '', variantKey: c.variantKey || '',
     lookTag: c.lookTag || '', lookTagSrc: c.lookTagSrc || '',
     created: new Date().toISOString(),
   };
@@ -10594,6 +10607,8 @@ function castAgeProblems() {
 }
 
 function addFigureToArchive(c) {
+  // Neue Figur sofort einsatzfähig: Stimmbeschreibung und eine gewürfelte Stimme
+  if (c && !c.isUser) setTimeout(() => { try { const f = figureArchive.slice().reverse().find(x => (latestVersion(x) || {}).name === c.name); if (f) ensureVoiceReady(f.id); } catch (e) {} }, 3000);
   setTimeout(() => { try { const f = figureArchive[figureArchive.length - 1]; const v = f && latestVersion(f); if (v && !v.isUser && !v.isNarrator && v.name === c.name && apiKeyFor('companion_apiKey_venice')) queuePortfolio(f.id); } catch (e) {} }, 1500);
   if (c && !c.isUser && !c.isNarrator && (!c.phantom || !Object.keys(c.phantom).length)) setTimeout(() => { try { const f = figureArchive.find(x => (latestVersion(x) || {}).name === c.name); if (f) autoPhantom(f.id, 'neue Figur'); } catch (e) {} }, 2500);
   const figure = { id: newFigureId(), versions: [versionFromCharacter(c, 1)] };
@@ -11881,13 +11896,18 @@ async function generateCharacterImage(c, button) {
   button.disabled = true;
   button.textContent = 'Erzeuge...';
   // Mit Stamm-Bild: neues Porträt als Abwandlung davon - dieselbe Person.
-  if (c.anchorKey) {
+  // Oder ganz neu aus der Beschreibung, wenn sie anders aussehen soll.
+  if (c.anchorKey && !confirm('Neues Porträt als Abwandlung ihres Stamm-Bildes?\n\nOK = dieselbe Person, neues Foto\nAbbrechen = ganz neu aus der Beschreibung (gefällt es dir, wird es beim Sichern ihr neues Stamm-Bild)')) {
+    c._freshPortrait = true;
+  }
+  if (c.anchorKey && !c._freshPortrait) {
     try {
       const ref = await loadFullImage(c.anchorKey);
       if (ref) {
         const full = await editFromReference(ref, referencePrompt('a new waist-up portrait photo, looking into the camera, soft natural light, ' + (c.lookTag || '')));
         c.image = await downscaleDataUrl(full, 512);
         c.imageKey = await storeFullImage(c.id + '_' + Date.now(), full);
+        c.variantKey = c.imageKey;   // Abwandlung - Stamm-Bild bleibt, kein neues Ableiten
         storeCharacterVersion(c, false);
         if (c.figureId) galleryAdd(full, 'image', [c.figureId], 'Porträt');
         logEvent('msg', { role: 'system', text: `Porträt ${c.name} als Abwandlung des Stamm-Bildes (${refModel()}).` });
@@ -11898,6 +11918,7 @@ async function generateCharacterImage(c, button) {
       addMsg('system', `Porträt über das Stamm-Bild ging nicht (${e.message}) - erzeuge aus der Beschreibung.`);
     }
   }
+  delete c._freshPortrait;
   try {
     let imagePrompt = '';
     try {
@@ -12286,6 +12307,7 @@ function renderCharacters() {
       saveArchive();
       saveCharacters();
       editingChar = null;
+      if (editorSheet) closeEditorSheet(null, true);
       els.figureEditor.style.display = 'none';
       renderFigureList();
     };
@@ -12736,6 +12758,8 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       renderCharacters();
       if (figuresOpen) renderFigureList();
       addMsg('system', `${c.name}: Version ${c.version} überschrieben.`);
+      autoDeriveAfterSave(c);
+      if (editorSheet) closeEditorSheet(c.figureId);
     };
     versionRow.appendChild(saveVersion);
 
@@ -12750,6 +12774,8 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       renderCharacters();
       if (figuresOpen) renderFigureList();
       addMsg('system', `${c.name}: als Version ${version.v} gesichert, die vorherige bleibt erhalten.`);
+      autoDeriveAfterSave(c);
+      if (editorSheet) closeEditorSheet(c.figureId);
     };
     versionRow.appendChild(newVersion);
 
@@ -13231,7 +13257,36 @@ function renderFigureList() {
 // Bearbeitet wird eine Kopie, nicht die Besetzung: eine Figur anzusehen ändert
 // nichts daran, wer gerade mitspielt. Steht sie schon in der Besetzung, wird
 // deren Version geöffnet, sonst die neueste.
-function openFigureEditor(figure) {
+// Bearbeiten aus der Figurenkarte: der Editor öffnet sich als eigene Seite
+// über allem, „‹ Zurück" (oder Sichern) führt zurück zur Karte - kein Scrollen
+// mehr ans Ende der Figurenliste.
+let editorSheet = null;
+function openEditorSheet(figure) {
+  const ed = els.figureEditor;
+  if (!editorSheet) editorSheet = { parent: ed.parentNode, next: ed.nextSibling };
+  document.body.appendChild(ed);
+  ed.classList.add('as-sheet');
+  let bar = document.getElementById('feSheetBar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'feSheetBar'; ed.insertBefore(bar, document.getElementById('charList')); }
+  bar.innerHTML = `<button type="button" class="btn-secondary" id="feSheetBack" style="width:auto; height:40px; padding:0 14px;">‹ Zurück zur Karte</button><span style="flex:1; font-family:var(--font-display); font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc((latestVersion(figure) || {}).name || '')}</span>`;
+  bar.style.display = 'flex';
+  document.getElementById('feSheetBack').onclick = () => closeEditorSheet(figure.id);
+  ed.scrollTop = 0;
+}
+function closeEditorSheet(figureId, noCard) {
+  const ed = els.figureEditor;
+  if (!editorSheet) return;
+  ed.classList.remove('as-sheet');
+  const bar = document.getElementById('feSheetBar'); if (bar) bar.style.display = 'none';
+  editorSheet.parent.insertBefore(ed, editorSheet.next);
+  editorSheet = null;
+  ed.style.display = 'none';
+  editingChar = null;
+  try { renderFigureList(); } catch (e) {}
+  const f = figureId && getFigure(figureId);
+  if (f && !noCard) showFigureCard(f);
+}
+function openFigureEditor(figure, asSheet) {
   const inCast = characters.find(c => c.figureId === figure.id);
   // Always built from the archive: a cast copy can predate a change - a picture
   // added later, for instance - and editing that copy showed an empty avatar
@@ -13245,6 +13300,7 @@ function openFigureEditor(figure) {
   renderCharacters();
   els.figureEditor.style.display = 'block';
   els.figureEditor.open = true;
+  if (asSheet) { openEditorSheet(figure); return; }
   setTimeout(() => els.figureEditor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 
@@ -15670,6 +15726,22 @@ async function applyLookFromPortrait(c) {
   c._lookFromImage = true;
   return r;
 }
+// Beim Sichern: Hat die Figur ein Profilbild, aus dem ihr Aussehen noch nicht
+// abgeleitet wurde (neues Porträt, das dir gefällt), passiert das jetzt
+// automatisch - das Bild wird ihr Stamm-Bild.
+async function autoDeriveAfterSave(c) {
+  if (!c || c.isUser || c.isNarrator || !c.imageKey || c.anchorKey === c.imageKey || c.variantKey === c.imageKey || !c.figureId) return;
+  if (localStorage.getItem('companion_autoDerive') === 'false') return;
+  addMsg('system', `${c.name}: Neues Profilbild - leite das Aussehen daraus ab …`);
+  try {
+    await applyLookFromPortrait(c);
+    storeCharacterVersion(c, false);
+    syncCastFromEdit(c);
+    if (editingChar === c || (editingChar && editingChar.figureId === c.figureId)) renderCharacters();
+    if (figuresOpen) renderFigureList();
+    addMsg('system', `${c.name}: Aussehen aus dem Profilbild übernommen und gesichert. Das Bild ist jetzt ihr Stamm-Bild.`);
+  } catch (e) { addMsg('system', `${c.name}: Ableiten aus dem Profilbild ging nicht (${e.message}).`); }
+}
 // Für eine gespeicherte Figur: ableiten und als aktuelle Version festhalten.
 async function deriveFigureFromPortrait(figure) {
   const c = characterFromVersion(figure);
@@ -16409,6 +16481,79 @@ Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
   if (changed.length) { storeCharacterVersion(c, true); saveArchive(); }
   return { name: v.name, changed };
 }
+// Neue Figur: fehlt die Stimmbeschreibung, wird sie geschrieben; fehlt eine
+// ElevenLabs-Stimme, wird eine passende aus deinen vorhandenen gewürfelt
+// (Geschlecht passend, möglichst noch nicht vergeben). Keine neue Stimme wird
+// erzeugt - das bleibt der Knopf im Editor.
+const voiceReadyBusy = new Set();
+async function ensureVoiceReady(figureId) {
+  if (voiceReadyBusy.has(figureId)) return;
+  const f = getFigure(figureId); const v = f && latestVersion(f);
+  if (!v || v.isUser) return;
+  if (!(v.notes || '').trim() && !(v.appearance || '').trim()) return;   // leere Vorlage - erst wenn sie etwas hat
+  voiceReadyBusy.add(figureId);
+  const done = [];
+  try {
+    if (!(v.voiceDescription || '').trim()) {
+      try {
+        const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+        const raw = await callProvider(provider, `Schreibe für ElevenLabs Voice Design eine englische Stimmbeschreibung (1-2 Sätze: Alter, Akzent, Klangfarbe, Tempo, Ausdruck) für diese erwachsene Figur. Sie spricht Deutsch.
+Name: ${v.name}
+Geschlecht: ${v.gender || 'offen'}${v.isNarrator ? '\nRolle: Erzählerstimme' : ''}
+Eigenschaften: ${(v.traits || []).join(', ')}
+Wesen: ${String(v.notes || '').slice(0, 700)}
+Antworte NUR mit der Beschreibung.`, [{ role: 'user', content: 'Gib die Beschreibung zurück.' }], 0.6, taskBudget('draft', 300), { task: 'draft' });
+        const d = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').slice(0, 500);
+        if (d && !looksLikeThinking(d)) { latestVersion(f).voiceDescription = d; done.push('Stimmbeschreibung'); }
+      } catch (e) {}
+    }
+    const cur = latestVersion(f);
+    if (!cur.elevenVoice && apiKeyFor('companion_elevenKey')) {
+      if (!elevenVoiceCache.length) { try { await loadElevenVoices(true); } catch (e) {} }
+      if (elevenVoiceCache.length) {
+        const want = cur.gender === 'weiblich' ? 'female' : cur.gender === 'maennlich' ? 'male' : '';
+        const used = new Set(figureArchive.map(x => (latestVersion(x) || {}).elevenVoice).filter(Boolean));
+        const g = vc => String(((vc.labels || {}).gender) || '').toLowerCase();
+        let pool = elevenVoiceCache.filter(vc => !want || g(vc) === want || (!g(vc) && new RegExp(want === 'female' ? 'frau|female|woman|weib' : 'mann|male|man\\b', 'i').test((vc.name || '') + ' ' + (vc.description || ''))));
+        if (!pool.length) pool = elevenVoiceCache.slice();
+        const fresh = pool.filter(vc => !used.has(vc.voice_id));
+        const pick = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length ? fresh : pool).length)];
+        if (pick) { cur.elevenVoice = pick.voice_id; done.push('Stimme „' + pick.name + '" (gewürfelt)'); }
+      }
+    }
+    if (done.length) {
+      saveArchive();
+      const now = latestVersion(f);
+      characters.forEach(ch => { if (ch.figureId === figureId) { ch.voiceDescription = now.voiceDescription; ch.elevenVoice = now.elevenVoice; } });
+      try { saveCharacters(); } catch (e) {}
+      if (editingChar && editingChar.figureId === figureId) { editingChar.voiceDescription = now.voiceDescription; editingChar.elevenVoice = now.elevenVoice; try { renderCharacters(); } catch (e) {} }
+      try { if (figuresOpen) renderFigureList(); } catch (e) {}
+      addMsg('system', `${now.name} ist einsatzbereit: ${done.join(', ')}. Eine eigene Stimme kannst du im Editor jederzeit erzeugen.`);
+    }
+  } finally { voiceReadyBusy.delete(figureId); }
+}
+// Für alle Figuren mit Profilbild: Aussehen daraus ableiten, Bild wird Stamm-Bild
+async function deriveAllFromPortraits(btn) {
+  const all = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator && v.imageKey; });
+  if (!all.length) { alert('Keine Figur hat ein Profilbild.'); return; }
+  let list = all.filter(f => { const v = latestVersion(f); return v.anchorKey !== v.imageKey && v.variantKey !== v.imageKey; });
+  if (!list.length) {
+    if (!confirm(`Alle ${all.length} Figuren sind schon aus ihrem aktuellen Profilbild abgeleitet. Trotzdem alle noch einmal?`)) return;
+    list = all;
+  } else if (!confirm(`${list.length} Figuren: Aussehen aus dem Profilbild ableiten? Das Bild wird jeweils ihr Stamm-Bild, das Aussehen wird neu geschrieben (Kleidung und Größe bleiben, wenn das Bild sie nicht zeigt).${all.length > list.length ? `\n\n${all.length - list.length} sind schon abgeleitet und werden übersprungen.` : ''}\n\nDauert etwa 10-20 Sekunden je Figur.`)) return;
+  const label = btn ? btn.textContent : '';
+  if (btn) btn.disabled = true;
+  const ok = [], bad = [];
+  for (let i = 0; i < list.length; i++) {
+    const name = latestVersion(list[i]).name;
+    if (btn) btn.textContent = `🖼️ ${i + 1} von ${list.length}: ${name} …`;
+    try { await deriveFigureFromPortrait(list[i]); ok.push(name); }
+    catch (e) { bad.push(`${name}: ${String(e.message || e).slice(0, 120)}`); }
+  }
+  if (btn) { btn.textContent = label; btn.disabled = false; }
+  try { renderFigureList(); } catch (e) {}
+  alert(`Abgeleitet: ${ok.length ? ok.join(', ') : 'keine'}${bad.length ? '\n\nNicht geklappt:\n' + bad.join('\n') : ''}`);
+}
 async function upgradeAllFigures(btn) {
   if (false && rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
     safeSet('companion_rollbackAsked_' + startOfToday(), '1');
@@ -17044,7 +17189,7 @@ function showFigureCard(figure) {
   renderDiary(document.getElementById('fcDiary'), figure);
   renderVersions(document.getElementById('fcVersions'), figure);
   document.getElementById('fcPlay').onclick = (e) => introduceFigure(v, figure.id, e.currentTarget);
-  document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; showFigures(); openFigureEditor(figure); };
+  document.getElementById('fcEdit').onclick = () => { els.figCard.style.display = 'none'; openFigureEditor(figure, true); };
   const cb = document.getElementById('fcCast');
   if (cb && !inCast) cb.onclick = () => { addFigureToCast(figure.id); saveCharacters(); cb.textContent = 'In der Szene ✓'; cb.disabled = true; try { renderFigureList(); } catch (e) {} };
 }
@@ -18523,6 +18668,7 @@ document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
+document.getElementById('deriveAllBtn').onclick = (e) => deriveAllFromPortraits(e.currentTarget);
 if (document.getElementById('rollbackBtn')) document.getElementById('rollbackBtn').onclick = (e) => {
   const n = rollbackCandidates().length;
   if (!n) { alert('Heute wurde keine Figur verändert, die es schon vorher gab.'); return; }
