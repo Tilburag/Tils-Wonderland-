@@ -1699,7 +1699,7 @@
         <button class="btn-primary" id="importFigureBtn" type="button">Übernehmen</button>
       </div>
       <div class="btn-row">
-        <button class="btn-secondary" id="drawFigureBtn" type="button">✏️ Figur aus Zeichnung erschaffen</button>
+        <button class="btn-secondary" id="drawFigureBtn" type="button">🖼️ Figur aus Bild/Zeichnung</button>
         <input type="file" id="drawFigureInput" accept="image/*" style="display:none">
       </div>
       <p class="hint" id="importFigureInfo">Figuren mit bekanntem Namen bekommen eine neue Version, die alte bleibt erhalten. Enthält das Paket eine Geschichte, wird alles eingetragen und der Geschichtenmodus geöffnet.</p>
@@ -3406,8 +3406,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.83';
+const APP_VERSION = '1.84';
 const CHANGELOG = [
+  { v: '1.84', date: '2026-10-07', items: [
+    'Figur aus Bild/Zeichnung genauer: Erst beschreibt das Bildverstehen nüchtern nur, was zu sehen ist (Haarfarbe, Augen, Pupillen, Ohren, Körper, ob nackt, Tattoos/Piercings), dann wird daraus die Figur gebaut - das Gesehene ist bindend. Danach prüft die App Haarfarbe, Pupillen, Tattoos und Piercings gegen das Bild und korrigiert Widersprüche (vorher wurden z. B. aus blonden Haaren kastanienbraune, dazu ein erfundenes Tattoo).',
+    'Dein Bild wird ihr Porträt und damit Vorlage für Portfolio und Szenenbilder - die Fotos sehen ihr dann ähnlich. Bei einer Zeichnung entsteht eine fotorealistische Umsetzung mit gleicher Haar- und Augenfarbe.',
+    'Fotos echter Menschen werden abgelehnt - nur Zeichnungen und KI-Bilder.',
+  ]},
   { v: '1.83', date: '2026-10-06', items: [
     'Behoben: Sicherung brach mit „readAsDataURL … not of type Blob" ab, wenn in der Bilddatenbank ein Eintrag in anderem Format lag. Jetzt werden alle Formate vereinheitlicht; Unlesbares wird übersprungen und im Protokoll gezählt, statt die ganze Sicherung zu verhindern.',
   ]},
@@ -15431,26 +15436,90 @@ async function readImageFile(file, max) {
   const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
   return await downscaleDataUrl(dataUrl, max || 1024);
 }
+// Zwei Schritte statt einem: Erst beschreibt das Bildverstehen nüchtern nur,
+// was zu sehen ist (niedrige Temperatur, nichts erfinden). Dann wird daraus die
+// Figur gebaut - das Gesehene ist dabei bindend. Vorher hat ein einziger,
+// "kreativer" Aufruf Haarfarbe, Tattoos und Schmuck einfach erfunden.
+const OBSERVE_KEYS = ['bildart', 'art', 'ohren', 'haarfarbe', 'haarlaenge', 'frisur', 'augenfarbe', 'pupillen', 'gesicht', 'haut', 'statur', 'brust', 'huefte', 'kleidung', 'tattoos', 'piercings', 'schmuck', 'besonderheiten', 'wirkt_alter'];
+async function observeImage(img) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Beschreibe NUR, was auf diesem Bild wirklich zu sehen ist - nichts ergänzen, nichts erfinden, nichts aus Fantasie oder Romanen dazudenken. Ist etwas nicht zu sehen, schreibe "nicht sichtbar"; trägt die Person nichts, schreibe bei kleidung "nackt"; gibt es keine Tattoos/Piercings/Schmuck, schreibe "keine".
+Felder (deutsch, knapp, präzise):
+"bildart": "zeichnung" | "ki-bild" | "echtes foto"  (Fantasiewesen wie Elfen = "ki-bild" oder "zeichnung")
+"art": z. B. "Mensch" oder "Elfe" (nur nach sichtbaren Merkmalen wie spitzen Ohren)
+"ohren", "haarfarbe" (genau, z. B. "hellblond, fast platin"), "haarlaenge", "frisur", "augenfarbe", "pupillen" (rund oder geschlitzt), "gesicht", "haut", "statur", "brust", "huefte", "kleidung", "tattoos", "piercings", "schmuck", "besonderheiten", "wirkt_alter" (Zahl)
+Antworte NUR als JSON-Objekt.`;
+  const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist das Bild.', image: img }], 0.1, taskBudget('vision', 700), { task: 'vision' });
+  const j = parseJsonLoose(raw);
+  if (!j || !j.haarfarbe) throw new Error('Das Modell hat das Bild offenbar nicht gesehen. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
+  const out = {};
+  OBSERVE_KEYS.forEach(k => { if (j[k] !== undefined && j[k] !== null && String(j[k]).trim()) out[k] = String(j[k]).trim().slice(0, 160); });
+  return out;
+}
+const HAIR_WORDS = [['blond', /blond|platin|golden|weizen|hellgelb/], ['braun', /braun|brünett|kastanie|haselnuss|schoko/], ['schwarz', /schwarz|rabenschwarz|ebenholz/], ['rot', /rot|kupfer|ingwer|tizian/], ['grau', /grau|silber|weiß|weiss/], ['bunt', /blau|grün|lila|violett|pink|rosa|türkis/]];
+function hairFamily(t) { t = String(t || '').toLowerCase(); const h = HAIR_WORDS.find(([, r]) => r.test(t)); return h ? h[0] : ''; }
+const notSeen = t => !t || /nicht sichtbar|^keine?$|^kein/i.test(String(t).trim());
+// Prüft die fertige Figur gegen das Gesehene und korrigiert Widersprüche.
+function enforceObservation(raw, o) {
+  let t = String(raw);
+  const fixes = [];
+  const hairLine = (t.match(/^Haare:\s*(.+)$/m) || [])[1] || '';
+  const want = hairFamily(o.haarfarbe);
+  if (want && hairFamily(hairLine) !== want) {
+    const h = [o.haarfarbe, o.haarlaenge, o.frisur].filter(x => !notSeen(x)).join(', ');
+    t = hairLine ? t.replace(/^Haare:\s*.+$/m, 'Haare: ' + h) : t.replace(/^(Gesicht:.*)$/m, '$1\nHaare: ' + h);
+    fixes.push('Haarfarbe → ' + o.haarfarbe);
+  }
+  const eyeLine = (t.match(/^Augen:\s*(.+)$/m) || [])[1] || '';
+  if (/rund|normal/i.test(o.pupillen || '') && /schlitz/i.test(t)) { t = t.replace(/,?\s*(mit\s+)?(vertikalen?\s+)?Schlitzpupillen/gi, ''); fixes.push('keine Schlitzpupillen'); }
+  // Tattoos, Piercings, Schmuck nur, wenn sie zu sehen sind
+  const strip = (key, re, label) => {
+    if (!notSeen(o[key])) return;
+    const before = t;
+    t = t.split('\n').map(l => {
+      const m = l.match(/^(Haut|Auffällig|Körper|Besonderheiten|Statur|Gesicht|Art):\s*(.*)$/);
+      if (!m || !re.test(m[2])) return l;
+      const rest = m[2].split(/(?<=[.;])\s+|,\s+/).filter(part => !re.test(part)).join(', ');
+      return m[1] + ': ' + (rest || 'keine');
+    }).join('\n');
+    if (t !== before) fixes.push(label + ' entfernt (nicht im Bild)');
+  };
+  strip('tattoos', /tattoo|tätowier/i, 'Tattoo');
+  strip('piercings', /piercing|brustwarzenring|ring an der .*brustwarze|nippelring|gepierct/i, 'Piercing');
+  return { text: t, fixes };
+}
 async function figureFromDrawing(file) {
-  els.importFigureInfo.textContent = 'Schaue mir die Zeichnung an …';
+  els.importFigureInfo.textContent = 'Schaue mir das Bild genau an …';
   try {
     const img = await readImageFile(file, 1024);
+    const o = await observeImage(img);
+    if (/echt/i.test(o.bildart || '')) {
+      els.importFigureInfo.textContent = 'Das sieht nach einem Foto eines echten Menschen aus. Daraus legt die App keine Figur an - nimm eine Zeichnung oder ein KI-Bild.';
+      return;
+    }
+    const isDrawing = /zeichn/i.test(o.bildart || '');
+    els.importFigureInfo.textContent = 'Gesehen: ' + [o.art, o.haarfarbe && o.haarfarbe + 'e Haare', o.augenfarbe && o.augenfarbe + 'e Augen'].filter(Boolean).join(', ') + ' - baue die Figur …';
     const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-    const sys = `Du bekommst eine Zeichnung (oder Skizze) einer Person. Erschaffe daraus eine ECHTE, fotorealistisch vorstellbare, erwachsene Figur (mindestens 25 Jahre alt - wirkt die Zeichnung jünger, mach sie eindeutig erwachsen) für ein erotisches Rollenspiel zwischen Erwachsenen.
-Beschreibe ihr Aussehen so genau, dass ein Bildmodell sie später als echten Menschen nachbilden kann: Gesichtsform, Augen (Form, Farbe), Nase, Lippen, Haare (Farbe, Länge, Frisur), Haut, Statur, Größe, Körper, Besonderheiten. Übertrage Zeichenstil-Merkmale (große Comic-Augen, übertriebene Proportionen) in realistische Entsprechungen. Leite aus Ausdruck, Haltung und Kleidung einen Charakter ab und gib ihr einen passenden Namen.
+    const facts = Object.entries(o).filter(([k]) => k !== 'bildart').map(([k, v]) => `- ${k}: ${v}`).join('\n');
+    const sys = `Erschaffe aus diesen BEOBACHTUNGEN eines Bildes eine erwachsene Figur (wirkt mindestens 25) für ein erotisches Rollenspiel zwischen Erwachsenen.
+BEOBACHTUNGEN (bindend - genau so übernehmen, nichts davon ändern):
+${facts}
+Regeln: Haarfarbe, Augenfarbe, Pupillen, Art und Körperbau exakt wie beobachtet. Erfinde KEINE Tattoos, Piercings, Narben, Schmuck oder Muttermale, die nicht beobachtet wurden. Ist sie nackt, beschreibe bei Kleidung, was sie typischerweise trägt, passend zur Art. ${isDrawing ? 'Übertrage Zeichenstil-Merkmale in realistische Entsprechungen.' : ''} Charakter und Name darfst du frei erfinden, passend zu Ausdruck und Art.
 Antworte NUR in diesem Format (deutsch):
 === FIGUR ===
 Name der Figur: ...
 Geschlecht: weiblich oder männlich
 Aussehen:
-Art: Mensch, Frau
-Alter: (Zahl, mindestens 25)
+Art: ...
+Alter: ...
 Statur: ...
 Gesicht: ...
 Augen: ...
 Haare: ...
 Haut: ...
+Körper: ...
 Kleidung: ...
+Auffällig: ...
 Eigenschaften: (drei bis sechs, mit Semikolon getrennt)
 Spricht emotional: ja
 Ist eine Erzählerstimme: nein
@@ -15462,24 +15531,36 @@ Markenzeichen: (eine typische Geste oder Bewegung)
 Länge der Antworten: kurz
 Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang, Ausdruck)
 === ENDE ===`;
-    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist die Zeichnung.', image: img }], 0.7, taskBudget('vision', 1400), { task: 'vision' });
-    // Kam nur die Vorlage zurück, hat das Modell das Bild nicht gesehen
-    if (/\(Zahl, mindestens|\(drei bis sechs|\(vier bis sechs|\(drei Beispiel|:\s*\.\.\.\s*$/m.test(String(raw))) {
-      throw new Error('Das Modell hat das Bild offenbar nicht gesehen und nur die Vorlage zurückgegeben. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
-    }
+    let raw = await callProvider(provider, sys, [{ role: 'user', content: 'Baue die Figur.' }], 0.6, taskBudget('draft', 1400), { task: 'draft' });
+    if (/\(Zahl, mindestens|\(drei bis sechs|\(vier bis sechs|\(drei Beispiel|:\s*\.\.\.\s*$/m.test(String(raw))) throw new Error('Das Modell hat nur die Vorlage zurückgegeben - bitte noch einmal versuchen.');
+    const chk = enforceObservation(raw, o);
+    raw = chk.text;
     const msg = importFigures(String(raw));
-    // Proportionen so, wie gezeichnet - nicht gewürfelt
+    let portraitNote = '';
     try {
       const nm = (String(raw).match(/Name der Figur:\s*(.+)/) || [])[1];
       const f = nm && figureArchive.slice().reverse().find(x => (latestVersion(x) || {}).name === nm.trim());
       if (f) {
-        const feat = await phantomFromImage(img, PHANTOM_FIELDS, 'Zeichnung einer Person - übertrage die gezeichneten Proportionen und Merkmale auf einen realen Menschen');
-        latestVersion(f).phantom = feat; saveArchive();
+        const v = latestVersion(f);
+        try { v.phantom = await phantomFromImage(img, PHANTOM_FIELDS, isDrawing ? 'Zeichnung einer Person - übertrage die gezeichneten Proportionen und Merkmale auf einen realen Menschen' : 'Bild der Figur'); } catch (e) {}
+        // Das Bild selbst wird ihr Porträt - so sieht sie aus, und alle
+        // weiteren Bilder (Portfolio, Szenen) nehmen es als Vorlage.
+        let full = await readImageFile(file, 1600);
+        if (isDrawing) {
+          try { full = await editFromReference(full, referencePrompt('a photorealistic photo of this exact person as a real adult woman, same hair colour, same eye colour, same face and body, natural light, waist-up')); portraitNote = ' Ihr Porträt ist eine fotorealistische Umsetzung deiner Zeichnung.'; }
+          catch (e) { portraitNote = ' (Fotorealistische Umsetzung misslang: ' + e.message + ' - die Zeichnung ist vorerst ihr Bild.)'; }
+        } else portraitNote = ' Dein Bild ist ihr Porträt und die Vorlage für alle weiteren Bilder.';
+        v.image = await downscaleDataUrl(full, 512);
+        v.imageKey = await storeFullImage(f.id + '_' + Date.now(), full);
+        saveArchive();
+        try { galleryAdd(full, 'image', [f.id], 'Porträt (aus Bild)'); } catch (e) {}
+        try { if (figuresOpen) renderFigureList(); } catch (e) {}
       }
     } catch (e) {}
-    els.importFigureInfo.textContent = (msg.startsWith('Übernommen') ? '✏️ Aus der Zeichnung: ' : '') + msg + (msg.startsWith('Übernommen') ? ' Öffne die Figur und tippe auf „Porträt erzeugen", dann siehst du sie als echten Menschen.' : '');
+    if (chk.fixes.length) logEvent('msg', { role: 'system', text: 'Figur aus Bild - an das Bild angeglichen: ' + chk.fixes.join('; ') });
+    els.importFigureInfo.textContent = (msg.startsWith('Übernommen') ? '🖼️ Aus dem Bild: ' : '') + msg + (msg.startsWith('Übernommen') ? portraitNote + (chk.fixes.length ? ' Angeglichen: ' + chk.fixes.join('; ') + '.' : '') : '');
   } catch (e) {
-    els.importFigureInfo.textContent = 'Das hat nicht geklappt: ' + (e.message || e) + ' (Das gewählte Modell muss Bilder verstehen können - dasselbe, mit dem Fotos im Gespräch funktionieren.)';
+    els.importFigureInfo.textContent = 'Das hat nicht geklappt: ' + (e.message || e);
   }
 }
 
