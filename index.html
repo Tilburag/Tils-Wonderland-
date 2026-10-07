@@ -1681,7 +1681,10 @@
         <button class="btn-primary" id="swipeOpenBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">💘 Durchswipen</button>
         <button class="btn-secondary" id="upgradeAllBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">⟳ Alle aktualisieren</button>
       </div>
-      <button class="btn-secondary" id="deriveAllBtn" type="button" style="width:100%; height:42px; margin:0 0 10px; white-space:nowrap;">🖼️ Aussehen aller Figuren aus ihrem Profilbild</button>
+      <div style="display:flex; gap:8px; margin:0 0 10px;">
+        <button class="btn-secondary" id="deriveAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🖼️ Aussehen aus Bildern</button>
+        <button class="btn-secondary" id="portfolioAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📸 Neue Bilder für alle</button>
+      </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
         <span style="font-size:13.5px;">Neue Figuren bekommen automatisch ein Portfolio (4 Bilder)</span>
@@ -3422,8 +3425,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.94';
+const APP_VERSION = '1.95';
 const CHANGELOG = [
+  { v: '1.95', date: '2026-10-07', items: [
+    'Portfolio an passenden Orten: Für jede Figur denkt sich die App einmal acht Orte aus, die zu Art, Herkunft, Beruf und Wesen passen (Elfe: Wald, Lichtung, Bachlauf …), und zieht bei jedem Durchgang neu daraus - kein Schlafzimmer und Schloss mehr bei allen.',
+    'Neuer Knopf unter Figuren: „📸 Neue Bilder für alle" - je drei neue Galeriebilder für jede Figur an ihren Orten. Daneben „🖼️ Aussehen aus Bildern" (vorher eigene Zeile).',
+    'Durchswipen: Das Profilbild steht jetzt hinten und kommt nur noch einmal vor; vorne die Galeriebilder.',
+    'Galerie in der Figurenkarte: Blättern läuft flüssig - kein Neuaufbau mehr bei jedem Bild, Nachbarbilder werden vorgeladen, Wischen nach links/rechts blättert, Pfeiltasten am Tablet mit Tastatur auch.',
+    'Figur aus Bild überschreibt keine vorhandene Figur mehr: Das Modell bekommt die vergebenen Namen genannt, und trifft es trotzdem einen, bekommt die neue Figur einen Beinamen statt die alte zu überschreiben.',
+  ]},
   { v: '1.94', date: '2026-10-07', items: [
     '„Bearbeiten" in der Figurenkarte öffnet den Editor jetzt als eigene Seite direkt darüber - kein Springen mehr ans Ende der Figurenliste. „‹ Zurück zur Karte" oder Sichern führt zurück zur Karte.',
     'Neue Figuren sind sofort einsatzbereit: Fehlt die Stimmbeschreibung, wird sie geschrieben; fehlt eine ElevenLabs-Stimme, wird eine aus deinen vorhandenen gewürfelt (passendes Geschlecht, möglichst noch nicht vergeben). Eine neue Stimme wird dabei nicht erzeugt - das geht weiter von Hand im Editor.',
@@ -10505,6 +10515,7 @@ function versionFromCharacter(c, versionNumber) {
     // Stamm-Bild: das Bild, das festlegt, wie sie aussieht. Alle weiteren
     // Bilder entstehen als Abwandlung davon.
     anchorKey: c.anchorKey || '', variantKey: c.variantKey || '',
+    places: Array.isArray(c.places) ? c.places.slice() : undefined, placesSrc: c.placesSrc || '',
     lookTag: c.lookTag || '', lookTagSrc: c.lookTagSrc || '',
     created: new Date().toISOString(),
   };
@@ -12083,58 +12094,101 @@ async function renderGallery(host, figure) {
     }).catch(() => {});
   }
 }
+// Ein Betrachter für die ganze Galerie: Blättern tauscht nur das Bild (kein
+// Neuaufbau), Nachbarn werden vorgeladen, Wischen links/rechts blättert.
 async function openGalleryViewer(items, index, figure) {
   document.getElementById('galViewer')?.remove();
-  const g = items[index];
-  const blob = await dbGet(STORE_IMAGES, g.key).catch(() => null);
-  if (!blob) { alert('Die Datei ist nicht mehr da.'); return; }
-  const url = URL.createObjectURL(blob);
+  const cache = new Map();   // key -> {blob, url}
+  const getItem = async (k) => {
+    const g = items[k]; if (!g) return null;
+    if (cache.has(g.key)) return cache.get(g.key);
+    const blob = await dbGet(STORE_IMAGES, g.key).catch(() => null);
+    const e = blob ? { blob, url: URL.createObjectURL(blob) } : null;
+    cache.set(g.key, e);
+    return e;
+  };
   const v = document.createElement('div');
   v.id = 'galViewer';
   v.style.cssText = 'position:fixed; inset:0; z-index:2070; background:#000; display:flex; flex-direction:column;';
-  const media = g.type === 'video'
-    ? `<video src="${url}" controls loop playsinline autoplay muted style="max-width:100%; max-height:100%;"></video>`
-    : `<img src="${url}" alt="" style="max-width:100%; max-height:100%; object-fit:contain;">`;
-  const when = new Date(g.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-  v.innerHTML = `<div style="flex:1; min-height:0; display:flex; align-items:center; justify-content:center; position:relative;">${media}
-      <button type="button" id="galPrev" aria-label="Vorheriges" style="position:absolute; left:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px; ${index > 0 ? '' : 'visibility:hidden;'}">‹</button>
-      <button type="button" id="galNext" aria-label="Nächstes" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px; ${index < items.length - 1 ? '' : 'visibility:hidden;'}">›</button></div>
+  v.innerHTML = `<div id="galStage" style="flex:1; min-height:0; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; touch-action:pan-y;">
+      <div id="galMedia" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; transition:transform .22s ease, opacity .22s ease;"></div>
+      <button type="button" id="galPrev" aria-label="Vorheriges" style="position:absolute; left:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px;">‹</button>
+      <button type="button" id="galNext" aria-label="Nächstes" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:44px; height:64px; background:rgba(0,0,0,0.35); color:#fff; border:none; border-radius:12px; font-size:26px;">›</button></div>
     <div style="padding:10px 14px calc(env(safe-area-inset-bottom, 0px) + 12px); background:#0b0809;">
-      <div style="font-size:12px; color:#9c8a87; margin-bottom:8px;">${index + 1} von ${items.length} · ${when}${g.note ? ' · ' + esc(g.note) : ''}</div>
+      <div id="galInfo" style="font-size:12px; color:#9c8a87; margin-bottom:8px;"></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <a class="btn-secondary" id="galSave" href="${url}" download="${g.type === 'video' ? 'video' : 'bild'}-${g.t}.${g.type === 'video' ? 'mp4' : 'webp'}" style="text-decoration:none; padding:10px 14px;">Speichern</a>
-        ${g.type === 'image' ? '<button type="button" class="btn-secondary" id="galPortrait">Als Porträt</button>' : ''}
-        <button type="button" class="btn-secondary" id="galDel">Aus Galerie</button>
-        <button type="button" class="btn-primary" id="galClose" style="margin-left:auto;">Schließen</button>
+        <button type="button" class="btn-secondary" id="galSave" style="width:auto; padding:10px 14px;">Speichern</button>
+        <button type="button" class="btn-secondary" id="galPortrait" style="width:auto;">Als Porträt</button>
+        <button type="button" class="btn-secondary" id="galDel" style="width:auto;">Aus Galerie</button>
+        <button type="button" class="btn-primary" id="galClose" style="margin-left:auto; width:auto;">Schließen</button>
       </div></div>`;
   document.body.appendChild(v);
-  const close = () => { v.remove(); URL.revokeObjectURL(url); };
-  v.querySelector('#galSave').onclick = (e) => { e.preventDefault(); deliverFile(blob, `${g.type === 'video' ? 'video' : 'bild'}-${g.t}.${g.type === 'video' ? 'mp4' : 'webp'}`); };
+  const media = v.querySelector('#galMedia'), info = v.querySelector('#galInfo');
+  const prevB = v.querySelector('#galPrev'), nextB = v.querySelector('#galNext'), pb = v.querySelector('#galPortrait');
+  let idx = index, token = 0;
+  const show = async (k, dir) => {
+    if (k < 0 || k >= items.length) { media.style.transform = ''; return; }
+    idx = k; const my = ++token;
+    const g = items[k];
+    prevB.style.visibility = k > 0 ? 'visible' : 'hidden';
+    nextB.style.visibility = k < items.length - 1 ? 'visible' : 'hidden';
+    const when = new Date(g.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    info.textContent = `${k + 1} von ${items.length} · ${when}${g.note ? ' · ' + g.note : ''}`;
+    pb.style.display = g.type === 'image' ? '' : 'none';
+    pb.disabled = false; pb.textContent = 'Als Porträt';
+    const e = await getItem(k);
+    if (my !== token) return;
+    if (!e) { media.innerHTML = '<div style="color:#9c8a87;">Die Datei ist nicht mehr da.</div>'; return; }
+    media.style.transition = 'none';
+    media.style.transform = dir ? `translateX(${dir > 0 ? 40 : -40}px)` : '';
+    media.style.opacity = dir ? '0.3' : '1';
+    media.innerHTML = g.type === 'video'
+      ? `<video src="${e.url}" controls loop playsinline autoplay muted style="max-width:100%; max-height:100%;"></video>`
+      : `<img src="${e.url}" alt="" draggable="false" style="max-width:100%; max-height:100%; object-fit:contain; user-select:none;">`;
+    requestAnimationFrame(() => { media.style.transition = 'transform .22s ease, opacity .22s ease'; media.style.transform = ''; media.style.opacity = '1'; });
+    getItem(k + 1); getItem(k - 1);   // vorladen
+  };
+  const close = () => { v.remove(); document.removeEventListener('keydown', onKey); cache.forEach(e => { if (e) URL.revokeObjectURL(e.url); }); };
+  const onKey = (e) => { if (e.key === 'ArrowLeft') show(idx - 1, -1); else if (e.key === 'ArrowRight') show(idx + 1, 1); else if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  prevB.onclick = () => show(idx - 1, -1);
+  nextB.onclick = () => show(idx + 1, 1);
   v.querySelector('#galClose').onclick = close;
-  v.querySelector('#galPrev').onclick = () => { close(); openGalleryViewer(items, index - 1, figure); };
-  v.querySelector('#galNext').onclick = () => { close(); openGalleryViewer(items, index + 1, figure); };
+  // Wischen
+  const stage = v.querySelector('#galStage');
+  let x0 = null, y0 = 0, dx = 0;
+  stage.addEventListener('pointerdown', e => { if (e.target.closest('button') || e.target.tagName === 'VIDEO') return; x0 = e.clientX; y0 = e.clientY; dx = 0; media.style.transition = 'none'; });
+  stage.addEventListener('pointermove', e => { if (x0 === null) return; dx = e.clientX - x0; if (Math.abs(dx) > Math.abs(e.clientY - y0)) media.style.transform = `translateX(${dx}px)`; });
+  const end = () => { if (x0 === null) return; x0 = null; media.style.transition = 'transform .22s ease, opacity .22s ease';
+    if (dx < -60 && idx < items.length - 1) show(idx + 1, 1); else if (dx > 60 && idx > 0) show(idx - 1, -1); else media.style.transform = ''; };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end); stage.addEventListener('pointerleave', end);
+  v.querySelector('#galSave').onclick = async () => { const g = items[idx], e = await getItem(idx); if (e) deliverFile(e.blob, `${g.type === 'video' ? 'video' : 'bild'}-${g.t}.${g.type === 'video' ? 'mp4' : 'webp'}`); };
   v.querySelector('#galDel').onclick = async () => {
     if (!confirm('Aus der Galerie dieser Figur entfernen?')) return;
+    const g = items[idx];
     await galleryRemove(g, figure.id);
-    close();
+    items = items.filter(x => x !== g);
     const host = document.getElementById('fcGallery'); if (host) renderGallery(host, figure);
+    if (!items.length) { close(); return; }
+    show(Math.min(idx, items.length - 1));
   };
-  const pb = v.querySelector('#galPortrait');
-  if (pb) pb.onclick = async () => {
-    const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+  pb.onclick = async () => {
+    const e = await getItem(idx); if (!e) return;
+    const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(e.blob); });
     const c = characterFromVersion(figure);
     c.image = await downscaleDataUrl(dataUrl, 192);
     c.imageKey = await storeFullImage(c.id + '_' + Date.now(), dataUrl);
     storeCharacterVersion(c, false);
-    try { syncCastFromEdit(c); } catch (e) {}
+    try { syncCastFromEdit(c); } catch (err) {}
     pb.textContent = 'Porträt gesetzt ✓'; pb.disabled = true;
-    try { renderFigureList(); } catch (e) {}
+    try { renderFigureList(); } catch (err) {}
     if (confirm('Soll ihr Aussehen jetzt aus diesem Bild abgeleitet werden? Dann wird es ihr Stamm-Bild und alle weiteren Bilder sehen ihr ähnlich.')) {
       pb.textContent = 'Leite Aussehen ab …';
-      try { await deriveFigureFromPortrait(getFigure(figure.id)); pb.textContent = 'Aussehen abgeleitet ✓'; } catch (e) { pb.textContent = 'Ableiten misslang'; alert(e.message); }
-      try { renderFigureList(); } catch (e) {}
+      try { await deriveFigureFromPortrait(getFigure(figure.id)); pb.textContent = 'Aussehen abgeleitet ✓'; } catch (err) { pb.textContent = 'Ableiten misslang'; alert(err.message); }
+      try { renderFigureList(); } catch (err) {}
     }
   };
+  show(idx);
 }
 
 // ---------- Dateien zuverlässig aufs Gerät bringen ----------
@@ -13535,7 +13589,8 @@ function figureFromFields(f) {
   if (!clean.gender || clean.gender === 'offen') clean.gender = normalizeGender(draft.gender, clean.appearance, clean.notes);
   return clean;
 }
-function importFigures(text) {
+function importFigures(text, opts) {
+  const forceNew = !!(opts && opts.forceNew);
   const blocks = parseFigureBlocks(text);
   if (!blocks.length) return 'Kein Block mit „=== FIGUR ===" gefunden.';
   const done = [], failed = [];
@@ -13544,7 +13599,16 @@ function importFigures(text) {
       const clean = figureFromFields(f);
       const issue = ageIssue(clean);
       if (issue) { failed.push(ageErrorText(clean, issue)); return; }
-      const existing = figureArchive.find(x => (latestVersion(x) || {}).name === clean.name);
+      let existing = figureArchive.find(x => (latestVersion(x) || {}).name === clean.name);
+      // Aus einem Bild entstandene Figuren sind immer neu - gleicher Name heißt
+      // hier nicht dieselbe Figur. Sie bekommt einen Beinamen.
+      if (existing && forceNew) {
+        const extra = ['Mondlicht', 'vom See', 'die Jüngere', 'Nachtfalter', 'vom Norden', 'Silberblick', 'die Zweite', 'Dämmerung'];
+        const taken = new Set(figureArchive.map(x => (latestVersion(x) || {}).name));
+        let nm = clean.name; for (const e2 of extra) { nm = clean.name + ' ' + e2; if (!taken.has(nm)) break; }
+        if (taken.has(nm)) nm = clean.name + ' ' + (taken.size + 1);
+        clean.name = nm; existing = null;
+      }
       if (existing) {
         clean.figureId = existing.id;
         storeCharacterVersion(clean, true);
@@ -15818,6 +15882,7 @@ async function figureFromDrawing(file) {
     const sys = `Erschaffe aus diesen BEOBACHTUNGEN eines Bildes eine erwachsene Figur (wirkt mindestens 25) für ein erotisches Rollenspiel zwischen Erwachsenen.
 BEOBACHTUNGEN (bindend - genau so übernehmen, nichts davon ändern):
 ${facts}
+Diese Namen sind schon vergeben - wähle einen anderen: ${figureArchive.map(x => (latestVersion(x) || {}).name).filter(Boolean).join(', ')}.
 Regeln: Haarfarbe, Augenfarbe, Pupillen, Art und Körperbau exakt wie beobachtet. Erfinde KEINE Tattoos, Piercings, Narben, Schmuck oder Muttermale, die nicht beobachtet wurden. Ist sie nackt, beschreibe bei Kleidung, was sie typischerweise trägt, passend zur Art. ${isDrawing ? 'Übertrage Zeichenstil-Merkmale in realistische Entsprechungen.' : ''} Charakter und Name darfst du frei erfinden, passend zu Ausdruck und Art.
 Antworte NUR in diesem Format (deutsch):
 === FIGUR ===
@@ -15849,11 +15914,12 @@ Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang
     if (/\(Zahl, mindestens|\(drei bis sechs|\(vier bis sechs|\(drei Beispiel|:\s*\.\.\.\s*$/m.test(String(raw))) throw new Error('Das Modell hat nur die Vorlage zurückgegeben - bitte noch einmal versuchen.');
     const chk = enforceObservation(raw, o);
     raw = chk.text;
-    const msg = importFigures(String(raw));
+    const countBefore = figureArchive.length;
+    const msg = importFigures(String(raw), { forceNew: true });
     let portraitNote = '';
     try {
-      const nm = (String(raw).match(/Name der Figur:\s*(.+)/) || [])[1];
-      const f = nm && figureArchive.slice().reverse().find(x => (latestVersion(x) || {}).name === nm.trim());
+      // Die zuletzt angelegte Figur ist die neue (der Name kann einen Beinamen bekommen haben)
+      const f = figureArchive.length > countBefore ? figureArchive[figureArchive.length - 1] : null;
       if (f) {
         const v = latestVersion(f);
         try { v.phantom = await phantomFromImage(img, PHANTOM_FIELDS, isDrawing ? 'Zeichnung einer Person - übertrage die gezeichneten Proportionen und Merkmale auf einen realen Menschen' : 'Bild der Figur'); } catch (e) {}
@@ -16775,11 +16841,35 @@ function referencePrompt(shot) {
 }
 
 const PORTFOLIO_SHOTS = [
-  ['Porträt', 'professional portrait photo, head and shoulders, wearing {outfit}, soft studio light, shallow depth of field, looking into the camera'],
-  ['Outfit', 'full body fashion photo, standing, wearing {outfit}, {pose}, elegant interior, natural light'],
-  ['Halbakt', 'sensual boudoir photo, wearing only lingerie, partly undressed, sitting on the edge of a bed, soft warm light, seductive look'],
-  ['Akt', 'artistic nude photo, fully naked, {nudepose}, bedroom with silk sheets, soft cinematic light, full body visible'],
+  ['Porträt', 'professional portrait photo, head and shoulders, wearing {outfit}, {place0}, soft natural light, shallow depth of field, looking into the camera'],
+  ['Outfit', 'full body photo, standing, wearing {outfit}, {pose}, {place1}, natural light'],
+  ['Halbakt', 'sensual photo, partly undressed, {place2}, soft warm light, seductive look'],
+  ['Akt', 'artistic nude photo, fully naked, {nudepose}, {place3}, soft cinematic light, full body visible'],
 ];
+// Orte, die zur Figur passen (Elfe: Wald, Lichtung, Bach; Feuerwehrfrau:
+// Kletterhalle, Hafen …). Einmal je Figur erfunden, dann gespeichert; jeder
+// Portfolio-Durchgang zieht daraus neu - so wiederholen sich die Orte nicht.
+async function portfolioPlaces(figure) {
+  const v = latestVersion(figure);
+  const src = appearanceHash((v.appearance || '') + '|' + (v.notes || ''));
+  if (!(Array.isArray(v.places) && v.places.length >= 4 && v.placesSrc === src)) {
+    try {
+      const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+      const raw = await callProvider(provider, `Nenne 8 unterschiedliche Orte für Fotos dieser Figur - passend zu ihrer Art, Herkunft, ihrem Beruf und Wesen (eine Waldelfe gehört in Wald, Lichtung, Bachlauf, Baumhaus, Mondlicht; eine Feuerwehrfrau in Kletterhalle, Hafen, Wache …). Abwechslungsreich: drinnen und draußen, Tag und Nacht. Schlafzimmer oder Schloss nur, wenn es wirklich zu ihr passt.
+Name: ${v.name}
+Aussehen: ${String(v.appearance || '').slice(0, 600)}
+Wesen: ${String(v.notes || '').slice(0, 700)}
+Jeder Ort als kurze englische Bildbeschreibung (6 bis 14 Wörter, mit Licht und Stimmung), z. B. "on a mossy rock beside a forest stream, dappled morning sunlight".
+Antworte NUR als JSON-Array mit 8 Strings.`, [{ role: 'user', content: 'Gib das JSON-Array zurück.' }], 0.9, taskBudget('draft', 700), { task: 'draft' });
+      const m = String(raw || '').match(/\[[\s\S]*\]/);
+      const arr = m ? JSON.parse(m[0]).map(x => String(x).replace(/["„“”]/g, '').trim()).filter(x => x.length > 8).slice(0, 10) : [];
+      if (arr.length >= 4) { v.places = arr; v.placesSrc = src; saveArchive(); }
+    } catch (e) {}
+  }
+  const pool = (Array.isArray(v.places) && v.places.length >= 4) ? v.places.slice() : ['in a sunlit loft apartment', 'on a quiet beach at golden hour', 'in a cozy cabin by the fireplace', 'in a lush garden with soft evening light', 'on a rooftop terrace at dusk'];
+  for (let k = pool.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [pool[k], pool[r]] = [pool[r], pool[k]]; }
+  return pool;
+}
 async function makePortfolio(figure, btn) {
   const v = latestVersion(figure); if (!v || v.isUser || v.isNarrator) return 0;
   const c = characterFromVersion(figure);
@@ -16788,7 +16878,10 @@ async function makePortfolio(figure, btn) {
   const look = [c.lookTag || '', phantomPhrase(c.phantom, PHANTOM_FIELDS)].filter(Boolean).join(', ');
   const outfit = ((String(v.appearance || '').match(/Kleidung\s*:\s*(.+)/i) || [])[1] || 'a stylish outfit').slice(0, 120);
   const pose = st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
-  const nudepose = st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side on the bed, tender look' : 'kneeling on the bed, playful smile';
+  const nudepose = st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side, tender look' : 'kneeling, playful smile';
+  if (btn) btn.textContent = 'Suche passende Orte …';
+  const places = await portfolioPlaces(figure);
+  const fill = t => t.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose).replace(/\{place(\d)\}/g, (_, k) => places[+k % places.length]);
   let n = 0;
   // Das vorhandene Porträt als Vorlage - das erste Bild (Porträt) ist es dann selbst
   let ref = null;
@@ -16797,10 +16890,10 @@ async function makePortfolio(figure, btn) {
   for (let i = ref ? 1 : 0; i < PORTFOLIO_SHOTS.length; i++) {
     if (btn) btn.textContent = `Fotografiere ${i + 1}/4 …`;
     const [label, tpl] = PORTFOLIO_SHOTS[i];
-    const prompt = `Photorealistic, adult woman. ${look}. ${tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose)}. Adults only.`;
+    const prompt = `Photorealistic, adult woman. ${look}. ${fill(tpl)}. Adults only.`;
     let url = null, how = 'Beschreibung';
     if (ref && i > 0) {
-      try { url = await editFromReference(ref, referencePrompt(tpl.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose))); how = 'Vorlage (' + refModel() + ')'; }
+      try { url = await editFromReference(ref, referencePrompt(fill(tpl))); how = 'Vorlage (' + refModel() + ')'; }
       catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
@@ -16833,10 +16926,13 @@ async function openSwipe() {
   els.swipeView.style.display = 'flex';
   renderSwipe();
 }
+// Galeriebilder zuerst, das Profilbild ganz hinten - und nur einmal (die
+// Portfolio-Kopie des Porträts wird übersprungen).
 async function swImages(figure) {
   const v = latestVersion(figure); const urls = [];
+  const pics = galleryFor(figure.id).filter(g => g.type === 'image' && !/Porträt/.test(g.note || '')).slice().reverse().slice(0, 6);
+  for (const g of pics) { const b = await dbGet(STORE_IMAGES, g.key).catch(() => null); if (b) urls.push(URL.createObjectURL(b)); }
   const main = await hiResUrl(v); if (main) urls.push(main);
-  for (const g of portfolioImages(figure).slice(0, 5)) { const b = await dbGet(STORE_IMAGES, g.key).catch(() => null); if (b) urls.push(URL.createObjectURL(b)); }
   return urls;
 }
 async function renderSwipe() {
@@ -18669,6 +18765,20 @@ document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
 document.getElementById('deriveAllBtn').onclick = (e) => deriveAllFromPortraits(e.currentTarget);
+document.getElementById('portfolioAllBtn').onclick = async (e) => {
+  const btn = e.currentTarget;
+  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
+  if (!list.length) return;
+  if (!confirm(`Für alle ${list.length} Figuren je drei neue Bilder an Orten, die zu ihr passen (Elfe im Wald, Seefahrerin am Hafen …)? Das sind etwa ${list.length * 3} Bilder bei Venice und dauert eine Weile - du kannst die App solange weiter benutzen.`)) return;
+  btn.disabled = true; const label = btn.textContent; let made = 0;
+  for (let i = 0; i < list.length; i++) {
+    btn.textContent = `📸 ${i + 1}/${list.length} ${latestVersion(list[i]).name}`;
+    try { made += await makePortfolio(list[i]); } catch (err) {}
+  }
+  btn.textContent = label; btn.disabled = false;
+  addMsg('system', `Neue Galeriebilder: ${made} Bilder für ${list.length} Figuren.`);
+  try { renderFigureList(); } catch (err) {}
+};
 if (document.getElementById('rollbackBtn')) document.getElementById('rollbackBtn').onclick = (e) => {
   const n = rollbackCandidates().length;
   if (!n) { alert('Heute wurde keine Figur verändert, die es schon vorher gab.'); return; }
