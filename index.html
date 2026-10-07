@@ -1408,9 +1408,17 @@
       </label>
       <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0;">
         <span style="font-size:13px; flex:0 0 44%;">Bearbeitungsmodell</span>
-        <input type="text" id="refModel" placeholder="qwen-edit-uncensored" style="flex:1;">
+        <select id="refModel" style="flex:1;">
+          <option value="">qwen-edit-uncensored (Standard, erlaubt Akt)</option>
+          <option value="qwen-edit-uncensored">qwen-edit-uncensored</option>
+          <option value="qwen-image-3-edit">qwen-image-3-edit (lehnt Akt eher ab)</option>
+          <option value="qwen-image-3-pro-edit">qwen-image-3-pro-edit (lehnt Akt eher ab)</option>
+          <option value="seedream-v5-pro-edit">seedream-v5-pro-edit (lehnt Akt eher ab)</option>
+          <option value="flux-2-max-edit">flux-2-max-edit (lehnt Akt eher ab)</option>
+          <option value="nano-banana-pro-edit">nano-banana-pro-edit (lehnt Akt ab)</option>
+        </select>
       </div>
-      <p class="hint">Venice-Bildbearbeitung (experimentell): Das Porträt geht als Vorlage mit, damit Gesicht und Körper gleich bleiben. Lehnt das Modell ab oder scheitert es, entsteht das Bild wie bisher aus der Beschreibung. Im Protokoll steht, welcher Weg genommen wurde. Andere Modelle zum Ausprobieren: qwen-image-2-pro-edit, firered-image-edit.</p>
+      <p class="hint">Venice-Bildbearbeitung (experimentell): Das Porträt geht als Vorlage mit, damit Gesicht und Körper gleich bleiben. Lehnt das Modell ab oder scheitert es, entsteht das Bild wie bisher aus der Beschreibung. Im Protokoll steht, welcher Weg genommen wurde. Für Aktbilder taugt laut Venice nur qwen-edit-uncensored; die anderen sind für angezogene Bilder. Figuren mit Stamm-Bild (Aussehen aus Profilbild abgeleitet) nutzen die Vorlage immer.</p>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;">
         <input type="checkbox" id="padImages" style="width:auto;">
         <span style="font-size:13.5px; color:var(--text);">Szenenbilder in der Mond-Ansicht</span>
@@ -2686,7 +2694,11 @@ function renderTaskModels() {
     // taugt, ist für die Bewegung womöglich falsch, und diese Auswahl soll
     // nicht dieselbe Vorsortierung erben wie die oben.
     const model = document.createElement('select');
-    fillGroupedSelect(model, veniceModelCache, TEXT_RECOMMENDED[task.id] || [], `Empfohlen für ${task.label}`, textModelNote, stored,
+    // Bilder verstehen: oben nur Modelle, die laut Venice wirklich Bilder sehen
+    const rec = task.id === 'vision'
+      ? veniceModelCache.filter(m => ((m.model_spec || {}).capabilities || {}).supportsVision).map(m => [m.id, 'sieht Bilder'])
+      : (TEXT_RECOMMENDED[task.id] || []);
+    fillGroupedSelect(model, veniceModelCache, rec, task.id === 'vision' ? 'Sehen Bilder (laut Venice)' : `Empfohlen für ${task.label}`, textModelNote, stored,
       veniceModelCache.length ? `(wie oben eingestellt - ${veniceModelCache.length} Modelle zur Auswahl)` : '(wie oben eingestellt - noch keine Modelle geladen)');
     model.value = stored;
     model.onchange = () => safeSet('companion_taskModel_' + task.id, model.value);
@@ -3406,8 +3418,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.87';
+const APP_VERSION = '1.88';
 const CHANGELOG = [
+  { v: '1.88', date: '2026-10-07', items: [
+    'Bearbeitungsmodell ist jetzt eine Auswahl statt eines leeren Textfelds.',
+    'Modelle je Aufgabe → Bilder verstehen: oben stehen nur noch Modelle, die laut Venice Bilder sehen können.',
+  ]},
   { v: '1.87', date: '2026-10-07', items: [
     'Behoben: Bilder über die Vorlage scheiterten mit „Bearbeitung 400 … image Required" - das Porträt wurde als browserinterne blob:-Adresse statt als Bild verschickt. Jetzt geht es als echtes Bild an Venice. Das betraf auch das automatische Erkennen der Bild-Merkmale aus dem Porträt.',
     'Portfolio: jeder Durchgang mit neuem Seed - vorher kamen bei jedem Druck dieselben vier Bilder, wenn die Vorlage nicht ging.',
@@ -18395,7 +18411,7 @@ els.homeSurpriseBtn.onclick = rollSurprise;
   rp.checked = localStorage.getItem('companion_refPortfolio') !== 'false'; rs.checked = localStorage.getItem('companion_refScenes') === 'true'; rm.value = localStorage.getItem('companion_refModel') || '';
   rp.onchange = () => safeSet('companion_refPortfolio', rp.checked ? 'true' : 'false');
   rs.onchange = () => safeSet('companion_refScenes', rs.checked ? 'true' : 'false');
-  rm.oninput = () => safeSet('companion_refModel', rm.value.trim()); }
+  rm.oninput = rm.onchange = () => safeSet('companion_refModel', rm.value.trim()); }
 document.getElementById('homePitchBtn').onclick = () => openPitches(false);
 document.getElementById('ptRefresh').onclick = () => openPitches(true);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
