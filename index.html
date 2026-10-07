@@ -3418,8 +3418,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.91';
+const APP_VERSION = '1.92';
 const CHANGELOG = [
+  { v: '1.92', date: '2026-10-07', items: [
+    'Behoben, und das war der eigentliche Grund für die falschen Haarfarben: Bei allen Bild-Aufgaben (Aussehen aus Profilbild, Figur aus Bild, Bild-Merkmale, Beschreibung aus Foto) wurde das Bild gar nicht mitgeschickt - nur der Text. Die Modelle haben daher geraten („dunkelbraun, wirkt wie 30") oder um das Bild gebeten. Jetzt geht das Bild wirklich mit.',
+  ]},
   { v: '1.91', date: '2026-10-07', items: [
     'Bilder verstehen: Auswahl neu geordnet nach der aktuellen Venice-Modellliste - oben die unzensierten Modelle mit Bildverständnis (gemma-4-uncensored, venice-uncensored-role-play, venice-uncensored-1-2, qwen-3-6-plus), dann qwen3-vl und mistral-small, ganz unten die großen geschlossenen Modelle, die Aktbilder meist ablehnen. Jedes mit Vermerk.',
     'Standard für „Bilder verstehen" ist jetzt gemma-4-uncensored statt mistral-31-24b (das Venice nicht mehr führt). Beim Ableiten werden bis zu fünf Modelle in dieser Reihenfolge versucht; nachdenkende Modelle bekommen mehr Spielraum.',
@@ -8833,7 +8836,7 @@ async function callAnthropic(systemPrompt, messages, temperature, maxTokens, mod
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: messages || toApiMessages(history, 'anthropic'), temperature: Math.min(1, temperature ?? 1) })
+    body: JSON.stringify({ model, max_tokens: maxTokens || 800, system: systemPrompt, messages: toApiMessages(messages || history, 'anthropic'), temperature: Math.min(1, temperature ?? 1) })
   });
   // Anthropic erlaubt höchstens Temperatur 1,0 (oben begrenzt). Und: eine
   // Fehlerseite in HTML ergab vorher ein rätselhaftes "Unexpected token <".
@@ -8862,7 +8865,7 @@ async function callOpenAiCompatible(systemPrompt, endpoint, apiKeyStorageKey, mo
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'system', content: systemPrompt }, ...(messages || toApiMessages(history, 'openai'))],
+      messages: [{ role: 'system', content: systemPrompt }, ...toApiMessages(messages || history, 'openai')],
       max_tokens: maxTokens || 800,
       temperature: temperature ?? 1,
       ...(extraBody || {})
