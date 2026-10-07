@@ -2696,7 +2696,7 @@ function renderTaskModels() {
     const model = document.createElement('select');
     // Bilder verstehen: oben nur Modelle, die laut Venice wirklich Bilder sehen
     const rec = task.id === 'vision'
-      ? veniceModelCache.filter(m => ((m.model_spec || {}).capabilities || {}).supportsVision).map(m => [m.id, 'sieht Bilder'])
+      ? (() => { const notes = Object.fromEntries(visionRanked()); return visionCandidates().filter(id => id !== (localStorage.getItem('companion_taskModel_vision') || '')).map(id => [id, notes[id] || (/claude|gpt|openai|gemini|grok/i.test(id) ? 'sieht Bilder, lehnt Akt meist ab' : 'sieht Bilder')]); })()
       : (TEXT_RECOMMENDED[task.id] || []);
     fillGroupedSelect(model, veniceModelCache, rec, task.id === 'vision' ? 'Sehen Bilder (laut Venice)' : `Empfohlen für ${task.label}`, textModelNote, stored,
       veniceModelCache.length ? `(wie oben eingestellt - ${veniceModelCache.length} Modelle zur Auswahl)` : '(wie oben eingestellt - noch keine Modelle geladen)');
@@ -3418,8 +3418,20 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '1.88';
+const APP_VERSION = '1.91';
 const CHANGELOG = [
+  { v: '1.91', date: '2026-10-07', items: [
+    'Bilder verstehen: Auswahl neu geordnet nach der aktuellen Venice-Modellliste - oben die unzensierten Modelle mit Bildverständnis (gemma-4-uncensored, venice-uncensored-role-play, venice-uncensored-1-2, qwen-3-6-plus), dann qwen3-vl und mistral-small, ganz unten die großen geschlossenen Modelle, die Aktbilder meist ablehnen. Jedes mit Vermerk.',
+    'Standard für „Bilder verstehen" ist jetzt gemma-4-uncensored statt mistral-31-24b (das Venice nicht mehr führt). Beim Ableiten werden bis zu fünf Modelle in dieser Reihenfolge versucht; nachdenkende Modelle bekommen mehr Spielraum.',
+  ]},
+  { v: '1.90', date: '2026-10-07', items: [
+    'Aussehen aus Profilbild: Lehnen alle Modelle das ganze Bild ab (meist wegen Nacktheit), geht automatisch nur der Kopf-Ausschnitt hin. Daraus kommen Art, Alter, Haare, Gesicht, Augen und Haut; Statur, Körper, Kleidung und Auffälliges bleiben aus der alten Beschreibung. Die Bilder selbst entstehen weiter aus dem ganzen Stamm-Bild.',
+  ]},
+  { v: '1.89', date: '2026-10-07', items: [
+    '„Aussehen aus Profilbild ableiten" probiert jetzt nacheinander bis zu vier bildverstehende Modelle - das eingestellte zuerst, dann bewährte (mistral-31-24b, qwen3-vl-235b-a22b, mistral-small …). Lehnt eines ab oder hält das Format nicht ein, kommt das nächste. Die Antwort wird großzügiger gelesen (Fettschrift, fehlende Trennzeilen).',
+    'Scheitern alle, steht in der Meldung, was jedes Modell geantwortet hat - so ist zu sehen, ob abgelehnt oder nur falsch formatiert wurde.',
+    'Bilder verstehen: in der Auswahl stehen die bewährten Bildmodelle ganz oben.',
+  ]},
   { v: '1.88', date: '2026-10-07', items: [
     'Bearbeitungsmodell ist jetzt eine Auswahl statt eines leeren Textfelds.',
     'Modelle je Aufgabe → Bilder verstehen: oben stehen nur noch Modelle, die laut Venice Bilder sehen können.',
@@ -8907,7 +8919,7 @@ const TASKS = [
     tip: 'Gut geeignet: dasselbe Modell wie fürs Gespräch, oder ein schnelles Allzweckmodell wie deepseek-v4-1-flash. Wenn die Meldung „Bewegungssteuerung Gerät 1" auftaucht, hier eine Stufe größer wählen.' },
   { id: 'vision', label: 'Bilder verstehen',
     hint: 'Schaut sich Bilder an: Figur aus Zeichnung, Beschreibung aus Foto. Muss Bilder verstehen können - die meisten Gesprächsmodelle können das nicht und antworten dann mit der leeren Vorlage.',
-    tip: 'Bei Venice: mistral-31-24b (Standard) oder qwen3-vl-235b-a22b. Lehnt eines ab, das andere probieren.' },
+    tip: 'Leer lassen = gemma-4-uncensored (sieht Bilder und ist unzensiert). Oben stehen die unzensierten Bildmodelle. Beim Ableiten aus dem Profilbild probiert die App bei Ablehnung von selbst die nächsten.' },
   { id: 'draft', label: 'Entwurf',
     hint: 'Erfindet Figuren und Szenen. Längere Ausgabe, strenges JSON, läuft aber selten - hier darf das stärkere Modell stehen.',
     tip: 'Gut geeignet: das größte Modell, das du bezahlen magst, etwa z-ai-glm-5-3 oder qwen-3-8-2-4t-a95b. Bei einem Reasoning-Modell den Haken unten setzen.' },
@@ -8923,7 +8935,7 @@ function taskModelName(task) {
   if (!set && task === 'vision' && (localStorage.getItem('companion_llmProvider') || '') === 'venice') {
     // Sieht das Gesprächsmodell selbst Bilder, nimm es (gleiche Offenheit wie im Gespräch) - sonst mistral
     try { if (chatModelSeesImages() === true) return chatModelId(); } catch (e) {}
-    return 'mistral-31-24b';
+    return 'gemma-4-uncensored';
   }
   return set;
 }
@@ -8993,7 +9005,7 @@ async function callProvider(provider, systemPrompt, messages, temperature, maxTo
 }
 
 async function callProviderOnce(provider, systemPrompt, messages, temperature, maxTokens, opts) {
-  const override = taskModelName((opts && opts.task) || 'chat');
+  const override = (opts && opts.model) || taskModelName((opts && opts.task) || 'chat');
   // Entwürfe dürfen dauern - ein großes Denkmodell braucht für Szene samt
   // Besetzung leicht mehr als zwei Minuten. Gespräch und Bewegung bleiben kurz.
   const timeoutMs = (opts && opts.task) === 'draft' ? 300000 : undefined;
@@ -15504,6 +15516,36 @@ async function readImageFile(file, max) {
 // was zu sehen ist (niedrige Temperatur, nichts erfinden). Dann wird daraus die
 // Figur gebaut - das Gesehene ist dabei bindend. Vorher hat ein einziger,
 // "kreativer" Aufruf Haarfarbe, Tattoos und Schmuck einfach erfunden.
+// Bildverstehende Modelle in sinnvoller Reihenfolge: das eingestellte zuerst,
+// dann bewährte, dann alle übrigen, die laut Venice Bilder sehen.
+// Reihenfolge nach Venice-Modellliste (Okt. 2026): zuerst die unzensierten
+// mit Bildverständnis - die beschreiben auch Aktbilder -, dann offene
+// Bildmodelle, ganz unten die großen geschlossenen (Claude, GPT, Gemini, Grok),
+// die Nacktheit meist ablehnen.
+function visionRanked() {
+  return [
+    ['gemma-4-uncensored', 'unzensiert, sieht Bilder - erste Wahl'],
+    ['venice-uncensored-role-play', 'unzensiert, sieht Bilder'],
+    ['venice-uncensored-1-2', 'unzensiert, sieht Bilder'],
+    ['qwen-3-6-plus', 'unzensiert, sieht Bilder, denkt vor (langsamer)'],
+    ['qwen3-vl-235b-a22b', 'Bildspezialist, lehnt Akt evtl. ab'],
+    ['mistral-small-3-2-24b-instruct', 'sieht Bilder, lehnt Akt evtl. ab'],
+    ['google-gemma-4-31b-it', 'sieht Bilder, lehnt Akt evtl. ab'],
+    ['google-gemma-3-27b-it', 'sieht Bilder, lehnt Akt evtl. ab'],
+  ];
+}
+function visionCandidates() {
+  const cache = typeof veniceModelCache !== 'undefined' ? veniceModelCache : [];
+  const seen = cache.filter(m => ((m.model_spec || {}).capabilities || {}).supportsVision).map(m => m.id);
+  const closed = /claude|gpt|openai|gemini|grok/i;
+  const out = [];
+  const add = id => { if (id && !out.includes(id)) out.push(id); };
+  add(taskModelName('vision'));
+  visionRanked().forEach(([id]) => { if (!seen.length || seen.includes(id)) add(id); });
+  seen.filter(id => !closed.test(id)).forEach(add);
+  seen.filter(id => closed.test(id)).forEach(add);
+  return out;
+}
 // ======================= AUSSEHEN AUS DEM PROFILBILD =======================
 // Das Profilbild ist die Wahrheit: Das Bildverstehen schreibt daraus das
 // Aussehen (deutsch, im festen Schema) und die feste englische
@@ -15529,10 +15571,53 @@ Auffällig: ...
 === BILD ===
 (englisch, 60 bis 90 Wörter, kommagetrennt, nur feste sichtbare Merkmale in dieser Reihenfolge: Art und Herkunftstyp mit scheinbarem Alter wie "adult 25-year-old Nordic elf woman with long pointed elf ears", Gesichtsform, Wangenknochen, Kinn, Augen mit Farbe, Brauen, Nase, Lippen, Haare mit exaktem Farbton, Länge, Frisur, Haut, Statur, Brust, Taille, Hüfte; KEINE Kleidung, Pose, Ort)
 === ENDE ===`;
-  const raw = String(await callProvider(provider, sys, [{ role: 'user', content: 'Hier ist das Profilbild.', image: img }], 0.1, taskBudget('vision', 1400), { task: 'vision' }) || '');
-  const ap = (raw.match(/===\s*AUSSEHEN\s*===\s*([\s\S]*?)===\s*BILD\s*===/i) || [])[1];
-  let tag = (raw.match(/===\s*BILD\s*===\s*([\s\S]*?)(?:===\s*ENDE\s*===|$)/i) || [])[1];
-  if (!ap || !/Haare\s*:/i.test(ap) || /Haare:\s*\.\.\.|\(Farbton/.test(ap)) throw new Error('Das Modell hat das Bild offenbar nicht gesehen. Unter Einstellungen → Modelle je Aufgabe bei „Bilder verstehen" ein Modell mit Bildverständnis eintragen (bei Venice z. B. mistral-31-24b oder qwen3-vl-235b-a22b).');
+  // Nacheinander mehrere bildverstehende Modelle versuchen - manche lehnen ein
+  // Aktbild ab oder halten das Format nicht ein.
+  const tried = [];
+  const runModels = async (image, sysText, note) => {
+    for (const model of visionCandidates().slice(0, 5)) {
+      let raw = '';
+      const mm = (typeof veniceModelCache !== 'undefined' ? veniceModelCache : []).find(x => x.id === model);
+      const thinks = !!(mm && ((mm.model_spec || {}).capabilities || {}).supportsReasoning);
+      try { raw = String(await callProvider(provider, sysText, [{ role: 'user', content: 'Hier ist das Bild.', image }], 0.1, taskBudget('vision', 1400) + (thinks ? REASONING_HEADROOM : 0), { task: 'vision', model }) || ''); }
+      catch (e) { tried.push(note + model + ': ' + String(e.message || e).slice(0, 80)); continue; }
+      const clean = raw.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').replace(/^\s*[-•]\s*/gm, '');
+      let a1 = (clean.match(/===\s*AUSSEHEN\s*===\s*([\s\S]*?)(?:===\s*BILD\s*===|$)/i) || [])[1];
+      if (!a1 && /^\s*Haare\s*:/mi.test(clean)) a1 = clean.split(/===\s*BILD\s*===/i)[0];
+      const t1 = (clean.match(/===\s*BILD\s*===\s*([\s\S]*?)(?:===\s*ENDE\s*===|$)/i) || [])[1] || '';
+      if (a1 && /^\s*Haare\s*:\s*\S/mi.test(a1) && !/Haare:\s*\.\.\.|\(Farbton/.test(a1)) return { ap: a1, tag: t1, used: model };
+      tried.push(note + model + ': ' + (raw.trim() ? '„' + raw.trim().replace(/\s+/g, ' ').slice(0, 90) + '…"' : 'leere Antwort'));
+    }
+    return null;
+  };
+  let res = await runModels(img, sys, '');
+  let faceOnly = false;
+  // Klappt es mit dem ganzen Bild nicht (meist: Aktbild abgelehnt), geht nur
+  // der Kopf-Ausschnitt hin. Körper und Kleidung kommen dann aus der alten
+  // Beschreibung.
+  if (!res) {
+    try {
+      const face = await cropTop(img, 0.42);
+      const sysFace = sys.split('=== AUSSEHEN ===')[0].replace(/Ist sie nackt[^\n]*\n?/, '')
+        + `Das Bild ist ein Ausschnitt mit Kopf und Schultern. Beschreibe NUR Art, Alter, Haare, Gesicht, Augen und Haut.
+Antworte GENAU in diesem Format:
+=== AUSSEHEN ===
+Art: ...
+Alter: wirkt wie ...
+Haare: (Farbton, Länge, Struktur, Frisur, Scheitel)
+Gesicht: (Form, Wangenknochen, Kinn, Nase, Lippen, Brauen, Make-up)
+Augen: (Form, Farbe, Pupillen, Wimpern)
+Haut: (Ton, Besonderheiten mit Stelle oder "makellos")
+=== ENDE ===`;
+      res = await runModels(face, sysFace, 'nur Gesicht · ');
+      if (res) { faceOnly = true; res.tag = ''; }
+    } catch (e) { tried.push('Ausschnitt: ' + e.message); }
+  }
+  if (!res) throw new Error('Kein Modell konnte das Bild beschreiben, auch nicht nur das Gesicht. Versucht: ' + tried.join(' | '));
+  let { ap, tag, used } = res;
+  logEvent('msg', { role: 'system', text: 'Profilbild beschrieben von ' + used + (faceOnly ? ' (nur Gesicht - Körper aus der alten Beschreibung)' : '') + (tried.length ? ' (vorher gescheitert: ' + tried.join(' | ') + ')' : '') });
+  deriveLookFromImage.lastModel = used + (faceOnly ? ', nur Gesicht' : '');
+  ap = ap.split('\n').filter(l => /^\s*(Art|Alter|Haare|Gesicht|Augen|Haut|Statur|Körper|Kleidung|Auffällig)\s*:/i.test(l)).join('\n');
   tag = String(tag || '').trim().replace(/^["'`(]+|["'`)]+$/g, '').replace(/\s+/g, ' ').slice(0, 760);
   if (tag && !/\badult/i.test(tag)) tag = 'adult ' + tag;
   let lines = ap.trim().split('\n').map(l => l.trim()).filter(Boolean);
@@ -15547,8 +15632,22 @@ Auffällig: ...
     if (/^Statur:/i.test(l) && !/\d{3}\s*cm/.test(l)) { const cm = (old.match(/(\d{3})\s*cm/) || [])[1]; if (cm) return l.replace(/^Statur:\s*/i, 'Statur: ' + cm + ' cm, '); }
     return l;
   });
+  if (faceOnly) {
+    // Körperzeilen aus der alten Beschreibung übernehmen
+    ['Statur', 'Körper', 'Kleidung', 'Auffällig'].forEach(k => { const v = oldLine(k); if (v && !lines.some(l => new RegExp('^' + k + ':', 'i').test(l))) lines.push(k + ': ' + v); });
+  }
   const appearance = lines.join('\n').slice(0, APPEARANCE_MAX);
-  return { appearance, lookTag: tag };
+  return { appearance, lookTag: tag, faceOnly };
+}
+// Oberer Bildteil (Kopf und Schultern) als eigenes Bild
+async function cropTop(dataUrl, frac) {
+  const im = await new Promise((r, j) => { const i = new Image(); i.onload = () => r(i); i.onerror = () => j(new Error('Bild nicht lesbar')); i.src = dataUrl; });
+  const w = im.naturalWidth, h = im.naturalHeight;
+  // quer: mittleres Stück; hoch/quadratisch: oberer Teil über die ganze Breite
+  const ch = Math.round(h * frac), cw = Math.min(w, Math.round(ch * 1.1)), x = Math.round((w - cw) / 2);
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+  cv.getContext('2d').drawImage(im, x, 0, cw, ch, 0, 0, cw, ch);
+  return cv.toDataURL('image/jpeg', 0.92);
 }
 // Wendet das Ergebnis auf eine Figur an (Editor-Objekt c), ohne zu speichern.
 async function applyLookFromPortrait(c) {
@@ -15564,7 +15663,7 @@ async function applyLookFromPortrait(c) {
   try { c.phantom = await phantomFromImage(img, PHANTOM_FIELDS, 'Profilbild der Figur'); } catch (e) {}
   const fig = c.figureId ? getFigure(c.figureId) : null;
   if (fig) { fig.seed = 1 + Math.floor(Math.random() * 999999998); try { saveArchive(); } catch (e) {} }
-  addMsg('system', `${c.name}: Aus dem Profilbild erkannt (${taskModelName('vision') || 'Gesprächsmodell'}) - ${(r.appearance.match(/^Haare:.*$/m) || [''])[0]} · ${(r.appearance.match(/^Augen:.*$/m) || [''])[0]}`);
+  addMsg('system', `${c.name}: Aus dem Profilbild erkannt (${deriveLookFromImage.lastModel || taskModelName('vision')}) - ${(r.appearance.match(/^Haare:.*$/m) || [''])[0]} · ${(r.appearance.match(/^Augen:.*$/m) || [''])[0]}`);
   c._lookFromImage = true;
   return r;
 }
