@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Notizen</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#140e11">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Notizen">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
   // Sperre vor allem anderen: Ist eine PIN gesetzt, bleibt die Seite verdeckt,
   // bis sie eingegeben wurde - auch nicht kurz aufblitzend.
@@ -3557,8 +3563,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.22';
+const APP_VERSION = '2.23';
 const CHANGELOG = [
+  { v: '2.23', date: '2026-10-09', items: [
+    'Als App installierbar: Mit den neuen Dateien neben index.html (manifest.webmanifest, sw.js, Symbole) bietet Chrome „App installieren" an. Eigenes Notiz-Symbol ohne Chrome-Abzeichen, öffnet ohne Adressleiste. Im Seitenmenü erscheint dafür auch „📲 Als App installieren".'
+  ] },
   { v: '2.22', date: '2026-10-09', items: [
     'Bild-Datenbank: Schließt der Browser die Verbindung im Hintergrund, öffnet die App sie neu, statt danach schwarze Galerie-Kacheln und unscharfe Porträts zu zeigen.',
     'Vorschaubilder werden nur noch verkleinert, wenn das Original nachweislich in der Bild-Datenbank liegt.',
@@ -20991,6 +21000,27 @@ window.addEventListener('popstate', () => {
 
 // Fertig: Start neu zeichnen
 showHome();
+
+
+// ---------- Als App installieren ----------
+// Mit manifest.webmanifest, sw.js und den Symbolen im selben Ordner bietet
+// Chrome „App installieren" an: eigenes Notiz-Symbol ohne Chrome-Abzeichen,
+// öffnet ohne Adressleiste.
+let installPrompt = null;
+try { if (window.isSecureContext && location.protocol !== 'file:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => logEvent('msg', { role: 'system', text: 'App-Installation: Service Worker nicht geladen (' + e.message + ') - liegt sw.js neben index.html?' })); } catch (e) {}
+const installItem = document.createElement('button');
+installItem.className = 'drawer-item'; installItem.id = 'navInstall'; installItem.style.display = 'none';
+installItem.innerHTML = '<span class="glyph">📲</span><span>Als App installieren<span class="sub">Eigenes Symbol, öffnet ohne Browser</span></span>';
+els.navSetup.parentNode.insertBefore(installItem, els.navSetup);
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; installItem.style.display = ''; });
+window.addEventListener('appinstalled', () => { installPrompt = null; installItem.style.display = 'none'; logEvent('msg', { role: 'system', text: 'Als App installiert.' }); });
+installItem.onclick = async () => {
+  setDrawer(false);
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  try { await installPrompt.userChoice; } catch (e) {}
+  installPrompt = null; installItem.style.display = 'none';
+};
 
 </script>
 </body>
