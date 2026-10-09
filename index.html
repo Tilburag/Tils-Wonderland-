@@ -3557,8 +3557,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.21';
+const APP_VERSION = '2.22';
 const CHANGELOG = [
+  { v: '2.22', date: '2026-10-09', items: [
+    'Bild-Datenbank: Schließt der Browser die Verbindung im Hintergrund, öffnet die App sie neu, statt danach schwarze Galerie-Kacheln und unscharfe Porträts zu zeigen.',
+    'Vorschaubilder werden nur noch verkleinert, wenn das Original nachweislich in der Bild-Datenbank liegt.',
+    'Protokoll: neue Zeile „Speicher" mit Bildern, Galerie, fehlenden Originalen und belegtem Platz.'
+  ] },
   { v: '2.21', date: '2026-10-09', items: [
     'Neue Aufteilung: vier Tabs - Start, Spielen, Figuren, Ich. Alle Spiele stehen unter „Spielen" in vier Gruppen (Begegnungen, Mit Gerät, Erzählt, Messen). „Sie entscheidet" und die Geschichte sind dort eigene Spiele.',
     'Live und Geschichte laufen im Vollbild mit den gewohnten Knöpfen, dazu 🔥 👍 👎 am rechten Rand. ✕ oben links beendet die Sitzung, ⚙ öffnet Szene und Regeln. Szene, Besetzung, Spiel und Regeln (Hinhalten, Sie entscheidet, Bereit-Check) stehen vor dem Start in einem Blatt.',
@@ -3822,15 +3827,30 @@ function openDb() {
       if (!db.objectStoreNames.contains(STORE_STORIES)) db.createObjectStore(STORE_STORIES);
       if (!db.objectStoreNames.contains(STORE_IMAGES)) db.createObjectStore(STORE_IMAGES);
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Schließt der Browser die Verbindung (Hintergrund, Speicherdruck, anderer
+      // Tab mit neuer Version), lieferte jede spätere Abfrage nichts - Galerie
+      // schwarz, Porträts nur noch als Vorschau. Dann neu öffnen statt aufgeben.
+      db.onclose = () => { dbPromise = null; };
+      db.onversionchange = () => { try { db.close(); } catch (e) {} dbPromise = null; };
+      resolve(db);
+    };
+    request.onerror = () => { dbPromise = null; reject(request.error); };
+    request.onblocked = () => { logEvent('msg', { role: 'system', text: 'Datenbank blockiert - ein anderer Tab mit der App ist noch offen. Bitte die anderen Tabs schließen.' }); };
   });
   return dbPromise;
 }
 
-function dbRun(store, mode, action) {
+function dbRun(store, mode, action, retried) {
   return openDb().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(store, mode);
+    let tx;
+    try { tx = db.transaction(store, mode); }
+    catch (e) {
+      // Verbindung inzwischen geschlossen: einmal neu öffnen und wiederholen
+      if (!retried && /InvalidState|closing|closed/i.test(String(e && (e.name + ' ' + e.message)))) { dbPromise = null; dbRun(store, mode, action, true).then(resolve, reject); return; }
+      reject(e); return;
+    }
     const request = action(tx.objectStore(store));
     if (request) {
       request.onsuccess = () => resolve(request.result);
@@ -3885,10 +3905,14 @@ async function storageHousekeeping() {
     }
   } catch (e) {}
   try {
-    if (localStorageBytes() > 3.6 * 1048576) {
+    if (localStorageBytes() > 4.2 * 1048576) {
       let shrunk = 0;
       for (const f of figureArchive) for (const v of f.versions) {
         if (!v.image || !v.imageKey || v.image.length < 40000) continue;
+        // Nur verkleinern, wenn das Original wirklich in der Bild-Datenbank liegt -
+        // sonst wäre die Vorschau die einzige Kopie.
+        const full = await dbGet(STORE_IMAGES, v.imageKey).catch(() => null);
+        if (!full || !(full.size > 20000)) continue;
         const small = await shrinkDataUrl(v.image, 384, 0.82).catch(() => null);
         if (small && small.length < v.image.length) { v.image = small; shrunk++; }
       }
@@ -3974,6 +3998,23 @@ function formatOffset(ms) {
   return `${String(m).padStart(2, '0')}:${sec}`;
 }
 
+// Speicherstand fürs Protokoll (wird im Hintergrund aktualisiert)
+let storageDiag = 'wird geprüft';
+async function refreshStorageDiag() {
+  try {
+    const [ik, ak] = await Promise.all([dbKeys(STORE_IMAGES), dbKeys(STORE_AUDIO)]);
+    const keys = new Set(ik);
+    const gal = galleryIndex();
+    const miss = gal.filter(g => !keys.has(g.key)).length, missT = gal.filter(g => !keys.has(g.key + '_t')).length;
+    const portraits = figureArchive.flatMap(f => f.versions.filter(v => v.imageKey)).length;
+    const portMiss = figureArchive.flatMap(f => f.versions.filter(v => v.imageKey && !keys.has(v.imageKey))).length;
+    const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+    const pers = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : null;
+    storageDiag = `Bild-Datenbank ${ik.length} Einträge · Galerie ${gal.length} (Original fehlt ${miss}, Vorschau fehlt ${missT}) · Porträts mit Original ${portraits} (fehlt ${portMiss}) · Töne ${ak.length}`
+      + (est ? ` · belegt ${(est.usage / 1048576).toFixed(0)} von ${(est.quota / 1048576).toFixed(0)} MB` : '') + ` · dauerhaft ${pers === null ? '?' : pers ? 'ja' : 'nein'} · kleiner Speicher ${(localStorageBytes() / 1024).toFixed(0)} KB`;
+  } catch (e) { storageDiag = 'Datenbank nicht lesbar: ' + (e && e.message); }
+}
+setTimeout(refreshStorageDiag, 4000); setInterval(refreshStorageDiag, 60000);
 function buildSessionExport() {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   // Same fallback as everywhere else: a model typed but not yet saved is still
@@ -3999,6 +4040,7 @@ function buildSessionExport() {
   const head = [
     '# Sitzungsprotokoll ' + new Date().toLocaleString('de-DE'),
     'App-Version: ' + APP_VERSION,
+    'Speicher: ' + storageDiag,
     '',
     '## Einstellungen',
     `Modus: ${MODE_LABELS[currentMode] || currentMode}`,
