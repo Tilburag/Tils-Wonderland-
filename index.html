@@ -38,6 +38,9 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
+    /* Nichts darf seitlich überstehen - sonst zoomt das Handy heraus, und die
+       untere Leiste und Vollbild-Ansichten passen nicht mehr auf den Schirm. */
+    overflow-x: hidden; overflow-x: clip; max-width: 100%;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
@@ -1103,13 +1106,28 @@
 
       <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
         <input type="checkbox" id="micSenseEnabled" style="width:auto;">
-        <span style="font-size:13.5px; color:var(--text);">Atem und Laute mitauswerten</span>
+        <span style="font-size:13.5px; color:var(--text);">🎧 Körpergeräusche auswerten (Atem, Stöhnen)</span>
+      </label>
+      <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0 0;">
+        <span style="font-size:13px; flex:0 0 auto;">Aktiv</span>
+        <select id="bodySenseWhen" style="flex:1;">
+          <option value="headphones">nur mit Kopfhörern</option>
+          <option value="always">immer (auch über Lautsprecher)</option>
+        </select>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:8px 0 0 0;">
+        <input type="checkbox" id="bodyEdge" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">Körpersignale melden „Kurz davor" selbst</span>
       </label>
       <p class="hint">
-        Wertet während eines Anrufs aus, wie laut und wie oft es bei dir hörbar wird. Das ist
-        kein Verstehen von Lauten, sondern nur ein Pegel über die Zeit. Mit Kopfhörern
-        zuverlässig; über Lautsprecher misst es die eigene Ausgabe mit.
+        Während Anruf und Live-Gespräch erkennt die App am Mikrofon, wie schnell du atmest und
+        wie oft, wie lang und wie laut du stöhnst. Zusammen mit dem Pulsgurt ergibt das eine
+        Erregungsanzeige (🎧 in der Leiste). Die Figuren hören davon in Worten und reagieren darauf.
+        Ist es hoch genug, gilt es wie „🔥 Kurz davor" - beim Hinhalten bremst das Gerät dann von selbst.
+        Gesprochene Sätze werden herausgerechnet. Alles läuft nur im Handy: kein Ton wird gesendet oder gespeichert.
+        Bei Bluetooth-Kopfhörern nimmt die App das Handy-Mikrofon, damit die Stimmen nicht in Telefonqualität kippen.
       </p>
+      <p class="hint" id="bodySenseInfo"></p>
     </details>
 
     <details class="subsection">
@@ -1289,6 +1307,15 @@
         </select>
         <span style="font-size:13px;">kurz davor</span>
       </div>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:8px 0 0 18px;">
+        <input type="checkbox" id="liveHerCall" style="width:auto;">
+        <span style="font-size:13.5px; color:var(--text);">👑 Sie entscheidet über das Ende</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:4px 0 0 36px;">
+        <input type="checkbox" id="liveHerCallHardNo" style="width:auto;">
+        <span style="font-size:13px; color:var(--text);">Echtes Nein erlauben</span>
+      </label>
+      <p class="hint" style="margin-left:18px;">Die Figur legt zu Beginn heimlich fest, wie oft sie dich an die Kante bringt. Wenn du glaubst, jetzt darfst du, kann sie „noch nicht" sagen - dann kommen ein paar Kanten dazu, wie viele verrät sie nicht. Am Ende darfst du. Nur mit „Echtes Nein erlauben" kann sie es dir ganz verweigern; dann steht das Gerät 15 Minuten still. Betteln kann sie umstimmen, muss aber nicht. Stopp und Sicherheitswort wirken immer.</p>
       <p class="hint" style="margin-left:18px;">Sobald du „kurz davor" meldest oder der Regler über 85 geht, bremst das Gerät sofort auf langsam - unabhängig davon, was die Figur schreibt - und die Figur lässt dich zappeln. Erst nach der eingestellten Zahl darf es weitergehen bis zum Ende.</p>
 
     </details>
@@ -1516,10 +1543,10 @@
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Szene</span><span style="font-size:12px; color:var(--text-dim);" id="homeMusic"></span></div>
       <h2 id="homeSceneTitle">Freie Szene</h2>
       <p id="homeSceneText"></p>
-      <div class="btn-row" style="margin-top:18px;">
-        <button class="btn-primary" id="homeLiveBtn" type="button">Live beginnen</button>
-        <button class="btn-secondary" id="homeSurpriseBtn" type="button" style="flex:0 0 auto; padding:12px 16px;">🎲 Überrasch mich</button>
-        <button class="btn-secondary" id="homeStoryBtn" type="button" style="flex:0 0 auto; padding:12px 18px;">Geschichte</button>
+      <div class="btn-row" style="margin-top:18px; flex-wrap:wrap;">
+        <button class="btn-primary" id="homeLiveBtn" type="button" style="flex:1 1 100%;">Live beginnen</button>
+        <button class="btn-secondary" id="homeSurpriseBtn" type="button" style="flex:1 1 0; min-width:0; padding:12px 10px;">🎲 Überrasch mich</button>
+        <button class="btn-secondary" id="homeStoryBtn" type="button" style="flex:1 1 0; min-width:0; padding:12px 10px;">Geschichte</button>
       </div>
     </div>
     <div class="home-tiles" id="homeTiles"></div>
@@ -1889,12 +1916,12 @@
     <div id="gameStatus" style="font-size:13px; color:var(--text); text-align:center;"></div>
     <div id="gameButtons" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:6px;"></div>
   </div>
-  <div id="arousalRow" style="display:flex; padding:4px 0; align-items:center; gap:8px;">
-    <span id="hrVal" style="font-size:13px; min-width:56px; display:none;">❤️ –</span>
+  <div id="arousalRow" style="display:flex; padding:4px 0; align-items:center; gap:6px;">
+    <span style="display:flex; flex-direction:column; flex:0 0 auto; line-height:1.25;"><span id="hrVal" style="font-size:12px; white-space:nowrap; display:none;">❤️ –</span><span id="sndVal" style="font-size:12px; white-space:nowrap; display:none;">🎧 –</span></span>
     <input type="range" id="arousalSlider" min="0" max="100" step="1" value="0" style="display:none;">
-    <span id="arousalVal" style="font-size:12px; min-width:40px; text-align:center; color:var(--text-dim, #999);"></span>
-    <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">🔥 Kurz davor</button>
-    <button class="btn-secondary" id="comeBtn" type="button" style="width:auto; flex:1 1 0; padding:8px 10px;">💦 Gekommen</button>
+    <span id="arousalVal" style="font-size:12px; min-width:0; flex:0 0 auto; white-space:nowrap; text-align:center; color:var(--text-dim, #999);"></span>
+    <button class="btn-secondary" id="edgeBtn" type="button" style="width:auto; flex:1 1 0; min-width:0; padding:8px 3px; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔥 Kurz davor</button>
+    <button class="btn-secondary" id="comeBtn" type="button" style="width:auto; flex:1 1 0; min-width:0; padding:8px 3px; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">💦 Gekommen</button>
     <button class="estop" id="stopBtn" type="button" aria-label="Stopp">Stopp</button>
   </div>
   <div id="readyRow" style="display:none; padding:6px 0;">
@@ -2774,7 +2801,24 @@ els.veniceOwnPromptOnly.checked = localStorage.getItem('companion_veniceOwnPromp
 els.callMode.value = localStorage.getItem('companion_callMode') || 'lautsprecher';
 els.speechGap.value = String(speechGapMs() <= 1000 ? 900 : speechGapMs() >= 1700 ? 1900 : 1300);
 els.speechGap.onchange = () => safeSet('companion_speechGap', els.speechGap.value);
+// Einmalig: Til will die Auswertung an, sobald Kopfhörer dran sind.
+if (localStorage.getItem('companion_bodySenseInit') !== 'true') {
+  safeSet('companion_micSense', 'true'); safeSet('companion_bodySenseWhen', 'headphones'); safeSet('companion_bodySenseInit', 'true');
+}
 els.micSenseEnabled.checked = localStorage.getItem('companion_micSense') === 'true';
+{
+  const w = document.getElementById('bodySenseWhen'), e = document.getElementById('bodyEdge'), info = document.getElementById('bodySenseInfo');
+  const paintInfo = async () => {
+    await detectHeadset();
+    info.textContent = `Kopfhörer: ${headsetDetected ? 'erkannt' : headphoneMode() ? 'laut Anruf-Einstellung' : 'nicht erkannt'}${micSense.analyser ? ' · Auswertung läuft' + (micSense.label ? ' über ' + micSense.label : '') : ''}.`;
+  };
+  w.value = bodySenseWhen();
+  e.checked = localStorage.getItem('companion_bodyEdge') !== 'false';
+  w.onchange = () => { safeSet('companion_bodySenseWhen', w.value); paintInfo(); };
+  e.onchange = () => safeSet('companion_bodyEdge', e.checked ? 'true' : 'false');
+  els.micSenseEnabled.addEventListener('change', () => { safeSet('companion_micSense', els.micSenseEnabled.checked ? 'true' : 'false'); if (!els.micSenseEnabled.checked) stopMicSense(); paintInfo(); });
+  setTimeout(paintInfo, 0);
+}
 
 // Stimme, Tonhöhe, Tempo und "spricht emotional" gehören zur Figur. Hier steht
 // nur noch, über welchen Dienst gesprochen wird - der ElevenLabs-Block hängt
@@ -3443,8 +3487,31 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.10';
+const APP_VERSION = '2.16';
 const CHANGELOG = [
+  { v: '2.16', date: '2026-10-09', items: [
+    '👑 Sie entscheidet: Statt eines harten Neins sagt sie jetzt „noch nicht" - dann kommen ein paar Kanten dazu, wie viele verrät sie nicht. Am Ende darfst du. Ein echtes Nein gibt es nur noch mit „Echtes Nein erlauben". Auch bei einem Ja spielt sie manchmal erst mit dem Nein.',
+    '🎧 Körpergeräusche lernen mit: Bei jedem „Kurz davor" und „Gekommen" merkt sich die App Atem, Stöhnen und Puls. Ab drei Malen gilt deine eigene Schwelle statt der festen, und die Figuren wissen, wie du sonst kurz davor klingst.',
+    'Entdecken-Ergebnisse gehen nach jedem Durchlauf automatisch ins Gedächtnis aller Figuren - inklusive der stärksten Bewegung laut Puls. Der Knopf in der Auswertung frischt nur noch von Hand auf.'
+  ] },
+  { v: '2.15', date: '2026-10-09', items: [
+    '🎧 Körpergeräusche: Mit Kopfhörern erkennt die App am Mikrofon Atemtempo und Stöhnen (wie oft, wie lang, wie laut) und verrechnet das mit dem Puls zu einer Erregungsanzeige. Die Figuren hören davon in Worten und reagieren; ist es hoch genug, gilt es wie „Kurz davor". Gesprochene Sätze werden herausgerechnet, kein Ton verlässt das Handy.',
+    'Bei Bluetooth-Kopfhörern nimmt die Auswertung das Handy-Mikrofon, damit die Stimmen nicht in Telefonqualität kippen.',
+    '👑 Sie entscheidet: Die Figur legt heimlich fest, wie oft sie dich an die Kante bringt und ob du danach kommen darfst. Betteln kann sie umstimmen. Bei Nein steht das Gerät 15 Minuten still; beim Lagerfeuer erzählt sie davon.'
+  ] },
+  { v: '2.14', date: '2026-10-09', items: [
+    'Figurenauswahl mit Bildern: Beim Hinzufügen, beim Erzähler und beim Rückblick öffnet sich jetzt ein Blatt mit Profilbildern statt der reinen Namensliste.',
+    'Fotoshooting: Du wählst selbst, wer vor der Kamera steht - bis zu drei Models gemeinsam, oder 🎲 Zufall. ↻ öffnet die Auswahl neu.'
+  ] },
+  { v: '2.13', date: '2026-10-09', items: [
+    'Mehrere Ich-Figuren: „Das bin ich“ nimmt anderen Figuren das Merkmal nicht mehr weg. Nur in der laufenden Besetzung gilt weiterhin genau eine Figur als ich.'
+  ] },
+  { v: '2.12', date: '2026-10-09', items: [
+    'Raumklang: Stimmen wurden nach längerer Zeit kratzig. Jede gesprochene Zeile blieb im Audio-Graphen hängen und das Handy kam mit dem Rechnen nicht mehr hinterher. Zeilen werden jetzt nach dem Abspielen gelöst, dazu ein Begrenzer gegen Übersteuern.'
+  ] },
+  { v: '2.11', date: '2026-10-09', items: [
+    'Handy-Ansicht: Die Knopfzeile auf der Startseite ragte seitlich über den Bildschirm, dadurch zoomte das Handy heraus. Untere Leiste, Fotoshooting, Speed-Dating und Zufallsbegegnung passen jetzt sauber.'
+  ] },
   { v: '2.10', date: '2026-10-09', items: [
     'Behoben: In der Zufallsbegegnung kamen versprochene Fotos („ich schick dir was …") oft nicht an. Zwei Gründe: Geprüft wurde nur bei ihren eigenen Wortmeldungen, nicht bei Antworten auf dich - und lief gerade ein anderes Bild, ging das Versprechen verloren. Jetzt wird jede Antwort geprüft, ein versprochenes Foto wartet notfalls kurz und kommt dann sicher - und wird gleich angezeigt, auch wenn du gerade blätterst. Die Erkennung versteht mehr Formulierungen („schau mal her", „hier, für dich", „ich zeig dir was").',
     'Auch beim Speed-Dating kommen versprochene Fotos jetzt im Bild an.',
@@ -5509,6 +5576,7 @@ if (SpeechRecognition) {
   recognizer.onresult = (event) => {
     const text = (event.results[0][0].transcript || '').trim();
     if (!text) return;
+    try { bodyForgetSpeech(text); } catch (e) {}
     if (callActive) { collectSpoken(text); return; }
     addUserMsg(text);
     askActive(text);
@@ -5615,97 +5683,290 @@ function setMicStatus(on) {
 // Everything is relative to a baseline taken at the start of the call, because
 // absolute levels depend entirely on microphone and distance.
 const micSense = {
-  stream: null, ctx: null, analyser: null, buffer: null, timer: null,
+  stream: null, ctx: null, analyser: null, buffer: null, timer: null, tick: null,
   baseline: 0, samples: [], peaks: [],
+  // Körpergeräusche: Atemzüge und Stöhnen als einzelne Ereignisse
+  breaths: [], moans: [], burst: null, startedAt: 0, lastT: 0,
+  score: 0, scoreHist: [], highFor: 0, lastEdge: 0, lastSet: -1, label: '', starting: false,
 };
 
 function micSenseEnabled() {
   return localStorage.getItem('companion_micSense') === 'true';
 }
+// Kopfhörer erkennen: an den Gerätenamen, die der Browser nach der
+// Mikrofon-Freigabe nennt. Dazu zählt auch die Einstellung „Kopfhörer" beim Anruf.
+const HEADSET_RE = /head ?set|headphone|kopfh|ohrh|earphone|earbud|\bbuds\b|airpods|bluetooth|hands-?free|\bbt\b|wired|usb.?audio|jabra|bose|sennheiser|\bjbl\b|beats|sony w[hf]/i;
+let headsetDetected = false;
+async function detectHeadset() {
+  try {
+    const ds = await navigator.mediaDevices.enumerateDevices();
+    headsetDetected = ds.filter(d => d.kind !== 'videoinput').some(d => HEADSET_RE.test(d.label || ''));
+  } catch (e) {}
+  return headsetDetected;
+}
+function bodySenseWhen() { return localStorage.getItem('companion_bodySenseWhen') || 'headphones'; }
+function headphonesOn() { return headphoneMode() || headsetDetected; }
+function bodySenseAllowed() {
+  return micSenseEnabled() && (bodySenseWhen() === 'always' || headphonesOn());
+}
+try {
+  navigator.mediaDevices && navigator.mediaDevices.addEventListener && navigator.mediaDevices.addEventListener('devicechange', async () => {
+    await detectHeadset();
+    if (micSense.ctx && !bodySenseAllowed()) { stopMicSense(); logEvent('msg', { role: 'system', text: 'Körpergeräusche: Kopfhörer getrennt - Auswertung pausiert.' }); }
+    else if (!micSense.ctx && bodySenseAllowed() && (callActive || history.length)) startMicSense();
+  });
+} catch (e) {}
+
+// Ein Bluetooth-Mikrofon schaltet Android in den Telefonat-Modus - dann klingen
+// alle Stimmen dumpf und kratzig. Deshalb lieber das Handy-Mikrofon nehmen,
+// wenn ein Bluetooth-Kopfhörer dran ist. Kabel- oder USB-Headsets sind kein Problem.
+async function pickMicDevice() {
+  try {
+    const ins = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+    const bt = ins.filter(d => /bluetooth|hands-?free|\bbt\b|\bsco\b|airpods|buds/i.test(d.label || ''));
+    if (!bt.length || ins.length <= bt.length) return null;
+    const other = ins.find(d => !bt.includes(d) && !/^(default|communications)$/.test(d.deviceId)) || ins.find(d => !bt.includes(d));
+    return other ? { id: other.deviceId, label: other.label || 'Handy-Mikrofon' } : null;
+  } catch (e) { return null; }
+}
 
 async function startMicSense() {
-  if (!micSenseEnabled() || micSense.ctx) return;
+  if (micSense.ctx || micSense.starting) return;
+  if (!micSenseEnabled()) return;
+  micSense.starting = true;
   try {
+    await detectHeadset();
+    if (!bodySenseAllowed()) return;
+    const pick = await pickMicDevice();
+    const hp = headphonesOn();
     micSense.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+      audio: Object.assign({ echoCancellation: !hp, noiseSuppression: false, autoGainControl: false }, pick ? { deviceId: { exact: pick.id } } : {})
     });
+    await detectHeadset();   // erst jetzt kennt der Browser die Namen sicher
     micSense.ctx = new (window.AudioContext || window.webkitAudioContext)();
     const source = micSense.ctx.createMediaStreamSource(micSense.stream);
     micSense.analyser = micSense.ctx.createAnalyser();
-    micSense.analyser.fftSize = 1024;
+    micSense.analyser.fftSize = 2048;
     source.connect(micSense.analyser);
     micSense.buffer = new Float32Array(micSense.analyser.fftSize);
-    micSense.samples = [];
-    micSense.peaks = [];
-    micSense.baseline = 0;
-    micSense.timer = setInterval(sampleMicLevel, 120);
+    Object.assign(micSense, { samples: [], peaks: [], breaths: [], moans: [], burst: null, baseline: 0, startedAt: Date.now(), lastT: Date.now(), score: 0, scoreHist: [], highFor: 0, lastSet: -1 });
+    micSense.label = (micSense.stream.getAudioTracks()[0] || {}).label || '';
+    micSense.timer = setInterval(sampleMicLevel, 60);
+    micSense.tick = setInterval(bodyTick, 1000);
+    logEvent('msg', { role: 'system', text: `Körpergeräusche: Auswertung läuft${micSense.label ? ' (Mikrofon: ' + micSense.label + ')' : ''}${hp ? ', Kopfhörer' : ', Lautsprecher - hört nur zu, wenn gerade niemand spricht'}. Erste 45 Sekunden: Ruhepegel messen.` });
   } catch (err) {
     addMsg('system', 'Mikrofonauswertung nicht möglich: ' + err.message);
     stopMicSense();
-  }
+  } finally { micSense.starting = false; }
 }
 
 function stopMicSense() {
-  clearInterval(micSense.timer);
-  micSense.timer = null;
+  clearInterval(micSense.timer); clearInterval(micSense.tick);
+  micSense.timer = null; micSense.tick = null;
   if (micSense.stream) micSense.stream.getTracks().forEach(t => t.stop());
   if (micSense.ctx) { try { micSense.ctx.close(); } catch (e) {} }
   micSense.stream = null;
   micSense.ctx = null;
   micSense.analyser = null;
+  try { updateBodyPill(); } catch (e) {}
+}
+
+// Wie stark ein Stück Signal einen Grundton hat (0..1). Stöhnen und Summen
+// sind tonal, Atmen, Rascheln und der Motor des Geräts sind es nicht.
+function tonality(buf, sr) {
+  const N = 1024;
+  let e0 = 0;
+  for (let i = 0; i < N; i++) e0 += buf[i] * buf[i];
+  if (e0 < 1e-7) return 0;
+  const minL = Math.floor(sr / 450), maxL = Math.min(Math.floor(sr / 75), N - 64);
+  let best = 0;
+  for (let lag = minL; lag <= maxL; lag += 2) {
+    let s = 0;
+    for (let i = 0; i < N - lag; i++) s += buf[i] * buf[i + lag];
+    const c = (s / e0) * (N / (N - lag));
+    if (c > best) best = c;
+  }
+  return best;
 }
 
 function sampleMicLevel() {
   if (!micSense.analyser) return;
+  const now = Date.now();
+  const dt = now - micSense.lastT; micSense.lastT = now;
   micSense.analyser.getFloatTimeDomainData(micSense.buffer);
   let sum = 0;
   for (let i = 0; i < micSense.buffer.length; i++) sum += micSense.buffer[i] * micSense.buffer[i];
   const rms = Math.sqrt(sum / micSense.buffer.length);
 
-  micSense.samples.push({ t: Date.now(), rms });
-  if (micSense.samples.length > 400) micSense.samples.shift(); // roughly 48 seconds
+  // Über Lautsprecher hört das Mikrofon die Figuren mit - dann nicht werten.
+  const gated = !headphonesOn() && typeof spatial !== 'undefined' && spatial.speaking > 0;
+  if (gated) { micSense.burst = null; return; }
 
-  // The baseline is the quiet floor of the room, taken as a low percentile so a
-  // single loud moment doesn't drag it up.
+  micSense.samples.push({ t: now, rms });
+  if (micSense.samples.length > 500) micSense.samples.shift(); // etwa 30 Sekunden
+  // Der Ruhepegel ist ein unteres Perzentil - ein lauter Moment zieht ihn nicht hoch.
   if (micSense.samples.length >= 40) {
     const sorted = micSense.samples.map(x => x.rms).slice().sort((a, b) => a - b);
-    micSense.baseline = sorted[Math.floor(sorted.length * 0.2)] || 0.0005;
+    micSense.baseline = Math.max(0.0004, sorted[Math.floor(sorted.length * 0.2)] || 0.0004);
   }
+  const floor = micSense.baseline || 0.001;
 
-  // A peak is a swell clearly above the floor, counted once per rise so a long
-  // sound doesn't register as many.
-  const threshold = Math.max(micSense.baseline * 2.2, 0.004);
-  const last = micSense.peaks[micSense.peaks.length - 1];
-  if (rms > threshold && (!last || Date.now() - last > 450)) micSense.peaks.push(Date.now());
-  micSense.peaks = micSense.peaks.filter(t => Date.now() - t < 45000);
+  // Alte Zählung (laute Momente) bleibt für den Grobwert erhalten
+  const threshold = Math.max(floor * 2.2, 0.004);
+  const lastPeak = micSense.peaks[micSense.peaks.length - 1];
+  if (rms > threshold && (!lastPeak || now - lastPeak > 450)) micSense.peaks.push(now);
+  micSense.peaks = micSense.peaks.filter(t => now - t < 45000);
+  if (micSense.samples.length < 40) return;
+
+  // Ein „Laut" beginnt, wenn es deutlich über den Ruhepegel geht, und endet,
+  // wenn es eine Weile wieder darunter bleibt. Danach wird entschieden:
+  // tonal und lang genug = Stöhnen, rauschend und kurz = Atemzug.
+  const voiced = rms > floor * 2.2 && tonality(micSense.buffer, micSense.ctx.sampleRate) > 0.6;
+  let b = micSense.burst;
+  if (!b && rms > floor * 1.9) b = micSense.burst = { start: now, frames: 0, voiced: 0, peak: 0, below: 0 };
+  if (!b) return;
+  b.frames++; if (voiced) b.voiced++;
+  b.peak = Math.max(b.peak, rms / floor);
+  if (rms < floor * 1.35) b.below += dt; else b.below = 0;
+  if (b.below >= 180 || now - b.start > 6000) {
+    const dur = now - b.start - b.below;
+    const ratio = b.voiced / Math.max(1, b.frames);
+    if (dur >= 350 && ratio >= 0.45) micSense.moans.push({ t: now, dur, peak: b.peak });
+    else if (dur >= 250 && dur <= 2600 && ratio < 0.3) micSense.breaths.push({ t: now, dur, peak: b.peak });
+    micSense.burst = null;
+    const cut = now - 120000;
+    micSense.moans = micSense.moans.filter(x => x.t > cut);
+    micSense.breaths = micSense.breaths.filter(x => x.t > cut);
+  }
+}
+// Gesprochene Sätze sind auch tonal - was die Spracherkennung als Wörter
+// erkannt hat, war kein Stöhnen. Reine Laute („ahh", „mmh") bleiben drin.
+function bodyForgetSpeech(text) {
+  if (!micSense.analyser) return;
+  const t = String(text || '').trim();
+  if (!t || /^((a+h*|o+h*|m+h*|h+m+|u+h*|ja+|nein|bitte|fuck|gott|oh gott)[\s,.!?]*)+$/i.test(t)) return;
+  const words = t.split(/\s+/).length;
+  const from = Date.now() - (words * 420 + 2200);
+  micSense.moans = micSense.moans.filter(x => x.t < from);
 }
 
-// Returns a short, plain description of the last half minute, or an empty
-// string when there isn't enough to say. Deliberately vague: the measurement is
-// crude, and precise-sounding numbers would suggest more certainty than exists.
-function micSenseHint() {
-  if (!micSense.analyser || micSense.samples.length < 60 || !micSense.baseline) return '';
+// Zahlen für die letzte halbe Minute bzw. Minute
+function bodyStats() {
   const now = Date.now();
-  const recent = micSense.samples.filter(x => now - x.t < 20000);
-  if (recent.length < 30) return '';
+  const br = micSense.breaths.filter(x => now - x.t < 30000);
+  const mo = micSense.moans.filter(x => now - x.t < 60000);
+  const mo20 = micSense.moans.filter(x => now - x.t < 20000);
+  const breathRate = br.length * 2;
+  const lastMoan = micSense.moans[micSense.moans.length - 1];
+  const avgDur = mo.length ? mo.reduce((a, x) => a + x.dur, 0) / mo.length : 0;
+  const avgPeak = mo.length ? mo.reduce((a, x) => a + x.peak, 0) / mo.length : 0;
+  const recentLoud = micSense.samples.filter(x => now - x.t < 4000);
+  const quietNow = recentLoud.length > 20 && recentLoud.every(x => x.rms < (micSense.baseline || 0.001) * 1.5);
+  const wasBusy = micSense.moans.some(x => now - x.t < 25000 && now - x.t > 6000) || micSense.breaths.filter(x => now - x.t < 25000 && now - x.t > 6000).length >= 6;
+  return { breathRate, moans: mo.length, moans20: mo20.length, avgDur, avgPeak, lastMoan, holding: quietNow && wasBusy, warm: now - micSense.startedAt > 45000 };
+}
+// ---------- Lernen über die Zeit ----------
+// Bei jedem „Kurz davor" und „Gekommen" merkt sich die App, wie ich in dem
+// Moment klang (Atem, Stöhnen, Puls). Ab drei Kanten richtet sich die Schwelle
+// nach mir statt nach festen Werten - und die Figuren erfahren, wie ich sonst
+// kurz davor klinge.
+function bodyLearn() { try { return JSON.parse(localStorage.getItem('companion_bodyLearn') || '[]'); } catch (e) { return []; } }
+function bodyLearnRecord(type) {
+  if (!micSense.analyser || Date.now() - micSense.startedAt < 45000) return;
+  const s = bodyStats();
+  const list = bodyLearn();
+  list.push({ t: Date.now(), type, score: micSense.score, snd: soundScore(s), br: s.breathRate, mo: s.moans, dur: Math.round(s.avgDur), hr: (typeof hr !== 'undefined' && hr.connected) ? hr.bpm - (hrRest() || hr.bpm) : null });
+  safeSet('companion_bodyLearn', JSON.stringify(list.slice(-120)));
+}
+function bodyProfile() {
+  const ed = bodyLearn().filter(x => x.type === 'edge' || x.type === 'came');
+  if (ed.length < 3) return null;
+  const med = a => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : null; };
+  return { n: ed.length, score: med(ed.map(x => x.score)), br: med(ed.map(x => x.br)), mo: med(ed.map(x => x.mo)), dur: med(ed.map(x => x.dur)) };
+}
+function hrScore() {
+  if (typeof hr === 'undefined' || !hr.connected || !hr.bpm) return null;
+  const rest = hrRest(); if (!rest) return null;
+  const top = hrEdgeAt() || rest + 55;
+  return Math.max(0, Math.min(100, (hr.bpm - rest) / Math.max(15, top - rest) * 100));
+}
+function soundScore(s) {
+  const breath = Math.max(0, Math.min(1, (s.breathRate - 14) / 16)) * 40;
+  const moan = Math.min(1, s.moans / 8) * 45 + Math.max(0, Math.min(1, (s.avgDur - 400) / 1500)) * 8 + Math.max(0, Math.min(1, (s.avgPeak - 3) / 10)) * 7;
+  return Math.round(Math.min(100, breath + moan));
+}
+function bodyTick() {
+  if (!micSense.analyser) return;
+  const s = bodyStats();
+  const snd = soundScore(s);
+  const h = hrScore();
+  // Puls und Geräusche zusammen; wer von beiden hoch ist, zieht etwas mit.
+  const score = h === null ? snd : Math.round(Math.min(100, 0.55 * h + 0.45 * snd + 0.15 * Math.min(h, snd)));
+  micSense.score = score;
+  micSense.scoreHist.push({ t: Date.now(), v: score });
+  if (micSense.scoreHist.length > 180) micSense.scoreHist.shift();
+  updateBodyPill();
+  if (!s.warm) return;
+  // Als Anzeige für „Kurz davor": die Figur bremst, ohne dass ich drücken muss.
+  if (arousalEnabled() && localStorage.getItem('companion_bodyEdge') !== 'false' && !afterComeActive()) {
+    // Gelernt: knapp unter dem, wo ich bisher meist an der Kante war
+    const prof = bodyProfile();
+    const need = prof && prof.score != null ? Math.max(60, Math.min(92, prof.score - 5)) : (h === null ? 90 : 85);
+    micSense.highFor = score >= need ? micSense.highFor + 1 : 0;
+    if (micSense.highFor >= 3 && !inDanger && Date.now() - micSense.lastEdge > 45000) {
+      micSense.lastEdge = Date.now();
+      logEvent('msg', { role: 'system', text: `Körpersignale ${score}/100 (Atem ${s.breathRate}/min, ${s.moans}× gestöhnt${h !== null ? ', Puls ' + hr.bpm : ''}) - wirkt wie „Kurz davor".` });
+      setArousal(Math.max(arousal, 90), 'Körper');
+      micSense.lastSet = -1;
+    } else if (!inDanger && score > arousal + 8) {
+      const v = Math.min(score, AROUSAL_DANGER - 1);
+      setArousal(v, 'Körper', true); micSense.lastSet = v;
+    } else if (!inDanger && arousal === micSense.lastSet && score < arousal - 15) {
+      const v = Math.max(0, score + 5);
+      setArousal(v, 'Körper', true); micSense.lastSet = v;
+    }
+  }
+}
+function bodyTrend() {
+  const now = Date.now();
+  const past = micSense.scoreHist.filter(x => now - x.t > 20000 && now - x.t < 40000);
+  if (!past.length) return '';
+  const d = micSense.score - past.reduce((a, x) => a + x.v, 0) / past.length;
+  return d > 8 ? 'steigend' : d < -8 ? 'fallend' : 'gleichbleibend';
+}
+function updateBodyPill() {
+  const el = document.getElementById('sndVal'); if (!el) return;
+  const on = !!micSense.analyser;
+  el.style.display = on ? '' : 'none';
+  if (!on) return;
+  const warm = Date.now() - micSense.startedAt > 45000;
+  el.textContent = '🎧 ' + (warm ? micSense.score : '…');
+  el.title = warm ? 'Erregung aus Atem, Stöhnen' + (hrScore() !== null ? ' und Puls' : '') : 'Misst noch den Ruhepegel';
+  el.style.color = !warm ? 'var(--text-dim)' : micSense.score >= 85 ? 'var(--accent)' : micSense.score >= 60 ? 'var(--gold)' : 'var(--text)';
+}
 
-  const avg = recent.reduce((sum, x) => sum + x.rms, 0) / recent.length;
-  const ratio = avg / micSense.baseline;
-  const perMinute = micSense.peaks.filter(t => now - t < 30000).length * 2;
-
-  let loudness;
-  if (ratio < 1.6) loudness = 'sehr ruhig';
-  else if (ratio < 2.6) loudness = 'ruhig';
-  else if (ratio < 4.5) loudness = 'deutlich hörbar';
-  else loudness = 'laut';
-
-  let frequency;
-  if (perMinute < 6) frequency = 'kaum Laute';
-  else if (perMinute < 18) frequency = 'vereinzelte Laute';
-  else if (perMinute < 40) frequency = 'regelmäßige Laute';
-  else frequency = 'dichte, schnelle Laute';
-
-  return `\n\nWas gerade bei mir zu hören ist (grobe Messung über das Mikrofon, keine gedeuteten Wörter): ${loudness}, ${frequency}. Nimm das als Hinweis darauf, wie ich gerade reagiere - wird es lauter und dichter, bleib bei dem, was du tust, und steigere behutsam; wird es ruhiger, nimm zurück. Sprich diese Messung nicht an.`;
+// Was die Figuren über meinen Körper erfahren - in Worten, nicht als Messwerte.
+function micSenseHint() {
+  if (!micSense.analyser) return '';
+  const s = bodyStats();
+  if (!s.warm) return '';
+  const parts = [];
+  const br = s.breathRate;
+  parts.push(br === 0 ? 'Atem kaum hörbar' : br < 16 ? 'Atem ruhig' : br < 24 ? 'Atem schneller als sonst' : br < 32 ? 'Atem schnell und hörbar' : 'er keucht, hechelt fast');
+  if (s.moans) {
+    const how = s.avgDur > 1200 ? 'lang gezogen' : s.avgDur > 700 ? 'deutlich' : 'kurz';
+    const loud = s.avgPeak > 9 ? ', laut' : s.avgPeak > 5 ? '' : ', leise';
+    parts.push(`er stöhnt - ${s.moans}× in der letzten Minute, ${how}${loud}${s.moans20 >= 3 ? ', gerade immer dichter' : ''}`);
+  } else parts.push('kein Stöhnen');
+  if (s.holding) parts.push('eben noch laut, jetzt plötzlich still - hält er den Atem an oder sich zurück?');
+  const h = hrScore();
+  if (h !== null) parts.push(`Puls ${hr.bpm} (Ruhe ${hrRest()}, ${hrTrend()})`);
+  const sc = micSense.score;
+  const level = sc >= 85 ? 'kurz vor dem Höhepunkt' : sc >= 65 ? 'stark erregt' : sc >= 40 ? 'erregt' : sc >= 20 ? 'angeregt' : 'ruhig';
+  const tr = bodyTrend();
+  const prof = bodyProfile();
+  const learned = prof ? ` So klingt er sonst, kurz bevor er an der Kante ist (aus ${prof.n} Malen gelernt): Atem um ${prof.br}/min, ${prof.mo}× Stöhnen pro Minute${prof.dur > 700 ? ', lang gezogen' : ''}. Vergleiche - nähert er sich dem, weißt du, wo er steht.` : '';
+  return `\n\nWAS DU VON MIR HÖRST UND SPÜRST (gemessen über Mikrofon${h !== null ? ' und Pulsgurt' : ''}, nicht von mir gesagt): ${parts.join('; ')}. Gesamteindruck: ${level}${tr ? ', ' + tr : ''}. Reagiere darauf wie jemand, der direkt neben mir liegt und mich hört: Wird es dichter und lauter, bleib dran oder steigere; wird es ruhiger, hol mich zurück. Ab und zu darfst du es ansprechen („ich hör doch, wie du atmest", „so laut?", „du hältst die Luft an") - aber nicht jedes Mal, und nie als Zahl.${learned}`;
 }
 
 // A call instead of push-to-talk: tap once and the microphone keeps coming back
@@ -5987,7 +6248,25 @@ els.liveArousal.onchange = () => {
   els.liveEdging.disabled = els.liveEdgeGoal.disabled = !els.liveArousal.checked;
   updateArousalUI();
 };
-els.liveEdging.onchange = () => { safeSet('companion_edging', els.liveEdging.checked ? 'true' : 'false'); updateArousalUI(); };
+els.liveEdging.onchange = () => { safeSet('companion_edging', els.liveEdging.checked ? 'true' : 'false'); if (!els.liveEdging.checked) { safeSet('companion_herCall', 'false'); document.getElementById('liveHerCall').checked = false; } updateArousalUI(); };
+{
+  const hc = document.getElementById('liveHerCall');
+  hc.checked = herCallEnabled();
+  const hn = document.getElementById('liveHerCallHardNo');
+  hn.checked = herCallHardNo();
+  hn.onchange = () => safeSet('companion_herCallHardNo', hn.checked ? 'true' : 'false');
+  hc.onchange = () => {
+    safeSet('companion_herCall', hc.checked ? 'true' : 'false');
+    if (hc.checked) {
+      // Ohne Melden und Hinhalten gibt es nichts zu entscheiden
+      safeSet('companion_arousal', 'true'); safeSet('companion_edging', 'true');
+      els.liveArousal.checked = true; els.liveEdging.checked = true;
+      els.liveEdging.disabled = els.liveEdgeGoal.disabled = false;
+    }
+    herCall.on = false;
+    updateArousalUI();
+  };
+}
 els.liveEdgeGoal.onchange = () => { safeSet('companion_edgeGoal', els.liveEdgeGoal.value); updateArousalUI(); };
 // updateArousalUI() erst im Start-Timeout: die Zustandsvariablen stehen weiter unten.
 // Neuestes Szenenbild schwach hinter der Steuerfläche, mit Überblendung.
@@ -7076,7 +7355,14 @@ function ensureAudioCtx() {
       const ctx = new AC();
       spatial.ctx = ctx;
       spatial.master = ctx.createGain();
-      spatial.master.connect(ctx.destination);
+      spatial.master.gain.value = 0.85;
+      // Begrenzer am Ausgang: Nahbesprechung (+Bass), Hall und mehrere
+      // Stimmen gleichzeitig konnten sich über 0 dB addieren - das klang kratzig.
+      spatial.limiter = ctx.createDynamicsCompressor();
+      spatial.limiter.threshold.value = -6; spatial.limiter.knee.value = 6;
+      spatial.limiter.ratio.value = 12; spatial.limiter.attack.value = 0.003; spatial.limiter.release.value = 0.15;
+      spatial.master.connect(spatial.limiter);
+      spatial.limiter.connect(ctx.destination);
       spatial.conv = ctx.createConvolver();
       spatial.wetBus = ctx.createGain();
       spatial.wetBus.connect(spatial.conv);
@@ -7171,16 +7457,38 @@ function routeAudio(el, kind, role, text) {
     pan.pan.value = Math.max(-1, Math.min(1, p));
     dry.gain.value = g;
     send.gain.value = wet;
+    let warm = null;
     if (prox === 'close') {
       // Nahbesprechung: wärmerer Bass, als wäre der Mund direkt am Ohr
-      const warm = ctx.createBiquadFilter();
-      warm.type = 'lowshelf'; warm.frequency.value = 220; warm.gain.value = 5;
+      warm = ctx.createBiquadFilter();
+      warm.type = 'lowshelf'; warm.frequency.value = 220; warm.gain.value = 4;
       src.connect(warm); warm.connect(pan);
     } else {
       src.connect(pan);
     }
     pan.connect(dry); dry.connect(spatial.master);
     pan.connect(send); send.connect(spatial.wetBus);
+    // Aufräumen: Früher blieb jede gesprochene Zeile für immer im Audio-Graphen
+    // hängen. Nach einer Weile hatte das Handy hunderte Knoten zu rechnen und
+    // die Stimmen fingen an zu knistern. Jetzt wird nach dem Ende abgeklemmt.
+    const nodes = [src, pan, dry, send].concat(warm ? [warm] : []);
+    let cut = false, pauseTimer = null;
+    const cleanup = () => {
+      if (cut) return; cut = true; clearTimeout(pauseTimer);
+      nodes.forEach(n => { try { n.disconnect(); } catch (e) {} });
+      spatial.live = Math.max(0, (spatial.live || 0) - 1);
+    };
+    spatial.live = (spatial.live || 0) + 1;
+    el.addEventListener('ended', cleanup);
+    el.addEventListener('error', cleanup);
+    el.addEventListener('emptied', cleanup);
+    // Abgebrochene Zeilen (pausiert und nie fortgesetzt) nach einer Minute lösen
+    el.addEventListener('pause', () => { clearTimeout(pauseTimer); pauseTimer = setTimeout(() => { if (el.paused) cleanup(); }, 60000); });
+    // Wird eine gelöste Zeile doch fortgesetzt (Geschichte pausiert): direkt wieder anschließen
+    el.addEventListener('play', () => {
+      clearTimeout(pauseTimer);
+      if (cut) { cut = false; spatial.live = (spatial.live || 0) + 1; try { src.connect(spatial.master); } catch (e) {} nodes.length = 0; nodes.push(src); }
+    });
   } catch (e) {}
 }
 // Ducking: Kulisse leiser, solange eine Stimme spricht.
@@ -8249,14 +8557,113 @@ let arousalHistory = [];     // { t, v }
 let edgeCount = 0;           // wie oft ich an die Kante kam
 let inDanger = false;
 function arousalEnabled() { return localStorage.getItem('companion_arousal') === 'true'; }
-function edgingEnabled() { return arousalEnabled() && localStorage.getItem('companion_edging') === 'true'; }
+function edgingEnabled() { return arousalEnabled() && (localStorage.getItem('companion_edging') === 'true' || herCallEnabled()); }
+// ---------- 👑 Sie entscheidet ----------
+// Die führende Figur legt zu Beginn heimlich fest, wie oft sie mich an die
+// Kante bringt und ob ich danach kommen darf. Das Modell erfährt die
+// Entscheidung nicht - so kann es sie auch nicht verraten. Die App löst sie
+// erst auf, wenn es so weit ist.
+const herCall = { on: false, goal: 3, verdict: 'allow', begs: 0, revealed: false, figId: null, name: '', deniedAt: 0, mercy: false, cameWithout: false, logged: false };
+const HERCALL_LOCK_MS = 15 * 60000;
+// Standard: Sie spielt mit dem Nein, aber am Ende darf ich. Ein echtes Nein nur,
+// wenn ich es ausdrücklich zulasse.
+function herCallHardNo() { return localStorage.getItem('companion_herCallHardNo') === 'true'; }
+function herCallEnabled() { return localStorage.getItem('companion_herCall') === 'true'; }
+function herCallActive() { return herCallEnabled() && herCall.on; }
+function herCallDenied() { return herCall.on && herCall.verdict === 'deny' && herCall.revealed && Date.now() - herCall.deniedAt < HERCALL_LOCK_MS; }
+function herCallLog() { try { return JSON.parse(localStorage.getItem('companion_herCallLog') || '[]'); } catch (e) { return []; } }
+function herCallEnsure() {
+  if (!herCallEnabled() || herCall.on) return;
+  let lead = null;
+  try { lead = aiCharacters().filter(c => !c.isNarrator && !c.isUser)[0]; } catch (e) {}
+  if (!lead) return;
+  const txt = Object.entries(lead).filter(([k, v]) => typeof v === 'string' && !/image|voice|key|url|lookTag/i.test(k)).map(([, v]) => v).join(' ').slice(0, 6000);
+  const strict = /dominan|streng|herrisch|sadist|kontroll|gemein|kalt|domina|fies|grausam|besitzergreif|herrin|befiehlt|launisch|zicki/i.test(txt);
+  const soft = /zärtlich|sanft|liebevoll|fürsorg|schüchtern|romant|warmherzig|großzügig/i.test(txt);
+  let pAllow = strict ? 0.45 : soft ? 0.8 : 0.65;
+  const prev = herCallLog().filter(x => x.fig === lead.figureId).pop();
+  if (prev && prev.verdict === 'deny') pAllow += 0.15;   // nach einem Nein ist sie eher gnädig
+  if (prev && prev.came) pAllow -= 0.1;                  // ohne Erlaubnis gekommen - sie merkt es sich
+  const goal = Math.min(5, 2 + Math.floor(Math.random() * 3) + (strict ? 1 : 0));
+  Object.assign(herCall, { delayed: 0, tease: Math.random() < (strict ? 0.5 : 0.3), on: true, goal, verdict: Math.random() < pAllow ? 'allow' : 'deny', begs: 0, revealed: false, figId: lead.figureId || null, name: lead.name, deniedAt: 0, mercy: false, cameWithout: false, logged: false });
+  logEvent('msg', { role: 'system', text: `👑 ${lead.name} hat entschieden - geheim.` });
+  try { updateArousalUI(); } catch (e) {}
+}
+function herCallRecord(extra) {
+  if (!herCall.on) return;
+  if (herCall.logged) {
+    // Schon notiert (z. B. verweigert) - ein späteres „ohne Erlaubnis gekommen" nachtragen
+    if (extra && extra.came) { const list = herCallLog(); const last = list[list.length - 1]; if (last && last.fig === herCall.figId) { last.came = true; safeSet('companion_herCallLog', JSON.stringify(list)); } }
+    return;
+  }
+  herCall.logged = true;
+  const list = herCallLog();
+  list.push(Object.assign({ t: Date.now(), fig: herCall.figId, name: herCall.name, verdict: herCall.verdict, edges: edgeCount, begs: herCall.begs, mercy: herCall.mercy, came: herCall.cameWithout }, extra || {}));
+  safeSet('companion_herCallLog', JSON.stringify(list.slice(-200)));
+}
+// Der Moment der Wahrheit: nach dem letzten Mal an der Kante
+function herCallReveal() {
+  if (herCall.revealed) return;
+  if (herCall.verdict === 'allow' && herCall.delayed && edgeCount <= herCall.goal) return;
+  herCall.revealed = true;
+  if (herCall.verdict === 'deny' && herCall.begs) {
+    if (Math.random() < 0.08 * Math.min(3, herCall.begs)) { herCall.verdict = 'allow'; herCall.mercy = true; }
+  }
+  if ((herCall.verdict === 'deny' && !herCallHardNo()) || (herCall.verdict === 'allow' && herCall.tease && !herCall.delayed)) {
+    // Aufschub: „Noch nicht." - ein bis drei Kanten mehr, dann darf ich.
+    const more = 1 + Math.floor(Math.random() * 3);
+    herCall.verdict = 'allow'; herCall.delayed = more; herCall.revealed = false; herCall.goal = edgeCount + more - 1;
+    logEvent('msg', { role: 'system', text: `👑 ${herCall.name}: „Noch nicht." - ${more} Mal mehr.` });
+    updateArousalUI();
+    try { askActive(`(Til ist zum ${edgeCount}. Mal kurz davor und hofft, dass er jetzt darf. ${herCall.name} sagt NEIN - noch nicht. Sie lässt ihn zappeln, kostet aus, wie sehr er es will, und deutet an, dass er es sich erst noch verdienen muss. Wie lange noch, verrät sie nicht.)`, { silent: true, speak: true }); } catch (e) {}
+    return;
+  }
+  if (herCall.verdict === 'deny') {
+    herCall.deniedAt = Date.now();
+    clearTimeout(edgeReleaseTimer);
+    inDanger = false;
+    [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} });
+    logEvent('msg', { role: 'system', text: `👑 ${herCall.name}: verweigert. Gerät steht ${HERCALL_LOCK_MS / 60000} Minuten still.` });
+    herCallRecord();
+  } else {
+    logEvent('msg', { role: 'system', text: `👑 ${herCall.name}: erlaubt${herCall.mercy ? ' - sie hat sich durch dein Betteln umstimmen lassen' : ''}.` });
+  }
+  updateArousalUI();
+  // Sie sagt es sofort - nicht erst bei meiner nächsten Zeile
+  try {
+    askActive(herCall.verdict === 'deny'
+      ? `(Til ist zum ${edgeCount}. Mal kurz davor. ${herCall.name} verkündet jetzt ihre Entscheidung: Er darf heute NICHT kommen.)`
+      : `(Til ist zum ${edgeCount}. Mal kurz davor. ${herCall.name} verkündet jetzt ihre Entscheidung: Er darf kommen - jetzt.)`, { silent: true, speak: true });
+  } catch (e) {}
+}
+function herCallBlock() {
+  herCallEnsure();
+  if (!herCallActive()) return '';
+  const begs = herCall.begs ? ` Er hat schon ${herCall.begs}× gebettelt.` : '';
+  if (!herCall.revealed) {
+    return `
+
+👑 ${herCall.name.toUpperCase()} ENTSCHEIDET (geheim):${herCall.delayed ? ' Sie hat ihm schon einmal „noch nicht" gesagt - er hofft bei jeder Kante, dass es jetzt so weit ist.' : ''} ${herCall.name} hat vorab entschieden, wie oft sie Til an die Kante bringt und ob er heute überhaupt kommen darf. Er weiß es nicht - und es endet, wenn SIE es sagt, nicht er. Verrate die Entscheidung nicht (du kennst sie selbst nicht genau; die App löst sie auf, wenn es so weit ist). Spiel mit der Ungewissheit: deute an, lass ihn rätseln, frag, ob er glaubt, dass er sich das verdient hat, lass ihn betteln - und genieße, dass er bettelt. Bisher ${edgeCount}× an der Kante.${begs}${aiCharacters().filter(c => !c.isNarrator).length > 1 ? ' Die anderen Figuren wissen, dass sie entscheidet, und dürfen spekulieren oder Partei ergreifen.' : ''}`;
+  }
+  if (herCall.verdict === 'deny') {
+    return `
+
+👑 VERWEIGERT: ${herCall.name} hat entschieden - heute NICHT. Das Gerät steht still und bleibt aus, daran ändert kein Betteln etwas. Sie sagt es ihm ganz in ihrer Art (genüsslich, zärtlich-gemein oder streng), würdigt vielleicht, wie weit er durchgehalten hat, und lässt ihn so liegen. Keine Bewegung mehr, kein Weiterreizen, keine neue Steigerung. Danach höchstens noch reden, necken, ein Versprechen für nächstes Mal.`;
+  }
+  return `
+
+👑 ERLAUBT: ${herCall.name} hat entschieden - er darf kommen${herCall.mercy ? ', weil er so schön gebettelt hat (das war knapp, und sie lässt es ihn wissen)' : ''}. Sie gibt ihm die Erlaubnis ausdrücklich und bringt ihn darüber.`;
+}
+
 function edgeGoal() {
+  if (herCallActive()) return herCall.goal;
   const n = parseInt(localStorage.getItem('companion_edgeGoal') || '3', 10);
   return Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : 3;
 }
 // Nach der eingestellten Zahl Kanten ist das nächste Mal das erlaubte.
 function releaseAllowed() {
   if (typeof game !== 'undefined' && game.running && (game.type === 'challenge' || game.type === 'duel') && game.phase === 'play') return false;
+  if (herCallActive()) return herCall.revealed && herCall.verdict === 'allow';
   return releaseForced || edgeCount > edgeGoal();
 }
 function endEdge(reason) {
@@ -8277,6 +8684,11 @@ const AFTER_COME_MS = 150000;
 function afterComeActive() { return cameAt && Date.now() - cameAt < AFTER_COME_MS; }
 function onCame() {
   cameAt = Date.now();
+  try { bodyLearnRecord('came'); } catch (e) {}
+  try {
+    if (herCallActive() && !releaseAllowed()) { herCall.cameWithout = true; herCallRecord({ came: true }); }
+    else if (herCallActive() && herCall.verdict === 'allow') herCallRecord();
+  } catch (e) {}
   try { if (typeof endEdge === 'function') endEdge('gekommen'); } catch (e) {}
   arousal = 0; inDanger = false;
   [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} });
@@ -8285,6 +8697,7 @@ function onCame() {
 }
 function edgeCapRequest(req) {
   if (req && afterComeActive() && req.texture !== 'stop') return { texture: 'stop' };
+  if (req && herCallDenied() && req.texture !== 'stop') return { texture: 'stop' };
   if (!edgeCapActive() || !req) return req;
   const tex = req.texture || 'smooth';
   if (tex === 'stop' || tex === 'hold') return req;
@@ -8314,9 +8727,14 @@ function setArousal(v, source, quiet) {
     if (arousalHistory.length > 300) arousalHistory.shift();
     logEvent('msg', { role: 'system', text: `Nähe ${v}/100 (${source})` });
   }
+  if (!inDanger && v >= AROUSAL_DANGER && herCallDenied()) { arousal = Math.min(arousal, AROUSAL_DANGER - 1); updateArousalUI(); return; }
   if (!inDanger && v >= AROUSAL_DANGER) {
     inDanger = true;
     edgeCount += 1;
+    // Nur echte Meldungen lernen - sonst lernte die Schwelle von sich selbst und sänke immer weiter.
+    if (source !== 'Körper') { try { bodyLearnRecord('edge'); } catch (e) {} }
+    try { herCallEnsure(); if (herCallActive() && !herCall.revealed && edgeCount > herCall.goal) herCallReveal(); } catch (e) {}
+    if (herCallDenied()) { updateArousalUI(); return; }
     if (source !== 'Puls') { try { hrRecordEvent('edge'); } catch (e) {} }
     logEvent('msg', { role: 'system', text: releaseAllowed()
       ? `Kurz davor (${edgeCount}. Mal) - jetzt erlaubt.`
@@ -8339,7 +8757,9 @@ function updateArousalUI() {
   [els.edgeBtn, els.comeBtn, els.arousalVal].forEach(b => { b.style.display = arousalEnabled() ? '' : 'none'; });
   if (document.activeElement !== els.arousalSlider) els.arousalSlider.value = String(arousal);
   // Statt der Zahl nur noch der Stand des Hinhaltens (Kanten / Ziel)
-  els.arousalVal.textContent = edgingEnabled()
+  els.arousalVal.textContent = herCallActive()
+    ? (herCall.revealed ? (herCall.verdict === 'allow' ? '👑 ✓' : '👑 ✕') : `👑 ${edgeCount}/?`)
+    : edgingEnabled()
     ? `${Math.min(edgeCount, edgeGoal())}/${edgeGoal()}${releaseAllowed() ? ' ✓' : ''}`
     : '';
   els.edgeBtn.classList.toggle('btn-primary', inDanger);
@@ -8348,6 +8768,8 @@ function resetArousal() {
   clearTimeout(edgeReleaseTimer);
   releaseForced = false;
   arousal = 0; arousalPeak = 0; arousalHistory = []; edgeCount = 0; inDanger = false;
+  // Neues Gespräch, neue Entscheidung. Eine verweigerte Sitzung wird vorher noch notiert.
+  herCall.on = false;
   updateArousalUI();
 }
 // Aus meinen Worten: "kurz davor" usw. setzen den Regler hoch.
@@ -8355,7 +8777,12 @@ function arousalFromText(text) {
   if (!arousalEnabled()) return;
   const t = String(text || '').toLowerCase();
   // Ausdrücklich darum gebeten: dann ist das Hinhalten vorbei.
-  if (/lass mich (jetzt )?kommen|ich will (jetzt )?kommen|darf ich (jetzt )?kommen|bring mich zum (kommen|höhepunkt)|mach mich fertig/.test(t)) {
+  if (herCallActive() && !herCall.revealed && /lass mich (bitte )?(jetzt )?kommen|ich will (jetzt )?kommen|darf ich (bitte )?(jetzt )?kommen|bitte.{0,25}kommen|kommen.{0,15}bitte|ich (flehe|bettle)|bring mich zum (kommen|höhepunkt)|mach mich fertig/.test(t)) {
+    herCall.begs++;
+    logEvent('msg', { role: 'system', text: `👑 Gebettelt (${herCall.begs}×) - ${herCall.name} entscheidet.` });
+  } else if (herCallActive()) {
+    // Sie entscheidet - Betteln erzwingt hier nichts.
+  } else if (/lass mich (jetzt )?kommen|ich will (jetzt )?kommen|darf ich (jetzt )?kommen|bring mich zum (kommen|höhepunkt)|mach mich fertig/.test(t)) {
     if (!releaseForced) logEvent('msg', { role: 'system', text: 'Kommen erlaubt (ausdrücklich gewünscht).' });
     releaseForced = true;
     endEdge('Wunsch zu kommen');
@@ -8409,9 +8836,23 @@ function environmentBlock() {
 }
 
 function arousalBlock() {
+  if (afterComeActive() && herCall.cameWithout) return `\n\nTIL IST GERADE GEKOMMEN - OHNE ERLAUBNIS (vor ${Math.round((Date.now() - cameAt) / 1000)} Sekunden). ${herCall.name} hatte es ${herCall.revealed ? 'ihm verboten' : 'noch nicht erlaubt'}. Sie reagiert ganz in ihrer Art - empört, amüsiert, enttäuscht oder mit einem Versprechen, dass das Folgen hat (beim nächsten Mal). Keine Bewegung des Geräts, es steht still.`;
   if (afterComeActive()) return `\n\nTIL IST GERADE GEKOMMEN (vor ${Math.round((Date.now() - cameAt) / 1000)} Sekunden). Das hat Vorrang vor allem anderen, auch vor Spiel- und Testanweisungen: Jetzt ist Nachglühen - zärtlich, warm, stolz auf ihn, vielleicht ein Lachen oder ein Kuss. Keine Steigerung, kein neues Spiel, keine Bewegung des Geräts (es steht still, und das bleibt so, bis er von sich aus mehr will).`;
   if (!arousalEnabled()) return '';
+  if (herCallDenied()) return herCallBlock();
   let t = `\n\nMEINE NÄHE ZUM HÖHEPUNKT (live von mir gemeldet): ${arousal}/100, ${arousalTrend()}. Höchster Wert bisher: ${arousalPeak}. Das ist die Wahrheit über meinen Zustand - richte Tempo und Intensität danach, sprich es aber nicht als Zahl aus.`;
+  if (herCallActive() || herCallEnabled()) {
+    const hb = herCallBlock();
+    if (hb && !herCall.revealed) {
+      t += inDanger
+        ? ` ICH BIN KURZ DAVOR (${edgeCount}. Mal): Du nimmst SOFORT zurück - hältst inne, wirst ganz langsam, verbietest mir zu kommen, lässt mich zappeln. Erst wenn ich mich beruhigt habe, geht es wieder aufwärts.`
+        : ` Du bringst mich immer wieder an die Kante und hältst mich dann hin.`;
+      return t + hb;
+    }
+    if (hb && herCall.verdict === 'allow') {
+      return t + hb + (inDanger ? ' ICH BIN JETZT KURZ DAVOR - und darf. Nicht mehr bremsen: Halte das Tempo oder steigere es und bring mich zum Kommen. Das gilt vor jeder anderen Anweisung.' : '');
+    }
+  }
   if (edgingEnabled()) {
     const goal = edgeGoal();
     if (releaseAllowed()) {
@@ -9777,7 +10218,7 @@ function renderDashboard() {
   if (thin) fazit.push(`${thin} Ergebnisse beruhen auf nur einer Messung - eine Wiederholung macht sie verlässlicher.`);
   html += sec('Fazit', fazit.length ? '<p style="font-size:14px; line-height:1.55;">' + fazit.join(' ') + '</p>' : '<p class="hint">Sobald Tests und Messungen vorliegen, steht hier deine Auswertung.</p>');
   html += `<div class="btn-row" style="margin-top:18px; flex-wrap:wrap;">
-    <button class="btn-primary" id="dashToMem" type="button">✓ Ergebnisse ins Gedächtnis</button>
+    <button class="btn-secondary" id="dashToMem" type="button" title="Passiert nach jedem Entdecken-Durchlauf automatisch - hier nur von Hand auffrischen">↻ Gedächtnis jetzt auffrischen</button>
     <button class="btn-primary" id="dashOptFig" type="button">✨ Auf mich optimierte Figur erzeugen</button>
     <button class="btn-secondary" id="dashBrief" type="button">⧉ Steckbrief kopieren</button>
     <button class="btn-secondary" id="dashCopy" type="button">⧉ Messdaten kopieren</button>
@@ -10089,6 +10530,8 @@ function discFinish() {
   safeSet('companion_discover', JSON.stringify(store));
   game.discSummary = discSummary(store);
   addMsg('system', '🔬 Ergebnis (über alle bisherigen Tests):\n' + game.discSummary.text);
+  // Automatisch ins gemeinsame Gedächtnis - vorher nur per Knopf in der Auswertung.
+  try { discToMemory(true); } catch (e) {}
   renderGameHud();
 }
 function discSummary(store) {
@@ -10111,18 +10554,25 @@ function discSummary(store) {
   });
   return { text: lines.join('\n'), strong, none, skipped };
 }
-function discToMemory() {
+function discToMemory(quiet) {
   const sum = game.discSummary || discSummary(discStore());
   const date = new Date().toLocaleDateString('de-DE');
   const parts = [];
   if (sum.strong.length) parts.push('reagiert deutlich auf: ' + sum.strong.join(', '));
   if (sum.none.length) parts.push('kaum Reaktion auf: ' + sum.none.join(', '));
   if (sum.skipped.length) parts.push('mag nicht (übersprungen): ' + sum.skipped.join(', '));
-  if (!parts.length) { addMsg('system', 'Noch keine eindeutigen Ergebnisse zum Übernehmen.'); return; }
+  try {
+    const L = labAnalyze();
+    const best = (list) => list && list.length ? list.slice().sort((a, b) => b.m - a.m)[0] : null;
+    const t = best(L && L.tempo), h = best(L && L.stroke), a = best(L && L.texture);
+    const bits = [t && t.m > 1 ? 'Tempo ' + t.k : '', h && h.m > 1 ? 'Hub ' + h.k : '', a && a.m > 1 ? 'Art ' + a.k : ''].filter(Boolean);
+    if (bits.length) parts.push('stärkste Bewegung laut Puls: ' + bits.join(', '));
+  } catch (e) {}
+  if (!parts.length) { if (!quiet) addMsg('system', 'Noch keine eindeutigen Ergebnisse zum Übernehmen.'); return; }
   const line = `- Puls-Test (${date}): ${parts.join('; ')}.`;
   const old = sharedProfile().split('\n').filter(l => !/^- Puls-Test/.test(l)).join('\n').trim();
   setSharedProfile(line + (old ? '\n' + old : ''));
-  addMsg('system', '✓ Ins Gedächtnis übernommen: ' + line.slice(2));
+  addMsg('system', (quiet ? '✓ Automatisch ins Gedächtnis aller Figuren: ' : '✓ Ins Gedächtnis übernommen: ') + line.slice(2));
   logEvent('msg', { role: 'system', text: 'Entdecken: ins Gedächtnis übernommen.' });
 }
 
@@ -10696,19 +11146,22 @@ function keepSingleUser(keepFigureId) {
   });
 }
 
-// Dasselbe im Archiv: markiert eine Figur sich als "ich", verlieren die anderen
-// das Merkmal in allen ihren Versionen - sonst stünden nach einem Wechsel zwei
-// Ich-Figuren zur Auswahl, und welche gilt, wäre Zufall.
+// Im Archiv dürfen mehrere Ich-Figuren stehen (verschiedene Seiten von mir).
+// Früher verloren alle anderen das Merkmal, sobald eine Figur "Das bin ich"
+// bekam - das ließ sich nicht rückgängig machen. Eindeutig muss es nur in der
+// aktuellen Besetzung sein, sonst wüsste das Gespräch nicht, wer ich bin.
 function demoteOtherUserFigures(keepFigureId) {
-  let changed = false;
-  figureArchive.forEach(f => {
-    if (f.id === keepFigureId) return;
-    f.versions.forEach(v => {
-      if (v.isUser) { v.isUser = false; changed = true; }
-    });
-  });
   keepSingleUser(keepFigureId);
-  if (changed) saveArchive();
+}
+// Welche Ich-Figur gilt, wenn gerade keine in der Besetzung steht:
+// die aus der Besetzung, sonst die zuletzt bearbeitete.
+function archiveMeFigure() {
+  const inCast = characters.find(c => c.isUser && c.figureId);
+  if (inCast) { const f = getFigure(inCast.figureId); if (f && (latestVersion(f) || {}).isUser) return f; }
+  const mine = figureArchive.filter(f => (latestVersion(f) || {}).isUser);
+  if (mine.length < 2) return mine[0] || null;
+  const when = f => Math.max(0, ...f.versions.map(v => Date.parse(v.created || 0) || 0));
+  return mine.sort((a, b) => when(b) - when(a))[0];
 }
 
 // ---------- Mindestalter ----------
@@ -15889,7 +16342,7 @@ Antworte NUR als JSON: {"title": "...", "scene": "..."}`;
 function startSurprise() {
   const d = surpriseDraft; if (!d) return;
   switchMode('live');
-  const meFig = figureArchive.find(f => (latestVersion(f) || {}).isUser);
+  const meFig = archiveMeFigure();
   const me = characters.find(c => c.isUser) || (meFig ? characterFromVersion(meFig) : null);
   characters = [me, ...d.cast.map(x => characterFromVersion(x.f))].filter(Boolean);
   saveCharacters();
@@ -16453,7 +16906,7 @@ function openCampfire() {
   els.campfire.style.display = 'block';
   els.cfSetup.style.display = ''; els.cfRun.style.display = 'none';
   const pool = surprisePool();
-  els.cfWho.innerHTML = pool.map(x => `<label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" value="${x.f.id}" checked style="width:auto;"><span style="font-size:14px;">${esc(x.v.name)}</span></label>`).join('') || '<p class="hint">Noch keine Figuren.</p>';
+  els.cfWho.innerHTML = pool.map(x => `<label style="display:flex; align-items:center; gap:6px; font-weight:normal; margin:0;"><input type="checkbox" value="${x.f.id}" checked style="width:auto;"><span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; background:var(--bg-panel-raised);">${x.v.image ? `<img src="${x.v.image}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : esc(String(x.v.name).charAt(0))}</span><span style="font-size:14px;">${esc(x.v.name)}</span></label>`).join('') || '<p class="hint">Noch keine Figuren.</p>';
 }
 function cfAddLine(role, text) {
   const v = role === 'Til' ? null : figureVersionByName(role);
@@ -16495,6 +16948,7 @@ function campfirePrompt() {
     const st = rlStats()[f.id];
     const bits = [];
     if (C.n) bits.push(`Til ist ${C.n}× mit ihr gekommen (${['🥇', '🥈', '🥉'].map(k => C.medals[k] ? C.medals[k] + '× ' + { '🥇': 'golden', '🥈': 'silbern', '🥉': 'bronzen' }[k] : '').filter(Boolean).join(', ') || 'noch unbewertet'})${C.peak ? `, sein Puls ging dabei bis ${C.peak}` : ''}`);
+    { const H = herCallLog().filter(x => x.fig === f.id); if (H.length) { const a = H.filter(x => x.verdict === 'allow').length, d = H.length - a, w = H.filter(x => x.came).length, m = H.filter(x => x.mercy).length; bits.push(`beim „Sie entscheidet" hat sie Til ${a}× kommen lassen${m ? ` (${m}× erst nach Betteln)` : ''} und ${d}× verweigert${w ? `; ${w}× ist er ohne Erlaubnis gekommen` : ''}`); } }
     if (C.best) bits.push(`ihr bester Moment mit ihm (${orgasmTierName(C.best)}): ${[C.best.edges ? C.best.edges + '× an der Kante gehalten' : '', C.best.tempo ? 'am Ende Tempo ' + C.best.tempo : '', C.best.minutes ? C.best.minutes + ' Minuten' : '', C.best.note ? 'seine Notiz: „' + C.best.note + '"' : ''].filter(Boolean).join(', ')}${C.best.how ? ' - so lief es: ' + C.best.how.slice(0, 220) : ''}`);
     if (st) bits.push(`im Zufalls-Videochat hat sie ihn bis zu ${rlFmt(st.bestMs)} gehalten`);
     if (D) bits.push(`aus ihrem Tagebuch: ${D}`);
@@ -17400,7 +17854,7 @@ function swipeAct(kind) {
   setTimeout(() => {
     if (kind === 'yes') { addFigureToCast(f.id); saveCharacters(); }
     if (kind === 'chat') {
-      const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+      const meFig = archiveMeFigure();
       switchMode('live');
       characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f)].filter(Boolean);
       saveCharacters(); renderLivePanel(); els.swipeView.style.display = 'none'; els.liveStartBtn.click(); return;
@@ -17440,7 +17894,7 @@ function rlView() {
   v = document.createElement('div');
   v.id = 'rouletteView';
   // Spalte: oben Leiste, Mitte Bild, unten Bedienung - nichts ragt über den Rand
-  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column; width:100vw; height:100dvh;';
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column;';
   v.innerHTML = `<style>
       #rouletteView *, #rouletteView *::before { box-sizing:border-box; }
       #rouletteView button, #rouletteView input { margin:0; min-width:0; max-width:none; font-family:inherit; }
@@ -17597,7 +18051,7 @@ async function rlNextFigure() {
   [f, rl.fig2].filter(Boolean).forEach(x => { const xv = latestVersion(x); if (!xv.elevenVoice && apiKeyFor('companion_elevenKey')) ensureVoiceReady(x.id).then(() => { const ch = characters.find(c => c.figureId === x.id); if (ch) ch.elevenVoice = latestVersion(x).elevenVoice; }); });
   const v = latestVersion(f);
   const my = rl.token;
-  const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+  const meFig = archiveMeFigure();
   characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f), rl.fig2 ? characterFromVersion(rl.fig2) : null].filter(Boolean);
   rl.hrPeak = 0; rl.hrStart = 0;
   try { if (hr.connected && hr.bpm) { rl.hrStart = hrMean(Date.now() - 20000, Date.now()) || hr.bpm; rl.hrPeak = rl.hrStart; } } catch (e) {}
@@ -17790,7 +18244,7 @@ function stageView(id, buttons) {
   if (v) { v.remove(); }
   v = document.createElement('div');
   v.id = id;
-  v.style.cssText = 'display:flex; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column; width:100vw; height:100dvh;';
+  v.style.cssText = 'display:flex; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column;';
   v.innerHTML = `<style>#${id} *{box-sizing:border-box} #${id} button,#${id} input{margin:0; min-width:0; font-family:inherit} #${id} .rl-round{flex:0 0 auto; border:none; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; padding:0}</style>
     <div class="st-stage" style="position:relative; flex:1 1 auto; min-height:0; overflow:hidden;">
       <img class="st-a" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1s; opacity:0;">
@@ -17838,34 +18292,156 @@ function stageToLive(figs, scene) {
   els.liveScene.value = scene;
   els.liveStartBtn.click();
 }
+// ======================= Figurenauswahl mit Bildern =======================
+// Statt der nackten Namensliste des Handys: ein Blatt mit Profilbildern, damit
+// man vor dem Bestätigen sieht, wer wer ist.
+function figurePickItem(f) {
+  const v = latestVersion(f) || {};
+  return { id: f.id, name: v.name || '?', image: v.image || '', sub: v.isNarrator ? 'Erzähler' : (v.isUser ? 'Ich' : '') };
+}
+function openFigurePicker(o) {
+  document.getElementById('figPicker')?.remove();
+  const sel = new Set(o.selected || []);
+  const wrap = document.createElement('div');
+  wrap.id = 'figPicker';
+  wrap.style.cssText = 'position:fixed; inset:0; z-index:9500; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; justify-content:center;';
+  wrap.innerHTML = `<div class="fp-panel" style="width:100%; max-width:560px; max-height:82%; display:flex; flex-direction:column; background:var(--bg-panel, #1a1416); border-radius:20px 20px 0 0; border-top:1px solid var(--line); padding:14px 14px calc(14px + env(safe-area-inset-bottom)); box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <div style="flex:1; min-width:0; font-family:var(--font-display); font-size:19px;">${esc(o.title || 'Figur wählen')}</div>
+      <button type="button" class="fp-x" aria-label="Schließen" style="width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--text); font-size:16px;">✕</button>
+    </div>
+    ${o.hint ? `<div class="hint" style="margin:0 0 8px;">${esc(o.hint)}</div>` : ''}
+    <div class="fp-grid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:10px; padding:4px 2px 8px;"></div>
+    ${o.multi || o.random ? `<div style="display:flex; gap:8px; margin-top:8px;">
+      ${o.random ? '<button type="button" class="btn-secondary fp-rand" style="flex:1;">🎲 Zufall</button>' : ''}
+      ${o.multi ? '<button type="button" class="btn-primary fp-ok" style="flex:2;"></button>' : ''}
+    </div>` : ''}
+  </div>`;
+  const grid = wrap.querySelector('.fp-grid');
+  const close = () => wrap.remove();
+  const done = ids => { close(); try { o.onDone && o.onDone(ids); } catch (e) { console.error(e); } };
+  const paintOk = () => { const b = wrap.querySelector('.fp-ok'); if (b) { b.textContent = sel.size ? `Los (${sel.size})` : 'Erst jemanden wählen'; b.disabled = !sel.size; } };
+  (o.items || []).forEach(it => {
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.style.cssText = 'display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:0; border:none; background:none; color:var(--text); text-align:center; cursor:pointer; min-width:0;';
+    const pic = it.image
+      ? `<img src="${it.image}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">`
+      : `<span style="font-family:var(--font-display); font-size:30px; color:var(--text-dim);">${it.id ? esc(String(it.name).charAt(0).toUpperCase()) : '∅'}</span>`;
+    t.innerHTML = `<div class="fp-pic" style="position:relative; aspect-ratio:3/4; border-radius:14px; overflow:hidden; background:var(--bg-panel-raised, #241c1f); display:flex; align-items:center; justify-content:center; border:2px solid transparent;">${pic}<span class="fp-check" style="position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:var(--accent, #e0526b); color:#fff; font-size:14px; line-height:24px; display:none;">✓</span></div>
+      <div style="font-size:13px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(it.name)}</div>${it.sub ? `<div style="font-size:11px; color:var(--text-dim); margin-top:-3px;">${esc(it.sub)}</div>` : ''}`;
+    const paint = () => {
+      const on = sel.has(it.id);
+      t.querySelector('.fp-pic').style.borderColor = on ? 'var(--accent, #e0526b)' : 'transparent';
+      t.querySelector('.fp-check').style.display = on && o.multi ? 'block' : 'none';
+    };
+    t.onclick = () => {
+      if (!o.multi) { done([it.id]); return; }
+      if (sel.has(it.id)) sel.delete(it.id);
+      else { if (o.max && sel.size >= o.max) { const first = sel.values().next().value; sel.delete(first); grid.querySelectorAll('button').forEach(b => b._paint && b._paint()); } sel.add(it.id); }
+      paint(); paintOk();
+    };
+    t._paint = paint; paint();
+    grid.appendChild(t);
+  });
+  if (!o.items || !o.items.length) grid.innerHTML = '<p class="hint">Niemand zur Auswahl.</p>';
+  wrap.querySelector('.fp-x').onclick = close;
+  wrap.onclick = e => { if (e.target === wrap) close(); };
+  const r = wrap.querySelector('.fp-rand'); if (r) r.onclick = () => { const ids = o.random(); if (ids && ids.length) done(ids); };
+  const ok = wrap.querySelector('.fp-ok'); if (ok) ok.onclick = () => { if (sel.size) done([...sel]); };
+  paintOk();
+  document.body.appendChild(wrap);
+}
+// Macht aus einem Figuren-Auswahlfeld einen Knopf mit Profilbild, der das
+// Auswahlblatt öffnet. Das Feld selbst bleibt (unsichtbar) die Wahrheit -
+// alle bisherigen onchange-Handler laufen unverändert weiter.
+const enhancedFigureSelects = [];
+function enhanceFigureSelect(sel) {
+  if (!sel || sel._fp) return;
+  sel._fp = true;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'fig-select-btn';
+  btn.style.cssText = (sel.getAttribute('style') || '') + ';display:flex; align-items:center; gap:10px; min-width:0; min-height:46px; padding:6px 12px 6px 6px; border-radius:12px; border:1px solid var(--line); background:var(--bg-panel-raised, #241c1f); color:var(--text); font:inherit; text-align:left; cursor:pointer; box-sizing:border-box;' + (sel.style.flex ? '' : 'width:100%;');
+  sel.style.display = 'none';
+  sel.after(btn);
+  let last = null;
+  const paint = () => {
+    const o = sel.options[sel.selectedIndex];
+    const f = o && o.value ? getFigure(o.value) : null;
+    const v = f && latestVersion(f);
+    const key = (o ? o.value + '|' + o.textContent : '') + '|' + sel.options.length + '|' + (v && v.image ? v.image.length : 0);
+    if (key === last) return; last = key;
+    const ava = v && v.image ? `<img src="${v.image}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : esc(o && o.value ? String(o.textContent).charAt(0) : '∅');
+    btn.innerHTML = `<span style="flex:0 0 34px; width:34px; height:34px; border-radius:50%; overflow:hidden; background:var(--bg-panel, #1a1416); display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-family:var(--font-display);">${ava}</span><span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(o ? o.textContent : '-')}</span><span style="color:var(--text-dim);">▾</span>`;
+    btn.disabled = !sel.options.length || (sel.options.length === 1 && !sel.options[0].value && /alle Figuren/.test(sel.options[0].textContent));
+    btn.style.opacity = btn.disabled ? '0.55' : '1';
+  };
+  sel._fpPaint = paint;
+  try { new MutationObserver(() => paint()).observe(sel, { childList: true, subtree: true, characterData: true }); } catch (e) {}
+  sel.addEventListener('change', paint);
+  btn.onclick = () => {
+    const label = sel.id ? document.querySelector(`label[for="${sel.id}"]`) : null;
+    const items = [...sel.options].map(o => {
+      const f = o.value ? getFigure(o.value) : null;
+      return f ? Object.assign(figurePickItem(f), { name: o.textContent }) : { id: o.value, name: o.textContent, image: '' };
+    });
+    openFigurePicker({ title: sel.dataset.pickTitle || (label ? label.textContent.trim() : 'Figur wählen'), items, selected: [sel.value],
+      onDone: ids => { if (sel.value !== ids[0]) { sel.value = ids[0]; sel.dispatchEvent(new Event('change', { bubbles: true })); } paint(); } });
+  };
+  enhancedFigureSelects.push(sel);
+  paint();
+}
+// Werte, die per Code gesetzt werden, lösen kein Ereignis aus - kurz nachsehen.
+setInterval(() => { enhancedFigureSelects.forEach(s => { try { s._fpPaint(); } catch (e) {} }); }, 800);
+
 function pickFigures(n) {
   const all = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator && !ageIssue(characterFromVersion(f)); });
   return all.sort(() => Math.random() - 0.5).slice(0, n);
 }
-function meFigure() { return figureArchive.find(x => (latestVersion(x) || {}).isUser) || null; }
+function meFigure() { return archiveMeFigure(); }
 
 // ======================= 📸 FOTOSHOOTING =======================
 // Du bist der Fotograf. Jede Anweisung wird zu einem Foto, sie reagiert darauf
 // - willig, frech, verhandelnd. Das Gerät ist ihr Dankeschön für gute Ideen.
 const ps = { active: false, fig: null, shots: [], backup: null, busy: false, token: 0 };
 const PS_CHIPS = ['Lächeln', 'Über die Schulter', 'Ans Fenster', 'Haare offen', 'Träger runter', 'Auf dem Bett', 'Mehr zeigen', 'Oben ohne', 'Ganz nackt', 'Sieh mich an', 'Überrasch mich'];
+// Wer ins Shooting kommt: Auswahl mit Bildern, bis zu drei Models, oder Zufall.
+function psChoose() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const pool = pickFigures(999).sort((a, b) => latestVersion(a).name.localeCompare(latestVersion(b).name));
+  if (!pool.length) { alert('Keine Figur zum Fotografieren.'); return; }
+  openFigurePicker({
+    title: '📸 Wer steht vor der Kamera?', hint: 'Bis zu drei Models - mehrere stehen gemeinsam im Bild.',
+    items: pool.map(f => figurePickItem(f)), multi: true, max: 3,
+    selected: (ps.figs || []).map(f => f.id).filter(id => pool.some(f => f.id === id)),
+    random: () => [pickFigures(1)[0]].filter(Boolean).map(f => f.id),
+    onDone: ids => { const figs = ids.map(getFigure).filter(Boolean); if (figs.length) openPhotoshoot(figs); },
+  });
+}
 async function openPhotoshoot(figure) {
   try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
-  const f = figure || pickFigures(1)[0];
+  const figs = (Array.isArray(figure) ? figure : [figure || pickFigures(1)[0]]).filter(Boolean).slice(0, 3);
+  const f = figs[0];
   if (!f) { alert('Keine Figur zum Fotografieren.'); return; }
   try { interruptPlayback(); } catch (e) {}
-  ps.backup = stageBackup(); ps.active = true; ps.fig = f; ps.shots = []; ps.token++;
+  ps.backup = stageBackup(); ps.active = true; ps.fig = f; ps.figs = figs; ps.shots = []; ps.token++;
   const v = latestVersion(f), me = meFigure();
-  characters = [me ? characterFromVersion(me) : null, characterFromVersion(f)].filter(Boolean);
+  const names = figs.map(x => latestVersion(x).name);
+  ps.names = names.length > 1 ? names.slice(0, -1).join(', ') + ' und ' + names[names.length - 1] : names[0];
+  ps.multi = figs.length > 1;
+  characters = [me ? characterFromVersion(me) : null, ...figs.map(x => characterFromVersion(x))].filter(Boolean);
   history = []; sceneStep = INTRO_STEPS + 1; readyGate = 'ready';
   const places = await portfolioPlaces(f).catch(() => []);
   ps.place = places[0] || 'a bright photo studio with soft light';
-  safeSet('companion_sceneDesc', `Fotoshooting: Til ist der Fotograf, ${v.name} sein Model - bei ihr, an einem Ort, der zu ihr passt (${ps.place}). Er gibt Anweisungen, sie setzt sie um, kommentiert, verhandelt, provoziert und will gute Bilder. Für gute Ideen belohnt sie ihn mit dem Gerät.`);
+  safeSet('companion_sceneDesc', ps.multi
+    ? `Fotoshooting: Til ist der Fotograf, ${ps.names} seine Models - gemeinsam vor der Kamera, an einem Ort, der zu ihnen passt (${ps.place}). Er gibt Anweisungen, sie setzen sie um, posieren miteinander, kommentieren, verhandeln, stacheln sich gegenseitig an und wollen gute Bilder. Für gute Ideen belohnen sie ihn mit dem Gerät.`
+    : `Fotoshooting: Til ist der Fotograf, ${v.name} sein Model - bei ihr, an einem Ort, der zu ihr passt (${ps.place}). Er gibt Anweisungen, sie setzt sie um, kommentiert, verhandelt, provoziert und will gute Bilder. Für gute Ideen belohnt sie ihn mit dem Gerät.`);
   const st = ps.st = stageView('photoView', `
     <button type="button" class="rl-round ps-shot" aria-label="Auslösen" style="width:64px; height:64px; background:#1d1719; border:3px solid #fff; font-size:26px;">📸</button>
     <button type="button" class="rl-round ps-live" aria-label="Ins Gespräch" style="width:52px; height:52px; background:#1d1719; border:2px solid #d9b26b; font-size:22px;">💬</button>
     <button type="button" class="rl-round ps-next" aria-label="Anderes Model" style="width:52px; height:52px; background:#1d1719; border:2px solid #e0526b; font-size:20px;">↻</button>`);
-  st.q('.st-name').textContent = v.name; st.q('.st-tag').textContent = '● REC'; st.q('.st-meta').textContent = 'Fotoshooting · 0 Fotos';
+  st.q('.st-name').textContent = names.join(' & '); st.q('.st-tag').textContent = '● REC'; st.q('.st-meta').textContent = 'Fotoshooting · 0 Fotos';
   st.q('.st-input').placeholder = 'Deine Anweisung …';
   st.q('.st-chips').innerHTML = PS_CHIPS.map(c => `<button type="button" class="btn-secondary" style="flex:0 0 auto; width:auto; height:32px; padding:0 12px; font-size:13px; border-radius:16px;">${c}</button>`).join('');
   st.q('.st-chips').querySelectorAll('button').forEach(b => b.onclick = () => psDirect(b.textContent));
@@ -17874,11 +18450,13 @@ async function openPhotoshoot(figure) {
   st.q('.ps-shot').onclick = () => psDirect('(Er drückt einfach ab - zeig dich von deiner besten Seite.)', true);
   st.q('.st-close').onclick = () => closePhotoshoot(false);
   st.q('.ps-live').onclick = () => closePhotoshoot(true);
-  st.q('.ps-next').onclick = () => { closePhotoshoot(false, true); openPhotoshoot(pickFigures(5).find(x => x !== f)); };
+  st.q('.ps-next').onclick = () => { closePhotoshoot(false, true); psChoose(); };
   const first = galleryFor(f.id).filter(g => g.type === 'image')[0];
   if (first) { const b = await dbGet(STORE_IMAGES, first.key).catch(() => null); if (b) st.show(URL.createObjectURL(b)); }
   else { const u = await hiResUrl(v); if (u) st.show(u); }
-  askActive(`(FOTOSHOOTING beginnt. Til ist dein Fotograf, du bist das Model. Begrüße ihn, zeig dich bereit, frag nach seiner ersten Idee - oder schlag selbst eine vor. Kurz.)`, { silent: true, autoStep: 1, speak: true });
+  askActive(ps.multi
+    ? `(FOTOSHOOTING beginnt. Til ist euer Fotograf, ihr seid gemeinsam seine Models: ${ps.names}. Begrüßt ihn, zeigt euch bereit, frotzelt kurz miteinander, fragt nach seiner ersten Idee - oder schlagt selbst eine vor. Kurz.)`
+    : `(FOTOSHOOTING beginnt. Til ist dein Fotograf, du bist das Model. Begrüße ihn, zeig dich bereit, frag nach seiner ersten Idee - oder schlag selbst eine vor. Kurz.)`, { silent: true, autoStep: 1, speak: true });
 }
 async function psDirect(text, isShutter) {
   if (!ps.active) return;
@@ -17892,7 +18470,7 @@ async function psDirect(text, isShutter) {
   ps.busy = true; st.q('.st-tag').textContent = '● KLICK';
   try {
     const stage = ['tasteful', 'sensual', 'daring and revealing', 'nude, artistic', 'nude, explicit pose'][Math.min(4, Math.floor(ps.shots.length / 2))];
-    const res = await makeSceneImage(`Professionelles Foto aus einem Fotoshooting von ${v.name}, ${ps.place}. Anweisung des Fotografen: „${text}". Sie setzt sie um und schaut in die Kamera. Stimmung: ${stage}. Der Fotograf ist nicht im Bild.`, characters.filter(c => !c.isUser));
+    const res = await makeSceneImage(`Professionelles Foto aus einem Fotoshooting von ${ps.names || v.name}, ${ps.place}. Anweisung des Fotografen: „${text}". ${ps.multi ? 'Alle sind gemeinsam im Bild, setzen sie zusammen um und schauen in die Kamera.' : 'Sie setzt sie um und schaut in die Kamera.'} Stimmung: ${stage}. Der Fotograf ist nicht im Bild.`, characters.filter(c => !c.isUser));
     if (my !== ps.token) return;
     if (res && res.dataUrl) {
       ps.shots.push(res.dataUrl); st.show(res.dataUrl);
@@ -17907,8 +18485,9 @@ function closePhotoshoot(toLive, quiet) {
   ps.active = false; ps.token++;
   const v = latestVersion(ps.fig);
   if (ps.st) ps.st.v.remove();
-  if (!quiet && ps.shots.length) addMsg('system', `📸 Fotoshooting mit ${v.name}: ${ps.shots.length} Fotos - alle in ihrer Galerie.`);
-  if (toLive) { stageToLive([ps.fig], `Nach dem Fotoshooting: Til und ${v.name} sind noch zusammen am Set (${ps.place}), die Kamera liegt beiseite.`); ps.backup = null; return; }
+  const who = ps.names || v.name;
+  if (!quiet && ps.shots.length) addMsg('system', `📸 Fotoshooting mit ${who}: ${ps.shots.length} Fotos - alle in der Galerie.`);
+  if (toLive) { stageToLive(ps.figs || [ps.fig], `Nach dem Fotoshooting: Til und ${who} sind noch zusammen am Set (${ps.place}), die Kamera liegt beiseite.`); ps.backup = null; return; }
   stageRestore(ps.backup); ps.backup = null;
 }
 
@@ -18129,7 +18708,7 @@ function renderPitches(P) {
   });
 }
 function playPitch(c) {
-  const meFig = figureArchive.find(x => (latestVersion(x) || {}).isUser);
+  const meFig = archiveMeFigure();
   switchMode('live');
   characters = [meFig ? characterFromVersion(meFig) : null, ...c.cast.map(n => figureByName(n)).filter(Boolean).map(f => characterFromVersion(f))].filter(Boolean);
   saveCharacters();
@@ -18210,7 +18789,7 @@ function renderHome() {
   const now = new Date();
   const h = now.getHours();
   const greet = h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : 'Guten Abend';
-  const me = characters.find(c => c.isUser) || figureArchive.map(f => latestVersion(f)).find(v => v && v.isUser);
+  const me = characters.find(c => c.isUser) || (archiveMeFigure() ? latestVersion(archiveMeFigure()) : null);
   els.homeWhen.textContent = now.toLocaleDateString('de-DE', { weekday: 'long' }) + ' · ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   els.homeHello.textContent = `${greet}${me ? ', ' + me.name.split(' ')[0] : ''}.`;
   els.homeHr.style.display = hr.connected && hr.bpm ? '' : 'none';
@@ -18776,6 +19355,7 @@ els.liveStartBtn.onclick = () => {
   els.liveSetupChip.style.display = '';
   prewarmFillers();
   try { updateAmbience(); } catch (e) {}
+  try { startMicSense(); } catch (e) {}
   if (!history.length) addMsg('system', 'Besetzung: ' + characters.map(c => c.name).join(', ') + '.');
   if (els.gameSelect.value) { startGame(els.gameSelect.value); return; }
   els.textInput.focus();
@@ -19809,7 +20389,10 @@ els.homeSurpriseBtn.onclick = rollSurprise;
   rm.oninput = rm.onchange = () => safeSet('companion_refModel', rm.value.trim()); }
 document.getElementById('homePitchBtn').onclick = () => openPitches(false);
 document.getElementById('homeRouletteBtn').onclick = () => openRoulette();
-document.getElementById('homePhotoBtn').onclick = () => openPhotoshoot();
+document.getElementById('homePhotoBtn').onclick = () => psChoose();
+[['recapFigure', 'Wessen Rückblick?'], ['liveAddFigure', 'Wer kommt dazu?'], ['liveNarrator', 'Erzähler'], ['storyAddFigure', 'Wer kommt dazu?'], ['storyNarrator', 'Erzähler']].forEach(([id, t]) => {
+  const s = document.getElementById(id); if (s) { s.dataset.pickTitle = t; enhanceFigureSelect(s); }
+});
 document.getElementById('homeSpeedBtn').onclick = () => openSpeedDating();
 document.getElementById('ptRefresh').onclick = () => openPitches(true);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
