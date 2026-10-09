@@ -1593,6 +1593,14 @@
         <button class="btn-secondary" id="importSettingsBtn">Wiederherstellen</button>
         <button class="btn-primary" id="importPortraitsBtn" type="button">Nur Porträts übernehmen</button>
       </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="importImagesBtn" type="button">🖼 Nur Bilder zurückholen</button>
+      </div>
+      <p class="hint">„Nur Bilder zurückholen" legt alle Bilder aus der Sicherung wieder in die Bild-Datenbank - Porträts in voller Größe und die ganze Galerie. Nichts anderes wird verändert, vorhandene Bilder werden nicht überschrieben. Danach werden die Vorschaubilder aus den Originalen neu erzeugt.</p>
+      <div class="btn-row">
+        <button class="btn-secondary" id="galleryCleanBtn" type="button">🧹 Fehlende Bilder aus der Galerie entfernen</button>
+      </div>
+      <p class="hint" id="galleryCleanInfo">Entfernt Galerie-Einträge, deren Bild nicht mehr da ist (schwarze Kacheln). Erst nach „Nur Bilder zurückholen" benutzen.</p>
       <p class="hint">„Wiederherstellen" ersetzt alles durch den Stand der Sicherung. „Nur Porträts übernehmen" holt aus einer älteren Sicherung nur die Porträts (in voller Größe) und Figuren, die es hier nicht mehr gibt - alles andere bleibt, wie es jetzt ist: Messdaten, Spiele, Galerie, Einstellungen, neue Figuren und Änderungen von heute.</p>
       <p class="hint" id="bkInfo">&nbsp;</p>
     </details>
@@ -3412,7 +3420,8 @@ els.importSettingsBtn.onclick = async () => {
   if (!file) { els.importSettingsBtn.dataset.mode = ''; setBackupInfo('Bitte zuerst die Sicherungsdatei auswählen.', true); return; }
   if (!password) { els.importSettingsBtn.dataset.mode = ''; setBackupInfo('Bitte das Kennwort der Sicherung eintragen.', true); return; }
   const portraitsOnly = els.importSettingsBtn.dataset.mode === 'portraits';
-  if (!confirm(portraitsOnly ? 'Aus der Sicherung nur die Porträts (und fehlende Figuren) übernehmen? Alles andere bleibt, wie es jetzt ist.' : 'Die Sicherung überschreibt vorhandene Einstellungen und Figuren. Fortfahren?')) { els.importSettingsBtn.dataset.mode = ''; return; }
+  const imagesOnly = els.importSettingsBtn.dataset.mode === 'images';
+  if (!confirm(imagesOnly ? 'Aus der Sicherung nur die Bilder zurückholen (Porträts und Galerie)? Alles andere bleibt, wie es jetzt ist.' : portraitsOnly ? 'Aus der Sicherung nur die Porträts (und fehlende Figuren) übernehmen? Alles andere bleibt, wie es jetzt ist.' : 'Die Sicherung überschreibt vorhandene Einstellungen und Figuren. Fortfahren?')) { els.importSettingsBtn.dataset.mode = ''; return; }
 
   els.importSettingsBtn.disabled = true;
   els.bkInfo.textContent = 'Entschlüssele...';
@@ -3429,6 +3438,14 @@ els.importSettingsBtn.onclick = async () => {
       throw e;
     }
     els.bkInfo.textContent = 'Stelle wieder her...';
+    if (els.importSettingsBtn.dataset.mode === 'images') {
+      els.importSettingsBtn.dataset.mode = '';
+      const msg = await mergeImagesFromBackup(bundle);
+      setBackupInfo(msg, true);
+      try { renderFigureList(); } catch (e) {}
+      els.importSettingsBtn.disabled = false;
+      return;
+    }
     if (els.importSettingsBtn.dataset.mode === 'portraits') {
       els.importSettingsBtn.dataset.mode = '';
       const msg = await mergePortraitsFromBackup(bundle);
@@ -3446,6 +3463,18 @@ els.importSettingsBtn.onclick = async () => {
   els.importSettingsBtn.disabled = false;
 };
 
+document.getElementById('importImagesBtn').onclick = () => { els.importSettingsBtn.dataset.mode = 'images'; els.importSettingsBtn.click(); };
+document.getElementById('galleryCleanBtn').onclick = async () => {
+  const info = document.getElementById('galleryCleanInfo');
+  const keys = new Set(await dbKeys(STORE_IMAGES).catch(() => []));
+  const list = galleryIndex();
+  const keep = list.filter(g => keys.has(g.key));
+  const gone = list.length - keep.length;
+  if (!gone) { info.textContent = 'Alle Galerie-Bilder sind da - nichts zu entfernen.'; return; }
+  if (!confirm(`${gone} von ${list.length} Galerie-Einträgen haben kein Bild mehr. Entfernen?`)) return;
+  saveGalleryIndex(keep);
+  info.textContent = `${gone} leere Einträge entfernt, ${keep.length} Bilder bleiben.`;
+};
 document.getElementById('importPortraitsBtn').onclick = () => { els.importSettingsBtn.dataset.mode = 'portraits'; els.importSettingsBtn.click(); };
 
 els.saveSettingsBtn.onclick = () => {
@@ -3563,8 +3592,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.23';
+const APP_VERSION = '2.24';
 const CHANGELOG = [
+  { v: '2.24', date: '2026-10-09', items: [
+    'Sicherung: „🖼 Nur Bilder zurückholen" legt Galerie und Porträt-Originale aus einer Sicherung zurück, ohne sonst etwas zu ändern, und macht die Vorschaubilder wieder scharf. „🧹 Fehlende Bilder aus der Galerie entfernen" räumt danach leere Kacheln weg.',
+    '„Protokoll kopieren" steht jetzt auch im Seitenmenü.'
+  ] },
   { v: '2.23', date: '2026-10-09', items: [
     'Als App installierbar: Mit den neuen Dateien neben index.html (manifest.webmanifest, sw.js, Symbole) bietet Chrome „App installieren" an. Eigenes Notiz-Symbol ohne Chrome-Abzeichen, öffnet ohne Adressleiste. Im Seitenmenü erscheint dafür auch „📲 Als App installieren".'
   ] },
@@ -4278,6 +4311,44 @@ async function readEncryptedBackup(buffer, password) {
 
 // Nur Porträts (und fehlende Figuren) aus einer Sicherung übernehmen - nichts
 // anderes wird angefasst, es entstehen keine neuen Versionen.
+// Nur die Bilder zurück: Galerie und Porträt-Originale in die Bild-Datenbank,
+// ohne Figuren, Einstellungen oder Messdaten anzufassen. Die Schlüssel in der
+// Sicherung sind dieselben, unter denen Galerie und Figuren sie suchen.
+async function mergeImagesFromBackup(bundle) {
+  const list = bundle.images || [];
+  if (!list.length) throw new Error('In dieser Sicherung sind keine Bilder - beim Erstellen war „Bilder" wohl nicht angehakt.');
+  const have = new Set(await dbKeys(STORE_IMAGES).catch(() => []));
+  let put = 0, skipped = 0;
+  for (const e of list) {
+    if (have.has(e.k)) { skipped++; continue; }
+    try { await dbPut(STORE_IMAGES, e.k, base64ToBlob(e.b, e.t)); put++; } catch (err) {}
+  }
+  hiResCache.clear();
+  // Vorschaubilder der Figuren aus den Originalen wieder scharf machen
+  // Nur die aktuelle Version je Figur, und nur so groß, dass der kleine
+  // Speicher nicht überläuft - die Karten laden ohnehin das Original nach.
+  let sharpened = 0; const undo = [];
+  for (const f of figureArchive) {
+    const v = latestVersion(f);
+    if (!v || !v.imageKey) continue;
+    const full = await dbGet(STORE_IMAGES, v.imageKey).catch(() => null);
+    if (!full) continue;
+    try {
+      const url = URL.createObjectURL(full);
+      const thumb = await shrinkDataUrl(url, 384, 0.84).catch(() => null);
+      URL.revokeObjectURL(url);
+      if (thumb && (!v.image || thumb.length > v.image.length * 1.15)) { undo.push([v, v.image]); v.image = thumb; sharpened++; }
+    } catch (e) {}
+  }
+  if (sharpened) { try { saveArchive(); } catch (e) { undo.forEach(([v, img]) => { v.image = img; }); sharpened = 0; } }
+  characters = characters.map(x => x.figureId && getFigure(x.figureId) ? characterFromVersion(getFigure(x.figureId), x.version, x.isUser) : x);
+  try { saveCharacters(); } catch (e) {}
+  const keys = new Set(await dbKeys(STORE_IMAGES).catch(() => []));
+  const gal = galleryIndex(); const galOk = gal.filter(g => keys.has(g.key)).length;
+  const port = figureArchive.flatMap(f => f.versions.filter(v => v.imageKey)); const portOk = port.filter(v => keys.has(v.imageKey)).length;
+  try { refreshStorageDiag(); } catch (e) {}
+  return `${put} Bilder zurückgeholt${skipped ? `, ${skipped} waren schon da` : ''}. Galerie: ${galOk} von ${gal.length} Bildern vorhanden. Porträts in voller Größe: ${portOk} von ${port.length}.${sharpened ? ` ${sharpened} Vorschaubilder neu erzeugt.` : ''}${galOk < gal.length ? ' Was jetzt noch fehlt, ist nach dieser Sicherung entstanden - „Fehlende Bilder aus der Galerie entfernen" räumt die leeren Kacheln weg.' : ''}`;
+}
 async function mergePortraitsFromBackup(bundle) {
   let oldArchive = [];
   try { oldArchive = JSON.parse((bundle.settings || {}).companion_figureArchive || '[]'); } catch (e) {}
@@ -21002,6 +21073,14 @@ window.addEventListener('popstate', () => {
 showHome();
 
 
+// Protokoll auch im Seitenmenü
+{
+  const it = document.createElement('button');
+  it.className = 'drawer-item'; it.id = 'navCopyLog';
+  it.innerHTML = '<span class="glyph">⧉</span><span>Protokoll kopieren<span class="sub">zum Einfügen im Chat</span></span>';
+  els.navSetup.parentNode.insertBefore(it, els.navSetup);
+  it.onclick = () => { els.copyLogBtn.click(); it.querySelector('.sub').textContent = '✓ kopiert'; setTimeout(() => { it.querySelector('.sub').textContent = 'zum Einfügen im Chat'; }, 2500); };
+}
 // ---------- Als App installieren ----------
 // Mit manifest.webmanifest, sw.js und den Symbolen im selben Ordner bietet
 // Chrome „App installieren" an: eigenes Notiz-Symbol ohne Chrome-Abzeichen,
