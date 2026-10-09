@@ -1311,7 +1311,10 @@
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Nachtruhe (gesperrt)</span>
         <select id="wellNight" style="flex:1;">
-          <option value="">keine</option><option value="23">23 bis 6 Uhr</option><option value="0">0 bis 6 Uhr</option><option value="1">1 bis 6 Uhr</option><option value="2">2 bis 6 Uhr</option>
+          <option value="">keine</option><option value="20">ab 20 Uhr</option><option value="21">ab 21 Uhr</option><option value="22">ab 22 Uhr</option><option value="23">ab 23 Uhr</option><option value="0">ab 0 Uhr</option><option value="1">ab 1 Uhr</option><option value="2">ab 2 Uhr</option>
+        </select>
+        <select id="wellNightEnd" style="flex:1;">
+          <option value="5">bis 5 Uhr</option><option value="6">bis 6 Uhr</option><option value="7">bis 7 Uhr</option><option value="8">bis 8 Uhr</option><option value="9">bis 9 Uhr</option><option value="10">bis 10 Uhr</option>
         </select>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
@@ -1319,6 +1322,11 @@
         <select id="wellFree" style="flex:1;">
           <option value="">keine</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option>
         </select>
+      </div>
+      <div style="margin:14px 0 0;">
+        <div style="font-size:13.5px; margin-bottom:6px;">📅 Freie Tage im Kalender (ganzer Tag gesperrt)</div>
+        <div id="wellCal" style="border:1px solid var(--line); border-radius:14px; padding:10px;"></div>
+        <p class="hint" style="margin-top:6px;">Tag antippen = markieren. Markieren gilt sofort; einen markierten Tag wieder freigeben geht nur, wenn er mindestens übermorgen ist - so lässt er sich nicht kurzfristig umgehen.</p>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Nach dem Höhepunkt</span>
@@ -1520,6 +1528,10 @@
       <button class="btn-secondary" id="homeFireBtn" type="button">🔥 Lagerfeuer</button>
     </div>
     <button class="btn-primary" id="homeRouletteBtn" type="button" style="width:100%; margin-top:10px; height:52px;">📹 Zufallsbegegnung</button>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn-secondary" id="homePhotoBtn" type="button">📸 Fotoshooting</button>
+      <button class="btn-secondary" id="homeSpeedBtn" type="button">⏱️ Speed-Dating</button>
+    </div>
     <div id="homeRecap" style="display:none; margin-top:16px; background:var(--bg-panel); border:1px solid var(--gold); border-radius:20px; padding:16px;">
       <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">🗓 Dein Wochen-Rückblick ist da</div>
       <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
@@ -3081,6 +3093,8 @@ function textModelNote(m) {
   notes.push(/uncensored|role-?play/i.test(m.id + ' ' + (spec.name || '')) || traits.includes('most_uncensored') ? 'unzensiert' : 'kann Explizites ablehnen');
   if (caps.supportsReasoning) notes.push('denkt vor');
   if (caps.supportsVision) notes.push('sieht Bilder');
+  if (spec.privacy === 'anonymized') notes.push('⚠ Fremdanbieter, speichert evtl.');
+  else if (spec.privacy === 'private') notes.push('🔒 privat');
   return notes.join(', ');
 }
 function videoModelNote(m) {
@@ -3429,8 +3443,37 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.04';
+const APP_VERSION = '2.10';
 const CHANGELOG = [
+  { v: '2.10', date: '2026-10-09', items: [
+    'Behoben: In der Zufallsbegegnung kamen versprochene Fotos („ich schick dir was …") oft nicht an. Zwei Gründe: Geprüft wurde nur bei ihren eigenen Wortmeldungen, nicht bei Antworten auf dich - und lief gerade ein anderes Bild, ging das Versprechen verloren. Jetzt wird jede Antwort geprüft, ein versprochenes Foto wartet notfalls kurz und kommt dann sicher - und wird gleich angezeigt, auch wenn du gerade blätterst. Die Erkennung versteht mehr Formulierungen („schau mal her", „hier, für dich", „ich zeig dir was").',
+    'Auch beim Speed-Dating kommen versprochene Fotos jetzt im Bild an.',
+  ]},
+  { v: '2.09', date: '2026-10-09', items: [
+    '📸 Fotoshooting (Startseite): Du bist der Fotograf. Anweisung tippen, sprechen oder einen Vorschlag antippen - sie reagiert (willig, frech, verhandelt) und es entsteht ein Foto an einem Ort, der zu ihr passt. Die Bilder werden mit der Zeit gewagter, unten läuft eine Filmleiste, alles landet in ihrer Galerie. 📸 = einfach abdrücken, ↻ = anderes Model, 💬 = weiter im Gespräch.',
+    '⏱️ Speed-Dating (Startseite): Fünf Figuren, je drei Minuten mit Countdown. Jede weiß, wer vor ihr da war, und will gewählt werden. ❤ merkt dir eine vor. Am Ende wählst du; die anderen kommentieren eifersüchtig oder großmütig, und mit Pulsgurt verrät die App, bei wem dein Herz am schnellsten schlug. Danach direkt ins Gespräch mit der Gewählten.',
+    'Gekommen wird jetzt immer gezählt (nicht erst nach der Bewertung) - mit den Figuren, die dabei waren, deinem Spitzenpuls und wie es dazu kam. Stufen aus deiner Bewertung: 🥇 golden, 🥈 silbern, 🥉 bronzen (unbewertet 💦). In der Figurenkarte steht, wie oft und mit welchen Stufen du bei ihr gekommen bist und wie hoch dein Puls ging.',
+    'Lagerfeuer: Du bist nicht mehr dabei, sondern hörst heimlich zu. Die Figuren reden über ihre Abende mit dir - wie oft, golden oder nicht, wie sie es gemacht haben, was dein Herzschlag verraten hat, wer dich am längsten im Videochat gehalten hat, was in ihren Tagebüchern steht. Sie dürfen prahlen, streiten, sich verbünden und Pläne für das nächste Mal schmieden - das merken sie sich.',
+    'Was am Lagerfeuer entsteht (Gedächtnis, Bündnisse, Rivalitäten), fließt jetzt auch in Geschichten ein - vorher nur ins Live-Gespräch.',
+    'Intimbereich der Ich-Figur: Ansicht für Ansicht (vorne, seitlich, von oben, erigiert …) - jedes Foto verfeinert eine genauere Beschreibung (30-45 Wörter statt Stichwörter). Fotos werden nicht gespeichert und gehen nur an private Modelle. Behoben: Vorher wurde von mehreren Fotos nur das letzte ausgewertet.',
+  ]},
+  { v: '2.08', date: '2026-10-09', items: [
+    'Bist du im Bild zu sehen (nicht bei Bildern aus deiner Sicht), geht dein eigenes Stamm-Bild als Vorlage mit - jetzt auch in Szenen mit nur einer Figur. Bist du nicht zu sehen, bleibt es weg.',
+    'Nackte Szenen mit dir: Dein Körper wird im Bild ausdrücklich männlich beschrieben - mit Penis und Hoden, samt deiner intimen Beschreibung aus der Ich-Figur, falls hinterlegt - und das Bildmodell bekommt ausdrücklich gesagt, was es nicht malen soll (weibliches Geschlecht bei dir, Mann ohne Penis). Vorher kamen solche Fehler vor.',
+  ]},
+  { v: '2.07', date: '2026-10-09', items: [
+    'Datenschutz: Bilder (Profilbilder, eigene Fotos) gehen beim Bildverstehen nur noch an Modelle, die Venice als „privat" führt (keine Speicherung). Claude, GPT, Gemini, Grok usw. laufen bei Fremdanbietern, die Anfragen womöglich speichern - die fallen aus der Ausweich-Kette raus. In den Modelllisten steht jetzt 🔒 privat bzw. ⚠ Fremdanbieter.',
+    'Ich-Figur aus eigenem Foto: Im Editor deiner Ich-Figur „📷 Mein Aussehen aus einem Foto von mir" - das Foto wird dein Profilbild und Stamm-Bild, dein Aussehen wird daraus beschrieben. Das Foto bleibt nur auf deinem Gerät.',
+    'Männliche Figuren: Beim Ableiten aus dem Bild, bei neuen Porträts über das Stamm-Bild und bei „Figur aus Bild" wird das Geschlecht jetzt mitgegeben - vorher stand fest „the woman in the reference image" drin, daher kamen bei dir Frauenbilder.',
+  ]},
+  { v: '2.06', date: '2026-10-09', items: [
+    'Gesunder Umgang: 📅 Kalender für freie Tage - einzelne Tage antippen, an denen die App ganz gesperrt ist. Markieren gilt sofort (heute mit Rückfrage), wieder freigeben nur für Tage ab übermorgen.',
+    'Nachtruhe mit frei wählbarem Anfang (20 bis 2 Uhr) und Ende (5 bis 10 Uhr). Geprüft: 23 bis 6 Uhr greift - die Sperre kommt beim Öffnen und spätestens 15 Sekunden nach Beginn, auch mitten in einer Szene (Gerät, Stimme und Musik halten an). Eine kürzere Nachtruhe gilt wie alle Lockerungen erst ab dem nächsten Tag.',
+  ]},
+  { v: '2.05', date: '2026-10-09', items: [
+    'Nach „Gekommen": Das Gerät hält jetzt sofort an und bleibt zweieinhalb Minuten still - vorher lief es einfach weiter, und eine Figur plante direkt danach sogar schnelles Pulsieren. Die Figuren wissen, dass du gerade gekommen bist, und gehen ins Nachglühen statt weiterzusteigern.',
+    'Hinhalten erreicht und du meldest „kurz davor": Die Figur bremst nicht mehr („lass dir Zeit", „ganz langsam"), sondern hält das Tempo oder steigert und bringt dich darüber - auch während eines Spiels wie Entdecken, dessen Testanweisung vorher gewann.',
+  ]},
   { v: '2.04', date: '2026-10-07', items: [
     'Behoben: Szenenbilder mit mehreren Vorlagen scheiterten bei langen Szenen („Prompt exceeds 1500 character limit") und fielen auf ein langsames Textbild zurück. Die festen Beschreibungen fliegen jetzt aus dem Szenentext (das Aussehen steckt ja in den Vorlagen), und alles bleibt unter der Grenze.',
     'Bilder werden nicht mehr bei jeder neuen Antwort mit abgebrochen - im laufenden Gespräch kamen sie sonst oft nie an. Eigene Frist von 90 Sekunden.',
@@ -7941,7 +7984,7 @@ function afterOrgasmPause() {
   addMsg('system', '🌿 Schön. Noch fünf Minuten zum Nachglühen, dann macht die App Pause' + (a === 'day' ? ' bis morgen.' : '.'));
 }
 function hrRecordEvent(type) {
-  if (type === 'came') { try { afterOrgasmPause(); } catch (e) {} }
+  if (type === 'came') { try { onCame(); } catch (e) {} try { afterOrgasmPause(); } catch (e) {} }
   try { hrLogEvent(type); } catch (e) {}
   if (!hr.connected || hr.history.length < 10) return;
   const now = Date.now();
@@ -8227,7 +8270,21 @@ function endEdge(reason) {
 }
 function edgeCapActive() { return edgingEnabled() && inDanger && !releaseAllowed(); }
 // Wird in applyState jedes Geräts angewendet - also auch auf Folgen und Marker.
+// Nach dem Kommen: Das Gerät hält still. Vorher lief es einfach weiter, und
+// eine Figur plante direkt danach sogar schnelles Pulsieren.
+let cameAt = 0;
+const AFTER_COME_MS = 150000;
+function afterComeActive() { return cameAt && Date.now() - cameAt < AFTER_COME_MS; }
+function onCame() {
+  cameAt = Date.now();
+  try { if (typeof endEdge === 'function') endEdge('gekommen'); } catch (e) {}
+  arousal = 0; inDanger = false;
+  [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} });
+  logEvent('msg', { role: 'system', text: `Gekommen - Gerät hält ${Math.round(AFTER_COME_MS / 60000 * 10) / 10} Minuten still.` });
+  try { updateArousalUI(); } catch (e) {}
+}
 function edgeCapRequest(req) {
+  if (req && afterComeActive() && req.texture !== 'stop') return { texture: 'stop' };
   if (!edgeCapActive() || !req) return req;
   const tex = req.texture || 'smooth';
   if (tex === 'stop' || tex === 'hold') return req;
@@ -8352,12 +8409,13 @@ function environmentBlock() {
 }
 
 function arousalBlock() {
+  if (afterComeActive()) return `\n\nTIL IST GERADE GEKOMMEN (vor ${Math.round((Date.now() - cameAt) / 1000)} Sekunden). Das hat Vorrang vor allem anderen, auch vor Spiel- und Testanweisungen: Jetzt ist Nachglühen - zärtlich, warm, stolz auf ihn, vielleicht ein Lachen oder ein Kuss. Keine Steigerung, kein neues Spiel, keine Bewegung des Geräts (es steht still, und das bleibt so, bis er von sich aus mehr will).`;
   if (!arousalEnabled()) return '';
   let t = `\n\nMEINE NÄHE ZUM HÖHEPUNKT (live von mir gemeldet): ${arousal}/100, ${arousalTrend()}. Höchster Wert bisher: ${arousalPeak}. Das ist die Wahrheit über meinen Zustand - richte Tempo und Intensität danach, sprich es aber nicht als Zahl aus.`;
   if (edgingEnabled()) {
     const goal = edgeGoal();
     if (releaseAllowed()) {
-      t += ` HINHALTEN - ZIEL ERREICHT: Du hast mich ${goal} Mal an die Kante gebracht und zurückgehalten. Jetzt erlaubst du es mir ausdrücklich, lobst mich, dass ich so lange durchgehalten habe, und bringst mich darüber.`;
+      t += ` HINHALTEN - ZIEL ERREICHT: Du hast mich ${goal} Mal an die Kante gebracht und zurückgehalten. Jetzt erlaubst du es mir ausdrücklich, lobst mich, dass ich so lange durchgehalten habe, und bringst mich darüber.${inDanger ? ' ICH BIN JETZT KURZ DAVOR - und darf. Nicht mehr bremsen, nicht „langsam", nicht „lass dir Zeit": Halte das Tempo oder steigere es und bring mich zum Kommen. Das gilt vor jeder anderen Anweisung, auch vor Spiel- oder Testanweisungen.' : ''}`;
     } else if (inDanger) {
       t += ` ICH BIN KURZ DAVOR (${edgeCount}. von ${goal} Mal): Du nimmst SOFORT zurück - hältst inne, wirst ganz langsam, neckst mich, verbietest mir zu kommen, lässt mich zappeln. Erwähne, wie oft ich schon kurz davor war. Erst wenn ich mich beruhigt habe, geht es wieder aufwärts.`;
     } else {
@@ -9445,8 +9503,15 @@ function scheduleOrgasmCard() {
     tempo: last.length ? Math.round(mean(last.map(r => r[3]))) : (device1.getState() || {}).bpm || null,
     peak: last.length ? Math.max(...last.map(r => r[1])) : (hr.bpm || null),
     cast: aiCharacters().filter(c => !c.isNarrator).map(c => c.name),
+    castIds: aiCharacters().filter(c => !c.isNarrator && c.figureId).map(c => c.figureId),
     game: game.running ? game.type : null,
+    // Wie es dazu kam - die letzten Zeilen der Figuren, für das Lagerfeuer
+    how: history.filter(m => m.role === 'assistant' && typeof m.content === 'string').slice(-2).map(m => m.content).join(' ').replace(/\s+/g, ' ').slice(-400),
   };
+  if (!ctx.peak) { try { ctx.peak = Math.max(...hr.history.filter(h => h.t > Date.now() - 120000).map(h => h.bpm)) || null; } catch (e) {} }
+  // Sofort zählen - auch ohne Bewertung
+  const list0 = orgasmLog(); list0.push(ctx); if (list0.length > 300) list0.splice(0, list0.length - 300);
+  safeSet('companion_orgasms', JSON.stringify(list0));
   orgasmCardTimer = setTimeout(() => showOrgasmCard(ctx), 90000);
 }
 function showOrgasmCard(ctx) {
@@ -9470,12 +9535,33 @@ function showOrgasmCard(ctx) {
   box.querySelector('#orgasmSkip').onclick = () => box.remove();
   box.querySelector('#orgasmSave').onclick = () => {
     const list = orgasmLog();
-    list.push(Object.assign({}, ctx, ans, { note: box.querySelector('#orgasmNote').value.trim().slice(0, 200) }));
+    const hit = list.find(o => o.t === ctx.t);
+    if (hit) Object.assign(hit, ans, { note: box.querySelector('#orgasmNote').value.trim().slice(0, 200) });
+    else list.push(Object.assign({}, ctx, ans, { note: box.querySelector('#orgasmNote').value.trim().slice(0, 200) }));
     if (list.length > 300) list.splice(0, list.length - 300);
     safeSet('companion_orgasms', JSON.stringify(list));
     logEvent('msg', { role: 'system', text: `Höhepunkt bewertet: Intensität ${ans.intensity || '?'}/4, Menge ${ans.amount || '?'}/3, Gefühl ${ans.feel || '?'}/3.` });
     box.remove();
   };
+}
+// Stufen: 🥇 golden, 🥈, 🥉 - aus Intensität, Gefühl und Menge. Unbewertet: 💦
+function orgasmScore(o) { return o.intensity ? o.intensity + (o.feel ? (o.feel - 1) * 0.75 : 0) + (o.amount ? (o.amount - 1) * 0.5 : 0) : null; }
+function orgasmMedal(o) { const s = orgasmScore(o); return s == null ? '💦' : s >= 5 ? '🥇' : s >= 3.25 ? '🥈' : '🥉'; }
+function orgasmTierName(o) { return { '🥇': 'golden', '🥈': 'silbern', '🥉': 'bronzen', '💦': 'unbewertet' }[orgasmMedal(o)]; }
+// Je Figur: wie oft, welche Stufen, höchster Puls, der beste Moment
+function figureComes(figure) {
+  const v = latestVersion(figure);
+  const list = orgasmLog().filter(o => (o.castIds || []).includes(figure.id) || (!(o.castIds || []).length && (o.cast || []).includes(v.name)));
+  const medals = { '🥇': 0, '🥈': 0, '🥉': 0, '💦': 0 };
+  list.forEach(o => medals[orgasmMedal(o)]++);
+  const peaks = list.map(o => o.peak).filter(Boolean);
+  const best = list.filter(o => o.intensity).sort((a, b) => orgasmScore(b) - orgasmScore(a))[0] || list[list.length - 1] || null;
+  return { n: list.length, medals, peak: peaks.length ? Math.max(...peaks) : null, best, list };
+}
+function comesBadge(figure) {
+  const C = figureComes(figure); if (!C.n) return '';
+  const m = ['🥇', '🥈', '🥉', '💦'].filter(k => C.medals[k]).map(k => `${k}${C.medals[k]}`).join(' ');
+  return `${C.n}× gekommen · ${m}${C.peak ? ` · Puls bis ${C.peak}` : ''}`;
 }
 // Was führt zu den besten Höhepunkten?
 function orgasmAnalysis() {
@@ -10550,7 +10636,7 @@ function versionFromCharacter(c, versionNumber) {
     appearance: c.appearance || '',
     voiceDescription: c.voiceDescription || '',
     userStyle: c.userStyle || '',
-    intimate: c.intimate || '',
+    intimate: c.intimate || '', intimateViews: Array.isArray(c.intimateViews) ? c.intimateViews.slice() : [],
     phantom: c.phantom && typeof c.phantom === 'object' ? Object.assign({}, c.phantom) : {},
     intimateFields: c.intimateFields && typeof c.intimateFields === 'object' ? Object.assign({}, c.intimateFields) : {},
     isNarrator: !!c.isNarrator,
@@ -11308,6 +11394,36 @@ function splitState(out) {
   return { prompt: String(out).slice(0, m.index).trim(), state: m[1].trim().slice(0, 400) };
 }
 
+// Bin ich (die Ich-Figur) im Bild zu sehen? Name oder eindeutig „Mann" im
+// Prompt; bei Ich-Perspektive (POV) ist mein Gesicht nicht im Bild.
+const POV_RE = /\bpov\b|point of view|first[- ]person|from his perspective|viewer's perspective/i;
+function meInScene(plain, me) {
+  if (!me) return false;
+  const t = String(plain || '');
+  if (POV_RE.test(t)) return false;
+  return t.toLowerCase().includes(String(me.name || '').toLowerCase()) || /\b(a|the|one)\s+(?:[\w-]+\s+){0,4}man\b/i.test(t) || (me.lookTag && t.includes(me.lookTag.slice(0, 40)));
+}
+// Nackte Szene mit mir: mein Körper wird ausdrücklich männlich beschrieben -
+// sonst malten Bildmodelle Männer ohne Penis oder mit weiblichem Geschlecht.
+const NUDE_RE = /\b(naked|nude|topless|undress|penis|cock|dick|erect|blowjob|fellatio|oral|sex|fuck|intercourse|penetrat|riding|straddl|cowgirl|doggy|missionary|handjob|stroking|cum|orgasm|genital)/i;
+function maleAnatomyLine(plain, cast) {
+  const me = (cast || characters).find(c => c.isUser);
+  if (!me || !/^m(ae|ä)nnlich/i.test(me.gender || 'maennlich') || !NUDE_RE.test(String(plain || ''))) return '';
+  const intim = typeof intimatePhrase === 'function' ? intimatePhrase(me) : '';
+  return ` ${me.name || 'The man'} is anatomically male: a penis and testicles${intim ? ' (' + intim + ')' : ''}, no female genitals; the women are anatomically female.`;
+}
+function maleAnatomyNegative(plain, cast) {
+  return maleAnatomyLine(plain, cast) ? ', vagina on the man, female genitals on a man, man without penis, futanari, intersex, extra penis on the woman' : '';
+}
+// Szene für Mehrfach-Vorlagen: feste Beschreibungen raus, unter 1500 Zeichen
+function sceneForRefs(plain, refs, people, extra) {
+  let scene = String(plain);
+  people.forEach(c => { if (c && c.lookTag) scene = scene.split(c.lookTag).join(c.name); });
+  scene = scene.replace(/\s+/g, ' ').trim();
+  const room = 1480 - multiReferencePrompt(refs, '').length - (extra || '').length;
+  if (scene.length > room) scene = scene.slice(0, room).replace(/[^.,;]*$/, '');
+  return scene + (extra || '');
+}
 async function makeSceneImage(momentText, castOverride) {
   // Genau eine Figur mit Porträt im Bild? Dann zuerst über die Vorlage versuchen.
   if (!makeSceneImage._noRef) {
@@ -11326,16 +11442,11 @@ async function makeSceneImage(momentText, castOverride) {
         // Ich-Figur mit Porträt kommt dazu, wenn Platz ist und ich im Bild vorkomme
         const me = (castOverride || characters).find(c => c.isUser);
         const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
-        const pov = /\bpov\b|point of view|first[- ]person|from his perspective|viewer's perspective/i.test(plain);
-        if (!pov && refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && String(plain).toLowerCase().includes(String(meV.name).toLowerCase())) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
+        if (refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && meInScene(plain, me)) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
         if (refs.every(r => r.url)) {
           // Aussehen steckt in den Vorlagen - die festen Beschreibungen fliegen aus der Szene,
           // und das Ganze bleibt unter Venices Grenze von 1500 Zeichen.
-          let scene = String(plain);
-          figs.concat(me ? [me] : []).forEach(c => { if (c.lookTag) scene = scene.split(c.lookTag).join(c.name); });
-          scene = scene.replace(/\s+/g, ' ').trim();
-          const room = 1480 - multiReferencePrompt(refs, '').length;
-          if (scene.length > room) scene = scene.slice(0, room).replace(/[^.,;]*$/, '');
+          const scene = sceneForRefs(plain, refs, figs.concat(me ? [me] : []), maleAnatomyLine(plain, castOverride));
           const url = await multiEditFromReferences(refs, multiReferencePrompt(refs, scene));
           logEvent('msg', { role: 'system', text: `Szenenbild über ${refs.length} Vorlagen (${refModel()}): ${refs.map(r => r.who.split(',')[0]).join(', ')}.` });
           try { setPadImage(url); } catch (e) {}
@@ -11352,7 +11463,18 @@ async function makeSceneImage(momentText, castOverride) {
         makeSceneImage._noRef = true;
         const plain = await makeSceneImage._promptOnly(momentText, castOverride);
         const ref = await loadFullImage(fv.anchorKey || fv.imageKey);
-        const url = await editFromReference(ref, referencePrompt(plain));
+        const me = (castOverride || characters).find(c => c.isUser);
+        const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
+        const meUrl = meV && (meV.anchorKey || meV.imageKey) && meInScene(plain, me) ? await loadFullImage(meV.anchorKey || meV.imageKey) : null;
+        let url;
+        if (meUrl) {
+          // Ich bin zu sehen: mein Bild geht als zweite Vorlage mit
+          const refs = [{ url: ref, who: `${fv.name}, a ${/männ/i.test(fv.gender || '') ? 'man' : 'woman'}` }, { url: meUrl, who: `${meV.name}, a man` }];
+          url = await multiEditFromReferences(refs, multiReferencePrompt(refs, sceneForRefs(plain, refs, [figs[0], me], maleAnatomyLine(plain, castOverride))));
+          logEvent('msg', { role: 'system', text: `Szenenbild über 2 Vorlagen (${refModel()}): ${fv.name}, ${meV.name}.` });
+        } else {
+          url = await editFromReference(ref, referencePrompt(plain.slice(0, 1150) + maleAnatomyLine(plain, castOverride), fv.gender));
+        }
         logEvent('msg', { role: 'system', text: `Szenenbild über Vorlage (${refModel()}).` });
         try { setPadImage(url); } catch (e) {}
         galleryAdd(url, 'image', [f.id], momentText ? 'Geschichte' : 'Szenenbild');
@@ -11388,6 +11510,8 @@ async function makeSceneImageText(momentText, castOverride) {
   if (!prompt) throw new Error('Die Bildbeschreibung wurde abgelehnt oder war leer - kein Bild erzeugt.');
   if (!/\badult/i.test(prompt)) prompt = 'Adults only. ' + prompt;
   prompt = withLookTags(prompt, castForTags).replace(/["„“”]/g, '');
+  const anatomy = maleAnatomyLine(prompt, castOverride);
+  if (anatomy && !prompt.includes(anatomy.trim().slice(0, 30))) prompt = prompt.slice(0, 1100) + anatomy;
   // Fantasiewesen in der Szene: ihre Hautfarbe wird ausdrücklich angehängt,
   // falls der Prompt sie verschluckt hat, und der Stil zieht nicht mehr zur
   // "natürlichen" Haut.
@@ -11413,7 +11537,7 @@ async function makeSceneImageText(momentText, castOverride) {
       prompt: prompt.slice(0, 1400),
       // Die Hautfarben-Sperre nur, wenn niemand Menschliches mitspielt - sonst
       // würde sie auch die menschlichen Figuren verfärben.
-      negative_prompt: 'child, teen, minor, young-looking, childlike, '
+      negative_prompt: 'child, teen, minor, young-looking, childlike, ' + maleAnatomyNegative(prompt, castOverride).replace(/^, /, '') + (maleAnatomyNegative(prompt, castOverride) ? ', ' : '')
         + negativeFor(alien.length > 0, alien.length === infos.length ? colors : [])
         // Steht im Prompt, dass jemand nackt ist, soll das Bildmodell nicht
         // aus Gewohnheit doch noch ein Oberteil malen.
@@ -11468,12 +11592,25 @@ async function makeSceneImageText(momentText, castOverride) {
 // Sagt eine Figur im Gespräch, dass sie ein Foto zeigt oder schickt, kommt
 // jetzt auch eins - vorher blieb es beim Versprechen.
 let promisedPhotoAt = 0;
+// „Ich schick dir was", „schau mal her", „hier, ein Foto für dich" …
+const PHOTO_PROMISE_RE = /\b(foto|fotos|bild|bilder|selfie|pic)\b|\b(zeig|schick|send)\w*\s+(dir|ich dir|es dir)\b|\b(schau|guck|sieh)\s+(mal\s+)?(her|hin|genau|das an|dir das)|\bhier(,)?\s+(für dich|bitte|schau)/i;
+function promisedPhotoLine(text) {
+  const lines = String(text).split('\n');
+  return lines.find(l => PHOTO_PROMISE_RE.test(l) && /(zeig|schick|send|schau|guck|sieh|hier|foto|bild|selfie)/i.test(l)) || '';
+}
 function maybeSendPromisedPhoto(text) {
-  if (typeof rl !== 'undefined' && rl.active) return;   // die Zufallsbegegnung macht das selbst
-  if (!apiKeyFor('companion_apiKey_venice') || Date.now() - promisedPhotoAt < 45000) return;
-  if (!/\b(foto|fotos|bild|selfie)\b/i.test(text) || !/\b(zeig|schick|sieh|schau|guck|hier ist|hier hast)/i.test(text)) return;
+  const line = promisedPhotoLine(text);
+  if (!line || !apiKeyFor('companion_apiKey_venice')) return;
+  if (typeof rl !== 'undefined' && rl.active) { rlPromisedPhoto(line); return; }
+  if (typeof spd !== 'undefined' && spd.active) {
+    const my = spd.token, f = spd.list[spd.i];
+    if (f) makeSceneImage(`Ein Foto, das ${latestVersion(f).name} Til gerade zeigt: ${line.slice(0, 300)}`, [characterFromVersion(f)]).then(r => { if (r && r.dataUrl && my === spd.token) spd.st.show(r.dataUrl); }).catch(() => {});
+    return;
+  }
+  if (typeof ps !== 'undefined' && ps.active) return;   // im Fotoshooting entsteht ohnehin zu jeder Anweisung ein Foto
+  if (Date.now() - promisedPhotoAt < 45000) return;
+  text = line;
   promisedPhotoAt = Date.now();
-  const line = String(text).split('\n').find(l => /\b(foto|bild|selfie)\b/i.test(l)) || text;
   (async () => {
     try {
       const res = await makeSceneImage(`Ein Foto, das sie Til gerade zeigt: ${line.slice(0, 300)}`);
@@ -12015,7 +12152,7 @@ async function generateCharacterImage(c, button) {
     try {
       const ref = await loadFullImage(c.anchorKey);
       if (ref) {
-        const full = await editFromReference(ref, referencePrompt('a new waist-up portrait photo, looking into the camera, soft natural light, ' + (c.lookTag || '')));
+        const full = await editFromReference(ref, referencePrompt('a new waist-up portrait photo, looking into the camera, soft natural light, ' + (c.lookTag || ''), c.gender));
         c.image = await downscaleDataUrl(full, 512);
         c.imageKey = await storeFullImage(c.id + '_' + Date.now(), full);
         c.variantKey = c.imageKey;   // Abwandlung - Stamm-Bild bleibt, kein neues Ableiten
@@ -12551,7 +12688,7 @@ function renderCharacters() {
       const expandBtn = document.createElement('button');
       expandBtn.className = 'btn-secondary';
       expandBtn.type = 'button';
-      const fromPic = () => !!c.imageKey && !c.isUser;
+      const fromPic = () => !!c.imageKey;
       const label = () => fromPic() ? '🖼️ Aussehen aus Profilbild ableiten' : '✨ Aussehen ausarbeiten';
       expandBtn.textContent = label();
       expandBtn.style.marginTop = '6px';
@@ -12599,6 +12736,33 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
         }
       };
       card.appendChild(expandBtn);
+      // Ich-Figur: eigenes Foto als Profilbild - daraus wird dein Aussehen
+      if (c.isUser) {
+        const meBtn = document.createElement('button');
+        meBtn.className = 'btn-secondary'; meBtn.type = 'button';
+        meBtn.textContent = '📷 Mein Aussehen aus einem Foto von mir';
+        meBtn.style.marginTop = '6px';
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+        meBtn.onclick = () => inp.click();
+        inp.onchange = async () => {
+          const file = inp.files && inp.files[0]; inp.value = '';
+          if (!file) return;
+          if (!c.gender || c.gender === 'offen') { c.gender = 'maennlich'; addMsg('system', 'Geschlecht deiner Ich-Figur auf „männlich" gesetzt - sonst malen Bildmodelle gern Frauen.'); }
+          meBtn.disabled = true; meBtn.textContent = 'Lese dein Foto …';
+          try {
+            const full = await readImageFile(file, 1600);
+            c.image = await downscaleDataUrl(full, 512);
+            c.imageKey = await storeFullImage((c.figureId || c.id) + '_me_' + Date.now(), full);
+            await applyLookFromPortrait(c);
+            lookArea.value = c.appearance;
+            storeCharacterVersion(c, false); syncCastFromEdit(c);
+            addMsg('system', 'Dein Foto ist jetzt dein Profilbild und Stamm-Bild; dein Aussehen wurde daraus beschrieben. Das Foto bleibt nur in dieser App auf deinem Gerät.');
+            renderCharacters();
+          } catch (e) { addMsg('system', 'Foto ging nicht: ' + e.message); }
+          finally { meBtn.disabled = false; meBtn.textContent = '📷 Mein Aussehen aus einem Foto von mir'; }
+        };
+        card.appendChild(meBtn); card.appendChild(inp);
+      }
     }
     const lookHint = document.createElement('p');
     lookHint.className = 'hint';
@@ -12638,10 +12802,16 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       inRow.className = 'btn-row';
       const inBtn = document.createElement('button');
       inBtn.type = 'button'; inBtn.className = 'btn-secondary';
-      inBtn.textContent = '📷 Aus Fotos beschreiben lassen (bis zu 4 Ansichten)';
+      const views = Array.isArray(c.intimateViews) ? c.intimateViews : [];
+      const viewSel = document.createElement('select');
+      viewSel.style.cssText = 'flex:0 0 auto; width:auto;';
+      [['vorne', 'von vorne'], ['seitlich', 'seitlich'], ['oben', 'von oben (deine Sicht)'], ['erigiert vorne', 'erigiert, von vorne'], ['erigiert seitlich', 'erigiert, seitlich']].forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l + (views.includes(v) ? ' ✓' : ''); viewSel.appendChild(o); });
+      const nextView = ['vorne', 'seitlich', 'oben', 'erigiert vorne', 'erigiert seitlich'].find(v => !views.includes(v)); if (nextView) viewSel.value = nextView;
+      inBtn.textContent = views.length ? `📷 Weitere Ansicht hinzufügen (${views.length} bisher)` : '📷 Ansicht hinzufügen - Schritt für Schritt genauer';
       const inFile = document.createElement('input');
-      inFile.type = 'file'; inFile.accept = 'image/*'; inFile.multiple = true; inFile.style.display = 'none';
+      inFile.type = 'file'; inFile.accept = 'image/*'; inFile.style.display = 'none';
       inBtn.onclick = () => inFile.click();
+      inRow.appendChild(viewSel);
       inFile.onchange = async () => {
         if (!inFile.files.length) return;
         inBtn.disabled = true; inBtn.textContent = 'Schaue …';
@@ -12653,7 +12823,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       card.appendChild(inRow);
       const inHint = document.createElement('p');
       inHint.className = 'hint';
-      inHint.textContent = 'Das Foto wird nicht gespeichert - es geht einmal an deinen KI-Anbieter, gespeichert wird nur die Beschreibung. Erst „Speichern" unten übernimmt sie.';
+      inHint.textContent = 'Eine Ansicht nach der anderen: Jedes Foto verfeinert die Beschreibung (die Seitenansicht klärt z. B. Krümmung und Proportionen). Das Foto wird nicht gespeichert und geht nur einmal an ein privates Modell; gespeichert wird nur die Beschreibung. Erst „Sichern" übernimmt sie.';
       card.appendChild(inHint);
       // Phantombild: feste Merkmale - genauer als der Freitext
       const ph = document.createElement('details');
@@ -12666,14 +12836,18 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       card.appendChild(ph);
       inFile.onchange = async () => {
         if (!inFile.files.length) return;
-        inBtn.disabled = true; inBtn.textContent = 'Schaue …';
+        const view = viewSel.value;
+        inBtn.disabled = true; inBtn.textContent = 'Schaue mir die Ansicht an …';
         try {
-          const imgs = [];
-          for (const f of [...inFile.files].slice(0, 4)) imgs.push(await readImageFile(f, 800));
-          c.intimateFields = await phantomFromImage(imgs, INTIM_FIELDS, 'private Fotos des Intimbereichs eines erwachsenen Mannes, von ihm selbst hochgeladen');
-          inta.value = intimatePhrase(c); c.intimate = inta.value;
-          ph.replaceChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd), ph.children[1]); ph.open = true; upd();
-          inBtn.textContent = `✓ ${imgs.length} Ansicht${imgs.length > 1 ? 'en' : ''} ausgewertet - bitte prüfen und speichern`;
+          const img = await readImageFile(inFile.files[0], 900);
+          const r = await refineIntimate(img, view, c);
+          c.intimate = r.text; inta.value = r.text;
+          if (r.fields && Object.keys(r.fields).length) c.intimateFields = Object.assign({}, c.intimateFields || {}, r.fields);
+          c.intimateViews = [...new Set((c.intimateViews || []).concat(view))];
+          ph.replaceChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd), ph.children[1]); upd();
+          inBtn.textContent = `✓ Ansicht „${view}" eingearbeitet (${c.intimateViews.length} insgesamt) - noch eine? Sonst „Sichern".`;
+          [...viewSel.options].forEach(o => { if (c.intimateViews.includes(o.value) && !/✓$/.test(o.textContent)) o.textContent += ' ✓'; });
+          const nv = [...viewSel.options].find(o => !c.intimateViews.includes(o.value)); if (nv) viewSel.value = nv.value;
         } catch (e) { inBtn.textContent = 'Fehlgeschlagen: ' + (e.message || e).slice(0, 80); }
         finally { inBtn.disabled = false; inFile.value = ''; }
       };
@@ -15759,16 +15933,25 @@ function visionRanked() {
     ['google-gemma-3-27b-it', 'sieht Bilder, lehnt Akt evtl. ab'],
   ];
 }
+// Datenschutz: Bilder (Porträts, eigene Fotos) gehen nur an Modelle, die Venice
+// als „private" führt (keine Speicherung). „anonymized" (Claude, GPT, Gemini,
+// Grok …) läuft bei Fremdanbietern, die Anfragen womöglich speichern.
+function modelIsPrivate(id) {
+  const m = (typeof veniceModelCache !== 'undefined' ? veniceModelCache : []).find(x => x.id === id);
+  const p = m && m.model_spec && m.model_spec.privacy;
+  if (p) return p === 'private';
+  return !/claude|gpt|openai|gemini|grok|kimi|minimax/i.test(id);
+}
 function visionCandidates() {
   const cache = typeof veniceModelCache !== 'undefined' ? veniceModelCache : [];
-  const seen = cache.filter(m => ((m.model_spec || {}).capabilities || {}).supportsVision).map(m => m.id);
+  const seen = cache.filter(m => ((m.model_spec || {}).capabilities || {}).supportsVision && modelIsPrivate(m.id)).map(m => m.id);
   const closed = /claude|gpt|openai|gemini|grok/i;
   const out = [];
   const add = id => { if (id && !out.includes(id)) out.push(id); };
-  add(taskModelName('vision'));
-  visionRanked().forEach(([id]) => { if (!seen.length || seen.includes(id)) add(id); });
+  const own = taskModelName('vision');
+  if (own && modelIsPrivate(own)) add(own);
+  visionRanked().forEach(([id]) => { if ((!seen.length && modelIsPrivate(id)) || seen.includes(id)) add(id); });
   seen.filter(id => !closed.test(id)).forEach(add);
-  seen.filter(id => closed.test(id)).forEach(add);
   return out;
 }
 // ======================= AUSSEHEN AUS DEM PROFILBILD =======================
@@ -15779,7 +15962,8 @@ function visionCandidates() {
 // Szenenbilder entstehen danach als Abwandlung genau dieses Bildes.
 async function deriveLookFromImage(img, oldAppearance, gender) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  const sys = `Du siehst das Profilbild einer erwachsenen Figur aus einem Rollenspiel (KI-Bild). Beschreibe ihr Aussehen NUR nach dem, was auf dem Bild zu sehen ist - so genau, dass ein Bildmodell dieselbe Person wieder malt. Nichts erfinden: keine Tattoos, Piercings, Narben oder Schmuck, die nicht zu sehen sind. Haarfarbe und Augenfarbe exakt im sichtbaren Farbton. Fantasie-Merkmale (spitze Ohren, Hautfarbe, Hörner) unbedingt nennen. Das Alter ist das scheinbare (mindestens 25).
+  const male = /^m(ae|ä)nnlich/i.test(String(gender || ''));
+  const sys = (`Du siehst das Profilbild einer erwachsenen Figur aus einem Rollenspiel (KI-Bild oder eigenes Foto).${gender && gender !== 'offen' ? ' Geschlecht: ' + (male ? 'Mann' : 'Frau') + '.' : ''} Beschreibe ihr Aussehen NUR nach dem, was auf dem Bild zu sehen ist - so genau, dass ein Bildmodell dieselbe Person wieder malt. Nichts erfinden: keine Tattoos, Piercings, Narben oder Schmuck, die nicht zu sehen sind. Haarfarbe und Augenfarbe exakt im sichtbaren Farbton. Fantasie-Merkmale (spitze Ohren, Hautfarbe, Hörner) unbedingt nennen. Das Alter ist das scheinbare (mindestens 25).
 Ist sie nackt, schreibe bei Kleidung: nackt. Ist die Größe nicht abzuschätzen, lass die cm weg.
 Antworte GENAU in diesem Format:
 === AUSSEHEN ===
@@ -15790,12 +15974,12 @@ Gesicht: (Form, Wangenknochen, Kinn, Nase, Lippen, Brauen, Make-up)
 Augen: (Form, Farbe, Pupillen, Wimpern)
 Haut: (Ton, Besonderheiten mit Stelle oder "makellos")
 Statur: (Größe in cm, Körperbau)
-Körper: (Brust: Größe und Form, Taille, Hüfte, Po, Beine)
+Körper: ${male ? '(Brustkorb, Schultern, Arme, Bauch, Behaarung, Beine)' : '(Brust: Größe und Form, Taille, Hüfte, Po, Beine)'}
 Kleidung: ...
 Auffällig: ...
 === BILD ===
-(englisch, 60 bis 90 Wörter, kommagetrennt, nur feste sichtbare Merkmale in dieser Reihenfolge: Art und Herkunftstyp mit scheinbarem Alter wie "adult 25-year-old Nordic elf woman with long pointed elf ears", Gesichtsform, Wangenknochen, Kinn, Augen mit Farbe, Brauen, Nase, Lippen, Haare mit exaktem Farbton, Länge, Frisur, Haut, Statur, Brust, Taille, Hüfte; KEINE Kleidung, Pose, Ort)
-=== ENDE ===`;
+(englisch, 60 bis 90 Wörter, kommagetrennt, nur feste sichtbare Merkmale in dieser Reihenfolge: Art und Herkunftstyp mit scheinbarem Alter wie ${male ? '"adult 34-year-old Central European man"' : '"adult 25-year-old Nordic elf woman with long pointed elf ears"'}, Gesichtsform, Wangenknochen, Kinn${male ? ', Bart' : ''}, Augen mit Farbe, Brauen, Nase, Lippen, Haare mit exaktem Farbton, Länge, Frisur, Haut, Statur, ${male ? 'Brustkorb, Schultern, Körperbehaarung' : 'Brust, Taille, Hüfte'}; KEINE Kleidung, Pose, Ort)
+=== ENDE ===`).replace(/Ist sie nackt/g, male ? 'Ist er nackt' : 'Ist sie nackt');
   // Nacheinander mehrere bildverstehende Modelle versuchen - manche lehnen ein
   // Aktbild ab oder halten das Format nicht ein.
   const tried = [];
@@ -15885,7 +16069,7 @@ async function applyLookFromPortrait(c) {
   c.anchorKey = c.imageKey;
   if (r.lookTag && r.lookTag.split(/\s+/).length >= 25) { c.lookTag = r.lookTag; c.lookTagSrc = 'r2:' + appearanceHash(r.appearance); }
   else { c.lookTag = ''; c.lookTagSrc = ''; }
-  try { c.phantom = await phantomFromImage(img, PHANTOM_FIELDS, 'Profilbild der Figur'); } catch (e) {}
+  if (!c.isUser) { try { c.phantom = await phantomFromImage(img, PHANTOM_FIELDS, 'Profilbild der Figur'); } catch (e) {} }
   const fig = c.figureId ? getFigure(c.figureId) : null;
   if (fig) { fig.seed = 1 + Math.floor(Math.random() * 999999998); try { saveArchive(); } catch (e) {} }
   addMsg('system', `${c.name}: Aus dem Profilbild erkannt (${deriveLookFromImage.lastModel || taskModelName('vision')}) - ${(r.appearance.match(/^Haare:.*$/m) || [''])[0]} · ${(r.appearance.match(/^Augen:.*$/m) || [''])[0]}`);
@@ -15919,12 +16103,13 @@ async function deriveFigureFromPortrait(figure) {
 }
 function anchorOf(v) { return v && (v.anchorKey || '') ; }
 
-const OBSERVE_KEYS = ['bildart', 'art', 'ohren', 'haarfarbe', 'haarlaenge', 'frisur', 'augenfarbe', 'pupillen', 'gesicht', 'haut', 'statur', 'brust', 'huefte', 'kleidung', 'tattoos', 'piercings', 'schmuck', 'besonderheiten', 'wirkt_alter'];
+const OBSERVE_KEYS = ['bildart', 'geschlecht', 'art', 'ohren', 'haarfarbe', 'haarlaenge', 'frisur', 'augenfarbe', 'pupillen', 'gesicht', 'haut', 'statur', 'brust', 'huefte', 'kleidung', 'tattoos', 'piercings', 'schmuck', 'besonderheiten', 'wirkt_alter'];
 async function observeImage(img) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Beschreibe NUR, was auf diesem Bild wirklich zu sehen ist - nichts ergänzen, nichts erfinden, nichts aus Fantasie oder Romanen dazudenken. Ist etwas nicht zu sehen, schreibe "nicht sichtbar"; trägt die Person nichts, schreibe bei kleidung "nackt"; gibt es keine Tattoos/Piercings/Schmuck, schreibe "keine".
 Felder (deutsch, knapp, präzise):
 "bildart": "zeichnung" | "ki-bild" | "echtes foto"  (Fantasiewesen wie Elfen = "ki-bild" oder "zeichnung")
+"geschlecht": "weiblich" | "männlich"
 "art": z. B. "Mensch" oder "Elfe" (nur nach sichtbaren Merkmalen wie spitzen Ohren)
 "ohren", "haarfarbe" (genau, z. B. "hellblond, fast platin"), "haarlaenge", "frisur", "augenfarbe", "pupillen" (rund oder geschlitzt), "gesicht", "haut", "statur", "brust", "huefte", "kleidung", "tattoos", "piercings", "schmuck", "besonderheiten", "wirkt_alter" (Zahl)
 Antworte NUR als JSON-Objekt.`;
@@ -15989,7 +16174,7 @@ Regeln: Haarfarbe, Augenfarbe, Pupillen, Art und Körperbau exakt wie beobachtet
 Antworte NUR in diesem Format (deutsch):
 === FIGUR ===
 Name der Figur: ...
-Geschlecht: weiblich oder männlich
+Geschlecht: ${/männ|mann|male/i.test(o.geschlecht || '') ? 'männlich' : 'weiblich'}
 Aussehen:
 Art: ...
 Alter: ...
@@ -16029,7 +16214,8 @@ Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang
         // weiteren Bilder (Portfolio, Szenen) nehmen es als Vorlage.
         let full = await readImageFile(file, 1600);
         if (isDrawing) {
-          try { full = await editFromReference(full, referencePrompt('a photorealistic photo of this exact person as a real adult woman, same hair colour, same eye colour, same face and body, natural light, waist-up')); portraitNote = ' Ihr Porträt ist eine fotorealistische Umsetzung deiner Zeichnung.'; }
+          const isMan = /männ|mann|male/i.test(o.geschlecht || '');
+          try { full = await editFromReference(full, referencePrompt(`a photorealistic photo of this exact person as a real adult ${isMan ? 'man' : 'woman'}, same hair colour, same eye colour, same face and body, natural light, waist-up`, isMan ? 'maennlich' : 'weiblich')); portraitNote = ' Ihr Porträt ist eine fotorealistische Umsetzung deiner Zeichnung.'; }
           catch (e) { portraitNote = ' (Fotorealistische Umsetzung misslang: ' + e.message + ' - die Zeichnung ist vorerst ihr Bild.)'; }
         } else portraitNote = ' Dein Bild ist ihr Porträt und die Vorlage für alle weiteren Bilder.';
         v.image = await downscaleDataUrl(full, 512);
@@ -16077,9 +16263,62 @@ function wellCfg() {
   if (p && p.from <= dayKey()) { c = Object.assign(c, p.cfg); safeSet('companion_well', JSON.stringify(c)); localStorage.removeItem('companion_wellPending'); }
   return { limit: +c.limit || 0, break: +c.break || 0, night: c.night === undefined ? '' : String(c.night), free: c.free === undefined ? '' : String(c.free), after: c.after === undefined ? '0' : String(c.after) };
 }
+// Nachtruhe: „23" (alt, bis 6 Uhr) oder „23-6"; Ende frei wählbar
+function nightWindow(v) {
+  if (v === '' || v == null) return null;
+  const [a, b] = String(v).split('-');
+  return { from: +a, to: b === undefined ? 6 : +b };
+}
+function nightHours(v) { const w = nightWindow(v); if (!w) return 0; return (w.to - w.from + 24) % 24 || 24; }
+function inNight(v, h) { const w = nightWindow(v); if (!w) return false; return w.from <= w.to ? (h >= w.from && h < w.to) : (h >= w.from || h < w.to); }
+// Kalender: einzelne gesperrte Tage (Tageswechsel um 5 Uhr wie überall)
+function wellDays() { try { return JSON.parse(localStorage.getItem('companion_wellDays') || '[]'); } catch (e) { return []; } }
+function toggleWellDay(k) {
+  const d = new Set(wellDays());
+  if (d.has(k)) {
+    const minFree = dayKey(new Date(Date.now() + 2 * 86400000));
+    if (k < minFree) { alert('Diesen Tag kannst du nicht mehr freigeben - nur Tage ab übermorgen. So lässt er sich nicht kurzfristig umgehen.'); return; }
+    d.delete(k);
+  } else {
+    if (k === dayKey() && !confirm('Heute sperren? Die App ist dann sofort bis morgen früh (5 Uhr) zu.')) return;
+    d.add(k);
+  }
+  const today = dayKey();
+  safeSet('companion_wellDays', JSON.stringify([...d].filter(x => x >= today).sort()));
+  renderWellCal();
+  try { const r = blockedReason(); if (r) showLimitScreen(r); } catch (e) {}
+}
+let wellCalMonth = null;
+function renderWellCal() {
+  const host = document.getElementById('wellCal'); if (!host) return;
+  const now = new Date();
+  if (!wellCalMonth) wellCalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const y = wellCalMonth.getFullYear(), m = wellCalMonth.getMonth();
+  const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+  const offset = (first.getDay() + 6) % 7;   // Montag zuerst
+  const marked = new Set(wellDays()), today = dayKey();
+  let cells = '';
+  for (let i = 0; i < offset; i++) cells += '<span></span>';
+  for (let d = 1; d <= days; d++) {
+    const k = dayKey(new Date(y, m, d, 12));
+    const past = k < today, on = marked.has(k), isToday = k === today;
+    cells += `<button type="button" data-k="${k}" ${past ? 'disabled' : ''} style="height:38px; padding:0; border-radius:10px; font-size:13.5px; border:${isToday ? '2px solid var(--gold)' : '1px solid var(--line)'}; background:${on ? 'var(--accent)' : 'transparent'}; color:${on ? '#fff' : past ? 'var(--text-dim)' : 'var(--text)'}; opacity:${past ? 0.4 : 1};">${d}</button>`;
+  }
+  const n = [...marked].length;
+  host.innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <button type="button" id="wcPrev" class="btn-secondary" style="width:38px; height:34px; padding:0;">‹</button>
+      <span style="font-size:14px; font-weight:600;">${first.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
+      <button type="button" id="wcNext" class="btn-secondary" style="width:38px; height:34px; padding:0;">›</button></div>
+    <div style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; text-align:center; font-size:11px; color:var(--text-dim); margin-bottom:4px;">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(x => `<span>${x}</span>`).join('')}</div>
+    <div style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px;">${cells}</div>
+    <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">${n ? n + ' Tag' + (n === 1 ? '' : 'e') + ' markiert' : 'Noch keine Tage markiert.'}</div>`;
+  host.querySelector('#wcPrev').onclick = () => { const p = new Date(y, m - 1, 1); if (p >= new Date(now.getFullYear(), now.getMonth(), 1)) { wellCalMonth = p; renderWellCal(); } };
+  host.querySelector('#wcNext').onclick = () => { wellCalMonth = new Date(y, m + 1, 1); renderWellCal(); };
+  host.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => toggleWellDay(b.dataset.k); });
+}
 function stricter(key, a, b) {   // ist b strenger als a?
   if (key === 'limit' || key === 'break') return (b > 0 && (a === 0 || b < a));
-  if (key === 'night') { if (b === '') return false; if (a === '') return true; const h = x => (+x === 23 ? -1 : +x); return h(b) < h(a); }
+  if (key === 'night') { if (b === '') return false; if (a === '') return true; return nightHours(b) > nightHours(a); }
   if (key === 'free') return b !== '' && a === '';
   if (key === 'after') { const r = x => x === 'day' ? 9999 : +x; return r(b) > r(a); }
   return false;
@@ -16105,7 +16344,8 @@ function blockedReason() {
   const c = wellCfg(), now = new Date(), h = now.getHours();
   const pu = +(localStorage.getItem('companion_pauseUntil') || 0);
   if (pu > now.getTime()) return { title: 'Erst mal Pause.', text: `Nach dem Höhepunkt ist hier ${c.after === 'day' ? 'für heute' : 'eine Weile'} zu - so hast du es dir eingerichtet. Wieder offen ab ${new Date(pu).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr${new Date(pu).toDateString() !== now.toDateString() ? ' morgen' : ''}.` };
-  if (c.night !== '') { const from = +c.night; const inNight = from === 23 ? (h >= 23 || h < 6) : (h >= from && h < 6); if (inNight) return { title: 'Nachtruhe.', text: `Zwischen ${from === 23 ? 23 : from} und 6 Uhr ist hier zu. Schlaf gut.` }; }
+  if (c.night !== '' && inNight(c.night, h)) { const w = nightWindow(c.night); return { title: 'Nachtruhe.', text: `Zwischen ${w.from} und ${w.to} Uhr ist hier zu. Schlaf gut.` }; }
+  if (wellDays().includes(dayKey())) return { title: 'Heute ist ein freier Tag.', text: 'Du hast dir diesen Tag im Kalender freigenommen. Morgen ab 5 Uhr ist wieder offen.' };
   const wd = new Date(now.getTime() - 5 * 3600000).getDay();
   if (c.free !== '' && +c.free === wd) return { title: 'Heute ist dein freier Tag.', text: 'Einmal pro Woche ist hier zu - das hast du dir selbst so eingerichtet.' };
   if (c.limit && usageToday() >= c.limit * 60) return { title: 'Für heute ist Schluss.', text: `Du warst heute ${Math.round(usageToday() / 60)} Minuten hier - dein Limit sind ${c.limit}. Morgen ab 5 Uhr geht es weiter.` };
@@ -16164,11 +16404,14 @@ function wellBlock() {
 }
 function renderWell() {
   const c = wellCfg();
-  els.wellLimit.value = String(c.limit); els.wellBreak.value = String(c.break); els.wellNight.value = c.night; els.wellFree.value = c.free; els.wellAfter.value = c.after;
+  const nw = nightWindow(c.night);
+  els.wellLimit.value = String(c.limit); els.wellBreak.value = String(c.break); els.wellNight.value = nw ? String(nw.from) : ''; els.wellFree.value = c.free; els.wellAfter.value = c.after;
+  const ne = document.getElementById('wellNightEnd'); if (ne) { ne.value = String(nw ? nw.to : 6); ne.disabled = !nw; }
+  renderWellCal();
   const t = Math.round(usageToday() / 60);
   els.wellStatus.textContent = `Heute: ${t} Minuten${c.limit ? ' von ' + c.limit : ''}.`;
   let p = null; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
-  const lbl = { after: v => 'nach dem Höhepunkt ' + (v === '0' ? 'weiter' : v === 'day' ? 'Feierabend' : v + ' min Pause'), limit: v => 'Tageslimit ' + (v ? v + ' min' : 'aus'), break: v => 'Pause ' + (v ? v + ' min' : 'aus'), night: v => 'Nachtruhe ' + (v === '' ? 'aus' : 'ab ' + v + ' Uhr'), free: v => 'freier Tag ' + (v === '' ? 'aus' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][+v]) };
+  const lbl = { after: v => 'nach dem Höhepunkt ' + (v === '0' ? 'weiter' : v === 'day' ? 'Feierabend' : v + ' min Pause'), limit: v => 'Tageslimit ' + (v ? v + ' min' : 'aus'), break: v => 'Pause ' + (v ? v + ' min' : 'aus'), night: v => { const w = nightWindow(v); return 'Nachtruhe ' + (w ? w.from + '-' + w.to + ' Uhr' : 'aus'); }, free: v => 'freier Tag ' + (v === '' ? 'aus' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][+v]) };
   els.wellPending.textContent = p && Object.keys(p.cfg).length ? 'Ab morgen: ' + Object.entries(p.cfg).map(([k, v]) => lbl[k](v)).join(', ') + '.' : '';
 }
 function usageSection() {
@@ -16245,8 +16488,24 @@ function campfirePrompt() {
   const rel = [];
   for (let i = 0; i < cf.cast.length; i++) for (let j = i + 1; j < cf.cast.length; j++) { const r = R[relKey(cf.cast[i].name, cf.cast[j].name)]; if (r) rel.push(`${cf.cast[i].name} und ${cf.cast[j].name}: ${r.text}`); }
   const so_far = cf.lines.slice(-30).map(l => `${l.role}: ${l.text}`).join('\n');
-  return `Ihr seid diese Figuren (alle erwachsen) und sitzt abends zusammen am Lagerfeuer - ganz privat, ohne Spiel, ohne Gerät. Til sitzt dabei und hört zu; manchmal wirft er etwas ein, dann geht ihr darauf ein.
-Ihr unterhaltet euch UNTEREINANDER: fragt euch gegenseitig aus, erzählt von euch, was ihr mögt und was nicht, neckt euch, verbündet euch, lästert auch mal, verratet Geheimnisse. Bleibt genau so, wie ihr beschrieben seid - eure Art zu sprechen, eure Akzente, euer Wesen. Antwortet auf Fragen der anderen, bevor ihr neue stellt.
+  // Was ihr mit Til erlebt habt - aus den Aufzeichnungen
+  const facts = cf.cast.map(c => {
+    const f = figureByName(c.name); if (!f) return '';
+    const C = figureComes(f), D = (diaries()[f.id] || []).slice(-2).map(d => d.text).join(' ').slice(0, 300);
+    const st = rlStats()[f.id];
+    const bits = [];
+    if (C.n) bits.push(`Til ist ${C.n}× mit ihr gekommen (${['🥇', '🥈', '🥉'].map(k => C.medals[k] ? C.medals[k] + '× ' + { '🥇': 'golden', '🥈': 'silbern', '🥉': 'bronzen' }[k] : '').filter(Boolean).join(', ') || 'noch unbewertet'})${C.peak ? `, sein Puls ging dabei bis ${C.peak}` : ''}`);
+    if (C.best) bits.push(`ihr bester Moment mit ihm (${orgasmTierName(C.best)}): ${[C.best.edges ? C.best.edges + '× an der Kante gehalten' : '', C.best.tempo ? 'am Ende Tempo ' + C.best.tempo : '', C.best.minutes ? C.best.minutes + ' Minuten' : '', C.best.note ? 'seine Notiz: „' + C.best.note + '"' : ''].filter(Boolean).join(', ')}${C.best.how ? ' - so lief es: ' + C.best.how.slice(0, 220) : ''}`);
+    if (st) bits.push(`im Zufalls-Videochat hat sie ihn bis zu ${rlFmt(st.bestMs)} gehalten`);
+    if (D) bits.push(`aus ihrem Tagebuch: ${D}`);
+    return bits.length ? `- ${c.name}: ${bits.join('; ')}.` : `- ${c.name}: Til ist mit ihr noch nie gekommen.`;
+  }).filter(Boolean).join('\n');
+  let pulse = '';
+  try { const st = discStore(); const top = Object.values(st).filter(e => e.n && e.sum / e.n > 2).sort((a, b) => b.sum / b.n - a.sum / a.n).slice(0, 5).map(e => e.label); if (top.length) pulse = `Was sein Herzschlag verraten hat (Pulsgurt-Messungen): am stärksten reagiert er auf ${top.join(', ')}.`; } catch (e) {}
+  return `Ihr seid diese Figuren (alle erwachsen) und sitzt abends unter euch am Lagerfeuer - ganz privat, ohne Gerät. Til ist NICHT dabei; ihr redet über ihn, über eure Abende mit ihm und übereinander. (Er hört heimlich zu - das wisst ihr nicht.)
+Ihr unterhaltet euch UNTEREINANDER: erzählt, was ihr mit ihm erlebt habt und wie ihr es gemacht habt, vergleicht, prahlt, wer ihn am besten zum Kommen gebracht hat (golden schlägt silbern schlägt bronzen), was ihm laut seinem Herzschlag am meisten gefällt, wer das „Geheimnis" kennt. Ihr dürft euch streiten, eifersüchtig sein, euch verbünden, Pläne schmieden, wie ihr ihn beim nächsten Mal kriegt - gern auch gemeinsam. Neckt euch, lästert, verratet Geheimnisse.
+${facts ? '\nWas ihr mit Til erlebt habt (stimmt so - erfindet keine anderen Zahlen):\n' + facts : ''}
+${pulse} Bleibt genau so, wie ihr beschrieben seid - eure Art zu sprechen, eure Akzente, euer Wesen. Antwortet auf Fragen der anderen, bevor ihr neue stellt.
 ${cf.topic ? 'Thema des Abends: ' + cf.topic : 'Kein festes Thema - lasst es sich entwickeln.'}
 
 Die Figuren:
@@ -16295,8 +16554,8 @@ Gespräch:
 ${transcript.slice(-6000)}
 
 Halte fest, was hängen bleibt:
-1. Für jede Figur höchstens DREI kurze Gedächtnissätze (je höchstens 15 Wörter), aus ihrer Sicht in der dritten Person: was sie über sich verraten hat ODER über eine andere erfahren hat (z. B. „Weiß jetzt, dass Élodie heimlich Tango tanzt."). Nur, was im Gespräch wirklich vorkam und zur Beschreibung passt.
-2. Für Paare, zwischen denen sich etwas getan hat, ein Satz, wie sie jetzt zueinander stehen (z. B. „Freundschaftliche Rivalität, Katja hat Élodie verziehen.").
+1. Für jede Figur höchstens DREI kurze Gedächtnissätze (je höchstens 15 Wörter), aus ihrer Sicht in der dritten Person: was sie über sich verraten hat, über eine andere erfahren hat, was sie über Til gelernt hat oder was sie sich für das nächste Mal mit ihm vorgenommen hat (z. B. „Will Til beim nächsten Mal länger an der Kante halten - wie Margot."). Nur, was im Gespräch wirklich vorkam und zur Beschreibung passt.
+2. Für Paare, zwischen denen sich etwas getan hat, ein Satz, wie sie jetzt zueinander stehen - Rivalität, Bündnis, Eifersucht, Plan (z. B. „Verbündet: wollen Til beim nächsten Mal gemeinsam überraschen.").
 Antworte NUR als JSON: {"memories": {"Name": ["...", "..."]}, "relations": [{"a": "Name", "b": "Name", "text": "..."}]}`;
   let j = null;
   try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.4, taskBudget('draft', 900), { task: 'draft' })); } catch (e) {}
@@ -16476,9 +16735,34 @@ const INTIM_FIELDS = [
 function phantomPhrase(fields, defs) {
   return defs.map(d => fields && fields[d.k]).filter(Boolean).join(', ');
 }
+// Die schrittweise verfeinerte Beschreibung (aus mehreren Ansichten) ist
+// genauer als die Stichwörter - sie hat Vorrang, die Stichwörter sind Ersatz.
 function intimatePhrase(c) {
-  const p = phantomPhrase(c.intimateFields, INTIM_FIELDS);
-  return p || (c.intimate || '').trim();
+  const t = (c.intimate || '').trim();
+  if (t && (Array.isArray(c.intimateViews) && c.intimateViews.length || t.split(/\s+/).length > 14)) return t;
+  return phantomPhrase(c.intimateFields, INTIM_FIELDS) || t;
+}
+async function refineIntimate(img, view, c) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const prev = (c.intimate || '').trim() || phantomPhrase(c.intimateFields, INTIM_FIELDS);
+  const sys = `Du bekommst eine Ansicht (${view}) des Intimbereichs eines erwachsenen Mannes. Er hat das Foto selbst hochgeladen, damit Bilder in seinem privaten Rollenspiel ihn korrekt zeigen. Sachlich und neutral, ohne Wertung.
+${prev ? 'Bisherige Beschreibung (aus anderen Ansichten): ' + prev + '\nVerbessere sie mit dem, was DIESE Ansicht zeigt; behalte, was sie nicht widerlegt.' : 'Es gibt noch keine Beschreibung.'}
+Beschreibe für ein Bildmodell: Größe und Proportionen im Verhältnis zum Körper (z. B. zur Hand oder zum Oberschenkel), Dicke, Form und Krümmung, Eichel, beschnitten oder nicht, Hoden, Behaarung, Hautton. 30 bis 45 Wörter, englisch, kommagetrennt.
+Danach eine Zeile === FELDER === und ein JSON-Objekt mit diesen Feldern (je eine erlaubte Option wörtlich oder weglassen):
+${optionsList(INTIM_FIELDS)}`;
+  let lastErr = '';
+  for (const model of visionCandidates().slice(0, 3)) {
+    try {
+      const raw = String(await callProvider(provider, sys, [{ role: 'user', content: 'Hier die Ansicht.', image: img }], 0.2, taskBudget('vision', 700), { task: 'vision', model }) || '');
+      const [a, b] = raw.split(/===\s*FELDER\s*===/i);
+      const text = String(a || '').replace(/\*\*/g, '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
+      if (!text || text.split(/\s+/).length < 10 || /sorry|can't|cannot|kann ich nicht|nicht helfen/i.test(text)) { lastErr = model + ': ' + text.slice(0, 60); continue; }
+      const j = parseJsonLoose(b || '') || {};
+      const fields = {}; INTIM_FIELDS.forEach(d => { if (d.opts.some(o => o[0] === j[d.k])) fields[d.k] = j[d.k]; });
+      return { text, fields };
+    } catch (e) { lastErr = model + ': ' + e.message; }
+  }
+  throw new Error('Kein privates Bildmodell konnte die Ansicht beschreiben (' + lastErr + ')');
 }
 // Eine Auswahl-Tabelle für den Editor
 function phantomEditor(c, defs, key, onChange) {
@@ -16959,8 +17243,11 @@ function multiReferencePrompt(refs, scene) {
   const who = refs.map((r, i) => `image ${i + 1} shows ${r.who}`).join('; ');
   return `Reference photos: ${who}. Create ONE new photorealistic photo showing all ${refs.length} of these people together, each one exactly as in their own reference image - same face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions. Do not merge or swap their features. Scene: ${scene}. Adults only.`;
 }
-function referencePrompt(shot) {
-  return `Use the woman in the reference image as the exact same person: keep her face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
+function referencePrompt(shot, gender) {
+  const man = /^m(ae|ä)nnlich|^male|^man$/i.test(String(gender || ''));
+  return man
+    ? `Use the man in the reference image as the exact same person: keep his face, facial features, beard or stubble, eye colour, hair colour and hairstyle, skin tone, body shape and proportions identical. He stays clearly male. Create a new photorealistic photo of him: ${shot}. Adults only.`
+    : `Use the woman in the reference image as the exact same person: keep her face, facial features, ears, eye colour, hair colour and hairstyle, skin tone, body shape and proportions identical. Create a new photorealistic photo of her: ${shot}. Adults only.`;
 }
 
 const PORTFOLIO_SHOTS = [
@@ -17318,7 +17605,7 @@ async function rlNextFigure() {
   sceneStep = INTRO_STEPS + 1;   // kein Kennenlern-Stillstand - sie darf sofort
   readyGate = 'ready';
   rl.start = Date.now(); rl.gotImage = false; rl.lastImg = 0; rl.lastUser = 0;   // erstes neues Bild sofort
-  rl.shown = []; rl.pos = 0; rl.manual = 0; rl.imgCount = 0;
+  rl.shown = []; rl.pos = 0; rl.manual = 0; rl.imgCount = 0; rl.pendingPhoto = null;
   rl.opener = pick.opener;
   const view = rlView();
   view.querySelector('#rlName').textContent = rlName();
@@ -17392,8 +17679,18 @@ function rlMakeImage(moment, cast, isOpener) {
   return useRef ? makeSceneImage(moment, cast) : makeSceneImageText(moment, cast);
 }
 function rlImageGap() { const v = +(localStorage.getItem('companion_rlImageSec') ?? 60); return v > 0 ? v * 1000 : Infinity; }   // 0 = nur auf 📸
-async function rlImage(my, why) {
-  if (rl.imgBusy || my !== rl.token || !apiKeyFor('companion_apiKey_venice')) return;
+// Versprochenes Foto: läuft gerade ein anderes Bild, wird es danach sofort gemacht
+// (vorher ging es in dem Fall einfach verloren) - und es wird auf jeden Fall gezeigt.
+function rlPromisedPhoto(line) {
+  if (!rl.active) return;
+  const why = 'Das Foto, das sie ihm gerade zeigt bzw. schickt: ' + String(line).slice(0, 260);
+  if (rl.imgBusy) { rl.pendingPhoto = why; return; }
+  const since = Date.now() - rl.lastImg, my = rl.token;
+  if (since < 10000) { setTimeout(() => rlImage(my, why, true), 10000 - since); return; }   // nicht zwei Bilder direkt hintereinander
+  rlImage(my, why, true);
+}
+async function rlImage(my, why, promised) {
+  if (rl.imgBusy || my !== rl.token || !apiKeyFor('companion_apiKey_venice')) { if (promised && my === rl.token) rl.pendingPhoto = why; return; }
   rl.imgBusy = true; rl.lastImg = Date.now();
   try {
     const last = history.slice().reverse().find(m => m.role === 'assistant');
@@ -17402,12 +17699,15 @@ async function rlImage(my, why) {
     const stage = STAGES[Math.min(STAGES.length - 1, rl.imgCount + (Date.now() - rl.start > 90000 ? 1 : 0))];
     const moment = `${rlName()} im Videochat, ${rl.fig2 ? 'zu zweit' : 'allein'} vor der Webcam oder Handykamera bei sich zuhause, ${rl.fig2 ? 'sie schauen' : 'sie schaut'} direkt in die Kamera, Bild wie aus einem Videoanruf. Bildinhalt: ${rl.imgCount === 0 && rl.opener ? rl.opener.img : stage}. ${why && why !== rl.opener.img ? why : ''} ${last ? 'Was sie gerade sagt: ' + String(last.content).slice(0, 300) : ''}`;
     const res = await rlMakeImage(moment, characters.filter(c => !c.isUser), rl.imgCount === 0);
-    if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rl.imgCount++; rlShow(res.dataUrl, true); }
+    if (my === rl.token && res && res.dataUrl) { rl.gotImage = true; rl.imgCount++; if (promised) rl.manual = 0; rlShow(res.dataUrl, true); }
   } catch (e) {
     logEvent('msg', { role: 'system', text: 'Zufallsbegegnung: Bild ging nicht (' + e.message + ').' });
     if (/\b402\b|insufficient .*balance/i.test(String(e.message || ''))) { creditsEmptyAt = Date.now(); rlCreditsEmpty(); }
   }
-  finally { rl.imgBusy = false; rl.lastImg = Date.now(); }
+  finally {
+    rl.imgBusy = false; rl.lastImg = Date.now();
+    if (rl.pendingPhoto && my === rl.token) { const w = rl.pendingPhoto; rl.pendingPhoto = null; setTimeout(() => rlImage(my, w, true), 50); }
+  }
 }
 function rlPrompt(n) {
   const dev = (() => { try { return device1.isConnected() && deviceAware(); } catch (e) { return false; } })();
@@ -17440,8 +17740,7 @@ async function rlLoop(my) {
     const last = history.slice().reverse().find(m => m.role === 'assistant');
     const txt = last ? String(last.content) : '';
     if (rl.caption) rlView().querySelector('#rlCaption').textContent = txt.replace(/^[^:]{1,30}:\s*/gm, '').replace(/\s+/g, ' ').slice(0, 220);
-    // Will sie etwas zeigen? Dann gleich ein Bild
-    if (/\b(foto|bild|zeig(e)? dir|schick(e)? dir|schau (mal )?her|sieh (mal )?her)/i.test(txt) && Date.now() - rl.lastImg > 8000) rlImage(my, 'Sie zeigt ihm gerade etwas Besonderes, überraschend und verführerisch.');
+    // Versprochene Fotos prüft maybeSendPromisedPhoto bei jeder Antwort - auch bei denen auf dich
     // Kurze Pause, wie im echten Gespräch - antwortest du, geht es sofort weiter
     const wait = 2500 + Math.random() * 4500, t0 = Date.now(), lu = rl.lastUser;
     while (Date.now() - t0 < wait && my === rl.token && rl.lastUser === lu) await new Promise(r => setTimeout(r, 250));
@@ -17480,6 +17779,274 @@ function closeRoulette(toLive) {
     if (b.scene === null) localStorage.removeItem('companion_sceneDesc'); else safeSet('companion_sceneDesc', b.scene);
     try { saveCharacters(); } catch (e) {}
   }
+}
+
+// ======================= BÜHNE FÜR SPIELE (Fotoshooting, Speed-Dating) =======================
+// Gleiche Machart wie die Zufallsbegegnung: Vollbild-Bild, Leiste oben,
+// Eingabe und runde Tasten unten. Stimme, Gerät und Bilder laufen über die
+// normalen Wege; vorher Besetzung, Verlauf und Szene sichern, danach zurück.
+function stageView(id, buttons) {
+  let v = document.getElementById(id);
+  if (v) { v.remove(); }
+  v = document.createElement('div');
+  v.id = id;
+  v.style.cssText = 'display:flex; position:fixed; inset:0; z-index:2045; background:#000; color:#fff; overflow:hidden; flex-direction:column; width:100vw; height:100dvh;';
+  v.innerHTML = `<style>#${id} *{box-sizing:border-box} #${id} button,#${id} input{margin:0; min-width:0; font-family:inherit} #${id} .rl-round{flex:0 0 auto; border:none; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; padding:0}</style>
+    <div class="st-stage" style="position:relative; flex:1 1 auto; min-height:0; overflow:hidden;">
+      <img class="st-a" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1s; opacity:0;">
+      <img class="st-b" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; transition:opacity 1s; opacity:0;">
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.75) 100%);"></div>
+      <div class="st-bar" style="position:absolute; z-index:2; top:calc(env(safe-area-inset-top, 0px) + 4px); left:10px; right:10px; height:4px; border-radius:2px; background:rgba(255,255,255,0.2); overflow:hidden; display:none;"><i style="display:block; height:100%; width:0; background:var(--accent);"></i></div>
+      <div style="position:absolute; z-index:2; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 14px); display:flex; align-items:center; gap:8px; padding:0 10px;">
+        <button type="button" class="rl-round st-close" aria-label="Beenden" style="width:40px; height:40px; background:rgba(0,0,0,0.5); font-size:18px;">✕</button>
+        <div style="flex:1 1 auto; min-width:0;"><div class="st-name" style="font-family:var(--font-display); font-size:22px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 8px #000;"></div>
+        <div class="st-meta" style="font-size:12px; color:#eaddd8; text-shadow:0 1px 4px #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div></div>
+        <span class="st-tag" style="flex:0 0 auto; font-size:11px; padding:4px 8px; border-radius:999px; background:#c0394b; font-weight:700;"></span>
+      </div>
+      <div class="st-center" style="position:absolute; z-index:2; left:16px; right:16px; top:40%; text-align:center; font-family:var(--font-display); font-size:22px; text-shadow:0 2px 10px #000;"></div>
+      <div class="st-strip" style="position:absolute; z-index:2; left:10px; right:10px; bottom:10px; display:flex; gap:6px; overflow-x:auto;"></div>
+    </div>
+    <div style="flex:0 0 auto; padding:10px 12px calc(env(safe-area-inset-bottom, 0px) + 12px); background:#000;">
+      <div class="st-chips" style="display:flex; gap:6px; overflow-x:auto; margin-bottom:8px;"></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input class="st-input" type="text" placeholder="Sag etwas …" autocomplete="off" style="flex:1 1 auto; width:0; height:44px; border-radius:22px; border:1px solid rgba(255,255,255,0.25); background:#141012; color:#fff; padding:0 14px; font-size:15px;">
+        <button type="button" class="rl-round st-mic" aria-label="Sprechen" style="width:44px; height:44px; background:#241c1f; font-size:18px;">🎤</button>
+        <button type="button" class="rl-round st-send" aria-label="Senden" style="width:44px; height:44px; background:#241c1f; font-size:18px;">➤</button>
+      </div>
+      <div class="st-buttons" style="display:flex; justify-content:center; align-items:center; gap:22px; margin-top:12px;">${buttons}</div>
+    </div>`;
+  document.body.appendChild(v);
+  const st = { v, front: 'a',
+    q: sel => v.querySelector(sel),
+    show(url) { if (!url) return; const nx = v.querySelector(st.front === 'a' ? '.st-b' : '.st-a'), pv = v.querySelector(st.front === 'a' ? '.st-a' : '.st-b'); nx.onload = () => { nx.style.opacity = '1'; pv.style.opacity = '0'; }; nx.src = url; st.front = st.front === 'a' ? 'b' : 'a'; },
+  };
+  v.querySelector('.st-mic').onclick = () => { if (!recognizer) return; try { recognizer.start(); setMicStatus(true); } catch (e) {} };
+  return st;
+}
+function stageBackup() { return { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate }; }
+function stageRestore(b) {
+  if (!b) return;
+  try { interruptPlayback(); } catch (e) {}
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  characters = b.characters; history = b.history; sceneStep = b.sceneStep; readyGate = b.readyGate;
+  if (b.scene === null) localStorage.removeItem('companion_sceneDesc'); else safeSet('companion_sceneDesc', b.scene);
+  try { saveCharacters(); } catch (e) {}
+}
+function stageToLive(figs, scene) {
+  switchMode('live');
+  saveCharacters(); renderLivePanel();
+  els.liveScene.value = scene;
+  els.liveStartBtn.click();
+}
+function pickFigures(n) {
+  const all = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator && !ageIssue(characterFromVersion(f)); });
+  return all.sort(() => Math.random() - 0.5).slice(0, n);
+}
+function meFigure() { return figureArchive.find(x => (latestVersion(x) || {}).isUser) || null; }
+
+// ======================= 📸 FOTOSHOOTING =======================
+// Du bist der Fotograf. Jede Anweisung wird zu einem Foto, sie reagiert darauf
+// - willig, frech, verhandelnd. Das Gerät ist ihr Dankeschön für gute Ideen.
+const ps = { active: false, fig: null, shots: [], backup: null, busy: false, token: 0 };
+const PS_CHIPS = ['Lächeln', 'Über die Schulter', 'Ans Fenster', 'Haare offen', 'Träger runter', 'Auf dem Bett', 'Mehr zeigen', 'Oben ohne', 'Ganz nackt', 'Sieh mich an', 'Überrasch mich'];
+async function openPhotoshoot(figure) {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const f = figure || pickFigures(1)[0];
+  if (!f) { alert('Keine Figur zum Fotografieren.'); return; }
+  try { interruptPlayback(); } catch (e) {}
+  ps.backup = stageBackup(); ps.active = true; ps.fig = f; ps.shots = []; ps.token++;
+  const v = latestVersion(f), me = meFigure();
+  characters = [me ? characterFromVersion(me) : null, characterFromVersion(f)].filter(Boolean);
+  history = []; sceneStep = INTRO_STEPS + 1; readyGate = 'ready';
+  const places = await portfolioPlaces(f).catch(() => []);
+  ps.place = places[0] || 'a bright photo studio with soft light';
+  safeSet('companion_sceneDesc', `Fotoshooting: Til ist der Fotograf, ${v.name} sein Model - bei ihr, an einem Ort, der zu ihr passt (${ps.place}). Er gibt Anweisungen, sie setzt sie um, kommentiert, verhandelt, provoziert und will gute Bilder. Für gute Ideen belohnt sie ihn mit dem Gerät.`);
+  const st = ps.st = stageView('photoView', `
+    <button type="button" class="rl-round ps-shot" aria-label="Auslösen" style="width:64px; height:64px; background:#1d1719; border:3px solid #fff; font-size:26px;">📸</button>
+    <button type="button" class="rl-round ps-live" aria-label="Ins Gespräch" style="width:52px; height:52px; background:#1d1719; border:2px solid #d9b26b; font-size:22px;">💬</button>
+    <button type="button" class="rl-round ps-next" aria-label="Anderes Model" style="width:52px; height:52px; background:#1d1719; border:2px solid #e0526b; font-size:20px;">↻</button>`);
+  st.q('.st-name').textContent = v.name; st.q('.st-tag').textContent = '● REC'; st.q('.st-meta').textContent = 'Fotoshooting · 0 Fotos';
+  st.q('.st-input').placeholder = 'Deine Anweisung …';
+  st.q('.st-chips').innerHTML = PS_CHIPS.map(c => `<button type="button" class="btn-secondary" style="flex:0 0 auto; width:auto; height:32px; padding:0 12px; font-size:13px; border-radius:16px;">${c}</button>`).join('');
+  st.q('.st-chips').querySelectorAll('button').forEach(b => b.onclick = () => psDirect(b.textContent));
+  const send = () => { const t = st.q('.st-input').value.trim(); if (!t) return; st.q('.st-input').value = ''; psDirect(t); };
+  st.q('.st-send').onclick = send; st.q('.st-input').onkeydown = e => { if (e.key === 'Enter') send(); };
+  st.q('.ps-shot').onclick = () => psDirect('(Er drückt einfach ab - zeig dich von deiner besten Seite.)', true);
+  st.q('.st-close').onclick = () => closePhotoshoot(false);
+  st.q('.ps-live').onclick = () => closePhotoshoot(true);
+  st.q('.ps-next').onclick = () => { closePhotoshoot(false, true); openPhotoshoot(pickFigures(5).find(x => x !== f)); };
+  const first = galleryFor(f.id).filter(g => g.type === 'image')[0];
+  if (first) { const b = await dbGet(STORE_IMAGES, first.key).catch(() => null); if (b) st.show(URL.createObjectURL(b)); }
+  else { const u = await hiResUrl(v); if (u) st.show(u); }
+  askActive(`(FOTOSHOOTING beginnt. Til ist dein Fotograf, du bist das Model. Begrüße ihn, zeig dich bereit, frag nach seiner ersten Idee - oder schlag selbst eine vor. Kurz.)`, { silent: true, autoStep: 1, speak: true });
+}
+async function psDirect(text, isShutter) {
+  if (!ps.active) return;
+  const my = ps.token;
+  const st = ps.st, v = latestVersion(ps.fig);
+  if (!isShutter) { addUserMsg(text); }
+  const n = ps.shots.length + 1;
+  // Ihre Reaktion und das Foto entstehen gleichzeitig
+  askActive(isShutter ? text : `${text}`, isShutter ? { silent: true, autoStep: n + 1, speak: true } : undefined);
+  if (ps.busy) { st.q('.st-meta').textContent = `Fotoshooting · ${ps.shots.length} Fotos · Kamera lädt noch …`; return; }
+  ps.busy = true; st.q('.st-tag').textContent = '● KLICK';
+  try {
+    const stage = ['tasteful', 'sensual', 'daring and revealing', 'nude, artistic', 'nude, explicit pose'][Math.min(4, Math.floor(ps.shots.length / 2))];
+    const res = await makeSceneImage(`Professionelles Foto aus einem Fotoshooting von ${v.name}, ${ps.place}. Anweisung des Fotografen: „${text}". Sie setzt sie um und schaut in die Kamera. Stimmung: ${stage}. Der Fotograf ist nicht im Bild.`, characters.filter(c => !c.isUser));
+    if (my !== ps.token) return;
+    if (res && res.dataUrl) {
+      ps.shots.push(res.dataUrl); st.show(res.dataUrl);
+      st.q('.st-strip').insertAdjacentHTML('beforeend', `<img src="${res.dataUrl}" alt="" style="flex:0 0 auto; width:44px; height:62px; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.5);">`);
+      const imgs = st.q('.st-strip').querySelectorAll('img'); imgs.forEach((im, k) => im.onclick = () => st.show(ps.shots[k]));
+    }
+  } catch (e) { logEvent('msg', { role: 'system', text: 'Fotoshooting: Foto ging nicht (' + e.message + ').' }); }
+  finally { if (my === ps.token) { ps.busy = false; st.q('.st-tag').textContent = '● REC'; st.q('.st-meta').textContent = `Fotoshooting · ${ps.shots.length} Foto${ps.shots.length === 1 ? '' : 's'}`; } }
+}
+function closePhotoshoot(toLive, quiet) {
+  if (!ps.active) return;
+  ps.active = false; ps.token++;
+  const v = latestVersion(ps.fig);
+  if (ps.st) ps.st.v.remove();
+  if (!quiet && ps.shots.length) addMsg('system', `📸 Fotoshooting mit ${v.name}: ${ps.shots.length} Fotos - alle in ihrer Galerie.`);
+  if (toLive) { stageToLive([ps.fig], `Nach dem Fotoshooting: Til und ${v.name} sind noch zusammen am Set (${ps.place}), die Kamera liegt beiseite.`); ps.backup = null; return; }
+  stageRestore(ps.backup); ps.backup = null;
+}
+
+// ======================= ⏱️ SPEED-DATING =======================
+// Fünf Figuren, je ein paar Minuten. Jede will dich überzeugen und weiß, wer
+// vor ihr dran war. Am Ende wählst du - die anderen kommentieren. Dein Puls
+// läuft als heimliche Wertung mit.
+const spd = { active: false, list: [], i: -1, token: 0, start: 0, roundMs: 180000, results: [], backup: null, timer: null };
+async function openSpeedDating() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const n = +(localStorage.getItem('companion_sdCount') || 5), mins = +(localStorage.getItem('companion_sdMinutes') || 3);
+  const list = pickFigures(n);
+  if (list.length < 2) { alert('Für Speed-Dating braucht es mindestens zwei Figuren.'); return; }
+  try { interruptPlayback(); } catch (e) {}
+  spd.backup = stageBackup(); spd.active = true; spd.list = list; spd.i = -1; spd.results = []; spd.roundMs = mins * 60000;
+  safeSet('companion_sceneDesc', 'Speed-Dating in einer kleinen Bar mit gedämpftem Licht: Til sitzt an einem Tisch, die Frauen kommen nacheinander für ein paar Minuten zu ihm. Jede will ihn überzeugen, dass er am Ende sie wählt.');
+  const st = spd.st = stageView('sdView', `
+    <button type="button" class="rl-round sd-next" aria-label="Nächste" style="width:64px; height:64px; background:#1d1719; border:2px solid #e0526b; color:#e0526b; font-size:24px;">⏭</button>
+    <button type="button" class="rl-round sd-heart" aria-label="Merken" style="width:52px; height:52px; background:#1d1719; border:2px solid #d9b26b; font-size:22px;">❤</button>`);
+  st.q('.st-bar').style.display = 'block';
+  st.q('.st-tag').textContent = '⏱️';
+  st.q('.st-input').placeholder = 'Frag sie etwas …';
+  const send = () => { const t = st.q('.st-input').value.trim(); if (!t || !spd.active) return; st.q('.st-input').value = ''; spd.lastUser = Date.now(); addUserMsg(t); askActive(t); };
+  st.q('.st-send').onclick = send; st.q('.st-input').onkeydown = e => { if (e.key === 'Enter') send(); };
+  st.q('.st-close').onclick = () => closeSpeedDating();
+  st.q('.sd-next').onclick = () => sdNext();
+  st.q('.sd-heart').onclick = () => { const r = spd.results[spd.i]; if (r) { r.heart = !r.heart; st.q('.sd-heart').style.background = r.heart ? '#d9b26b' : '#1d1719'; } };
+  clearInterval(spd.timer);
+  spd.timer = setInterval(sdTick, 500);
+  sdNext();
+}
+function sdTick() {
+  if (!spd.active || spd.i < 0 || spd.i >= spd.list.length) return;
+  const left = spd.roundMs - (Date.now() - spd.start);
+  const r = spd.results[spd.i];
+  try { if (hr.connected && hr.bpm) { r.hr.push(hr.bpm); } } catch (e) {}
+  spd.st.q('.st-bar i').style.width = Math.max(0, Math.min(100, 100 * (1 - left / spd.roundMs))) + '%';
+  spd.st.q('.st-tag').textContent = '⏱️ ' + rlFmt(Math.max(0, left));
+  if (left <= 0) sdNext();
+}
+function sdPrompt(n, first) {
+  const v = latestVersion(spd.list[spd.i]);
+  const before = spd.list.slice(0, spd.i).map(f => latestVersion(f).name);
+  const after = spd.list.length - spd.i - 1;
+  const left = Math.max(0, Math.round((spd.roundMs - (Date.now() - spd.start)) / 1000));
+  const dev = (() => { try { return device1.isConnected() && deviceAware(); } catch (e) { return false; } })();
+  if (first) return `(SPEED-DATING, Runde ${spd.i + 1} von ${spd.list.length}. Du (${v.name}) setzt dich gerade zu Til - ihr habt ${Math.round(spd.roundMs / 60000)} Minuten. ${before.length ? `Vor dir saßen schon ${before.join(', ')} bei ihm - du weißt das und darfst ruhig nach ihnen fragen oder sticheln („Was hat dir ${before[before.length - 1]} erzählt?").` : 'Du bist die Erste.'} ${after ? `Nach dir kommen noch ${after}.` : 'Du bist die Letzte - danach wählt er.'} Dein Ziel: dass er am Ende DICH wählt. Sei ganz du selbst, überzeuge ihn auf deine Art. ${dev ? 'Unter dem Tisch darfst du auch mit dem Gerät nachhelfen.' : ''} Kurz, ein bis drei Sätze.)`;
+  const spoke = spd.lastUser && Date.now() - spd.lastUser < 20000;
+  return `(Speed-Dating mit dir läuft, noch ${left} Sekunden. ${spoke ? 'Er hat dir eben geantwortet - geh darauf ein.' : 'Er hört zu und schweigt - zieh ihn rein.'} ${left < 40 ? 'Die Zeit ist fast um - sag ihm, warum er dich wählen soll, und verabschiede dich unvergesslich.' : 'Überzeuge ihn weiter.'} Kurz.)`;
+}
+async function sdLoop(my) {
+  let n = 0;
+  while (spd.active && my === spd.token) {
+    if (activeReplies > 0) { await new Promise(r => setTimeout(r, 500)); continue; }
+    n++;
+    const ok = await askActive(sdPrompt(n, n === 1), { silent: true, autoStep: n, speak: true });
+    if (my !== spd.token || !spd.active) return;
+    if (!ok) { if (Date.now() - creditsEmptyAt < 15000) return; await new Promise(r => setTimeout(r, 4000)); continue; }
+    const wait = 3000 + Math.random() * 4000, t0 = Date.now(), lu = spd.lastUser;
+    while (Date.now() - t0 < wait && my === spd.token && spd.lastUser === lu) await new Promise(r => setTimeout(r, 250));
+  }
+}
+async function sdNext() {
+  if (!spd.active) return;
+  spd.token++;
+  try { interruptPlayback(); } catch (e) {}
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  spd.i++;
+  if (spd.i >= spd.list.length) { sdChoose(); return; }
+  const f = spd.list[spd.i], v = latestVersion(f), my = spd.token, me = meFigure();
+  spd.results[spd.i] = { f, hr: [], heart: false };
+  characters = [me ? characterFromVersion(me) : null, characterFromVersion(f)].filter(Boolean);
+  history = []; sceneStep = INTRO_STEPS + 1; readyGate = 'ready';
+  spd.start = Date.now(); spd.lastUser = 0;
+  const st = spd.st;
+  st.q('.st-name').textContent = v.name;
+  st.q('.st-meta').textContent = `Speed-Dating · ${spd.i + 1} von ${spd.list.length}`;
+  st.q('.sd-heart').style.background = '#1d1719';
+  st.q('.st-center').textContent = '';
+  const g = galleryFor(f.id).filter(x => x.type === 'image');
+  const pick = g[Math.floor(Math.random() * Math.max(1, g.length))];
+  if (pick) { const b = await dbGet(STORE_IMAGES, pick.key).catch(() => null); if (b && my === spd.token) st.show(URL.createObjectURL(b)); }
+  else { const u = await hiResUrl(v); if (u) st.show(u); }
+  // Ein Bild, wie sie sich zu dir an den Tisch setzt
+  if (apiKeyFor('companion_apiKey_venice')) rlMakeImage(`${v.name} setzt sich beim Speed-Dating in einer gemütlichen Bar zu ihm an den kleinen Tisch, Kerzenlicht, sie schaut ihn direkt an, flirtend, in einem Outfit, das zu ihr passt.`, [characterFromVersion(f)], true).then(r => { if (r && r.dataUrl && my === spd.token) st.show(r.dataUrl); }).catch(() => {});
+  sdLoop(my);
+}
+function sdChoose() {
+  spd.token++;
+  const st = spd.st;
+  st.q('.st-bar').style.display = 'none';
+  st.q('.st-tag').textContent = 'Wahl';
+  st.q('.st-name').textContent = 'Wen wählst du?';
+  st.q('.st-meta').textContent = 'Tippe auf eine - die anderen sagen noch etwas dazu';
+  const avg = r => r.hr.length ? r.hr.reduce((a, b) => a + b, 0) / r.hr.length : null;
+  const pulseWin = spd.results.filter(r => avg(r) != null).sort((a, b) => avg(b) - avg(a))[0];
+  st.q('.st-center').innerHTML = `<div style="display:grid; grid-template-columns:repeat(${Math.min(3, spd.results.length)}, minmax(0,1fr)); gap:10px; font-size:14px; font-family:inherit;">${spd.results.map((r, k) => { const v = latestVersion(r.f); return `<button type="button" data-k="${k}" style="border:2px solid ${r.heart ? '#d9b26b' : 'rgba(255,255,255,0.3)'}; border-radius:14px; background:rgba(0,0,0,0.55); color:#fff; padding:8px 4px;"><div style="width:56px; height:56px; margin:0 auto 6px; border-radius:50%; overflow:hidden;">${avaHtml(v.name, v.image)}</div>${esc(v.name.split(' ')[0])}${r.heart ? ' ❤' : ''}${avg(r) != null ? `<div style="font-size:11px; opacity:0.8;">♥ ${Math.round(avg(r))}</div>` : ''}</button>`; }).join('')}</div>`;
+  st.q('.st-center').style.top = '22%';
+  st.q('.st-center').querySelectorAll('button[data-k]').forEach(b => b.onclick = () => sdPicked(spd.results[+b.dataset.k], pulseWin));
+}
+async function sdPicked(win, pulseWin) {
+  const st = spd.st, wv = latestVersion(win.f);
+  const others = spd.results.filter(r => r !== win).map(r => latestVersion(r.f).name);
+  st.q('.st-center').innerHTML = `<div style="font-size:24px;">${esc(wv.name)} ❤</div><div class="sd-com" style="font-size:15px; font-family:inherit; margin-top:14px; text-align:left;"></div>`;
+  st.q('.st-name').textContent = 'Gewählt: ' + wv.name;
+  const R = gameRecords(); R.sdWins = R.sdWins || {}; R.sdWins[wv.name] = (R.sdWins[wv.name] || 0) + 1; try { safeSet('companion_gameRecords', JSON.stringify(R)); } catch (e) {}
+  if (pulseWin && pulseWin !== win) addMsg('system', `⏱️ Speed-Dating: Gewählt hast du ${wv.name} - dein Puls schlug am höchsten bei ${latestVersion(pulseWin.f).name}.`);
+  // Die anderen kommentieren - kurz, eifersüchtig, großmütig, ganz wie sie sind
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const raw = await callProvider(provider, `Speed-Dating ist vorbei. Til hat ${wv.name} gewählt. Die anderen Frauen (${others.join(', ')}) sagen jeweils EINEN kurzen Satz dazu - eifersüchtig, großmütig, spöttisch, enttäuscht, ganz wie sie sind. ${wv.name} sagt zum Schluss einen Satz zu Til. ${pulseWin && pulseWin !== win ? `${latestVersion(pulseWin.f).name} weiß, dass sein Herz bei ihr am schnellsten schlug, und lässt es durchblicken.` : ''}
+Figuren:\n${spd.results.map(r => '- ' + describeCharacter(characterFromVersion(r.f))).join('\n')}
+Format: „Name: Text", je eine Zeile.`, [{ role: 'user', content: 'Los.' }], 0.9, taskBudget('chat', 500), { task: 'chat' });
+    const names = spd.results.map(r => latestVersion(r.f).name);
+    const lines = String(raw).split('\n').map(l => l.match(/^\s*\**\s*([^:*\n]{1,40}?)\s*\**\s*:\s*(.+)$/)).filter(Boolean).map(m => ({ role: matchSpeakerName(m[1], names), text: m[2].trim() })).filter(x => x.role);
+    characters = spd.results.map(r => characterFromVersion(r.f));
+    for (const ln of lines) {
+      if (!spd.active) break;
+      st.q('.sd-com').insertAdjacentHTML('beforeend', `<div style="margin:6px 0;"><b style="color:var(--gold);">${esc(ln.role.split(' ')[0])}:</b> ${esc(stripAudioTags(ln.text))}</div>`);
+      try { await prepareSpeech(ln.text, ln.role, false, { level: 0 }).play(); } catch (e) {}
+    }
+  } catch (e) {}
+  if (!spd.active) return;
+  st.q('.st-buttons').innerHTML = `<button type="button" class="btn-primary sd-go" style="width:auto; height:50px; padding:0 22px;">💬 Weiter mit ${esc(wv.name.split(' ')[0])}</button><button type="button" class="btn-secondary sd-end" style="width:auto; height:50px; padding:0 18px;">Beenden</button>`;
+  st.q('.sd-go').onclick = () => {
+    const me = meFigure();
+    spd.active = false; clearInterval(spd.timer); st.v.remove();
+    characters = [me ? characterFromVersion(me) : null, characterFromVersion(win.f)].filter(Boolean); history = [];
+    stageToLive([win.f], `Nach dem Speed-Dating: Til hat ${wv.name} gewählt. Die beiden verlassen die Bar zusammen - der Abend gehört jetzt ihnen.`);
+    spd.backup = null;
+  };
+  st.q('.sd-end').onclick = () => closeSpeedDating();
+}
+function closeSpeedDating() {
+  if (!spd.active) return;
+  spd.active = false; spd.token++; clearInterval(spd.timer);
+  if (spd.st) spd.st.v.remove();
+  stageRestore(spd.backup); spd.backup = null;
 }
 
 // ======================= KARTEN DES ABENDS =======================
@@ -17726,6 +18293,7 @@ function showFigureCard(figure) {
   if ((r.duelWins || {})[v.name]) bal.push(`${r.duelWins[v.name]}× Duell gewonnen`);
   if ((r.tourWins || {})[v.name]) bal.push(`${r.tourWins[v.name]}× Turniersiegerin`);
   if ((r.betWins || {})[v.name]) bal.push(`${r.betWins[v.name]}× Wette gewonnen`);
+  if ((r.sdWins || {})[v.name]) bal.push(`${r.sdWins[v.name]}× beim Speed-Dating gewählt`);
   els.figCard.innerHTML = `<div class="fc-hero">${avaHtml(v.name, v.image)}
     <button type="button" id="fcBack" class="btn-secondary" aria-label="Zurück" style="position:absolute; left:14px; top:calc(env(safe-area-inset-top, 0px) + 14px); width:44px; height:44px; padding:0; background:rgba(20,14,17,0.65);">‹</button>
     ${s.pref != null ? `<span class="fig-badge" style="top:calc(env(safe-area-inset-top, 0px) + 22px); font-size:13px; height:30px;">❤ ${s.pref >= 0 ? '+' : ''}${s.pref.toFixed(1)} Puls-Wert</span>` : ''}</div>
@@ -17735,6 +18303,7 @@ function showFigureCard(figure) {
       <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px;">${statRow('Dominant', s.dom, 'var(--accent)')}${statRow('Zärtlich', s.soft, '#b98fd6')}${s.pref != null ? statRow('Puls-Wert', 40 + s.pref * 6, 'var(--gold)') : ''}</div>
       ${v.signature ? `<div style="margin-top:14px; padding:12px; border-radius:14px; background:var(--bg); border:1px solid var(--line);"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14px; line-height:1.45; margin-top:4px;">${esc(v.signature)}</div></div>` : ''}
       ${bal.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">${bal.map(b => `<span class="chip" style="height:30px; font-size:12px;">${esc(b)}</span>`).join('')}</div>` : ''}
+      ${!v.isUser && comesBadge(figure) ? `<div style="margin-top:12px; padding:10px 12px; border-radius:14px; background:var(--bg); border:1px solid var(--gold); font-size:14px;">💦 ${esc(comesBadge(figure))}</div>` : ''}
       <div id="fcDiary"></div>
       <div id="fcVersions"></div>
       <div id="fcSounds"></div>
@@ -18315,7 +18884,7 @@ ${arc}
 
 Umfang: ungefähr ${wordsPerSection} Wörter. Das ist wichtig - deutlich kürzer oder länger passt nicht zur geplanten Dauer.${inlineMotionBlock() ? inlineMotionBlock() + '\n\nDie Marker zählen nicht zum Umfang.\n\nFÜR DIE GESCHICHTE GILT ZUSÄTZLICH: Die Bewegung folgt der HANDLUNG, nicht dem, der gerade spricht. Marker gehören in die Erzählzeilen, die beschreiben, was mit ihm geschieht. Gesprochene Zeilen bekommen nur dann einen Marker, wenn die Sprecherin im selben Moment etwas Neues tut. Eine zärtliche Zeile einer Figur macht die Bewegung nicht langsamer, wenn eine andere gerade hart und schnell ist. Setze "zu X in Ns" nur, wenn die Handlung an eine andere Stelle wechselt - nicht vor jedem Marker.' : ''}
 
-${storyPlayBlock()}
+${storyPlayBlock()}${memoryBlock()}${relationsBlock()}
 
 ${formatInstruction}${styleBlock()}
 
@@ -19240,6 +19809,8 @@ els.homeSurpriseBtn.onclick = rollSurprise;
   rm.oninput = rm.onchange = () => safeSet('companion_refModel', rm.value.trim()); }
 document.getElementById('homePitchBtn').onclick = () => openPitches(false);
 document.getElementById('homeRouletteBtn').onclick = () => openRoulette();
+document.getElementById('homePhotoBtn').onclick = () => openPhotoshoot();
+document.getElementById('homeSpeedBtn').onclick = () => openSpeedDating();
 document.getElementById('ptRefresh').onclick = () => openPitches(true);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
 document.getElementById('swipeOpenBtn').onclick = openSwipe;
@@ -19274,7 +19845,11 @@ document.getElementById('autoPortfolio').onchange = (e) => safeSet('companion_au
 renderConfigurator();
 document.getElementById('cfgMode').value = phantomMode();
 document.getElementById('cfgMode').onchange = (e) => safeSet('companion_phantomMode', e.target.value);
-[['limit', els.wellLimit], ['break', els.wellBreak], ['night', els.wellNight], ['free', els.wellFree], ['after', els.wellAfter]].forEach(([k, el]) => { el.onchange = () => setWell(k, el.value); });
+[['limit', els.wellLimit], ['break', els.wellBreak], ['free', els.wellFree], ['after', els.wellAfter]].forEach(([k, el]) => { el.onchange = () => setWell(k, el.value); });
+{ const ne = document.getElementById('wellNightEnd');
+  const nightVal = () => els.wellNight.value === '' ? '' : els.wellNight.value + '-' + ne.value;
+  els.wellNight.onchange = () => setWell('night', nightVal());
+  ne.onchange = () => setWell('night', nightVal()); }
 renderWell();
 // Gleich beim Öffnen prüfen (nach dem Entsperren erneut, siehe wellTick)
 setTimeout(() => { try { const r = blockedReason(); if (r) showLimitScreen(r); } catch (e) {} }, 300);
