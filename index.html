@@ -3607,8 +3607,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.27';
+const APP_VERSION = '2.28';
 const CHANGELOG = [
+  { v: '2.28', date: '2026-10-11', items: [
+    'Behoben: Mit eingeschaltetem „Sie entscheidet" startete die App nicht mehr (Sperrbildschirm ohne Tastenfeld). Ein Wert wurde beim Start abgefragt, bevor er angelegt war.',
+    'Startet die App einmal nicht, zeigt sie jetzt nach 6 Sekunden einen Hinweis mit Neu-laden-Knopf und dem Fehlertext statt einer leeren Sperre.',
+  ] },
   { v: '2.27', date: '2026-10-11', items: [
     'Neue Gruppe „Arcade" in Spielen - mit Versuchung und drei neuen Spielen.',
     '🗺️ Nachtjagd: eine nächtliche Stadt mit sechs Vierteln (Bar-Meile, Strand, Club, Hafen, Elfenwald, Bibliothek). Jede Figur bekommt aus ihren Eigenschaften einen Typ (Dominant, Zärtlich, Verspielt, Wild, Schüchtern) und eine Seltenheit. Streif umher, sprich sie an und gewinn sie im Duell: Kompliment, Necken, Standhaft, Verführen, Verbündete aus deinem Team, Drinks und Rosen aus der Tasche. Ihre Angriffe sind Bewegungen des Geräts und zehren an deiner Ausdauer - mit Pulsgurt umso mehr, je höher dein Puls. Wer gewonnen ist, kommt ins Team und steigt auf; zwei Siege in einem Viertel rufen den Champion, drei Abzeichen öffnen den Palast der Königin der Nacht. Dein Team bleibt gespeichert.',
@@ -8242,14 +8246,15 @@ function edgingEnabled() { return arousalEnabled() && (localStorage.getItem('com
 // Kante bringt und ob ich danach kommen darf. Das Modell erfährt die
 // Entscheidung nicht - so kann es sie auch nicht verraten. Die App löst sie
 // erst auf, wenn es so weit ist.
-const herCall = { on: false, goal: 3, verdict: 'allow', begs: 0, revealed: false, figId: null, name: '', deniedAt: 0, mercy: false, cameWithout: false, logged: false };
+// var statt const: wird beim Start schon abgefragt (edgeGoal), bevor diese Zeile läuft
+var herCall = { on: false, goal: 3, verdict: 'allow', begs: 0, revealed: false, figId: null, name: '', deniedAt: 0, mercy: false, cameWithout: false, logged: false };
 const HERCALL_LOCK_MS = 15 * 60000;
 // Standard: Sie spielt mit dem Nein, aber am Ende darf ich. Ein echtes Nein nur,
 // wenn ich es ausdrücklich zulasse.
 function herCallHardNo() { return localStorage.getItem('companion_herCallHardNo') === 'true'; }
 function herCallEnabled() { return localStorage.getItem('companion_herCall') === 'true'; }
-function herCallActive() { return herCallEnabled() && herCall.on; }
-function herCallDenied() { return herCall.on && herCall.verdict === 'deny' && herCall.revealed && Date.now() - herCall.deniedAt < HERCALL_LOCK_MS; }
+function herCallActive() { return herCallEnabled() && !!(herCall && herCall.on); }
+function herCallDenied() { return !!herCall && herCall.on && herCall.verdict === 'deny' && herCall.revealed && Date.now() - herCall.deniedAt < HERCALL_LOCK_MS; }
 function herCallLog() { try { return JSON.parse(localStorage.getItem('companion_herCallLog') || '[]'); } catch (e) { return []; } }
 function herCallEnsure() {
   if (!herCallEnabled() || herCall.on) return;
