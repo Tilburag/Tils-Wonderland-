@@ -1806,7 +1806,7 @@
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="deriveAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🖼️ Aussehen aus Bildern</button>
-        <button class="btn-secondary" id="portfolioAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📸 Neue Bilder für alle</button>
+        <button class="btn-secondary" id="portfolioAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📸 Galerien auffüllen</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
@@ -3592,8 +3592,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.24';
+const APP_VERSION = '2.26';
 const CHANGELOG = [
+  { v: '2.26', date: '2026-10-11', items: [
+    '🌠 Neues Spiel „Versuchung" (Spielen → Mit Gerät): Du bist der Mond am unteren Rand, sie steht oben und wirft dir Küsse, Hände, Zungen, Federn, Herzen und Flammen entgegen. Weich mit dem Finger aus - kühle Tropfen schießen automatisch und lösen sie auf. Jeder Treffer wird sofort zur Bewegung des Geräts, Treffer kurz hintereinander stapeln sich zu längeren, schnelleren, wilderen Folgen. Alle 30 Sekunden eine Stufe schneller und dichter, ab Stufe 2 greift sie selbst mit einer Salve an. Einsammeln: ❄️ Eisatem (Dreifachschuss), 🛡️ Schild, ⏳ Zeitlupe, 🌙 Mondbombe (räumt alles ab). Sie kommentiert mit ihrer Stimme. „🔥 Kurz davor" bremst kurz ab, „💦 Gekommen" beendet das Spiel - mit Punkten, Bestenliste und Höhepunkt-Karte.'
+  ] },
+  { v: '2.25', date: '2026-10-11', items: [
+    'Galerien auffüllen: Der Knopf unter Figuren füllt jede Figur auf mindestens 4 Galeriebilder auf - wer schon 4 hat, wird übersprungen, statt jedes Mal oben neu anzufangen. Es kommen zuerst die Aufnahmen, die es von ihr noch nicht gibt. Nochmal tippen hält an.',
+    'Auch dein Ich bekommt Galeriebilder (als Mann fotografiert). In deiner Galerie landen außerdem Szenenbilder, auf denen du oder ein Teil von dir zu sehen bist - Hände, Beine, Körper in der Ich-Perspektive. Bilder ganz ohne dich bleiben bei den Figuren.'
+  ] },
   { v: '2.24', date: '2026-10-09', items: [
     'Sicherung: „🖼 Nur Bilder zurückholen" legt Galerie und Porträt-Originale aus einer Sicherung zurück, ohne sonst etwas zu ändern, und macht die Vorschaubilder wieder scharf. „🧹 Fehlende Bilder aus der Galerie entfernen" räumt danach leere Kacheln weg.',
     '„Protokoll kopieren" steht jetzt auch im Seitenmenü.'
@@ -11588,7 +11595,7 @@ async function makeSceneImage(momentText, castOverride) {
           const url = await multiEditFromReferences(refs, multiReferencePrompt(refs, scene));
           logEvent('msg', { role: 'system', text: `Szenenbild über ${refs.length} Vorlagen (${refModel()}): ${refs.map(r => r.who.split(',')[0]).join(', ')}.` });
           try { setPadImage(url); } catch (e) {}
-          galleryAdd(url, 'image', multi.map((mv, k) => figs[k].figureId), momentText ? 'Geschichte' : 'Szenenbild');
+          galleryAdd(url, 'image', withMe(multi.map((mv, k) => figs[k].figureId), plain, castOverride), momentText ? 'Geschichte' : 'Szenenbild');
           return { dataUrl: url, prompt: plain };
         }
       } catch (e) {
@@ -11615,7 +11622,7 @@ async function makeSceneImage(momentText, castOverride) {
         }
         logEvent('msg', { role: 'system', text: `Szenenbild über Vorlage (${refModel()}).` });
         try { setPadImage(url); } catch (e) {}
-        galleryAdd(url, 'image', [f.id], momentText ? 'Geschichte' : 'Szenenbild');
+        galleryAdd(url, 'image', meUrl ? [f.id, me.figureId] : withMe([f.id], plain, castOverride), momentText ? 'Geschichte' : 'Szenenbild');
         return { dataUrl: url, prompt: plain };
       } catch (e) {
         const t = 'Szenenbild: Vorlage ging nicht (' + e.message + ') - erzeuge aus der Beschreibung.';
@@ -11723,7 +11730,7 @@ async function makeSceneImageText(momentText, castOverride) {
   if (sceneImageMemory.framings.length > 6) sceneImageMemory.framings.shift();
   logEvent('msg', { role: 'system', text: `Szenenbild (${model}, Ausschnitt ${framing[0]}): ${prompt.slice(0, 400)}` });
   try { setPadImage('data:image/webp;base64,' + base64); } catch (e) {}
-  const figIds = castFigureIds(castOverride || characters);
+  const figIds = withMe(castFigureIds(castOverride || characters), prompt, castOverride);
   galleryByImage.set(imageTag('data:image/webp;base64,' + base64), figIds);
   galleryAdd('data:image/webp;base64,' + base64, 'image', figIds, momentText ? 'Geschichte' : 'Szenenbild');
   return { dataUrl: 'data:image/webp;base64,' + base64, prompt };
@@ -12419,6 +12426,19 @@ function galleryIndex() { try { return JSON.parse(localStorage.getItem('companio
 function saveGalleryIndex(list) { safeSet('companion_gallery', JSON.stringify(list)); }
 const galleryByImage = new Map();   // Bildende -> Figuren (damit ein Video weiß, wer drauf ist)
 function imageTag(dataUrl) { return String(dataUrl || '').slice(-80); }
+// Ist im Bild etwas von mir zu sehen (ich selbst, oder in der Ich-Perspektive
+// meine Hände, Beine, mein Körper)? Dann landet das Bild auch in meiner Galerie.
+const ME_BODY_RE = /\b(his|the man's|the viewer's|my)\s+(?:[\w-]+\s+){0,2}(hands?|fingers?|arms?|legs?|knees?|thighs?|feet|foot|chest|torso|body|lap|hips?|penis|cock|dick|erection|shaft|crotch|stomach|abs)\b/i;
+function meVisible(plain, me) {
+  if (!me) return false;
+  const t = String(plain || '').replace(makeSceneImage.extra || '\u0000', '');
+  try { if (meInScene(t, me)) return true; } catch (e) {}
+  return ME_BODY_RE.test(t);
+}
+function withMe(ids, plain, cast) {
+  const me = (cast || characters).find(c => c.isUser && c.figureId);
+  return me && meVisible(plain, me) ? [...ids, me.figureId] : ids;
+}
 function castFigureIds(cast) { return [...new Set((cast || characters).filter(c => !c.isUser && !c.isNarrator && c.figureId).map(c => c.figureId))]; }
 async function galleryAdd(data, type, figureIds, note, posterDataUrl) {
   try {
@@ -17429,15 +17449,19 @@ Antworte NUR als JSON-Array mit 8 Strings.`, [{ role: 'user', content: 'Gib das 
   for (let k = pool.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [pool[k], pool[r]] = [pool[r], pool[k]]; }
   return pool;
 }
-async function makePortfolio(figure, btn) {
-  const v = latestVersion(figure); if (!v || v.isUser || v.isNarrator) return 0;
+async function makePortfolio(figure, btn, opts) {
+  opts = opts || {};
+  const v = latestVersion(figure); if (!v || v.isNarrator || (v.isUser && !opts.allowMe)) return 0;
+  const man = /^m(ae|ä)nnlich|^male|^man$/i.test(String(v.gender || ''));
+  const want = opts.max == null ? PORTFOLIO_SHOTS.length : opts.max;
+  if (want <= 0) return 0;
   const c = characterFromVersion(figure);
   try { await ensureLookTag(c); } catch (e) {}
   const st = figureStats(figure);
   const look = [c.lookTag || '', phantomPhrase(c.phantom, PHANTOM_FIELDS)].filter(Boolean).join(', ');
   const outfit = ((String(v.appearance || '').match(/Kleidung\s*:\s*(.+)/i) || [])[1] || 'a stylish outfit').slice(0, 120);
-  const pose = st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
-  const nudepose = st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side, tender look' : 'kneeling, playful smile';
+  const pose = man ? 'relaxed confident pose' : st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
+  const nudepose = man ? 'standing relaxed, athletic, full body' : st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side, tender look' : 'kneeling, playful smile';
   if (btn) btn.textContent = 'Suche passende Orte …';
   const places = await portfolioPlaces(figure);
   const fill = t => t.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose).replace(/\{place(\d)\}/g, (_, k) => places[+k % places.length]);
@@ -17445,14 +17469,21 @@ async function makePortfolio(figure, btn) {
   // Das vorhandene Porträt als Vorlage - das erste Bild (Porträt) ist es dann selbst
   let ref = null;
   if ((refOn('portfolio') || v.anchorKey) && (v.anchorKey || v.imageKey)) { try { ref = await loadFullImage(v.anchorKey || v.imageKey); } catch (e) {} }
-  if (ref) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } catch (e) {} }
-  for (let i = ref ? 1 : 0; i < PORTFOLIO_SHOTS.length; i++) {
-    if (btn) btn.textContent = `Fotografiere ${i + 1}/4 …`;
-    const [label, tpl] = PORTFOLIO_SHOTS[i];
-    const prompt = `Photorealistic, adult woman. ${look}. ${fill(tpl)}. Adults only.`;
+  if (ref && n < want) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) { await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } } catch (e) {} }
+  // Welche Aufnahmen fehlen noch? Erst die Arten, die es von ihr noch nicht gibt,
+  // dann der Reihe nach weiter - so wiederholt sich beim Auffüllen nichts.
+  const have = portfolioImages(figure).map(g => String(g.note || '').replace(/^Portfolio · /, ''));
+  const order = PORTFOLIO_SHOTS.map((s, i) => i).filter(i => !(ref && i === 0)).sort((a, b) => (have.includes(PORTFOLIO_SHOTS[a][0]) ? 1 : 0) - (have.includes(PORTFOLIO_SHOTS[b][0]) ? 1 : 0));
+  for (let j = 0; j < order.length && n < want; j++) {
+    const i = order[j];
+    if (opts.stop && opts.stop()) break;
+    if (btn) btn.textContent = `Fotografiere ${n + 1}/${want} …`;
+    const [label, tpl0] = PORTFOLIO_SHOTS[i];
+    const tpl = man ? tpl0.replace(/\bher\b/g, 'his').replace('seductive look', 'confident look') : tpl0;
+    const prompt = `Photorealistic, adult ${man ? 'man' : 'woman'}. ${look}. ${fill(tpl)}. Adults only.`;
     let url = null, how = 'Beschreibung';
-    if (ref && i > 0) {
-      try { url = await editFromReference(ref, referencePrompt(fill(tpl))); how = 'Vorlage (' + refModel() + ')'; }
+    if (ref) {
+      try { url = await editFromReference(ref, referencePrompt(fill(tpl), v.gender)); how = 'Vorlage (' + refModel() + ')'; }
       catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
@@ -20439,19 +20470,34 @@ document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
 document.getElementById('deriveAllBtn').onclick = (e) => deriveAllFromPortraits(e.currentTarget);
+// Galerien auffüllen: jede Figur (auch das Ich) bekommt Bilder, bis sie
+// mindestens 4 hat. Wer schon 4 hat, wird übersprungen - der Knopf fängt also
+// nicht mehr jedes Mal oben an. Noch einmal tippen hält nach der laufenden Figur an.
+const GALLERY_TARGET = 4;
+let portfolioRun = null;
 document.getElementById('portfolioAllBtn').onclick = async (e) => {
   const btn = e.currentTarget;
-  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
-  if (!list.length) return;
-  if (!confirm(`Für alle ${list.length} Figuren je drei neue Bilder an Orten, die zu ihr passen (Elfe im Wald, Seefahrerin am Hafen …)? Das sind etwa ${list.length * 3} Bilder bei Venice und dauert eine Weile - du kannst die App solange weiter benutzen.`)) return;
-  btn.disabled = true; const label = btn.textContent; let made = 0;
-  for (let i = 0; i < list.length; i++) {
-    btn.textContent = `📸 ${i + 1}/${list.length} ${latestVersion(list[i]).name}`;
-    try { made += await makePortfolio(list[i]); } catch (err) {}
+  if (portfolioRun) { portfolioRun.stop = true; btn.textContent = 'Hält nach dieser Figur an …'; return; }
+  const imgs = f => galleryFor(f.id).filter(g => g.type === 'image').length;
+  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isNarrator && !ageIssue(characterFromVersion(f)); })
+    .map(f => ({ f, need: Math.max(0, GALLERY_TARGET - imgs(f)) })).filter(x => x.need > 0)
+    .sort((a, b) => b.need - a.need);
+  if (!list.length) { alert(`Alle Figuren haben schon mindestens ${GALLERY_TARGET} Galeriebilder.`); return; }
+  const total = list.reduce((a, x) => a + x.need, 0);
+  if (!confirm(`${list.length} Figuren haben weniger als ${GALLERY_TARGET} Galeriebilder. Auffüllen? Das sind ${total} Bilder bei Venice (etwa ${(total * 0.04).toFixed(2).replace('.', ',')} $ über die Vorlage) - du kannst die App solange weiter benutzen. Nochmal tippen hält an.`)) return;
+  portfolioRun = { stop: false };
+  const label = btn.dataset.label || btn.textContent; btn.dataset.label = label; let made = 0, done = 0;
+  for (const x of list) {
+    if (portfolioRun.stop) break;
+    btn.textContent = `📸 ${done + 1}/${list.length} ${latestVersion(x.f).name} · tippen = anhalten`;
+    try { made += await makePortfolio(x.f, null, { max: x.need, allowMe: true, stop: () => portfolioRun && portfolioRun.stop }); } catch (err) {}
+    done++;
+    try { renderFigureList(); } catch (err) {}
   }
-  btn.textContent = label; btn.disabled = false;
-  addMsg('system', `Neue Galeriebilder: ${made} Bilder für ${list.length} Figuren.`);
-  try { renderFigureList(); } catch (err) {}
+  const stopped = portfolioRun.stop;
+  portfolioRun = null;
+  btn.textContent = label;
+  addMsg('system', `Galerien aufgefüllt: ${made} neue Bilder für ${done} Figuren${stopped ? ' (angehalten)' : ''}.`);
 };
 if (document.getElementById('rollbackBtn')) document.getElementById('rollbackBtn').onclick = (e) => {
   const n = rollbackCandidates().length;
@@ -21100,6 +21146,510 @@ installItem.onclick = async () => {
   try { await installPrompt.userChoice; } catch (e) {}
   installPrompt = null; installItem.style.display = 'none';
 };
+
+
+// =====================================================================
+// ======================= 🌠 VERSUCHUNG (Arcade) =======================
+// =====================================================================
+// Ein echtes Spiel: Du bist der Mond am unteren Rand, sie steht oben und
+// wirft dir ihre Versuchungen entgegen - Küsse, Hände, Zungen, Federn,
+// Flammen. Weich aus oder schieß sie mit kühlen Tropfen weg. Jeder Treffer
+// wird sofort zur Bewegung des Geräts, und Treffer kurz hintereinander
+// stapeln sich zu immer wilderen Folgen. Alle 30 Sekunden wird es schneller,
+// dichter und verrückter. Das Spiel endet erst, wenn du gekommen bist -
+// gezählt wird, wie lange und wie gut du durchgehalten hast.
+const AR_TYPES = {
+  feather: { emoji: '🪶', name: 'Necken', hp: 1, r: 17, from: 1, w: 3, dur: 2600,
+    move: L => ({ low: 520, high: 820, bpm: Math.min(80, 26 + L * 5), texture: 'smooth' }) },
+  kiss: { emoji: '💋', name: 'Küsse an der Spitze', hp: 1, r: 18, from: 1, w: 5, dur: 2300,
+    move: L => ({ low: 720, high: 985, bpm: Math.min(200, 85 + L * 12), texture: 'smooth' }) },
+  hand: { emoji: '🖐️', name: 'Ihre Hand', hp: 2, r: 20, from: 1, w: 4, dur: 3000,
+    move: L => ({ low: 60, high: 960, bpm: Math.min(170, 48 + L * 11), texture: 'smooth' }) },
+  heart: { emoji: '💗', name: 'Pulsieren', hp: 1, r: 17, from: 2, w: 3, dur: 2600,
+    move: L => ({ low: 300, high: 900, bpm: Math.min(170, 70 + L * 9), texture: 'pulse' }) },
+  tongue: { emoji: '👅', name: 'Zunge', hp: 1, r: 17, from: 2, w: 3, dur: 1900,
+    move: L => ({ low: 830, high: 990, bpm: Math.min(230, 150 + L * 10), texture: 'tremor' }) },
+  fire: { emoji: '🔥', name: 'Vollgas', hp: 3, r: 22, from: 3, w: 2, dur: 3600,
+    move: L => ({ low: 30, high: 990, bpm: Math.min(220, 115 + L * 12), texture: 'smooth' }) },
+};
+const AR_POWERS = {
+  ice: { emoji: '❄️', name: 'Eisatem', ms: 9000 },
+  shield: { emoji: '🛡️', name: 'Schutzschild', ms: 6500 },
+  slow: { emoji: '⏳', name: 'Zeitlupe', ms: 6500 },
+  moon: { emoji: '🌙', name: 'Mondbombe', ms: 0 },
+};
+const AR_LINES = {
+  start: ['Na komm. Weich mir aus, wenn du kannst.', 'Mal sehen, wie lange du mir entkommst.', 'Ich hab heute ziemlich viel für dich.'],
+  hit: ['Erwischt.', 'Da hab ich dich.', 'Zu langsam.', 'Spürst du das?', 'Noch einer …', 'Du kannst mir nicht ausweichen.', 'Mmh, genau da.', 'Und wieder.'],
+  combo: ['Hör nicht auf zu zappeln.', 'Das ist erst der Anfang.', 'Gleich noch mal.', 'So schnell hintereinander … hältst du das aus?'],
+  dodge: ['Nicht schlecht … noch.', 'Du weichst mir aus? Frech.', 'Wie lange hältst du das durch?', 'Irgendwann krieg ich dich.'],
+  level: ['Jetzt wird es ernst.', 'Ich werde schneller.', 'Mehr davon.', 'Bereit für die nächste Runde?'],
+  power: ['Ein Schild? Das hält nicht lange.', 'Eis? Mir wird nur heißer.', 'Schummeln gilt nicht.'],
+  boss: ['Jetzt komm ich selbst.', 'Halt still für mich.', 'Alles auf einmal.'],
+  edge: ['Schon kurz davor? Ich warte.', 'Atme. Noch nicht.'],
+  end: ['Da bist du ja gekommen. Gut gemacht.', 'Ich hab gewonnen. Aber du auch.', 'So lange hast du durchgehalten … nicht schlecht.'],
+};
+const ar = { active: false };
+function arScores() { try { return JSON.parse(localStorage.getItem('companion_arcade') || '[]'); } catch (e) { return []; } }
+function arBest() { return arScores().reduce((a, x) => Math.max(a, x.score || 0), 0); }
+
+function arChoose() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const pool = pickFigures(999).sort((a, b) => latestVersion(a).name.localeCompare(latestVersion(b).name));
+  if (!pool.length) { alert('Keine Figur für das Spiel.'); return; }
+  openFigurePicker({
+    title: '🌠 Wer wirft dir ihre Versuchungen zu?', hint: 'Weich aus oder schieß sie weg - jeder Treffer bewegt das Gerät. Es endet, wenn du gekommen bist.',
+    items: pool.map(f => figurePickItem(f)), random: () => [pickFigures(1)[0]].filter(Boolean).map(f => f.id),
+    onDone: ids => { const f = getFigure(ids[0]); if (f) openArcade(f); },
+  });
+}
+
+function arView() {
+  let v = document.getElementById('arcadeView');
+  if (v) return v;
+  v = document.createElement('div');
+  v.id = 'arcadeView';
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2046; background:#07040a; color:#fff; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; font-family:var(--font-body, sans-serif);';
+  v.innerHTML = `
+    <canvas id="arCanvas" style="position:absolute; inset:0; width:100%; height:100%; display:block;"></canvas>
+    <div style="position:absolute; left:0; right:0; top:0; padding:calc(env(safe-area-inset-top, 0px) + 10px) 12px 0; display:flex; align-items:center; gap:8px; pointer-events:none;">
+      <button type="button" id="arClose" aria-label="Pause" style="pointer-events:auto; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.45); color:#fff; font-size:16px;">❚❚</button>
+      <div style="flex:1; min-width:0;">
+        <div id="arScore" style="font:700 22px/1 var(--font-body, sans-serif); font-variant-numeric:tabular-nums; text-shadow:0 2px 8px #000;">0</div>
+        <div id="arMeta" style="font-size:11.5px; color:#e9d6dc; text-shadow:0 1px 4px #000; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+      </div>
+      <div id="arPowers" style="display:flex; gap:4px; font-size:18px;"></div>
+    </div>
+    <div id="arToast" style="position:absolute; left:0; right:0; top:38%; text-align:center; font:700 20px var(--font-display, serif); text-shadow:0 2px 12px #000; pointer-events:none; opacity:0; transition:opacity .3s;"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; padding:0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display:flex; gap:8px; pointer-events:none;">
+      <button type="button" id="arEdge" style="pointer-events:auto; flex:1; height:46px; border-radius:23px; border:1px solid rgba(255,255,255,0.25); background:rgba(20,10,16,0.7); color:#fff; font-size:14px;">🔥 Kurz davor</button>
+      <button type="button" id="arCame" style="pointer-events:auto; flex:1; height:46px; border-radius:23px; border:1px solid #d0516a; background:rgba(208,81,106,0.85); color:#fff; font-size:14px; font-weight:600;">💦 Gekommen</button>
+    </div>
+    <div id="arPanel" style="display:none; position:absolute; inset:0; background:rgba(7,4,10,0.86); align-items:center; justify-content:center; padding:24px; box-sizing:border-box;"></div>`;
+  document.body.appendChild(v);
+  return v;
+}
+
+async function openArcade(figure) {
+  if (ar.active) return;
+  try { interruptPlayback(); } catch (e) {}
+  const v = arView();
+  const fv = latestVersion(figure);
+  const me = meFigure();
+  ar.backup = stageBackup();
+  characters = [me ? characterFromVersion(me) : null, characterFromVersion(figure)].filter(Boolean);
+  history = []; readyGate = 'ready'; sceneStep = INTRO_STEPS + 1;
+  Object.assign(ar, {
+    active: true, paused: false, over: false, fig: figure, name: fv.name, me: me ? latestVersion(me).name.split(' ')[0] : '',
+    canvas: v.querySelector('#arCanvas'), t: 0, last: 0, score: 0, mult: 1, multT: 0, hits: 0, kills: 0, level: 1,
+    enemies: [], shots: [], parts: [], powers: [], floats: [], stars: [], player: null, target: null,
+    spawnT: 0.8, shotT: 0, powT: 9, bossT: 75, boss: null, ice: 0, shield: 0, slow: 0, edgeSlow: 0,
+    burstUntil: 0, burstLevel: 0, burstTimer: null, lastLine: 0, shake: 0, flash: 0, heat: 0, noHitT: 0, img: null, raf: 0,
+  });
+  // Ihr Porträt oben als Quelle der Versuchungen
+  try { const u = await hiResUrl(fv); if (u) { const im = new Image(); im.onload = () => { ar.img = im; }; im.src = u; } } catch (e) {}
+  v.style.display = 'block';
+  arResize();
+  for (let i = 0; i < 90; i++) ar.stars.push({ x: Math.random(), y: Math.random(), z: 0.3 + Math.random() * 0.7 });
+  ar.player = { x: ar.W / 2, y: ar.H * 0.8 };
+  ar.target = { x: ar.player.x, y: ar.player.y };
+  arBind(v);
+  [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} });
+  noteRecent('arcade'); noteSession('arcade', 'Versuchung mit ' + fv.name, [fv.name.split(' ')[0]]);
+  arToast(`${fv.name.split(' ')[0]} wartet …`, 1600);
+  setTimeout(() => arSay('start'), 600);
+  ar.last = performance.now();
+  ar.raf = requestAnimationFrame(arLoop);
+}
+
+function arResize() {
+  const c = ar.canvas; if (!c) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  ar.W = c.clientWidth || innerWidth; ar.H = c.clientHeight || innerHeight; ar.dpr = dpr;
+  c.width = Math.round(ar.W * dpr); c.height = Math.round(ar.H * dpr);
+  ar.ctx = c.getContext('2d'); ar.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { if (ar.active) arResize(); });
+
+function arBind(v) {
+  if (v._bound) return; v._bound = true;
+  const c = v.querySelector('#arCanvas');
+  const move = e => {
+    if (!ar.active || ar.paused) return;
+    const r = c.getBoundingClientRect();
+    // Finger etwas unter dem Mond - so verdeckt der Daumen ihn nicht
+    ar.target = { x: e.clientX - r.left, y: Math.max(ar.H * 0.45, Math.min(ar.H - 110, e.clientY - r.top - 70)) };
+  };
+  c.addEventListener('pointerdown', e => { try { c.setPointerCapture(e.pointerId); } catch (x) {} move(e); });
+  c.addEventListener('pointermove', move);
+  v.querySelector('#arClose').onclick = () => arPause();
+  v.querySelector('#arEdge').onclick = () => arEdge();
+  v.querySelector('#arCame').onclick = () => arEnd(true);
+}
+
+// ---------- Spielschleife ----------
+function arLoop(now) {
+  if (!ar.active) return;
+  let dt = Math.min(0.05, (now - ar.last) / 1000); ar.last = now;
+  if (!ar.paused && !ar.over) arStep(dt);
+  arDraw();
+  ar.raf = requestAnimationFrame(arLoop);
+}
+function arRand(a, b) { return a + Math.random() * (b - a); }
+function arStep(dt) {
+  const slowF = (ar.slow > 0 || ar.edgeSlow > 0) ? 0.38 : 1;
+  const gdt = dt * slowF;
+  ar.t += dt;
+  ['ice', 'shield', 'slow', 'edgeSlow'].forEach(k => { if (ar[k] > 0) ar[k] = Math.max(0, ar[k] - dt * 1000); });
+  // Level alle 30 s
+  const L = 1 + Math.floor(ar.t / 30);
+  if (L > ar.level) { ar.level = L; arToast(`Stufe ${L}`, 1400); arSay('level'); }
+  // Punkte: Überleben, Multiplikator ohne Treffer
+  ar.noHitT += dt;
+  ar.multT += dt;
+  if (ar.multT >= 10) { ar.multT = 0; ar.mult = Math.min(5, ar.mult + 0.5); }
+  ar.score += dt * 10 * ar.mult;
+  // Mond folgt dem Finger
+  const p = ar.player;
+  p.x += (ar.target.x - p.x) * Math.min(1, dt * 14);
+  p.y += (ar.target.y - p.y) * Math.min(1, dt * 14);
+  // Schießen
+  ar.shotT -= dt;
+  if (ar.shotT <= 0) {
+    ar.shotT = ar.ice > 0 ? 0.16 : 0.28;
+    const spread = ar.ice > 0 ? [-0.28, 0, 0.28] : [0];
+    spread.forEach(a => ar.shots.push({ x: p.x, y: p.y - 18, vx: Math.sin(a) * 520, vy: -Math.cos(a) * 520, ice: ar.ice > 0 }));
+  }
+  ar.shots.forEach(s => { s.x += s.vx * dt; s.y += s.vy * dt; });
+  ar.shots = ar.shots.filter(s => s.y > -20 && s.x > -20 && s.x < ar.W + 20);
+  // Gegner erzeugen
+  ar.spawnT -= gdt;
+  if (ar.spawnT <= 0) {
+    ar.spawnT = Math.max(0.22, 1.25 - 0.11 * L) * arRand(0.7, 1.2);
+    arSpawn(L);
+    if (L >= 4 && Math.random() < 0.18) arFormation(L);
+  }
+  // Ihr großer Auftritt (Boss-Salve)
+  ar.bossT -= dt;
+  if (ar.bossT <= 0 && L >= 2) { ar.bossT = Math.max(40, 70 - L * 4); ar.boss = { t: 0, dur: 7 + L * 0.5 }; arToast(`${ar.name.split(' ')[0]} kommt selbst`, 1500); arSay('boss'); }
+  if (ar.boss) {
+    ar.boss.t += gdt;
+    if ((ar.boss.k = (ar.boss.k || 0) + gdt) > Math.max(0.09, 0.22 - L * 0.012)) {
+      ar.boss.k = 0;
+      const ang = ar.boss.t * 3.1;
+      ['heart', 'kiss'].forEach((ty, i) => {
+        const a = ang + i * Math.PI;
+        ar.enemies.push(arEnemy(ty, ar.W / 2, 78, Math.cos(a) * 110, 150 + L * 12, 'straight', L));
+      });
+    }
+    if (ar.boss.t > ar.boss.dur) ar.boss = null;
+  }
+  // Power-ups
+  ar.powT -= dt;
+  if (ar.powT <= 0) {
+    ar.powT = arRand(11, 17);
+    const keys = Object.keys(AR_POWERS).filter(k => k !== 'moon' || Math.random() < 0.35);
+    const k = keys[Math.floor(Math.random() * keys.length)];
+    ar.powers.push({ k, x: arRand(30, ar.W - 30), y: -20, vy: 110, r: 18 });
+  }
+  ar.powers.forEach(o => { o.y += o.vy * gdt; o.x += Math.sin((ar.t + o.y / 50) * 2) * 30 * gdt; });
+  ar.powers = ar.powers.filter(o => {
+    if (Math.hypot(o.x - p.x, o.y - p.y) < o.r + 20) { arPower(o.k); return false; }
+    return o.y < ar.H + 30;
+  });
+  // Gegner bewegen
+  ar.enemies.forEach(e => {
+    e.age += gdt;
+    if (e.kind === 'zigzag') { e.x = e.x0 + Math.sin(e.age * e.freq) * e.amp; e.y += e.vy * gdt; }
+    else if (e.kind === 'homing') {
+      const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
+      e.vx += (dx / d) * 90 * gdt; e.vy += (dy / d) * 40 * gdt;
+      const sp = Math.hypot(e.vx, e.vy), max = 170 + L * 14; if (sp > max) { e.vx *= max / sp; e.vy *= max / sp; }
+      e.x += e.vx * gdt; e.y += e.vy * gdt;
+    } else { e.x += e.vx * gdt; e.y += e.vy * gdt; }
+    e.rot += e.spin * gdt;
+  });
+  // Treffer durch Schüsse
+  for (const s of ar.shots) {
+    for (const e of ar.enemies) {
+      if (e.dead || Math.hypot(s.x - e.x, s.y - e.y) > e.r + 6) continue;
+      s.y = -999; e.hp -= s.ice ? 2 : 1; e.flash = 0.12;
+      if (e.hp <= 0) {
+        e.dead = true; ar.kills++; ar.score += 25 * ar.mult;
+        arBurstParts(e.x, e.y, e.type === 'fire' ? '#ffb347' : '#ff7aa2', 14);
+        if (e.split && L >= 4) for (let k = -1; k <= 1; k += 2) ar.enemies.push(arEnemy('kiss', e.x, e.y, k * 120, e.vy * 0.9, 'straight', L, 0.7));
+      }
+    }
+  }
+  // Treffer am Mond
+  for (const e of ar.enemies) {
+    if (e.dead) continue;
+    if (Math.hypot(e.x - p.x, e.y - p.y) < e.r * 0.8 + 13) {
+      e.dead = true;
+      if (ar.shield > 0) { arBurstParts(e.x, e.y, '#9fd8ff', 10); continue; }
+      arHit(e);
+    }
+  }
+  ar.enemies = ar.enemies.filter(e => !e.dead && e.y < ar.H + 40 && e.y > -80 && e.x > -60 && e.x < ar.W + 60);
+  // Ausweich-Lob
+  if (ar.noHitT > 25 && ar.t - ar.lastLine > 12) { ar.noHitT = 0; arSay('dodge'); }
+  // Partikel
+  ar.parts.forEach(q => { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 120 * dt; q.life -= dt; });
+  ar.parts = ar.parts.filter(q => q.life > 0);
+  ar.floats.forEach(f => { f.y -= 30 * dt; f.life -= dt; });
+  ar.floats = ar.floats.filter(f => f.life > 0);
+  ar.shake = Math.max(0, ar.shake - dt * 2.5);
+  ar.flash = Math.max(0, ar.flash - dt * 2);
+  ar.heat = Math.max(0, ar.heat - dt * 0.02);
+  arHud();
+}
+function arPickType(L) {
+  const avail = Object.entries(AR_TYPES).filter(([, d]) => L >= d.from);
+  const tot = avail.reduce((a, [, d]) => a + d.w, 0);
+  let r = Math.random() * tot;
+  for (const [k, d] of avail) { if ((r -= d.w) <= 0) return k; }
+  return avail[0][0];
+}
+function arEnemy(type, x, y, vx, vy, kind, L, scale) {
+  const d = AR_TYPES[type];
+  return { type, x, y, x0: x, vx, vy, kind, age: 0, hp: d.hp, r: d.r * (scale || 1), rot: arRand(-0.4, 0.4), spin: arRand(-1.2, 1.2), freq: arRand(1.6, 3.2), amp: arRand(30, 80), flash: 0, split: type === 'kiss' && Math.random() < 0.3 };
+}
+function arSpawn(L) {
+  const type = arPickType(L);
+  const speed = (120 + L * 20) * arRand(0.85, 1.2);
+  const kinds = ['straight'].concat(L >= 2 ? ['zigzag'] : []).concat(L >= 3 ? ['homing'] : []).concat(L >= 5 ? ['zigzag', 'homing'] : []);
+  const kind = type === 'feather' ? 'zigzag' : kinds[Math.floor(Math.random() * kinds.length)];
+  const x = arRand(26, ar.W - 26);
+  const aim = kind === 'straight' && Math.random() < 0.35 ? (ar.player.x - x) / (ar.H * 0.8 / speed) : arRand(-30, 30);
+  ar.enemies.push(arEnemy(type, x, 70, aim, speed, kind, L));
+}
+function arFormation(L) {
+  const type = arPickType(L), n = 5, cx = arRand(80, ar.W - 80), sp = 130 + L * 16;
+  for (let i = 0; i < n; i++) { const off = i - (n - 1) / 2; ar.enemies.push(arEnemy(type, cx + off * 34, 60 - Math.abs(off) * 26, 0, sp, 'straight', L, 0.85)); }
+}
+
+// ---------- Treffer = Bewegung ----------
+function arHit(e) {
+  const d = AR_TYPES[e.type];
+  ar.hits++; ar.mult = 1; ar.multT = 0; ar.noHitT = 0;
+  ar.shake = 1; ar.flash = 1; ar.heat = Math.min(1, ar.heat + 0.12);
+  arBurstParts(ar.player.x, ar.player.y, '#ff4f7a', 18);
+  try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (x) {}
+  const now = Date.now();
+  // Treffer während einer laufenden Bewegung stapeln sich: länger, schneller, wilder
+  const stacked = now < ar.burstUntil;
+  ar.burstLevel = stacked ? Math.min(6, ar.burstLevel + 1) : 0;
+  const base = d.move(ar.level);
+  const boost = 1 + ar.burstLevel * 0.14;
+  let req = Object.assign({}, base, { bpm: Math.min(230, Math.round(base.bpm * boost)) });
+  if (ar.burstLevel >= 3 && Math.random() < 0.5) req.texture = ['pulse', 'tremor', 'accel'][Math.floor(Math.random() * 3)];
+  const dur = Math.round(d.dur * (stacked ? 1 + ar.burstLevel * 0.35 : 1) * (1 + (ar.level - 1) * 0.06));
+  ar.burstUntil = now + dur;
+  ar.floats.push({ x: ar.player.x, y: ar.player.y - 40, text: d.name + (ar.burstLevel ? ` ×${ar.burstLevel + 1}` : ''), life: 1.4 });
+  if (ar.edgeSlow <= 0) {
+    [device1].forEach(dv => { try { dv.setMotion(req); } catch (x) {} });
+    clearTimeout(ar.burstTimer);
+    ar.burstTimer = setTimeout(() => { if (ar.active && Date.now() >= ar.burstUntil - 50) { try { device1.setMotion({ texture: 'stop' }); } catch (x) {} ar.burstLevel = 0; } }, dur);
+  }
+  logEvent('msg', { role: 'system', text: `Versuchung: Treffer ${d.name}${ar.burstLevel ? ' ×' + (ar.burstLevel + 1) : ''} (Stufe ${ar.level}) → ${req.low}-${req.high}@${req.bpm} ${req.texture}, ${(dur / 1000).toFixed(1)} s` });
+  arSay(ar.burstLevel >= 2 ? 'combo' : 'hit');
+}
+function arPower(k) {
+  const P = AR_POWERS[k];
+  arToast(`${P.emoji} ${P.name}`, 1100);
+  if (k === 'moon') {
+    ar.enemies.forEach(e => { arBurstParts(e.x, e.y, '#ffe9a8', 6); ar.score += 10 * ar.mult; ar.kills++; });
+    ar.enemies = [];
+  } else ar[k] = P.ms;
+  if (Math.random() < 0.6) arSay('power');
+}
+function arEdge() {
+  if (!ar.active || ar.over) return;
+  ar.edgeSlow = 7000;
+  ar.enemies.forEach(e => { e.vy *= 0.6; });
+  try { device1.setMotion({ texture: 'stop' }); } catch (e) {}
+  ar.burstUntil = 0;
+  arToast('Durchatmen …', 1500);
+  arSay('edge');
+  try { hrRecordEvent('edge'); } catch (e) {}
+}
+function arBurstParts(x, y, col, n) {
+  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, s = arRand(60, 220); ar.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: arRand(0.4, 0.9), col }); }
+}
+
+// ---------- Ihre Stimme ----------
+function arSay(kind) {
+  if (!ar.active) return;
+  const now = ar.t;
+  if (kind !== 'start' && kind !== 'end' && now - ar.lastLine < 5.5) return;
+  if ((kind === 'hit') && Math.random() < 0.45) return;
+  ar.lastLine = now;
+  const list = AR_LINES[kind] || []; if (!list.length) return;
+  let line = list[Math.floor(Math.random() * list.length)];
+  if (ar.me && Math.random() < 0.3 && kind !== 'end') line = line.replace(/\.$/, ', ' + ar.me + '.');
+  arToast(`„${line}"`, 1800, true);
+  try { prepareSpeech(line, ar.name, false, { level: Math.min(2, Math.floor(ar.level / 2)) }).play(); } catch (e) {}
+}
+
+// ---------- Zeichnen ----------
+function arDraw() {
+  const c = ar.ctx; if (!c) return;
+  const W = ar.W, H = ar.H;
+  c.save();
+  if (ar.shake > 0) c.translate(arRand(-6, 6) * ar.shake, arRand(-6, 6) * ar.shake);
+  // Himmel: kühles Nachtblau, das mit Stufe und Treffern ins Glühen kippt
+  const heat = Math.min(1, (ar.level - 1) * 0.09 + ar.heat);
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgb(${Math.round(12 + 70 * heat)}, ${Math.round(8 + 6 * heat)}, ${Math.round(28 - 8 * heat)})`);
+  g.addColorStop(1, `rgb(${Math.round(6 + 30 * heat)}, ${Math.round(4)}, ${Math.round(14)})`);
+  c.fillStyle = g; c.fillRect(-10, -10, W + 20, H + 20);
+  // Sterne, drei Tiefen
+  const sp = (ar.slow > 0 || ar.edgeSlow > 0) ? 0.3 : 1;
+  ar.stars.forEach(s => {
+    if (!ar.paused && !ar.over) { s.y += (0.02 + s.z * 0.06) * sp * (1 + ar.level * 0.08) / 60; if (s.y > 1) { s.y = 0; s.x = Math.random(); } }
+    c.globalAlpha = 0.25 + s.z * 0.6; c.fillStyle = '#fff';
+    c.fillRect(s.x * W, s.y * H, s.z * 1.8, s.z * 1.8 + (ar.level > 4 ? s.z * 4 : 0));
+  });
+  c.globalAlpha = 1;
+  // Sie, oben
+  const pulse = 1 + Math.sin(ar.t * 3) * 0.04 + (ar.boss ? 0.08 : 0);
+  const R = 34 * pulse, cx = W / 2, cy = 82;
+  c.save();
+  c.shadowColor = ar.boss ? '#ff4f7a' : '#d9ad62'; c.shadowBlur = 24;
+  c.beginPath(); c.arc(cx, cy, R + 3, 0, Math.PI * 2); c.fillStyle = ar.boss ? '#ff4f7a' : '#d9ad62'; c.fill();
+  c.restore();
+  c.save(); c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.clip();
+  if (ar.img) { const s = Math.max(2 * R / ar.img.width, 2 * R / ar.img.height); const iw = ar.img.width * s, ih = ar.img.height * s; c.drawImage(ar.img, cx - iw / 2, cy - R - (ih - 2 * R) * 0.15, iw, ih); }
+  else { c.fillStyle = '#5a2a36'; c.fillRect(cx - R, cy - R, 2 * R, 2 * R); c.fillStyle = '#fff'; c.font = '600 28px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(ar.name[0], cx, cy); }
+  c.restore();
+  // Power-ups
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  ar.powers.forEach(o => {
+    c.save(); c.shadowColor = '#ffe9a8'; c.shadowBlur = 16;
+    c.beginPath(); c.arc(o.x, o.y, o.r, 0, Math.PI * 2); c.strokeStyle = '#ffe9a8'; c.lineWidth = 2; c.stroke();
+    c.font = '20px sans-serif'; c.fillText(AR_POWERS[o.k].emoji, o.x, o.y + 1); c.restore();
+  });
+  // Versuchungen
+  ar.enemies.forEach(e => {
+    c.save(); c.translate(e.x, e.y); c.rotate(e.rot);
+    c.shadowColor = e.type === 'fire' ? '#ff9a3c' : '#ff5c8a'; c.shadowBlur = e.flash > 0 ? 30 : 14;
+    if (e.flash > 0) e.flash -= 1 / 60;
+    c.font = `${Math.round(e.r * 1.75)}px sans-serif`; c.fillText(AR_TYPES[e.type].emoji, 0, 2);
+    c.restore();
+  });
+  // Schüsse: kühle Tropfen
+  ar.shots.forEach(s => {
+    c.save(); c.shadowColor = s.ice ? '#bfe8ff' : '#7fd4ff'; c.shadowBlur = 10;
+    c.fillStyle = s.ice ? '#e6f7ff' : '#9fe3ff';
+    c.beginPath(); c.ellipse(s.x, s.y, 3, 7, Math.atan2(s.vx, -s.vy), 0, Math.PI * 2); c.fill(); c.restore();
+  });
+  // Partikel
+  ar.parts.forEach(q => { c.globalAlpha = Math.max(0, q.life); c.fillStyle = q.col; c.fillRect(q.x, q.y, 3, 3); });
+  c.globalAlpha = 1;
+  // Der Mond (du)
+  const p = ar.player;
+  if (p) {
+    // Der Mond: leuchtende Scheibe mit weichem Licht und ein paar Kratern
+    c.save();
+    c.shadowColor = ar.shield > 0 ? '#9fd8ff' : '#fff2c8'; c.shadowBlur = 28;
+    const mg = c.createRadialGradient(p.x - 5, p.y - 6, 2, p.x, p.y, 18);
+    mg.addColorStop(0, '#fffbe9'); mg.addColorStop(0.7, '#f3dfa6'); mg.addColorStop(1, '#d9b46a');
+    c.beginPath(); c.arc(p.x, p.y, 17, 0, Math.PI * 2); c.fillStyle = mg; c.fill();
+    c.shadowBlur = 0; c.fillStyle = 'rgba(160,120,60,0.28)';
+    [[-6, 4, 3.2], [5, -4, 2.4], [6, 7, 2], [-2, -9, 1.6]].forEach(([dx, dy, r]) => { c.beginPath(); c.arc(p.x + dx, p.y + dy, r, 0, Math.PI * 2); c.fill(); });
+    c.restore();
+    if (ar.shield > 0) { c.save(); c.strokeStyle = 'rgba(159,216,255,0.8)'; c.lineWidth = 2; c.beginPath(); c.arc(p.x, p.y, 28 + Math.sin(ar.t * 8) * 2, 0, Math.PI * 2); c.stroke(); c.restore(); }
+  }
+  // Schwebende Texte
+  ar.floats.forEach(f => { c.globalAlpha = Math.min(1, f.life); c.fillStyle = '#ffd1dc'; c.font = '600 14px sans-serif'; c.fillText(f.text, f.x, f.y); });
+  c.globalAlpha = 1;
+  // Rotes Aufblitzen bei Treffer, blauer Schleier bei Zeitlupe
+  if (ar.flash > 0) { c.fillStyle = `rgba(255,40,90,${ar.flash * 0.28})`; c.fillRect(-10, -10, W + 20, H + 20); }
+  if (ar.slow > 0 || ar.edgeSlow > 0) { c.fillStyle = 'rgba(80,140,255,0.08)'; c.fillRect(-10, -10, W + 20, H + 20); }
+  c.restore();
+}
+function arHud() {
+  const v = document.getElementById('arcadeView'); if (!v) return;
+  v.querySelector('#arScore').textContent = Math.round(ar.score).toLocaleString('de-DE');
+  const mm = Math.floor(ar.t / 60), ss = String(Math.floor(ar.t % 60)).padStart(2, '0');
+  const hrTxt = (typeof hr !== 'undefined' && hr.connected && hr.bpm) ? ` · ❤ ${hr.bpm}` : '';
+  v.querySelector('#arMeta').textContent = `Stufe ${ar.level} · ${mm}:${ss} · ×${ar.mult.toFixed(1)} · ${ar.hits} Treffer${hrTxt} · Rekord ${Math.round(Math.max(arBest(), 0)).toLocaleString('de-DE')}`;
+  const pw = [['ice', '❄️'], ['shield', '🛡️'], ['slow', '⏳']].filter(([k]) => ar[k] > 0).map(([k, e]) => `<span title="${AR_POWERS[k].name}" style="opacity:${0.5 + 0.5 * Math.min(1, ar[k] / 2000)}">${e}</span>`).join('');
+  v.querySelector('#arPowers').innerHTML = pw;
+}
+function arToast(text, ms, quote) {
+  const el = document.getElementById('arToast'); if (!el) return;
+  el.textContent = text; el.style.fontStyle = quote ? 'italic' : 'normal'; el.style.opacity = '1';
+  clearTimeout(arToast._t); arToast._t = setTimeout(() => { el.style.opacity = '0'; }, ms || 1200);
+}
+
+// ---------- Pause, Ende, Bestenliste ----------
+function arPause() {
+  if (!ar.active || ar.over) return;
+  ar.paused = true;
+  try { device1.setMotion({ texture: 'stop' }); } catch (e) {}
+  const panel = document.getElementById('arPanel');
+  panel.style.display = 'flex';
+  panel.innerHTML = `<div style="width:100%; max-width:340px; text-align:center;">
+    <div style="font:600 30px var(--font-display, serif);">Pause</div>
+    <p style="color:#d9c7cc; font-size:14px;">Das Gerät steht still, solange du pausierst.</p>
+    <div style="display:grid; gap:10px; margin-top:16px;">
+      <button type="button" id="arResume" class="btn-primary">Weiter</button>
+      <button type="button" id="arQuit" class="btn-secondary">Spiel beenden, ohne zu werten</button>
+    </div></div>`;
+  panel.querySelector('#arResume').onclick = () => { panel.style.display = 'none'; ar.paused = false; ar.last = performance.now(); };
+  panel.querySelector('#arQuit').onclick = () => closeArcade();
+}
+function arEnd(came) {
+  if (!ar.active || ar.over) return;
+  ar.over = true;
+  clearTimeout(ar.burstTimer);
+  try { device1.setMotion({ texture: 'stop' }); } catch (e) {}
+  if (came) { try { hrRecordEvent('came'); } catch (e) {} try { scheduleOrgasmCard(); } catch (e) {} }
+  const entry = { score: Math.round(ar.score), time: Math.round(ar.t), hits: ar.hits, kills: ar.kills, level: ar.level, fig: ar.fig.id, name: ar.name, t: Date.now() };
+  const list = arScores(); const best = list.reduce((a, x) => Math.max(a, x.score), 0);
+  list.push(entry); list.sort((a, b) => b.score - a.score);
+  try { safeSet('companion_arcade', JSON.stringify(list.slice(0, 50))); } catch (e) {}
+  const rank = list.indexOf(entry) + 1;
+  arSay('end');
+  const panel = document.getElementById('arPanel');
+  panel.style.display = 'flex';
+  setTimeout(() => { const t = document.getElementById('arToast'); if (t) t.style.opacity = '0'; }, 50);
+  const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  panel.innerHTML = `<div style="width:100%; max-width:360px; text-align:center;">
+    <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#d9ad62;">${entry.score > best ? '✨ Neuer Rekord' : rank <= 3 ? 'Platz ' + rank : 'Gekommen'}</div>
+    <div style="font:700 46px/1.1 var(--font-body, sans-serif); font-variant-numeric:tabular-nums; margin:6px 0;">${entry.score.toLocaleString('de-DE')}</div>
+    <div style="color:#e9d6dc; font-size:14px;">${fmt(entry.time)} durchgehalten · Stufe ${entry.level} · ${entry.hits} Treffer · ${entry.kills} abgewehrt</div>
+    <div style="margin:18px 0 6px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#a8968f;">Bestenliste</div>
+    <div style="text-align:left; font-size:14px;">${list.slice(0, 5).map((x, i) => `<div style="display:flex; justify-content:space-between; gap:10px; padding:6px 10px; border-radius:10px; ${x === entry ? 'background:rgba(208,81,106,0.25);' : ''}"><span>${i + 1}. ${esc(String(x.name).split(' ')[0])} · ${fmt(x.time)}</span><span style="font-variant-numeric:tabular-nums;">${x.score.toLocaleString('de-DE')}</span></div>`).join('')}</div>
+    <div style="display:grid; gap:10px; margin-top:18px;">
+      <button type="button" id="arAgain" class="btn-primary">Nochmal - gegen ${esc(ar.name.split(' ')[0])}</button>
+      <button type="button" id="arDone" class="btn-secondary">Fertig</button>
+    </div></div>`;
+  panel.querySelector('#arAgain').onclick = () => { const f = ar.fig; closeArcade(); setTimeout(() => openArcade(f), 50); };
+  panel.querySelector('#arDone').onclick = () => closeArcade();
+}
+function closeArcade() {
+  if (!ar.active) return;
+  ar.active = false;
+  cancelAnimationFrame(ar.raf);
+  clearTimeout(ar.burstTimer);
+  try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  try { interruptPlayback(); } catch (e) {}
+  const v = document.getElementById('arcadeView');
+  if (v) { v.style.display = 'none'; v.querySelector('#arPanel').style.display = 'none'; }
+  stageRestore(ar.backup); ar.backup = null;
+  try { renderHome(); } catch (e) {}
+}
+
+// In „Spielen" einhängen, Zurück-Taste = Pause bzw. schließen
+GAME_INFO.arcade = { icon: '🌠', title: 'Versuchung', go: () => arChoose() };
+{
+  const g = PLAY_GROUPS.find(x => x[0] === 'Mit Gerät'); if (g) g[1].unshift('arcade');
+  const orig = gameSub;
+  gameSub = function (key) { if (key === 'arcade') { const b = arBest(); return b ? `Rekord ${b.toLocaleString('de-DE')}` : 'ausweichen, abwehren, durchhalten'; } return orig(key); };
+}
+OV_DEFS.push(['arcadeView', () => ar.active, () => { if (ar.over || ar.paused) closeArcade(); else arPause(); }]);
 
 </script>
 </body>
