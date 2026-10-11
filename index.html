@@ -17,6 +17,21 @@
   // Sperre vor allem anderen: Ist eine PIN gesetzt, bleibt die Seite verdeckt,
   // bis sie eingegeben wurde - auch nicht kurz aufblitzend.
   try { if (localStorage.getItem('companion_pinHash')) document.documentElement.classList.add('locked'); } catch (e) {}
+  // Notbremse: Startet das eigentliche Programm nicht (Datei unvollständig
+  // hochgeladen, Fehler beim Start), stünde sonst eine Sperre ohne Tastenfeld da.
+  // Nach 6 Sekunden erscheint dann ein Hinweis mit Neu-laden-Knopf und Fehlertext.
+  window.__bootErr = '';
+  window.addEventListener('error', function (e) { if (!window.__appReady && !window.__bootErr) window.__bootErr = (e.message || 'Fehler') + (e.lineno ? ' (Zeile ' + e.lineno + ')' : ''); });
+  setTimeout(function () {
+    if (window.__appReady) return;
+    var host = document.documentElement.classList.contains('locked') ? document.getElementById('lockScreen') : document.body;
+    if (!host) return;
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed; left:16px; right:16px; bottom:40px; z-index:100000; background:#fffbe0; color:#3b3a30; border:1px solid #d9cd86; border-radius:14px; padding:14px; font:14px/1.45 -apple-system, Roboto, Arial, sans-serif; box-shadow:0 4px 18px rgba(0,0,0,0.15);';
+    d.innerHTML = '<b>Die Seite ist nicht vollständig geladen.</b><br>Meist hilft Neu laden. Bleibt es so, ist die Datei beim Hochladen unvollständig angekommen - dann noch einmal hochladen.' + (window.__bootErr ? '<div style="margin-top:6px; font-size:12px; color:#8b8670; word-break:break-word;">' + String(window.__bootErr).replace(/</g, '&lt;') + '</div>' : '') + '<button type="button" style="margin-top:10px; width:100%; min-height:44px; border-radius:10px; border:1px solid #d9cd86; background:#fdf3b5; font-size:15px;">Neu laden</button>';
+    d.querySelector('button').onclick = function () { try { navigator.serviceWorker && navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.update(); }); }); } catch (e) {} location.reload(); };
+    host.appendChild(d);
+  }, 6000);
 </script>
 <style>
   html.locked body > *:not(#lockScreen) { display: none !important; }
@@ -23768,6 +23783,7 @@ GAME_INFO.house = { icon: '🏚️', title: 'Das Haus', go: () => hsChoose() };
   };
 }
 
+window.__appReady = true;
 </script>
 </body>
 </html>
