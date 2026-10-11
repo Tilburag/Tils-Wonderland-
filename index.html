@@ -3607,8 +3607,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.28';
+const APP_VERSION = '2.29';
 const CHANGELOG = [
+  { v: '2.29', date: '2026-10-11', items: [
+    'Akt-Bilder von Männern (auch vom Ich) zeigen jetzt ausdrücklich einen anatomisch vollständigen Körper - vorher glättete das Bildmodell den Intimbereich oft weg.',
+    'Die hinterlegte Intim-Beschreibung geht jetzt auch in Akt- und Halbakt-Bilder des Portfolios (bisher nur in Szenenbilder) - auch beim Weg über die Vorlage. Altes Bild über „Aus Galerie" entfernen und „Galerien auffüllen" drücken: Es wird nur das fehlende Bild neu gemacht.',
+  ] },
   { v: '2.28', date: '2026-10-11', items: [
     'Behoben: Mit eingeschaltetem „Sie entscheidet" startete die App nicht mehr (Sperrbildschirm ohne Tastenfeld). Ein Wert wurde beim Start abgefragt, bevor er angelegt war.',
     'Startet die App einmal nicht, zeigt sie jetzt nach 6 Sekunden einen Hinweis mit Neu-laden-Knopf und dem Fehlertext statt einer leeren Sperre.',
@@ -17488,7 +17492,7 @@ async function makePortfolio(figure, btn, opts) {
   const look = [c.lookTag || '', phantomPhrase(c.phantom, PHANTOM_FIELDS)].filter(Boolean).join(', ');
   const outfit = ((String(v.appearance || '').match(/Kleidung\s*:\s*(.+)/i) || [])[1] || 'a stylish outfit').slice(0, 120);
   const pose = man ? 'relaxed confident pose' : st.dom >= 60 ? 'confident pose, hands on hips' : st.soft >= 60 ? 'relaxed gentle pose, soft smile' : 'playful pose, looking over the shoulder';
-  const nudepose = man ? 'standing relaxed, athletic, full body' : st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side, tender look' : 'kneeling, playful smile';
+  const nudepose = man ? 'standing relaxed, facing the camera, full frontal, full body' : st.dom >= 60 ? 'standing confidently, one hand on her hip, dominant gaze' : st.soft >= 60 ? 'lying on her side, tender look' : 'kneeling, playful smile';
   if (btn) btn.textContent = 'Suche passende Orte …';
   const places = await portfolioPlaces(figure);
   const fill = t => t.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose).replace(/\{place(\d)\}/g, (_, k) => places[+k % places.length]);
@@ -17506,18 +17510,25 @@ async function makePortfolio(figure, btn, opts) {
     if (opts.stop && opts.stop()) break;
     if (btn) btn.textContent = `Fotografiere ${n + 1}/${want} …`;
     const [label, tpl0] = PORTFOLIO_SHOTS[i];
-    const tpl = man ? tpl0.replace(/\bher\b/g, 'his').replace('seductive look', 'confident look') : tpl0;
-    const prompt = `Photorealistic, adult ${man ? 'man' : 'woman'}. ${look}. ${fill(tpl)}. Adults only.`;
+    // Männer-Akt: Die Bildmodelle glätten den Intimbereich sonst gern weg
+    // („artistic nude" wird zur Puppe ohne Penis) - deshalb ausdrücklich benennen.
+    const tpl = man ? tpl0.replace(/\bher\b/g, 'his').replace('seductive look', 'confident look').replace('artistic nude photo, fully naked', 'realistic nude photo, fully naked, anatomically correct adult man, his penis and testicles clearly and naturally visible, realistic genitals, not censored, not smoothed') : tpl0;
+    // Hinterlegte Beschreibung des Intimbereichs (beim Ich: Penis) gehört in jedes
+    // Akt- und Halbakt-Bild - auch in den Auftrag über die Vorlage, sonst erfindet
+    // das Modell etwas oder lässt es weg.
+    const intim = /Akt/.test(label) && typeof intimatePhrase === 'function' ? intimatePhrase(c) : '';
+    const shot = fill(tpl) + (intim ? `. Intimate area, exactly as described: ${intim}` : '');
+    const prompt = `Photorealistic, adult ${man ? 'man' : 'woman'}. ${look}. ${shot}. Adults only.`;
     let url = null, how = 'Beschreibung';
     if (ref) {
-      try { url = await editFromReference(ref, referencePrompt(fill(tpl), v.gender)); how = 'Vorlage (' + refModel() + ')'; }
+      try { url = await editFromReference(ref, referencePrompt(shot, v.gender)); how = 'Vorlage (' + refModel() + ')'; }
       catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
       // Jedes Mal ein neuer Seed - sonst kamen bei jedem Druck dieselben Bilder
       if (!url) url = await generateImageDirect(prompt, 1 + Math.floor(Math.random() * (SEED_MAX - 1)));
       await galleryAdd(url, 'image', [figure.id], 'Portfolio · ' + label);
-      logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}) über ${how}.` });
+      logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}) über ${how}${intim ? ', mit hinterlegter Intim-Beschreibung' : ''}.` });
       n++;
     } catch (e) { logEvent('msg', { role: 'system', text: `Portfolio ${v.name} (${label}): ${e.message}` }); }
   }
