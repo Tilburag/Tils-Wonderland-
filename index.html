@@ -3607,8 +3607,30 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.29';
+const APP_VERSION = '2.34';
 const CHANGELOG = [
+  { v: '2.34', date: '2026-10-16', items: [
+    'Mehrere Figuren dürfen jetzt zwischendurch miteinander scherzen, sich necken und zusammen herzhaft lachen - passend zur Stimmung, nicht ständig.',
+    'Neue Geräusche zur Handlung: Peitsche oder Gerte knallt (darf alle 15 Sekunden wieder), Handschellen klicken, Kette rasselt. Die Figuren wissen, dass du solche Geräusche hörst, und setzen sie ein, wenn es passt. Voraussetzung: „Geräusche zur Handlung" ist an (Einrichtungsblatt) und ein ElevenLabs-Schlüssel ist eingetragen; jedes Geräusch wird einmal erzeugt und dann gespeichert.',
+  ] },
+  { v: '2.33', date: '2026-10-15', items: [
+    '💶 Verbrauch unter Ich: was heute, in 7 und in 30 Tagen bei Venice angefallen ist (Antworten nach den Token-Angaben, Bilder nach Stückpreis), wie viele Zeichen ElevenLabs gesprochen hat - und mit „↻ Guthaben" der echte Stand: Venice-Guthaben in Dollar und ElevenLabs-Zeichen deines Tarifs mit Datum der Erneuerung. Wird ein Guthaben knapp, sagt die App es einmal am Tag; Mila weiß es auch.',
+    'Figuren können jetzt herzhaft lachen, kichern, losprusten - und schreien, wenn die Situation es hergibt (Höhepunkt, Überraschung, Übermut). Gilt für Figuren mit emotionaler Stimme (ElevenLabs v3/v4).',
+  ] },
+  { v: '2.32', date: '2026-10-15', items: [
+    '📒 Werkstattbuch (Menü, oder 📒 bei Mila): Jede Sitzung wird laufend gesichert - auch wenn du den Browser schließt, bleibt sie erhalten (die letzten 40). Nach einer Sitzung oder beim nächsten Start wertet Mila das Neue aus und trägt Auffälligkeiten mit Belegen, vermuteter Ursache und Vorschlag ein; Gleiches fasst sie zusammen statt es doppelt zu notieren.',
+    'Notizen für Claude: einfach „Notiz: …" an Mila schreiben oder im Werkstattbuch auf „📝 Notiz". Landet mit Zeit und Bildschirm im Werkstattbuch.',
+    '„📤 Bericht für Claude": alle offenen Punkte, deine Notizen, geänderte Einstellungen, Kennzahlen und das Protokoll der letzten Sitzung (oder aller seit dem letzten Bericht) als eine Datei zum Weitergeben. Gesprächstext nur, wenn du es ankreuzt.',
+    'Mila darf Einstellungen vorschlagen - nur aus einer festen Liste (Sprechpause, Tempolimit, Hinhalten, Körpergeräusche als Kurz-davor-Auslöser, Dazwischenreden, Bilder über Vorlage, Bereit-Check). Nie von selbst: Du tippst „Übernehmen", kannst „Diskutieren" oder ablehnen, und jede Änderung lässt sich im Werkstattbuch rückgängig machen.',
+  ] },
+  { v: '2.31', date: '2026-10-15', items: [
+    '⏱ Neues Spiel „Auf die Minute" (Spielen → Mit Gerät): Zeit einstellen (5 bis 60 Minuten) und wie viele Kanten du unterwegs willst, Figuren wählen, Szene selbst schreiben oder 🎲 würfeln. Genau zur Zielminute sollst du kommen. Die Figuren kennen Plan, Restzeit und - mit Pulsgurt oder Kopfhörern - deinen Zustand und steuern Worte und Tempo danach; die App bremst das Gerät, wenn du dem Plan voraus bist, und legt zu, wenn du hinterher bist. Kommen ist erst im Finale erlaubt. Am Ende steht, wie genau es gepasst hat; die Dauer deines Finales lernt die App mit.',
+    '? Neue Hilfe: Mila (Fragezeichen oben oder im Menü) kennt die App, sieht den aktuellen Zustand und wertet auf Knopfdruck das Protokoll direkt in der App aus - ohne Kopieren. Gesprächstext bekommt sie nur, wenn du es ankreuzt. Sie kann Bildschirme öffnen und eine kurze Tour durch die App geben. Ein roter Punkt am Fragezeichen zeigt Programmfehler seit dem Start.',
+  ] },
+  { v: '2.30', date: '2026-10-12', items: [
+    'Bilder über die Vorlage auch bei Figuren ohne Original-Porträt: Fehlte das große Original (bei dir 36 Porträts), fiel die App bisher still auf „aus der Beschreibung" zurück - die Bilder sahen der Figur dann kaum ähnlich. Jetzt geht in dem Fall das kleine Vorschaubild hochskaliert als Vorlage mit (Portfolio, Szenenbilder, Fotoshooting, mehrere Figuren, Ich). Im Protokoll steht dann „nur Vorschaubild - Original fehlt".',
+    'Ein pixeliges Vorschaubild wird dabei nicht selbst als Porträt in die Galerie gelegt - das Porträt wird über die Vorlage neu gemacht.',
+  ] },
   { v: '2.29', date: '2026-10-11', items: [
     'Akt-Bilder von Männern (auch vom Ich) zeigen jetzt ausdrücklich einen anatomisch vollständigen Körper - vorher glättete das Bildmodell den Intimbereich oft weg.',
     'Die hinterlegte Intim-Beschreibung geht jetzt auch in Akt- und Halbakt-Bilder des Portfolios (bisher nur in Szenenbilder) - auch beim Weg über die Vorlage. Altes Bild über „Aus Galerie" entfernen und „Galerien auffüllen" drücken: Es wird nur das fehlende Bild neu gemacht.',
@@ -7715,6 +7737,9 @@ setInterval(() => {
 // zur Geräuschkulisse aus lauter Effekten.
 const SFX_EVENTS = [
   { key: 'knock',   label: 'Klopfen',          re: /\b(klopf\w*|pocht\w* an)\b/,                                   prompt: 'Two firm knocks on a wooden door', dur: 2 },
+  { key: 'whip',    label: 'Peitsche',         re: /\b(peitsch\w*|reitgerte|gerte|flogger)\b|knall\w*.{0,25}\b(peitsche|gerte)\b/, prompt: 'A single sharp crack of a leather whip in a quiet room', dur: 1.5, cool: 15000 },
+  { key: 'cuffs',   label: 'Handschellen',     re: /\bhandschelle\w*\b/,                                        prompt: 'Metal handcuffs clicking shut, a short rattle of the chain', dur: 2 },
+  { key: 'chain',   label: 'Kette',            re: /\b(kette|ketten)\b.{0,25}\b(rassel\w*|klirr\w*|spann\w*)\b|kettenrasseln/, prompt: 'A heavy metal chain rattling and clinking', dur: 2.5 },
   { key: 'door',    label: 'Tür',              re: /\b(tür|türe)\b.{0,30}\b(öffne\w*|auf|zu|schließ\w*|fällt ins schloss)\b/, prompt: 'A wooden door opening slowly with a soft creak, then closing', dur: 3 },
   { key: 'clothes', label: 'Kleidung',         re: /\b(auszieh\w*|zieh\w* .{0,25}\baus\b|reißverschluss|streif\w* .{0,25}(stoff|kleid|hemd|bluse|hose|slip|bh)|knöpf\w* .{0,15}auf)\b/, prompt: 'Clothes rustling and a zipper being pulled down slowly', dur: 3 },
   { key: 'glass',   label: 'Gläser',           re: /(anstoß\w*|stoß\w* .{0,25}\ban\b|gläser\w*|\bglas\b|\bprost\b|schenk\w* .{0,15}\bein\b|einschenk\w*)/,          prompt: 'Two wine glasses clinking together, then wine being poured', dur: 3 },
@@ -7773,7 +7798,7 @@ function planSfx(pieces) {
   if (now - sfxLastAny < SFX_GLOBAL_GAP_MS) return plan;
   for (let i = 0; i < pieces.length; i++) {
     const t = String(pieces[i].text || '').toLowerCase();
-    const ev = SFX_EVENTS.find(e => e.re.test(t) && now - (sfxLastPlayed[e.key] || 0) > SFX_COOLDOWN_MS);
+    const ev = SFX_EVENTS.find(e => e.re.test(t) && now - (sfxLastPlayed[e.key] || 0) > (e.cool || SFX_COOLDOWN_MS));
     if (ev) {
       plan[i] = ev;
       sfxUrl(ev).catch(() => null);
@@ -11609,16 +11634,16 @@ async function makeSceneImage(momentText, castOverride) {
     // Zwei oder drei Figuren, alle mit Bild: jede bringt ihr Vorlagenbild mit
     const multi = figs.length >= 2 && figs.length <= 3 && figs.every(c => c.figureId && getFigure(c.figureId))
       ? figs.map(c => latestVersion(getFigure(c.figureId))) : null;
-    if (multi && multi.every(v => v.anchorKey || v.imageKey) && (multi.some(v => v.anchorKey) || refOn('scene'))) {
+    if (multi && multi.every(hasRef) && (multi.some(v => v.anchorKey) || refOn('scene'))) {
       try {
         makeSceneImage._noRef = true;
         const plain = await makeSceneImage._promptOnly(momentText, castOverride);
         const refs = [];
-        for (const mv of multi) refs.push({ url: await loadFullImage(mv.anchorKey || mv.imageKey), who: `${mv.name}, a ${/männ/i.test(mv.gender || '') ? 'man' : 'woman'}` });
+        for (const mv of multi) refs.push({ url: await refUrl(mv), who: `${mv.name}, a ${/männ/i.test(mv.gender || '') ? 'man' : 'woman'}` });
         // Ich-Figur mit Porträt kommt dazu, wenn Platz ist und ich im Bild vorkomme
         const me = (castOverride || characters).find(c => c.isUser);
         const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
-        if (refs.length < 3 && meV && (meV.anchorKey || meV.imageKey) && meInScene(plain, me)) refs.push({ url: await loadFullImage(meV.anchorKey || meV.imageKey), who: `${meV.name}, a man` });
+        if (refs.length < 3 && meV && hasRef(meV) && meInScene(plain, me)) refs.push({ url: await refUrl(meV), who: `${meV.name}, a man` });
         if (refs.every(r => r.url)) {
           // Aussehen steckt in den Vorlagen - die festen Beschreibungen fliegen aus der Szene,
           // und das Ganze bleibt unter Venices Grenze von 1500 Zeichen.
@@ -11634,14 +11659,14 @@ async function makeSceneImage(momentText, castOverride) {
       } finally { makeSceneImage._noRef = false; }
     }
     // Mit Stamm-Bild immer über die Vorlage, sonst nur wenn eingeschaltet
-    if (fv && (fv.anchorKey || (refOn('scene') && fv.imageKey))) {
+    if (fv && (fv.anchorKey || (refOn('scene') && hasRef(fv)))) {
       try {
         makeSceneImage._noRef = true;
         const plain = await makeSceneImage._promptOnly(momentText, castOverride);
-        const ref = await loadFullImage(fv.anchorKey || fv.imageKey);
+        const ref = await refUrl(fv);
         const me = (castOverride || characters).find(c => c.isUser);
         const meV = me && me.figureId && getFigure(me.figureId) ? latestVersion(getFigure(me.figureId)) : null;
-        const meUrl = meV && (meV.anchorKey || meV.imageKey) && meInScene(plain, me) ? await loadFullImage(meV.anchorKey || meV.imageKey) : null;
+        const meUrl = meV && hasRef(meV) && meInScene(plain, me) ? await refUrl(meV) : null;
         let url;
         if (meUrl) {
           // Ich bin zu sehen: mein Bild geht als zweite Vorlage mit
@@ -12437,6 +12462,35 @@ async function storeFullImage(id, dataUrl) {
   }
 }
 
+// Vorlage für Bild-über-Bild: erst das Original, sonst das kleine Vorschaubild
+// - hochskaliert, damit das Modell es annimmt. Vorher fiel eine Figur ohne
+// Original still auf „aus der Beschreibung" zurück und sah sich nicht ähnlich.
+function hasRef(v) { return !!(v && (v.anchorKey || v.imageKey || v.image)); }
+const refUpCache = new Map();
+async function refInfo(v) {
+  if (!v) return { url: '', low: false };
+  const full = await loadFullImage(v.anchorKey || v.imageKey).catch(() => '');
+  if (full) return { url: full, low: false };
+  if (!v.image) return { url: '', low: false };
+  if (refUpCache.has(v.image)) return { url: refUpCache.get(v.image), low: true };
+  const url = await new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const k = Math.max(1, 1024 / Math.max(im.width, im.height));
+        const cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+        const x = cv.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+        x.drawImage(im, 0, 0, cv.width, cv.height);
+        res(cv.toDataURL('image/jpeg', 0.92));
+      } catch (e) { res(v.image); }
+    };
+    im.onerror = () => res('');
+    im.src = v.image;
+  });
+  if (url) refUpCache.set(v.image, url);
+  return { url, low: true };
+}
+async function refUrl(v) { return (await refInfo(v)).url; }
 async function loadFullImage(key) {
   if (!key) return '';
   try {
@@ -13527,7 +13581,7 @@ Wer du bist: ${String(v.notes || '').slice(0, 700)}
 Wesen: ${traits || '-'}
 So sprichst du: ${String(v.styleExamples || '').slice(0, 400)}
 
-Zwei bis vier Sätze, höchstens 320 Zeichen: dein Name, was dich ausmacht, was du magst - ruhig auch, was dir im Bett gefällt. Du sprichst mich direkt an.${emotional ? ' Setze zwei bis drei Audio-Tags in eckigen Klammern ein, dort wo sie passen: [lacht], [seufzt], [flüstert], [atmet schwer], [stöhnt leise], [stöhnt].' : ' Keine Klammern, keine Regieanweisungen.'}
+Zwei bis vier Sätze, höchstens 320 Zeichen: dein Name, was dich ausmacht, was du magst - ruhig auch, was dir im Bett gefällt. Du sprichst mich direkt an.${emotional ? ' Setze zwei bis drei Audio-Tags in eckigen Klammern ein, dort wo sie passen: [lacht], [lacht herzhaft], [kichert], [seufzt], [flüstert], [atmet schwer], [stöhnt leise], [stöhnt].' : ' Keine Klammern, keine Regieanweisungen.'}
 Keine Anführungszeichen, keine Erklärung - nur der gesprochene Text.`;
 }
 
@@ -15158,7 +15212,7 @@ function buildEnsemblePrompt(autoStep, isRetry, photo) {
     + '\n\n' + noValues;
 
   const emotionalInstruction = emotional
-    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft]. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile - vor allem in gesprochenen Zeilen. Hat die Figur gerade etwas im Mund, dürfen es mehr sein und mitten im Satz stehen: [schmatzt], [saugt], [schlürft], [stöhnt mit vollem Mund], [würgt leise] - die Worte dazwischen dann gedämpft und abgehackt.`
+    ? `\n\nAudio-Tags in eckigen Klammern machen die Stimmen lebendiger: [lacht], [kichert], [lacht herzhaft], [prustet los], [seufzt], [flüstert], [atmet schwer], [keucht], [stöhnt], [stöhnt leise], [schnappt nach Luft], [schreit auf], [schreit], [schreit lustvoll], [ruft laut]. Lachen - auch richtig herzhaft und laut - wenn etwas wirklich komisch, frech oder übermütig ist. Schreien nur, wenn die Situation es hergibt: beim Höhepunkt, vor Überraschung oder Schreck, im Übermut, im Streit - dann aber richtig, nicht zaghaft; nicht in jeder Antwort. Setze sie dort, wo sie zum Moment passen, höchstens ein bis zwei pro Zeile - vor allem in gesprochenen Zeilen. Hat die Figur gerade etwas im Mund, dürfen es mehr sein und mitten im Satz stehen: [schmatzt], [saugt], [schlürft], [stöhnt mit vollem Mund], [würgt leise] - die Worte dazwischen dann gedämpft und abgehackt.`
     : '';
 
   const autoInstruction = autoStep
@@ -17498,13 +17552,14 @@ async function makePortfolio(figure, btn, opts) {
   const fill = t => t.replace('{outfit}', outfit).replace('{pose}', pose).replace('{nudepose}', nudepose).replace(/\{place(\d)\}/g, (_, k) => places[+k % places.length]);
   let n = 0;
   // Das vorhandene Porträt als Vorlage - das erste Bild (Porträt) ist es dann selbst
-  let ref = null;
-  if ((refOn('portfolio') || v.anchorKey) && (v.anchorKey || v.imageKey)) { try { ref = await loadFullImage(v.anchorKey || v.imageKey); } catch (e) {} }
-  if (ref && n < want) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) { await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } } catch (e) {} }
+  let ref = null, refLow = false;
+  if ((refOn('portfolio') || v.anchorKey) && hasRef(v)) { try { const r = await refInfo(v); ref = r.url || null; refLow = r.low; } catch (e) {} }
+  // Ein pixeliges Vorschaubild kommt nicht selbst als Porträt in die Galerie - das Porträt wird dann neu gemacht
+  if (ref && !refLow && n < want) { try { if (!galleryFor(figure.id).some(g => /Porträt/.test(g.note || ''))) { await galleryAdd(ref, 'image', [figure.id], 'Portfolio · Porträt'); n++; } } catch (e) {} }
   // Welche Aufnahmen fehlen noch? Erst die Arten, die es von ihr noch nicht gibt,
   // dann der Reihe nach weiter - so wiederholt sich beim Auffüllen nichts.
   const have = portfolioImages(figure).map(g => String(g.note || '').replace(/^Portfolio · /, ''));
-  const order = PORTFOLIO_SHOTS.map((s, i) => i).filter(i => !(ref && i === 0)).sort((a, b) => (have.includes(PORTFOLIO_SHOTS[a][0]) ? 1 : 0) - (have.includes(PORTFOLIO_SHOTS[b][0]) ? 1 : 0));
+  const order = PORTFOLIO_SHOTS.map((s, i) => i).filter(i => !(ref && !refLow && i === 0)).sort((a, b) => (have.includes(PORTFOLIO_SHOTS[a][0]) ? 1 : 0) - (have.includes(PORTFOLIO_SHOTS[b][0]) ? 1 : 0));
   for (let j = 0; j < order.length && n < want; j++) {
     const i = order[j];
     if (opts.stop && opts.stop()) break;
@@ -17521,7 +17576,7 @@ async function makePortfolio(figure, btn, opts) {
     const prompt = `Photorealistic, adult ${man ? 'man' : 'woman'}. ${look}. ${shot}. Adults only.`;
     let url = null, how = 'Beschreibung';
     if (ref) {
-      try { url = await editFromReference(ref, referencePrompt(shot, v.gender)); how = 'Vorlage (' + refModel() + ')'; }
+      try { url = await editFromReference(ref, referencePrompt(shot, v.gender)); how = 'Vorlage (' + refModel() + (refLow ? ', nur Vorschaubild - Original fehlt' : '') + ')'; }
       catch (e) { const t = `Portfolio ${v.name} (${label}): Vorlage ging nicht (${e.message}) - erzeuge aus der Beschreibung.`; if (v.anchorKey) addMsg('system', t); else logEvent('msg', { role: 'system', text: t }); }
     }
     try {
@@ -23796,6 +23851,1264 @@ GAME_INFO.house = { icon: '🏚️', title: 'Das Haus', go: () => hsChoose() };
       if (key === 'house') { const b = g3Scores('companion_house')[0]; return b ? `Rekord ${b.score.toLocaleString('de-DE')}` : 'schleichen, verstecken, entkommen'; }
     } catch (e) {}
     return orig(key);
+  };
+}
+
+// =====================================================================
+// ======================= ⏱ AUF DIE MINUTE =======================
+// =====================================================================
+// Ein Live-Gespräch mit Ziel: Ich stelle eine Zeit ein (z. B. 20 Minuten) und
+// wie viele Kanten ich unterwegs erleben will. Genau zur eingestellten Minute
+// soll ich kommen. Die Figuren kennen den Plan, die verbleibende Zeit und
+// meinen Zustand (Puls, Körpergeräusche) und steuern Worte und Tempo darauf
+// hin. Die App selbst passt das Gerät an den Plan an: zu früh zu hoch → sie
+// bremst, hinterher → sie legt zu. Am Ende zählt, wie genau es gepasst hat.
+const DL_KEY = 'companion_deadline';
+const DL_LOG = 'companion_deadlineLog';
+function dlCfg() { try { return Object.assign({ min: 20, edges: 2 }, JSON.parse(localStorage.getItem(DL_KEY) || '{}')); } catch (e) { return { min: 20, edges: 2 }; } }
+function dlSaveCfg(c) { safeSet(DL_KEY, JSON.stringify(c)); }
+function dlLogList() { try { return JSON.parse(localStorage.getItem(DL_LOG) || '[]'); } catch (e) { return []; } }
+function dlClock(ms) { return new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+// Wie lange braucht Til vom Beginn des Finales bis zum Kommen? Wird mit jeder
+// Runde gelernt (Mittelwert der letzten fünf), bis dahin ein Viertel der Zeit.
+function dlFinalMs(totalMs) {
+  const past = dlLogList().filter(x => x.finalTookMs > 30000 && x.finalTookMs < 900000).slice(-5).map(x => x.finalTookMs);
+  const base = past.length >= 2 ? past.reduce((a, b) => a + b, 0) / past.length * 1.1 : totalMs * 0.25;
+  return Math.round(Math.max(90000, Math.min(480000, Math.min(totalMs * 0.5, base))));
+}
+// Aktueller Zustand 0-100: Körpergeräusche (mit Puls kombiniert) oder Puls allein
+function dlLevel() {
+  try { if (micSense.analyser && Date.now() - micSense.startedAt > 45000 && Number.isFinite(micSense.score)) return Math.round(micSense.score); } catch (e) {}
+  try { const h = hrScore(); if (h != null) return Math.round(h); } catch (e) {}
+  return null;
+}
+function dlRunning() { return typeof game !== 'undefined' && game.running && game.type === 'deadline'; }
+function dlState() {
+  const D = game.dl, now = Date.now();
+  const el = now - game.startedAt, T = game.durationMs, F = D.finalMs;
+  const done = edgeCount - game.edgesAtStart;
+  let phase;
+  if (game.phase === 'over') phase = 'over';
+  else if (el >= T) phase = 'due';
+  else if (el >= T - F) phase = 'final';
+  else if (inDanger || now - D.lastEdgeAt < 45000) phase = 'cool';
+  else if (done < D.edges) phase = el >= D.slots[done] - 60000 ? 'edge' : 'build';
+  else phase = 'hold';
+  // Ziel-Zustand laut Plan
+  let target;
+  if (phase === 'due') target = 100;
+  else if (phase === 'final') target = Math.round(62 + 38 * Math.min(1, (el - (T - F)) / F));
+  else if (phase === 'cool') target = 50;
+  else if (phase === 'edge') target = 92;
+  else if (phase === 'hold') target = 62;
+  else {
+    const from = done ? D.slots[done - 1] + 45000 : 0, to = D.slots[done] - 60000;
+    target = Math.round(30 + 50 * Math.max(0, Math.min(1, (el - from) / Math.max(1, to - from))));
+  }
+  const level = dlLevel();
+  return { el, T, F, left: T - el, done, phase, target, level, diff: level == null ? null : level - target, nextEdgeIn: done < D.edges ? D.slots[done] - el : null };
+}
+const DL_PHASE = { build: 'Aufbau', edge: 'Kante', cool: 'Durchatmen', hold: 'Halten', final: 'Finale', due: 'Jetzt!', over: 'Vorbei' };
+
+// ---------- Einrichtung: Zeit, Kanten, Besetzung, Szene (mit Würfel) ----------
+const dl = { cast: null, scene: null, rolling: false };
+function dlOpenSetup() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  const cfg = dlCfg();
+  if (!dl.cast) dl.cast = aiCharacters().filter(c => !c.isNarrator && c.figureId).map(c => c.figureId).slice(0, 3);
+  if (!dl.cast.length) dl.cast = pickFigures(1).map(f => f.id);
+  if (dl.scene == null) dl.scene = (localStorage.getItem('companion_sceneDesc') || '').trim();
+  const wrap = sheetWrap('dlSheet', '⏱ Auf die Minute');
+  const body = wrap.querySelector('.sheet-body');
+  const paint = () => {
+    const c = dlCfg();
+    const target = Date.now() + c.min * 60000;
+    const maxEdges = Math.max(0, Math.floor((c.min * 60000 - dlFinalMs(c.min * 60000)) / 150000));
+    if (c.edges > maxEdges) { c.edges = maxEdges; dlSaveCfg(c); }
+    const figs = dl.cast.map(getFigure).filter(Boolean);
+    const last = dlLogList().slice(-1)[0];
+    body.innerHTML = `
+      <p class="hint" style="margin-top:0;">Du stellst die Zeit ein - genau dann sollst du kommen. Die Figuren kennen den Plan, die Restzeit und (mit Pulsgurt oder Kopfhörer) deinen Zustand und steuern Worte und Tempo so, dass es auf die Minute passt.</p>
+      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:14px;"><b>Zeit</b><span style="font-size:22px; font-weight:700; font-variant-numeric:tabular-nums;">${c.min} Min <span style="font-size:13px; font-weight:400; color:var(--text-dim);">→ Ziel ${dlClock(target)}</span></span></div>
+      <input type="range" id="dlMin" min="5" max="60" step="1" value="${c.min}" style="width:100%; margin:8px 0 4px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
+        <div><b>Kanten unterwegs</b><div class="hint" style="margin:2px 0 0;">bei ${c.min} Min höchstens ${maxEdges}</div></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button type="button" id="dlEdgeMinus" class="btn-secondary" style="width:44px; padding:8px 0;">−</button>
+          <span style="font-size:22px; font-weight:700; min-width:22px; text-align:center;">${c.edges}</span>
+          <button type="button" id="dlEdgePlus" class="btn-secondary" style="width:44px; padding:8px 0;">+</button>
+        </div>
+      </div>
+      <div style="margin-top:16px;"><b>Wer ist dabei?</b></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
+        ${figs.map(f => { const v = latestVersion(f) || {}; return `<div style="width:62px; text-align:center;"><div style="width:58px; height:58px; border-radius:50%; overflow:hidden; margin:0 auto; background:var(--bg-panel-raised); border:2px solid var(--accent);">${v.image ? `<img src="${v.image}" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : ''}</div><div style="font-size:12px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc((v.name || '').split(' ')[0])}</div></div>`; }).join('')}
+        <button type="button" id="dlCastBtn" style="width:58px; height:58px; border-radius:50%; border:1px dashed var(--line); background:none; color:var(--text-dim); font-size:22px;">✎</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;"><b>Szene</b><button type="button" id="dlDice" class="btn-secondary" style="width:auto; padding:7px 14px;">${dl.rolling ? '🎲 würfelt …' : '🎲 Würfeln'}</button></div>
+      <textarea id="dlScene" rows="4" style="width:100%; margin-top:8px; box-sizing:border-box;" placeholder="Leer lassen oder würfeln - dann wählen die Figuren selbst.">${esc(dl.scene)}</textarea>
+      ${last ? `<p class="hint">Letztes Mal: ${esc(dlVerdict(last.diffSec))} (${last.min} Min, ${last.edgesDone}/${last.edgesPlan} Kanten).</p>` : ''}
+      <button type="button" id="dlGo" class="btn-primary" style="margin-top:14px;" ${figs.length ? '' : 'disabled'}>Los - Ziel ${dlClock(target)}</button>`;
+    body.querySelector('#dlMin').oninput = e => { const c2 = dlCfg(); c2.min = parseInt(e.target.value, 10); dlSaveCfg(c2); paint(); };
+    body.querySelector('#dlEdgeMinus').onclick = () => { const c2 = dlCfg(); c2.edges = Math.max(0, c2.edges - 1); dlSaveCfg(c2); paint(); };
+    body.querySelector('#dlEdgePlus').onclick = () => { const c2 = dlCfg(); c2.edges = Math.min(maxEdges, c2.edges + 1); dlSaveCfg(c2); paint(); };
+    body.querySelector('#dlScene').oninput = e => { dl.scene = e.target.value; };
+    body.querySelector('#dlCastBtn').onclick = () => {
+      const pool = pickFigures(999).sort((a, b) => latestVersion(a).name.localeCompare(latestVersion(b).name));
+      openFigurePicker({ title: 'Wer ist dabei?', hint: 'Bis zu drei Figuren.', items: pool.map(f => figurePickItem(f)), multi: true, max: 3, selected: dl.cast,
+        random: () => pickFigures(1 + Math.floor(Math.random() * 2)).map(f => f.id), onDone: ids => { dl.cast = ids; paint(); } });
+    };
+    body.querySelector('#dlDice').onclick = () => dlRollScene(paint);
+    body.querySelector('#dlGo').onclick = () => { closeSheet('dlSheet'); dlLaunch(); };
+  };
+  paint();
+  openSheet('dlSheet');
+}
+async function dlRollScene(paint) {
+  if (dl.rolling) return;
+  const figs = dl.cast.map(getFigure).filter(Boolean);
+  if (!figs.length) return;
+  dl.rolling = true; paint();
+  try {
+    const setting = SURPRISE_SETTINGS[Math.floor(Math.random() * SURPRISE_SETTINGS.length)];
+    const sys = `Du schreibst die Ausgangsszene für ein erotisches Live-Rollenspiel zwischen Erwachsenen (alle über 21). Ich bin Til.
+Ort bzw. Rahmen (frei und überraschend ausgestalten): ${setting}.
+Es spielen mit:
+${figs.map(f => '- ' + describeCharacter(characterFromVersion(f))).join('\n')}
+
+Schreibe eine Szenenbeschreibung in drei bis vier Sätzen, wie man sie ins Feld „Szene" schreibt: Ort mit Atmosphäre (Licht, Geräusche, Geruch), wie die Figuren dort sind und zueinander stehen, und warum ich dabei bin. Antworte NUR mit diesen Sätzen.`;
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Schreib die Szene.' }], 1.0, taskBudget('draft', 500), { task: 'draft' });
+    dl.scene = String(raw || '').replace(/^["„]|["“]$/g, '').trim();
+  } catch (e) { alert('Würfeln ging nicht: ' + e.message); }
+  dl.rolling = false; paint();
+}
+function dlLaunch() {
+  const figs = dl.cast.map(getFigure).filter(Boolean);
+  if (!figs.length) return;
+  // Laufendes Spiel oder Gespräch sauber beenden, dann neu aufsetzen
+  try { if (game.running) endGame('neues Spiel'); } catch (e) {}
+  try { if (history.length) writeDiaries(history.slice()); } catch (e) {}
+  try { resetSession('Auf die Minute'); els.transcript.innerHTML = ''; } catch (e) {}
+  switchMode('live');
+  const meFig = archiveMeFigure();
+  const me = characters.find(c => c.isUser) || (meFig ? characterFromVersion(meFig) : null);
+  characters = [me, ...figs.map(f => characterFromVersion(f))].filter(Boolean);
+  saveCharacters();
+  // switchMode hat noch die alte Besetzung angesagt
+  try { if (!history.length) els.transcript.innerHTML = ''; } catch (e) {}
+  safeSet('companion_sceneDesc', (dl.scene || '').trim());
+  try { els.liveScene.value = (dl.scene || '').trim(); } catch (e) {}
+  try { renderLivePanel(); } catch (e) {}
+  if (!els.gameSelect.querySelector('option[value="deadline"]')) { const o = document.createElement('option'); o.value = 'deadline'; o.textContent = 'Auf die Minute'; els.gameSelect.appendChild(o); }
+  els.gameSelect.value = 'deadline';
+  els.liveStartBtn.click();
+  // Der allgemeine Start-Handler merkt sich sonst „Live" bzw. „Sie entscheidet"
+  noteRecent('deadline'); noteSession('deadline', 'Auf die Minute', figs.map(f => latestVersion(f).name.split(' ')[0]));
+  try { updateSessionTitle(); } catch (e) {}
+  // Danach nicht hängen bleiben: Der nächste Live-Start ist wieder frei
+  els.gameSelect.value = ''; safeSet('companion_game', '');
+}
+
+// ---------- Start, Takt, Ende ----------
+{
+  const orig = startGame;
+  startGame = function (type) {
+    if (type !== 'deadline') return orig(type);
+    const cast = aiCharacters().filter(c => !c.isNarrator);
+    if (!cast.length) { addMsg('system', 'Für „Auf die Minute" braucht es mindestens eine Figur.'); return; }
+    clearInterval(game.timer);
+    const cfg = dlCfg();
+    const T = cfg.min * 60000, F = dlFinalMs(T);
+    const avail = T - F;
+    const n = Math.max(0, Math.min(cfg.edges, Math.floor(avail / 150000)));
+    const slots = Array.from({ length: n }, (_, k) => Math.round(avail * (k + 1) / (n + 0.5)));
+    Object.assign(game, { type: 'deadline', running: true, phase: 'play', startedAt: Date.now(), durationMs: T, choices: [], result: 0, resultWon: false, bets: [], betWinner: null, edgesAtStart: edgeCount });
+    game.dl = { edges: n, slots, finalMs: F, lastEdgeAt: 0, lastDone: 0, lastPhase: '', lastReapply: 0, finalAt: 0, dueSaid: false, cast: cast.map(c => c.name) };
+    releaseForced = false;
+    if (sceneStep <= INTRO_STEPS) sceneStep = INTRO_STEPS + 1;
+    const target = game.startedAt + T;
+    addMsg('system', `⏱ Auf die Minute: Ziel ${dlClock(target)} (${cfg.min} Min)${n ? `, ${n} Kante${n > 1 ? 'n' : ''} unterwegs` : ''}. Das Finale beginnt etwa ${Math.round(F / 60000 * 10) / 10} Min vorher.${dlLevel() == null ? ' Ohne Pulsgurt oder Kopfhörer plant die App nur nach der Zeit.' : ''}`);
+    logEvent('msg', { role: 'system', text: `Auf die Minute gestartet: ${cfg.min} Min, Ziel ${dlClock(target)}, Kanten geplant bei ${slots.map(s => fmtTime(s)).join(', ') || '-'}, Finale ab ${fmtTime(T - F)}.` });
+    noteRecent('deadline'); noteSession('deadline', 'Auf die Minute', cast.map(c => c.name.split(' ')[0]));
+    startAutoForGame();
+    game.timer = setInterval(gameTick, 1000);
+    renderGameHud();
+  };
+}
+{
+  const orig = gameTick;
+  gameTick = function () {
+    if (!dlRunning()) return orig();
+    if (game.phase === 'over') { renderGameHud(); return; }
+    const D = game.dl, S = dlState(), now = Date.now();
+    if (S.done > D.lastDone) { D.lastDone = S.done; D.lastEdgeAt = now; addMsg('system', `✓ Kante ${S.done}${D.edges ? '/' + D.edges : ''} nach ${fmtTime(S.el)}${D.slots[S.done - 1] ? ` (geplant ${fmtTime(D.slots[S.done - 1])})` : ''}.`); }
+    if (S.phase !== D.lastPhase) {
+      const prev = D.lastPhase; D.lastPhase = S.phase;
+      if (S.phase === 'final' && !D.finalAt) {
+        D.finalAt = now; releaseForced = true;
+        if (inDanger) endEdge('Finale');
+        if (S.done < D.edges) logEvent('msg', { role: 'system', text: `Auf die Minute: ${D.edges - S.done} Kante(n) ausgelassen - die Zeit reicht nicht mehr.` });
+        addMsg('system', `🔥 Finale - noch ${fmtTime(S.left)} bis ${dlClock(game.startedAt + game.durationMs)}.`);
+      }
+      if (S.phase === 'due' && !D.dueSaid) { D.dueSaid = true; releaseForced = true; addMsg('system', '⏰ Jetzt!'); try { ringBell(2); } catch (e) {} }
+      if (prev) logEvent('msg', { role: 'system', text: `Auf die Minute: ${DL_PHASE[S.phase]} (${fmtTime(S.el)}, Zustand ${S.level ?? '?'} / Plan ${S.target}).` });
+      D.lastReapply = 0;
+    }
+    // Gerät regelmäßig an den Plan anpassen
+    if (now - D.lastReapply > 12000) { D.lastReapply = now; [device1, device2].forEach(d => { try { d.reapply(); } catch (e) {} }); }
+    renderGameHud();
+  };
+}
+// Gerät: an den Plan anpassen - zu früh zu hoch → bremsen, hinterher → zulegen
+{
+  const orig = gameRequest;
+  gameRequest = function (req) {
+    req = orig(req);
+    if (!dlRunning() || game.phase === 'over' || !req) return req;
+    const tex = req.texture || 'smooth';
+    if (tex === 'stop' || tex === 'hold') return req;
+    const S = dlState();
+    let low = req.low ?? 300, high = req.high ?? 700, bpm = req.bpm || 60;
+    const minLen = len => { if (high - low < len) { const mid = (low + high) / 2; low = Math.max(0, Math.round(mid - len / 2)); high = Math.min(999, low + len); low = Math.max(0, high - len); } };
+    const ahead = S.diff != null && S.diff > 10, behind = S.diff != null && S.diff < -15;
+    if (S.phase === 'cool') bpm = Math.min(bpm, 40);
+    else if (S.phase === 'due') { bpm = Math.max(bpm, 150); minLen(800); }
+    else if (S.phase === 'final') {
+      const p = Math.min(1, (S.el - (S.T - S.F)) / S.F);
+      if (ahead && S.left > 60000) bpm = Math.min(bpm, 70);
+      else { bpm = Math.max(bpm, 55 + 110 * p + (behind ? 25 : 0)); minLen(350 + 550 * p); }
+    } else if (S.phase === 'edge') { bpm = Math.max(bpm, 90 + (behind ? 30 : 0)); minLen(600); }
+    else {
+      if (ahead) bpm = Math.min(bpm, 60);
+      else if (behind) bpm = Math.max(bpm, 75);
+      if (S.phase === 'hold') bpm = Math.min(bpm, 95);
+    }
+    return Object.assign({}, req, { bpm: Math.round(Math.min(230, bpm)), low: Math.round(low), high: Math.round(high) });
+  };
+}
+// Kommen erst im Finale erlaubt; „Sie entscheidet" ruht während des Spiels
+{
+  const origRA = releaseAllowed;
+  releaseAllowed = function () { if (dlRunning() && game.phase !== 'over') { const S = dlState(); return S.phase === 'final' || S.phase === 'due'; } return origRA(); };
+  const origHC = herCallActive;
+  herCallActive = function () { if (dlRunning()) return false; return origHC(); };
+  const origHE = herCallEnabled;
+  herCallEnabled = function () { if (dlRunning()) return false; return origHE(); };
+}
+// ---------- Was die Figuren wissen ----------
+function dlPromptBody(short) {
+  const D = game.dl, S = dlState();
+  const target = dlClock(game.startedAt + game.durationMs);
+  const body = S.level == null ? '' : ` Sein Zustand gerade: ${S.level} von 100 (Plan: ${S.target})${typeof hr !== 'undefined' && hr.connected && hr.bpm ? `, Puls ${hr.bpm}` : ''}.`;
+  const pace = S.diff == null ? '' : S.diff > 10 ? ' Er ist dem Plan VORAUS - zu erregt für diesen Zeitpunkt: bremst, werdet langsamer und sanfter, lenkt ab, haltet ihn hin.' : S.diff < -15 ? ' Er ist HINTER dem Plan: legt zu, werdet direkter, schneller und verführerischer.' : ' Er liegt genau im Plan - so weitermachen.';
+  const edges = D.edges ? ` Geplant: ${D.edges} Kante${D.edges > 1 ? 'n' : ''}, geschafft: ${S.done}.` : '';
+  let what;
+  if (S.phase === 'build') what = `Baut langsam auf.${S.nextEdgeIn != null ? ` Die nächste Kante ist in etwa ${fmtTime(S.nextEdgeIn)} geplant - steigert bis dahin.` : ''}`;
+  else if (S.phase === 'edge') what = 'JETZT ist eine Kante dran: Bringt ihn bis kurz vor den Höhepunkt - aber nicht darüber. Er soll „Kurz davor" sagen; dann sofort bremsen.';
+  else if (S.phase === 'cool') what = 'Er war gerade an der Kante: bremst, lasst ihn runterkommen, lobt ihn - aber haltet ihn warm.';
+  else if (S.phase === 'hold') what = `Alle Kanten geschafft. Haltet ihn auf mittlerer Höhe, nicht mehr - das Finale beginnt in ${fmtTime(S.T - S.F - S.el)}.`;
+  else if (S.phase === 'final') what = `FINALE: noch ${fmtTime(S.left)}. Steigert gleichmäßig, sodass er GENAU um ${target} kommt - nicht früher. Nennt ihm die Restzeit ab und zu.`;
+  else if (S.phase === 'due') what = `DIE ZEIT IST DA (${target}). Er soll JETZT kommen - zählt runter, gebt alles, erlaubt es ihm ausdrücklich.`;
+  else return '';
+  if (short) return `(AUF DIE MINUTE - ${DL_PHASE[S.phase]}, noch ${fmtTime(Math.max(0, S.left))}: ${what}${pace})`;
+  return `\n\nSPIEL: AUF DIE MINUTE. Til soll genau um ${target} kommen - in ${S.left > 0 ? fmtTime(S.left) : 'diesem Moment'}. Ihr alle arbeitet zusammen darauf hin und steuert Tempo, Worte und Steigerung so, dass es auf die Minute passt; die App passt das Gerät an den Plan an.${edges} Phase: ${DL_PHASE[S.phase]}. ${what}${body}${pace} Kommt er vor dem Finale an die Grenze, bremst sofort - zu früh zählt als verfehlt.`;
+}
+{
+  const orig = gameBlock;
+  gameBlock = function () {
+    if (dlRunning()) {
+      if (game.phase === 'over') return `\n\nSPIEL VORBEI (Auf die Minute): Til ist gekommen - ${dlVerdict(game.dlDiffSec)}. Reagiert darauf, lobt oder neckt ihn, und lasst ihn sanft ausklingen.`;
+      return dlPromptBody(false);
+    }
+    return orig();
+  };
+  const origT = gameTurnPrompt;
+  gameTurnPrompt = function () { if (dlRunning() && game.phase !== 'over') return dlPromptBody(true); return origT(); };
+}
+// ---------- Anzeige ----------
+{
+  const orig = renderGameHud;
+  renderGameHud = function () {
+    if (!dlRunning()) return orig();
+    els.gameHud.style.display = '';
+    const S = dlState(), D = game.dl;
+    const key = 'deadline|' + game.phase;
+    if (key !== gameHudKey) {
+      gameHudKey = key;
+      els.gameButtons.innerHTML = '';
+      if (game.phase !== 'over') els.gameButtons.appendChild(gameButton('💦 Gekommen', () => { els.textInput.value = 'Ich bin gekommen!'; sendTypedMessage(); }, true));
+      els.gameButtons.appendChild(gameButton(game.phase === 'over' ? 'Schließen' : 'Beenden', () => endGame('beendet')));
+    }
+    if (game.phase === 'over') { els.gameStatus.textContent = `⏱ ${dlVerdict(game.dlDiffSec)}`; return; }
+    const lv = S.level == null ? '' : ` · ${hr.connected && hr.bpm ? '❤ ' + hr.bpm + ' ' : ''}${S.level}/${S.target}`;
+    els.gameStatus.textContent = `⏱ ${S.left > 0 ? 'noch ' + fmtTime(S.left) : 'JETZT'} · Ziel ${dlClock(game.startedAt + game.durationMs)} · ${DL_PHASE[S.phase]}${D.edges ? ` · Kante ${Math.min(S.done, D.edges)}/${D.edges}` : ''}${lv}`;
+  };
+}
+// ---------- Gekommen: wie genau war es? ----------
+function dlVerdict(sec) {
+  if (sec == null) return '';
+  const a = Math.abs(sec), t = a < 60 ? `${a} s` : `${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')} Min`;
+  if (a <= 20) return `Punktlandung (${sec === 0 ? 'genau' : t + (sec < 0 ? ' früher' : ' später')})`;
+  return sec < 0 ? `${t} zu früh` : `${t} zu spät`;
+}
+function dlFinish() {
+  if (!dlRunning() || game.phase === 'over') return;
+  const D = game.dl, now = Date.now();
+  const target = game.startedAt + game.durationMs;
+  const diffSec = Math.round((now - target) / 1000);
+  const done = edgeCount - game.edgesAtStart;
+  game.dlDiffSec = diffSec;
+  game.phase = 'over';
+  const entry = { t: now, min: Math.round(game.durationMs / 60000), edgesPlan: D.edges, edgesDone: done, diffSec, finalTookMs: D.finalAt ? now - D.finalAt : null, cast: D.cast.map(n => n.split(' ')[0]) };
+  const list = dlLogList(); list.push(entry);
+  try { safeSet(DL_LOG, JSON.stringify(list.slice(-60))); } catch (e) {}
+  const a = Math.abs(diffSec);
+  const best = list.filter(x => x !== entry).reduce((m, x) => Math.min(m, Math.abs(x.diffSec)), Infinity);
+  addMsg('system', `⏱ ${dlVerdict(diffSec)} · ${done}/${D.edges} Kanten${a < best && list.length > 1 ? ' · neuer Bestwert' : ''}${D.finalAt ? ` · Finale dauerte ${fmtTime(now - D.finalAt)}` : ''}.`);
+  logEvent('msg', { role: 'system', text: `Auf die Minute: gekommen ${dlVerdict(diffSec)}, Kanten ${done}/${D.edges}.` });
+  autoPlaying = false; setAutoStatus(false);
+  renderGameHud();
+}
+{
+  const orig = gameOnUserText;
+  gameOnUserText = function (text) {
+    if (dlRunning()) { if (CAME_RE.test(String(text || '').toLowerCase())) dlFinish(); return; }
+    return orig(text);
+  };
+  const origCame = onCame;
+  onCame = function () { try { dlFinish(); } catch (e) {} return origCame.apply(this, arguments); };
+}
+// In „Spielen" einhängen
+GAME_INFO.deadline = { icon: '⏱', title: 'Auf die Minute', go: () => dlOpenSetup() };
+{
+  const g = PLAY_GROUPS.find(x => x[0] === 'Mit Gerät'); if (g) g[1].unshift('deadline');
+  const orig = gameSub;
+  gameSub = function (key) {
+    if (key === 'deadline') { const L = dlLogList(); if (!L.length) return 'genau zur Minute kommen'; const b = L.reduce((m, x) => Math.min(m, Math.abs(x.diffSec)), Infinity); return `bester Wert ±${b < 60 ? b + ' s' : Math.round(b / 60) + ' Min'}`; }
+    return orig(key);
+  };
+}
+
+// =====================================================================
+// ======================= ? HILFE: MILA =======================
+// =====================================================================
+// Eine eigene Hilfe-Figur hinter dem „?" oben: Sie kennt die App (ein kurzes
+// Handbuch plus „Was ist neu"), sieht den aktuellen Zustand (Verbindungen,
+// Besetzung, laufendes Spiel) und auf Wunsch das Protokoll. So gibt es die
+// Auswertung direkt in der App. Sie kann Bildschirme öffnen und eine kurze
+// Tour durch die App geben. Gesprächstext aus Sitzungen sieht sie nur, wenn
+// man es ausdrücklich einschaltet.
+const HELP = { msgs: [], busy: false, errs: [], seenErr: 0, withText: false };
+window.addEventListener('error', e => { HELP.errs.push({ t: Date.now(), m: String(e.message || 'Fehler') + (e.lineno ? ` (Zeile ${e.lineno})` : '') }); HELP.errs = HELP.errs.slice(-15); });
+window.addEventListener('unhandledrejection', e => { const r = e.reason; HELP.errs.push({ t: Date.now(), m: 'Unbehandelt: ' + String((r && r.message) || r || '?').slice(0, 200) }); HELP.errs = HELP.errs.slice(-15); });
+try { HELP.msgs = JSON.parse(localStorage.getItem('companion_helpChat') || '[]').slice(-30); } catch (e) {}
+function helpSave() { try { safeSet('companion_helpChat', JSON.stringify(HELP.msgs.slice(-30))); } catch (e) {} }
+
+const HELP_GAMES = {
+  live: 'Live-Gespräch: freies Gespräch mit der Besetzung, Gerät folgt der Handlung.',
+  roulette: 'Zufallsbegegnung: wie ein Videoanruf mit zufälliger Figur; rechts = gefällt, links = nö, hoch = neutral (zählt nicht fürs Lernen).',
+  photo: 'Fotoshooting: du bist Fotograf, gibst Anweisungen, sie posiert und es entstehen Fotos (1-3 Models).',
+  speed: 'Speed-Dating: mehrere Figuren nacheinander, je ein paar Minuten.',
+  swipe: 'Durchswipen: Figuren wie in einer Dating-App durchsehen.',
+  hunt: 'Nachtjagd: Stadtkarte mit Vierteln, Figuren treffen und im Rundenkampf gewinnen (Kompliment, Necken, Standhaft, Verführen); ihre Angriffe = Gerät, Team, Abzeichen, Königin der Nacht.',
+  arcade: 'Versuchung: Arcade - als Mond ausweichen, jeder Treffer = Bewegung, wird alle 30 s schwerer.',
+  rhythm: 'Im Takt: Noten auf drei Bahnen im Takt tippen; gut getroffen = du hast die Kontrolle, verpasst = sie übernimmt.',
+  house: 'Das Haus: Schleichspiel, drei Schlüssel finden, nicht gesehen werden; erwischt = 30 s Gerät.',
+  deadline: 'Auf die Minute: Zeit und Zahl der Kanten einstellen, Figuren wählen, Szene würfeln - genau zur Zielminute sollst du kommen; die Figuren und die App steuern nach Plan und Zustand (Puls/Körpergeräusche).',
+  hercall: 'Sie entscheidet: die Figur legt heimlich fest, wie viele Kanten und ob du darfst.',
+  challenge: 'Durchhalten: eine Zeit lang nicht kommen, alle zwei Minuten heftiger, Figuren wetten.',
+  duel: 'Duell: zwei Figuren abwechselnd am Gerät, du kürst die Siegerin.',
+  tournament: 'Turnier: alle gegen alle im K.-o.-System.',
+  adventure: 'Abenteuer: Geschichte mit Entscheidungen an Weggabelungen.',
+  story: 'Geschichte: vorab geschrieben, dann angehört, Bewegung zur Handlung.',
+  pitches: 'Karten des Abends: Ideen der Figuren für heute.',
+  campfire: 'Lagerfeuer: du hörst heimlich zu, wie die Figuren reden.',
+  discover: 'Entdecken: Puls-Blindtest (Stimmen, Themen, Tempo), braucht Pulsgurt.',
+};
+const HELP_HANDBOOK = `APP-AUFBAU
+- Tabs unten: Start, Spielen, Figuren, Ich. Oben: ☰ Menü (Neues Gespräch, gespeicherte Geschichten, Was ist neu, Klangbibliothek, Protokoll kopieren, Hilfe), die Statuszeile mit Punkten für Gerät, Pulsgurt, Kopfhörer (antippen = Verbindungen), „?" = Hilfe (du), ⚙ = Einstellungen.
+- Einstellungen in Gruppen mit Suche: Verbindungen (Gerät 1/2, Pulsgurt), Stimme & Klang (inkl. Körpergeräusche, Dazwischenreden), KI & Bilder (Anbieter, Modelle, Bild über Vorlage), Schutz & Sicherung (PIN, Sicherung), Anzeige.
+- Start: Weitermachen, Heute dabei (Besetzung), Szene, Live beginnen, Überrasch mich (würfelt Besetzung und Szene), Geschichte, zuletzt gespielt.
+- Live und Geschichte laufen im Vollbild. Vor dem Start das Blatt „Bevor es losgeht": Szene, Besetzung, Erzähler, Spiel und Regeln (Kurz davor/Gekommen, Hinhalten, Sie entscheidet, Echtes Nein, Bereit-Check). Knöpfe: Kurz davor (bremst), Gekommen (Gerät hält danach 2,5 Min still - gewollt), Stopp (endgültig), Anruf (sprechen), 🔥 👍 👎 (Reaktionen, werden gelernt). ✕ verlässt die Sitzung, der Verlauf bleibt für „Weitermachen".
+- Figuren: Archiv, Figurenkarte mit Galerie (Ziel 4 Bilder: Porträt, Outfit, Halbakt, Akt), „Galerien auffüllen" macht fehlende Bilder. Bilder „über Vorlage" nehmen das Porträt mit, damit das Gesicht gleich bleibt (Venice etwa 4 ct pro Bild, normal erzeugt 1 ct). Fehlt das große Original, geht das Vorschaubild hochskaliert mit (Protokoll: „nur Vorschaubild - Original fehlt"). „über Beschreibung" heißt: ohne Vorlage, sieht der Figur dann weniger ähnlich. Die Ich-Figur hat eine feste Bildbeschreibung und eine Intim-Beschreibung, die in Akt-Bilder geht.
+- Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Limits, Nachtruhe), Auswertung.
+- Lernen nur mit verbundenem Pulsgurt. Körpergeräusche (Atem, Stöhnen) brauchen Kopfhörer; die ersten 45 s misst die App den Ruhepegel.
+- Verbindungen: Gerät (SSR1) über WLAN-WebSocket (gleiches WLAN, richtige IP in Einstellungen → Verbindungen), Pulsgurt über Bluetooth, Kopfhörer für Körpergeräusche.
+- PIN-Sperre schützt die App. „Code vergessen?" LÖSCHT ALLES - nur mit Sicherungsdatei sinnvoll.
+- Als App installieren (Menü), dann öffnet sie ohne Browserleiste.
+
+HÄUFIGE PROBLEME
+- Gerät reagiert nicht: Statuszeile prüfen (Punkt bei Gerät), in Verbindungen neu verbinden, Handy und Gerät im selben WLAN, IP richtig. Nach „Gekommen" steht es 2,5 Min still, bei „Sie entscheidet" mit echtem Nein bis 15 Min.
+- Bilder sehen der Figur nicht ähnlich: im Protokoll „über Beschreibung" = keine Vorlage benutzt; „nur Vorschaubild" = Original fehlt. Abhilfe: Bild in der Galerie über „Aus Galerie" entfernen und „Galerien auffüllen".
+- Akt-Bild ohne Genitalien: Modell glättet - neu machen lassen; die Intim-Beschreibung geht mit.
+- Sperre ohne Tastenfeld oder gelber Hinweis „nicht vollständig geladen": Startfehler oder unvollständige Datei - der Fehlertext steht im Hinweis; neu laden, notfalls Datei neu hochladen.
+- Bilder/Galerie weg: der Browser hat Speicher geräumt; Sicherung laden bzw. Wiederherstellen; dauerhafter Speicher sollte „ja" sein (Protokollkopf).
+- Stimme fehlt oder klingt anders: ElevenLabs-Schlüssel/Guthaben prüfen; sonst springt die Android-Stimme ein.
+- Venice-Fehler 402/429: Guthaben leer bzw. zu viele Anfragen - kurz warten oder Guthaben aufladen.
+- Spiel startet beim nächsten Live-Start erneut: im Einrichtungsblatt unter Spiel „kein Spiel" wählen.
+
+SPIELE
+${Object.values(HELP_GAMES).map(x => '- ' + x).join('\n')}`;
+
+function helpScreen() {
+  const v = id => { const e = document.getElementById(id); return e && e.style.display !== 'none' && e.offsetParent !== null; };
+  try { if (g3.active) return g3.G ? 'Spiel ' + g3.G.title : 'Spiel'; } catch (e) {}
+  try { if (ar.active) return 'Spiel Versuchung'; } catch (e) {}
+  if (document.body.classList.contains('in-session')) return currentMode === 'story' ? 'Geschichte (Vollbild)' : 'Live-Sitzung (Vollbild)';
+  return [['homePanel', 'Start'], ['gamesPanel', 'Spielen'], ['figuresPanel', 'Figuren'], ['mePanel', 'Ich'], ['settingsPanel', 'Einstellungen']].find(([id]) => v(id))?.[1] || 'unbekannt';
+}
+function helpContext() {
+  const on = d => { try { return d.isConnected(); } catch (e) { return false; } };
+  const lines = [
+    `App-Version ${APP_VERSION}. Bildschirm gerade: ${helpScreen()}.`,
+    `Verbindungen: Gerät 1 ${on(device1) ? 'verbunden' : 'getrennt'}, Gerät 2 ${on(device2) ? 'verbunden' : 'getrennt'}, Pulsgurt ${hr.connected ? 'verbunden (' + hr.bpm + ')' : 'getrennt'}, Körpergeräusche ${micSense.analyser ? 'laufen' : 'aus'}, Kopfhörer ${(() => { try { return headphonesOn() ? 'ja' : 'nein'; } catch (e) { return '?'; } })()}.`,
+    `Besetzung: ${characters.map(c => c.name + (c.isUser ? ' (Ich)' : '')).join(', ') || 'keine'}. Figuren im Archiv: ${figureArchive.length}.`,
+    `Spiel: ${game.running ? game.type + ' (' + game.phase + ')' : 'keins'}. Verlauf: ${history.length} Nachrichten.`,
+    `KI: ${localStorage.getItem('companion_llmProvider') || 'anthropic'} / ${(() => { try { return modelFor('companion_model_' + (localStorage.getItem('companion_llmProvider') || 'anthropic')) || 'Standard'; } catch (e) { return '?'; } })()}; Stimme: ${localStorage.getItem('companion_ttsSource') || 'browser'}.`,
+    `Speicher: ${storageDiag}.`,
+    HELP.errs.length ? `Fehler seit dem Start: ${HELP.errs.slice(-6).map(x => new Date(x.t).toLocaleTimeString('de-DE') + ' ' + x.m).join(' | ')}` : 'Keine Programmfehler seit dem Start.',
+  ];
+  return lines.join('\n');
+}
+function helpNews() {
+  try { return CHANGELOG.slice(0, 5).map(c => `Version ${c.v} (${c.date}): ` + c.items.map(i => String(i).slice(0, 260)).join(' ')).join('\n').slice(0, 3000); } catch (e) { return ''; }
+}
+// Protokoll für Mila: ohne TCODE-Flut, ohne Gesprächstext (außer erlaubt), neuester Teil
+function helpProtocol() {
+  let txt = '';
+  try { txt = buildSessionExport(); } catch (e) { return '(Protokoll nicht lesbar: ' + e.message + ')'; }
+  const out = txt.split('\n').filter(l => {
+    if (/^\[[^\]]+\] TCODE /.test(l)) return false;
+    if (!HELP.withText && /^\[[^\]]+\] TEXT (?!system)/.test(l)) return false;
+    return true;
+  }).map(l => (!HELP.withText && /^\s*Beschreibung:/.test(l)) ? '  Beschreibung: (ausgeblendet)' : l);
+  let s = out.join('\n');
+  if (s.length > 14000) { const head = s.slice(0, 2500); s = head + '\n(… gekürzt …)\n' + s.slice(-11000); }
+  return s;
+}
+function helpSystem() {
+  return `Du bist Mila, die Hilfe-Begleiterin in Tils privater App „Notizen" (eine Begleiter-App für Erwachsene mit KI-Figuren, Stimmen, Bildern und Gerätesteuerung). Du bist herzlich, ein bisschen verspielt, aber vor allem hilfreich und präzise. Du sprichst Deutsch und duzt Til.
+
+REGELN
+- Antworte kurz: meist 2 bis 6 Sätze oder eine knappe Liste. Bei einer Protokoll-Auswertung darf es länger sein, aber gegliedert.
+- Erkläre nur, was im Handbuch, in „Was ist neu" oder im Zustand/Protokoll steht. Weißt du etwas nicht sicher, sag das ehrlich, statt etwas zu erfinden.
+- Du kannst Bildschirme öffnen, indem du am Ende eine Zeile mit Knöpfen schreibst: [[open:home]] [[open:games]] [[open:figures]] [[open:me]] [[open:settings]] [[open:conn]] [[open:news]] [[open:deadline]] [[tour]] (Tour = kurze Führung durch die App). Höchstens drei Knöpfe, nur passende.
+- Protokoll lesen: „BEWEGUNG" = vom Modell gewählte Werte, „TEXT system" = Meldungen der App. Achte auf Fehlercodes (402 Guthaben, 429 zu viele Anfragen, 401 Schlüssel), „über Beschreibung" (keine Bildvorlage), „Vorlage ging nicht", „getrennt", lange Pausen, fehlende Bewegung, Startfehler.
+- Keine Formatierung mit Überschriften-Rauten; **fett** und Aufzählungen mit „- " sind ok.
+
+HANDBUCH
+${HELP_HANDBOOK}
+
+WAS IST NEU (neueste zuerst)
+${helpNews()}
+
+ZUSTAND JETZT
+${helpContext()}`;
+}
+
+// ---------- Ansicht ----------
+function helpView() {
+  let v = document.getElementById('helpView');
+  if (v) return v;
+  v = document.createElement('div');
+  v.id = 'helpView';
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2045; background:var(--bg, #120d10); color:var(--text, #eee); flex-direction:column;';
+  v.innerHTML = `
+    <div style="display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; border-bottom:1px solid var(--line);">
+      <div style="width:42px; height:42px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffd1e0, #d0516a 55%, #5a1e3a); display:flex; align-items:center; justify-content:center; font:600 20px var(--font-display, serif); color:#fff; box-shadow:0 0 16px rgba(208,81,106,0.45);">M</div>
+      <div style="flex:1; min-width:0;"><div style="font:600 18px var(--font-display, serif);">Mila</div><div style="font-size:12px; color:var(--text-dim);">Hilfe · kennt die App und liest das Protokoll</div></div>
+      <button type="button" id="helpClear" aria-label="Verlauf leeren" title="Verlauf leeren" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--text); font-size:16px;">⟲</button>
+      <button type="button" id="helpClose" aria-label="Schließen" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--text); font-size:16px;">✕</button>
+    </div>
+    <div id="helpMsgs" style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px;"></div>
+    <div style="padding:8px 12px 0; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;" id="helpChips"></div>
+    <label style="display:flex; align-items:center; gap:8px; padding:6px 14px 0; font-size:12px; color:var(--text-dim);"><input type="checkbox" id="helpWithText" style="width:auto; margin:0;"> Gesprächstext der Sitzung mitschicken (sonst nur App-Meldungen)</label>
+    <div style="display:flex; gap:8px; padding:8px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);">
+      <input type="text" id="helpInput" placeholder="Frag mich etwas …" style="flex:1; min-width:0;">
+      <button type="button" id="helpSend" class="btn-primary" style="width:auto; padding:0 18px;">➤</button>
+    </div>`;
+  document.body.appendChild(v);
+  const chips = [['🔍 Protokoll auswerten', () => helpAnalyze()], ['🧭 Tour', () => helpTour()], ['✨ Was ist neu?', () => helpAsk('Was ist in den letzten Versionen neu? Kurz und knapp.')], ['⏱ Auf die Minute?', () => helpAsk('Wie funktioniert „Auf die Minute"?')], ['🔌 Gerät geht nicht', () => helpAsk('Mein Gerät reagiert nicht. Was kann ich prüfen? Schau auch in den Zustand.')]];
+  const host = v.querySelector('#helpChips');
+  chips.forEach(([t, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; flex:0 0 auto; padding:7px 12px; font-size:13px; white-space:nowrap;'; b.textContent = t; b.onclick = fn; host.appendChild(b); });
+  v.querySelector('#helpClose').onclick = () => helpClose();
+  v.querySelector('#helpClear').onclick = () => { if (!HELP.msgs.length || confirm('Verlauf mit Mila leeren?')) { HELP.msgs = []; helpSave(); helpRender(); } };
+  const send = () => { const i = v.querySelector('#helpInput'); const t = i.value.trim(); if (!t) return; i.value = ''; helpAsk(t); };
+  v.querySelector('#helpSend').onclick = send;
+  v.querySelector('#helpInput').onkeydown = e => { if (e.key === 'Enter') send(); };
+  v.querySelector('#helpWithText').onchange = e => { HELP.withText = e.target.checked; };
+  return v;
+}
+function helpOpen(prefill) {
+  const v = helpView();
+  v.style.display = 'flex';
+  HELP.seenErr = HELP.errs.length; helpBadge();
+  if (!HELP.msgs.length) HELP.msgs.push({ role: 'assistant', content: `Hey${(() => { const me = archiveMeFigure(); const n = me ? latestVersion(me).name.split(' ')[0] : ''; return n && !/^ich$/i.test(n) ? ' ' + n : ''; })()}, ich bin Mila. Ich kenne mich in deiner App aus und kann ins Protokoll schauen, wenn etwas hakt. Frag mich einfach - oder tipp unten auf „Protokoll auswerten" oder „Tour".` });
+  helpRender();
+  if (prefill === 'analyze') helpAnalyze();
+}
+function helpClose() { const v = document.getElementById('helpView'); if (v) v.style.display = 'none'; }
+function helpFmt(t) {
+  let h = esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  h = h.split('\n').map(l => /^\s*[-•]\s+/.test(l) ? `<div style="padding-left:14px; text-indent:-10px;">• ${l.replace(/^\s*[-•]\s+/, '')}</div>` : l ? `<div>${l}</div>` : '<div style="height:6px;"></div>').join('');
+  return h;
+}
+const HELP_ACTIONS = {
+  home: ['🏠 Start', () => { helpClose(); showHome(); }],
+  games: ['🎮 Spielen', () => { helpClose(); showGames(); }],
+  figures: ['👥 Figuren', () => { helpClose(); showFigures(); }],
+  me: ['👤 Ich', () => { helpClose(); try { showMe(); } catch (e) { openDashboard(); } }],
+  settings: ['⚙ Einstellungen', () => { helpClose(); showSettings(); }],
+  conn: ['🔌 Verbindungen', () => { helpClose(); try { openStatusSheet(); } catch (e) { showSettings('conn'); } }],
+  news: ['✨ Was ist neu', () => { helpClose(); showChangelog(); }],
+  deadline: ['⏱ Auf die Minute', () => { helpClose(); dlOpenSetup(); }],
+  tour: ['🧭 Tour starten', () => helpTour()],
+};
+function helpRender() {
+  const box = document.getElementById('helpMsgs'); if (!box) return;
+  box.innerHTML = '';
+  HELP.msgs.forEach(m => {
+    const mine = m.role === 'user';
+    const acts = [];
+    const text = String(m.content || '').replace(/\[\[(open:([a-z]+)|tour)\]\]/g, (_, all, k) => { const key = k || 'tour'; if (HELP_ACTIONS[key] && !acts.includes(key)) acts.push(key); return ''; }).trim();
+    const d = document.createElement('div');
+    d.style.cssText = `max-width:86%; align-self:${mine ? 'flex-end' : 'flex-start'}; background:${mine ? 'var(--accent, #d0516a)' : 'var(--bg-panel-raised, #241c1f)'}; color:${mine ? '#fff' : 'var(--text)'}; border-radius:${mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px'}; padding:10px 13px; font-size:14.5px; line-height:1.5;`;
+    d.innerHTML = m.display ? helpFmt(m.display) : helpFmt(text);
+    if (acts.length) {
+      const row = document.createElement('div'); row.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
+      acts.forEach(k => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; padding:6px 11px; font-size:13px;'; b.textContent = HELP_ACTIONS[k][0]; b.onclick = HELP_ACTIONS[k][1]; row.appendChild(b); });
+      d.appendChild(row);
+    }
+    box.appendChild(d);
+  });
+  if (HELP.busy) { const d = document.createElement('div'); d.style.cssText = 'align-self:flex-start; color:var(--text-dim); font-size:13px; padding:4px 6px;'; d.textContent = 'Mila schaut nach …'; box.appendChild(d); }
+  box.scrollTop = box.scrollHeight;
+}
+async function helpAsk(text, opts) {
+  opts = opts || {};
+  if (HELP.busy) return;
+  HELP.msgs.push({ role: 'user', content: opts.payload || text, display: opts.payload ? text : undefined });
+  HELP.busy = true; helpRender();
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    // Nur die letzten Nachrichten mitschicken; frühere Protokolle nicht erneut
+    const convo = HELP.msgs.slice(-10).map((m, i, a) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: (m.display && i < a.length - 1) ? m.display : m.content }));
+    while (convo.length && convo[0].role !== 'user') convo.shift();
+    const raw = await callProvider(provider, helpSystem(), convo, 0.5, taskBudget('draft', opts.long ? 1400 : 700), { task: 'draft' });
+    HELP.msgs.push({ role: 'assistant', content: String(raw || '').trim() || 'Hm, da kam nichts zurück. Versuch es gleich noch einmal.' });
+  } catch (e) {
+    HELP.msgs.push({ role: 'assistant', content: `Ich komme gerade nicht an die KI (${e.message}). Prüf in den Einstellungen unter „KI & Bilder" den Schlüssel und das Guthaben. [[open:settings]]` });
+  }
+  HELP.busy = false; helpSave(); helpRender();
+}
+function helpAnalyze() {
+  const prot = helpProtocol();
+  helpAsk('🔍 Bitte werte mein aktuelles Protokoll aus.', { long: true, payload: `Werte bitte das folgende Protokoll meiner aktuellen Sitzung aus. Gliedere so:\n**Kurz gesagt:** ein, zwei Sätze.\n**Auffällig:** was nicht wie gedacht lief (mit Uhrzeit aus dem Protokoll), jeweils mit der wahrscheinlichen Ursache.\n**Was tun:** konkrete Schritte in der App.\nWenn alles in Ordnung aussieht, sag das einfach. Erfinde nichts, was nicht im Protokoll steht.\n\n${prot}` });
+}
+
+// ---------- Tour: Mila zeigt die App ----------
+const HELP_TOUR = [
+  { go: () => showHome(), sel: '.tab[data-tab="home"]', text: 'Das ist <b>Start</b>: Hier geht es weiter, wo du aufgehört hast, und du siehst, wer heute dabei ist.' },
+  { sel: '#homeContinue', text: '<b>Weitermachen</b> bringt dich direkt zurück in die letzte Sitzung oder das letzte Spiel.' },
+  { sel: '#statusChip', text: 'Die <b>Statuszeile</b>: Punkte für Gerät, Pulsgurt und Kopfhörer. Antippen öffnet alle Verbindungen - und „Protokoll kopieren".' },
+  { sel: '#helpBtn', text: 'Und hier findest du <b>mich</b>, wenn etwas hakt oder du etwas wissen willst.' },
+  { go: () => showGames(), sel: () => [...document.querySelectorAll('#playGroups .play-tile')].find(b => /Nachtjagd/.test(b.textContent)), text: '<b>Spielen</b>: oben die Arcade-Spiele wie die Nachtjagd, darunter alles mit Gerät, Erzähltes und das Messen.' },
+  { sel: () => [...document.querySelectorAll('#playGroups .play-tile')].find(b => /Auf die Minute/.test(b.textContent)), text: '<b>Auf die Minute</b>: Zeit und Kanten einstellen - genau dann sollst du kommen. Die Figuren planen mit.' },
+  { go: () => showFigures(), sel: '.tab[data-tab="figures"]', text: '<b>Figuren</b>: Archiv, Figurenkarten, Galerien. „Galerien auffüllen" macht fehlende Bilder.' },
+  { go: () => { try { showMe(); } catch (e) {} }, sel: '.tab[data-tab="me"]', text: '<b>Ich</b>: deine Woche, was die App gelernt hat (nur mit Pulsgurt) und die ganze Auswertung.' },
+  { go: () => showHome(), sel: '#setupBtn', text: 'Und das Zahnrad: <b>Einstellungen</b> in fünf Gruppen, mit Suche. Das war\'s - viel Spaß!' },
+];
+function helpTour() {
+  helpClose();
+  let i = 0;
+  document.getElementById('helpTourWrap')?.remove();
+  const wrap = document.createElement('div');
+  wrap.id = 'helpTourWrap';
+  wrap.style.cssText = 'position:fixed; inset:0; z-index:9600; pointer-events:auto;';
+  wrap.innerHTML = `<div class="ht-hole" style="position:fixed; border-radius:14px; box-shadow:0 0 0 9999px rgba(0,0,0,0.62); transition:all .35s ease; pointer-events:none;"></div>
+    <div class="ht-bubble" style="position:fixed; left:16px; right:16px; max-width:420px; margin:0 auto; background:var(--bg-panel, #1a1416); color:var(--text); border:1px solid var(--line); border-radius:18px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,0.5); transition:top .35s ease;">
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:0 0 34px; height:34px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffd1e0, #d0516a 55%, #5a1e3a); display:flex; align-items:center; justify-content:center; font-weight:600; color:#fff;">M</div><div class="ht-text" style="font-size:14.5px; line-height:1.5;"></div></div>
+      <div style="display:flex; gap:8px; margin-top:12px; align-items:center;"><span class="ht-step" style="font-size:12px; color:var(--text-dim); flex:1;"></span><button type="button" class="btn-secondary ht-end" style="width:auto; padding:7px 12px;">Ende</button><button type="button" class="btn-secondary ht-back" style="width:auto; padding:7px 12px;">Zurück</button><button type="button" class="btn-primary ht-next" style="width:auto; padding:7px 14px;">Weiter</button></div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const hole = wrap.querySelector('.ht-hole'), bub = wrap.querySelector('.ht-bubble');
+  const end = () => { wrap.remove(); };
+  const show = () => {
+    const st = HELP_TOUR[i];
+    try { st.go && st.go(); } catch (e) {}
+    setTimeout(() => {
+      const el = typeof st.sel === 'function' ? st.sel() : document.querySelector(st.sel);
+      const r = el && el.getBoundingClientRect();
+      if (r && r.width) {
+        if (r.top < 60 || r.bottom > innerHeight - 60) { try { el.scrollIntoView({ block: 'center' }); } catch (e) {} }
+        const r2 = el.getBoundingClientRect();
+        Object.assign(hole.style, { left: (r2.left - 6) + 'px', top: (r2.top - 6) + 'px', width: (r2.width + 12) + 'px', height: (r2.height + 12) + 'px', opacity: '1' });
+        const below = r2.bottom + 170 < innerHeight;
+        bub.style.top = below ? (r2.bottom + 16) + 'px' : Math.max(12, r2.top - 16 - bub.offsetHeight) + 'px';
+      } else { Object.assign(hole.style, { left: '50%', top: '40%', width: '0px', height: '0px' }); bub.style.top = '40%'; }
+      wrap.querySelector('.ht-text').innerHTML = st.text;
+      wrap.querySelector('.ht-step').textContent = `${i + 1} / ${HELP_TOUR.length}`;
+      wrap.querySelector('.ht-back').style.visibility = i ? 'visible' : 'hidden';
+      wrap.querySelector('.ht-next').textContent = i === HELP_TOUR.length - 1 ? 'Fertig' : 'Weiter';
+    }, st.go ? 260 : 30);
+  };
+  wrap.querySelector('.ht-next').onclick = () => { if (i >= HELP_TOUR.length - 1) end(); else { i++; show(); } };
+  wrap.querySelector('.ht-back').onclick = () => { if (i > 0) { i--; show(); } };
+  wrap.querySelector('.ht-end').onclick = end;
+  show();
+}
+
+// ---------- Zugänge: „?" oben, Menü, Fehlerpunkt ----------
+const helpBtn = document.createElement('button');
+helpBtn.type = 'button'; helpBtn.id = 'helpBtn'; helpBtn.className = 'icon-btn'; helpBtn.setAttribute('aria-label', 'Hilfe');
+helpBtn.style.cssText = 'position:relative; font-size:17px; font-weight:600;';
+helpBtn.innerHTML = '?<i id="helpDot" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:#e0526b;"></i>';
+els.setupBtn.parentNode.insertBefore(helpBtn, els.setupBtn);
+helpBtn.onclick = () => helpOpen();
+function helpBadge() { const d = document.getElementById('helpDot'); if (d) d.style.display = HELP.errs.length > HELP.seenErr ? 'block' : 'none'; }
+setInterval(helpBadge, 2000);
+{
+  const it = document.createElement('button');
+  it.className = 'drawer-item'; it.id = 'navHelp';
+  it.innerHTML = '<span class="glyph">?</span><span>Hilfe & Protokoll-Check<span class="sub">Mila erklärt und wertet aus</span></span>';
+  const ref = document.getElementById('navCopyLog') || els.navSetup;
+  ref.parentNode.insertBefore(it, ref);
+  it.onclick = () => { setDrawer(false); helpOpen(); };
+}
+OV_DEFS.push(['helpView', () => { const v = document.getElementById('helpView'); return !!v && v.style.display !== 'none'; }, () => helpClose()]);
+OV_DEFS.push(['helpTour', () => !!document.getElementById('helpTourWrap'), () => document.getElementById('helpTourWrap').remove()]);
+OV_DEFS.push(['dlSheet', () => { const v = document.getElementById('dlSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('dlSheet')]);
+
+// =====================================================================
+// ======================= 📒 WERKSTATTBUCH =======================
+// =====================================================================
+// Damit beim Schließen des Browsers nichts verloren geht und Auffälliges
+// über mehrere Sitzungen gesammelt wird:
+// - Jede Sitzung (ein Öffnen der App) wird laufend in einer eigenen kleinen
+//   Datenbank gesichert - ohne die TCODE-Flut.
+// - Nach einer Sitzung (oder beim nächsten Start) wertet Mila das Neue aus
+//   und trägt Auffälligkeiten ein. Gleiches wird zusammengefasst, nicht doppelt.
+// - Eigene Notizen („Notiz: …" an Mila oder im Werkstattbuch).
+// - Vorschläge für Einstellungen - nur aus einer festen Liste, nur mit
+//   Bestätigung, mit Rückgängig; man kann mit Mila darüber reden.
+// - „Bericht für Claude": alles kompakt als Datei zum Weitergeben.
+const WB_KEY = 'companion_workshop';
+// Hier trage ich ein, welche Punkte mit welcher Version behoben sind
+const WB_RESOLVED = {};
+function wbLoad() {
+  try { const o = JSON.parse(localStorage.getItem(WB_KEY) || 'null'); if (o && o.items) return Object.assign({ seq: 0, items: [], proposals: [], changes: [], auto: true }, o); } catch (e) {}
+  return { seq: 0, items: [], proposals: [], changes: [], auto: true };
+}
+const wb = { data: wbLoad(), busy: false, lastSaveLen: -1, db: null };
+function wbSave() { try { safeSet(WB_KEY, JSON.stringify(wb.data)); } catch (e) {} }
+// Behobenes abhaken
+Object.entries(WB_RESOLVED).forEach(([v, ids]) => ids.forEach(id => { const it = wb.data.items.find(x => x.id === id); if (it && it.status !== 'erledigt') { it.status = 'erledigt'; it.fixedIn = v; } }));
+wbSave();
+
+// ---------- Einstellungen, die Mila vorschlagen darf ----------
+const WB_SETTINGS = {
+  speechGap:    { label: 'Sprechpause beim Anruf (ms)', key: 'companion_speechGap', vals: ['900', '1300', '1900'], def: '1300', el: 'speechGap' },
+  speedCap1:    { label: 'Tempolimit Gerät 1 (0,2 bis 1)', key: 'companion_d1_speedCap', min: 0.2, max: 1, step: 0.1, def: '1', el: 'd1SpeedCap', valEl: 'd1SpeedCapVal' },
+  edging:       { label: 'Hinhalten an', key: 'companion_edging', bool: true, def: 'false', el: 'liveEdging' },
+  edgeGoal:     { label: 'Hinhalten: Kanten bis zur Erlaubnis (1 bis 5)', key: 'companion_edgeGoal', min: 1, max: 5, step: 1, def: '3', el: 'liveEdgeGoal' },
+  bodyEdge:     { label: 'Körpergeräusche lösen „Kurz davor" aus', key: 'companion_bodyEdge', bool: true, def: 'true' },
+  bargeIn:      { label: 'Jederzeit dazwischenreden (Kopfhörer)', key: 'companion_bargeIn', bool: true, def: 'true', el: 'bargeIn' },
+  refPortfolio: { label: 'Galerie-Bilder über das Porträt als Vorlage', key: 'companion_refPortfolio', bool: true, def: 'true', el: 'refPortfolio' },
+  refScenes:    { label: 'Szenenbilder über das Porträt als Vorlage', key: 'companion_refScenes', bool: true, def: 'false', el: 'refScenes' },
+  readyCheck:   { label: 'Bereit-Check vor der ersten Bewegung', key: 'companion_readyCheck', bool: true, def: 'false' },
+};
+function wbGet(k) { const S = WB_SETTINGS[k]; const v = localStorage.getItem(S.key); return v == null || v === '' ? S.def : v; }
+function wbShow(k, v) { const S = WB_SETTINGS[k]; return S.bool ? (v === 'true' ? 'an' : 'aus') : String(v); }
+function wbValid(k, v) {
+  const S = WB_SETTINGS[k]; if (!S) return null;
+  v = String(v).trim().toLowerCase();
+  if (S.bool) return /^(true|an|ja|1|on)$/.test(v) ? 'true' : /^(false|aus|nein|0|off)$/.test(v) ? 'false' : null;
+  if (S.vals) return S.vals.includes(v) ? v : null;
+  const n = parseFloat(v.replace(',', '.')); if (!Number.isFinite(n)) return null;
+  const r = Math.round(Math.max(S.min, Math.min(S.max, n)) / S.step) * S.step;
+  return String(S.step < 1 ? r.toFixed(1) : Math.round(r));
+}
+function wbApply(k, v, why, src) {
+  const S = WB_SETTINGS[k]; const val = wbValid(k, v); if (!S || val == null) return false;
+  const from = wbGet(k);
+  if (from === val) return true;
+  safeSet(S.key, val);
+  const el = S.el && document.getElementById(S.el);
+  if (el) { if (el.type === 'checkbox') el.checked = val === 'true'; else el.value = val; }
+  const ve = S.valEl && document.getElementById(S.valEl); if (ve) ve.textContent = val;
+  wb.data.changes.push({ t: Date.now(), k, from, to: val, why: why || '', src: src || 'Mila' });
+  wb.data.changes = wb.data.changes.slice(-60);
+  wbSave();
+  try { logEvent('msg', { role: 'system', text: `Einstellung geändert (${src || 'Mila'}): ${S.label} ${wbShow(k, from)} → ${wbShow(k, val)}.` }); } catch (e) {}
+  return true;
+}
+function wbUndo(i) {
+  const c = wb.data.changes[i]; if (!c || c.undone) return;
+  const S = WB_SETTINGS[c.k]; if (!S) return;
+  safeSet(S.key, c.from);
+  const el = S.el && document.getElementById(S.el); if (el) { if (el.type === 'checkbox') el.checked = c.from === 'true'; else el.value = c.from; }
+  const ve = S.valEl && document.getElementById(S.valEl); if (ve) ve.textContent = c.from;
+  c.undone = Date.now(); wbSave();
+  try { logEvent('msg', { role: 'system', text: `Einstellung zurückgenommen: ${S.label} wieder ${wbShow(c.k, c.from)}.` }); } catch (e) {}
+}
+function wbConfirmSet(k, v, why) {
+  const S = WB_SETTINGS[k]; const val = wbValid(k, v); if (!S || val == null) { alert('Diese Einstellung darf Mila nicht ändern.'); return false; }
+  if (!confirm(`${S.label}: ${wbShow(k, wbGet(k))} → ${wbShow(k, val)}\n\n${why || ''}\n\nÜbernehmen? (Im Werkstattbuch rückgängig zu machen.)`)) return false;
+  return wbApply(k, val, why, 'Mila, bestätigt');
+}
+
+// ---------- Sitzungen dauerhaft sichern ----------
+function wbDb() {
+  if (wb.db) return Promise.resolve(wb.db);
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('companion_wb', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('sessions', { keyPath: 'id' }); };
+    r.onsuccess = () => { wb.db = r.result; res(wb.db); };
+    r.onerror = () => rej(r.error);
+  });
+}
+function wbTx(mode, fn) { return wbDb().then(db => new Promise((res, rej) => { const tx = db.transaction('sessions', mode); const st = tx.objectStore('sessions'); const out = fn(st); tx.oncomplete = () => res(out instanceof IDBRequest ? out.result : out); tx.onerror = () => rej(tx.error); })); }
+function wbAllSessions() { return wbTx('readonly', st => st.getAll()).then(a => (a || []).sort((x, y) => y.id - x.id)).catch(() => []); }
+function wbGetSession(id) { return wbTx('readonly', st => st.get(id)).catch(() => null); }
+function wbPutSession(rec) { return wbTx('readwrite', st => { st.put(rec); }).catch(() => {}); }
+function wbDelSession(id) { return wbTx('readwrite', st => { st.delete(id); }).catch(() => {}); }
+function wbMeaningful() { return sessionLog.filter(e => e.kind === 'msg' || e.kind === 'motion').length >= 4; }
+function wbProtocolNow() {
+  let txt = ''; try { txt = buildSessionExport(); } catch (e) { return ''; }
+  return txt.split('\n').filter(l => !/^\[[^\]]+\] TCODE /.test(l)).join('\n');
+}
+async function wbSaveNow(force) {
+  if (!wbMeaningful()) return;
+  if (!force && sessionLog.length === wb.lastSaveLen) return;
+  wb.lastSaveLen = sessionLog.length;
+  const old = await wbGetSession(sessionStart);
+  const rec = Object.assign(old || { id: sessionStart, analyzedLen: 0, good: [] }, {
+    start: sessionStart, end: Date.now(), version: APP_VERSION, protocol: wbProtocolNow(),
+    errs: (typeof HELP !== 'undefined' ? HELP.errs : []).slice(-15),
+    msgs: sessionLog.filter(e => e.kind === 'msg').length,
+    cast: characters.filter(c => !c.isUser).map(c => c.name.split(' ')[0]).slice(0, 4),
+  });
+  await wbPutSession(rec);
+  // Nur die letzten 40 Sitzungen aufheben
+  const all = await wbAllSessions();
+  for (const s of all.slice(40)) await wbDelSession(s.id);
+}
+setInterval(() => { wbSaveNow(false); }, 45000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') wbSaveNow(true); });
+window.addEventListener('pagehide', () => { wbSaveNow(true); });
+
+// ---------- Auswerten ----------
+const WB_RULES = /fehler|ging nicht|nicht lesbar|abgelehnt|unkenntlich|getrennt|verbindung|timeout|\b40[0-9]\b|\b50[0-9]\b|über beschreibung|nur vorschaubild|kein ton|leer|gestoppt|abgebrochen|uncaught|unbehandelt/i;
+function wbShorten(proto) {
+  // Gesprächszeilen kürzen, sonst bleibt alles drin
+  const L = proto.split('\n').map(l => /^\[[^\]]+\] TEXT (?!system)/.test(l) && l.length > 200 ? l.slice(0, 200) + ' …' : l);
+  let s = L.join('\n');
+  if (s.length > 15000) s = s.slice(0, 2500) + '\n(… gekürzt …)\n' + s.slice(-12000);
+  return s;
+}
+async function wbAnalyze(rec, opts) {
+  opts = opts || {};
+  if (!rec || !rec.protocol) return { added: 0, merged: 0, note: 'nichts gespeichert' };
+  const head = rec.protocol.split('\n## Verlauf')[0];
+  const fresh = rec.protocol.slice(Math.max(rec.analyzedLen || 0, head.length));
+  if (fresh.length < 600 && !opts.force) return { added: 0, merged: 0, note: 'nichts Neues' };
+  const hints = fresh.split('\n').filter(l => /TEXT system/.test(l) && WB_RULES.test(l)).slice(-25);
+  const errs = (rec.errs || []).map(e => new Date(e.t).toLocaleTimeString('de-DE') + ' ' + e.m);
+  const open = wb.data.items.filter(x => x.status === 'offen').slice(-25).map(x => `${x.id}: ${x.title}`);
+  const sys = `Du bist Mila und prüfst die Sitzungsprotokolle von Tils privater App „Notizen" (Begleiter-App mit KI-Figuren, Stimmen, Bildern, Gerätesteuerung über TCode, Pulsgurt, Spielen). Dein Ziel: dem Entwickler (Claude) helfen, die App zu verbessern. Schreib knapp und sachlich auf Deutsch.
+
+Antworte NUR als JSON:
+{"findings":[{"title":"kurz, was nicht stimmt","sev":"hoch|mittel|niedrig","detail":"1-2 Sätze","evidence":["[mm:ss] wörtliche Protokollzeile(n), höchstens 3"],"cause":"vermutete Ursache","fix":"was man im Programm oder in der Einstellung ändern könnte","same_as":"ID eines offenen Punkts, wenn es dasselbe ist, sonst null"}],
+ "good":["was gut lief, höchstens 3 kurze Punkte"],
+ "settings":[{"key":"einer der Schlüssel unten","to":"neuer Wert","why":"Begründung aus dem Protokoll"}]}
+
+REGELN
+- Nur echte Auffälligkeiten mit Beleg aus dem Protokoll: Fehlermeldungen, Abbrüche, Bilder ohne Vorlage, Gerät tat nicht, was die Bewegung sagte, lange Stille, Spiele, die nicht wie gedacht liefen, Programmfehler. Keine Vermutungen ohne Beleg. Lieber 0 als erfundene Punkte.
+- Inhalte des Gesprächs bewertest du nicht moralisch; es geht um Technik und Ablauf.
+- Einstellungen nur vorschlagen, wenn das Protokoll es klar nahelegt, und nur diese Schlüssel: ${Object.entries(WB_SETTINGS).map(([k, S]) => `${k} (${S.label}, jetzt ${wbShow(k, wbGet(k))}${S.vals ? ', erlaubt ' + S.vals.join('/') : S.bool ? ', an/aus' : `, ${S.min} bis ${S.max}`})`).join('; ')}.
+
+OFFENE PUNKTE IM WERKSTATTBUCH
+${open.join('\n') || '(keine)'}`;
+  const user = `Sitzung vom ${new Date(rec.start).toLocaleString('de-DE')}, App ${rec.version}.
+${errs.length ? 'PROGRAMMFEHLER:\n' + errs.join('\n') + '\n' : ''}${hints.length ? 'AUFFÄLLIGE MELDUNGEN (vorab gefunden):\n' + hints.join('\n') + '\n' : ''}
+KOPF:
+${head.slice(0, 2500)}
+
+VERLAUF (neuer Teil):
+${wbShorten(fresh)}`;
+  let parsed = null;
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const raw = await callProvider(provider, sys, [{ role: 'user', content: user }], 0.2, taskBudget('draft', 1400), { task: 'draft' });
+    const m = String(raw || '').match(/\{[\s\S]*\}/);
+    parsed = m ? JSON.parse(m[0]) : null;
+  } catch (e) { parsed = null; }
+  // Ohne Antwort der KI: wenigstens die harten Fehler eintragen
+  if (!parsed) parsed = { findings: errs.slice(-3).map(e => ({ title: 'Programmfehler: ' + e.replace(/^\S+ /, '').slice(0, 80), sev: 'hoch', detail: '', evidence: [e], cause: '', fix: '' })), good: [], settings: [] };
+  let added = 0, merged = 0;
+  const now = Date.now();
+  (parsed.findings || []).slice(0, 8).forEach(f => {
+    if (!f || !f.title) return;
+    const ev = (Array.isArray(f.evidence) ? f.evidence : [f.evidence]).filter(Boolean).map(x => String(x).slice(0, 240)).slice(0, 3);
+    let it = f.same_as && wb.data.items.find(x => x.id === String(f.same_as).trim() && x.status !== 'verworfen');
+    if (!it) it = wb.data.items.find(x => x.status === 'offen' && x.title.toLowerCase() === String(f.title).toLowerCase());
+    if (it) {
+      it.count = (it.count || 1) + 1; it.last = now;
+      if (!it.sessions.includes(rec.id)) it.sessions.push(rec.id);
+      it.evidence = it.evidence.concat(ev).slice(-6);
+      if (it.status === 'erledigt') { it.status = 'offen'; it.reopened = now; }
+      merged++;
+    } else {
+      wb.data.seq++;
+      wb.data.items.push({ id: 'W-' + wb.data.seq, kind: 'auto', t: now, last: now, count: 1, sessions: [rec.id], version: rec.version,
+        sev: ['hoch', 'mittel', 'niedrig'].includes(f.sev) ? f.sev : 'mittel', title: String(f.title).slice(0, 120), detail: String(f.detail || '').slice(0, 400),
+        evidence: ev, cause: String(f.cause || '').slice(0, 300), fix: String(f.fix || '').slice(0, 300), status: 'offen' });
+      added++;
+    }
+  });
+  (parsed.settings || []).slice(0, 3).forEach(s => {
+    if (!s || !WB_SETTINGS[s.key]) return;
+    const val = wbValid(s.key, s.to); if (val == null || val === wbGet(s.key)) return;
+    if (wb.data.proposals.some(p => p.k === s.key && p.status === 'offen')) return;
+    wb.data.proposals.push({ t: now, k: s.key, to: val, why: String(s.why || '').slice(0, 300), status: 'offen', session: rec.id });
+  });
+  rec.analyzedLen = rec.protocol.length;
+  rec.good = (parsed.good || []).map(x => String(x).slice(0, 160)).slice(0, 3);
+  rec.analyzedAt = now;
+  await wbPutSession(rec);
+  wb.data.items = wb.data.items.slice(-200);
+  wbSave();
+  try { logEvent('msg', { role: 'system', text: `Werkstattbuch: Sitzung ausgewertet - ${added} neu, ${merged} bekannt.` }); } catch (e) {}
+  return { added, merged };
+}
+async function wbAnalyzePending(manual) {
+  if (wb.busy) return null;
+  wb.busy = true;
+  let sum = { added: 0, merged: 0, n: 0 };
+  try {
+    await wbSaveNow(true);
+    const all = await wbAllSessions();
+    const busyNow = (typeof inSession === 'function' && inSession()) || (typeof g3 !== 'undefined' && g3.active) || (typeof ar !== 'undefined' && ar.active);
+    for (const rec of all.slice(0, 10)) {
+      if (sum.n >= (manual ? 6 : 3)) break;
+      if (!manual && rec.id === sessionStart && busyNow) continue;   // nicht mitten in der Sitzung
+      const head = (rec.protocol || '').split('\n## Verlauf')[0].length;
+      if ((rec.protocol || '').length - Math.max(rec.analyzedLen || 0, head) < 600) continue;
+      const r = await wbAnalyze(rec);
+      sum.added += r.added; sum.merged += r.merged; sum.n++;
+    }
+  } catch (e) { console.error(e); }
+  wb.busy = false;
+  try { wbRender(); } catch (e) {}
+  return sum;
+}
+// Beim Start ältere Sitzungen auswerten; nach dem Verlassen einer Sitzung die aktuelle
+setTimeout(() => { if (wb.data.auto) wbAnalyzePending(false); }, 25000);
+function wbSoon() { if (!wb.data.auto) return; clearTimeout(wbSoon._t); wbSoon._t = setTimeout(() => wbAnalyzePending(false), 6000); }
+{
+  const oL = leaveSession; leaveSession = function () { const r = oL.apply(this, arguments); wbSoon(); return r; };
+  const oE = endGame; endGame = function () { const r = oE.apply(this, arguments); wbSoon(); return r; };
+  const oG = g3Close; g3Close = function () { const r = oG.apply(this, arguments); wbSoon(); return r; };
+  const oA = closeArcade; closeArcade = function () { const r = oA.apply(this, arguments); wbSoon(); return r; };
+}
+
+// ---------- Notizen ----------
+function wbNote(text, src) {
+  text = String(text || '').trim(); if (!text) return null;
+  wb.data.seq++;
+  const it = { id: 'W-' + wb.data.seq, kind: 'note', t: Date.now(), last: Date.now(), count: 1, sessions: [sessionStart], version: APP_VERSION, sev: 'mittel', title: text.slice(0, 120), detail: text.length > 120 ? text : '', evidence: [], cause: '', fix: '', status: 'offen', where: (() => { try { return helpScreen(); } catch (e) { return ''; } })(), src: src || 'Notiz' };
+  wb.data.items.push(it); wbSave();
+  try { logEvent('msg', { role: 'system', text: `Notiz fürs Werkstattbuch: ${text.slice(0, 200)}` }); } catch (e) {}
+  return it;
+}
+
+// ---------- Bericht für Claude ----------
+async function wbReport(opts) {
+  opts = opts || {};
+  const all = await wbAllSessions();
+  const D = wb.data;
+  const open = D.items.filter(x => x.status === 'offen').sort((a, b) => ({ hoch: 0, mittel: 1, niedrig: 2 }[a.sev] - { hoch: 0, mittel: 1, niedrig: 2 }[b.sev]) || b.last - a.last);
+  const auto = open.filter(x => x.kind !== 'note'), notes = open.filter(x => x.kind === 'note');
+  const since = D.lastReport || 0;
+  const fmt = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const lines = [];
+  lines.push(`# Werkstattbericht Notizen-App`, `Erstellt ${new Date().toLocaleString('de-DE')} · App-Version ${APP_VERSION} · ${all.length} gespeicherte Sitzungen${since ? ` · letzter Bericht ${fmt(since)}` : ''}`, '');
+  lines.push(`## Offene Punkte (${auto.length})`);
+  auto.forEach(x => {
+    lines.push(`### ${x.id} · ${x.sev} · ${x.title}${x.count > 1 ? ` (${x.count}× in ${x.sessions.length} Sitzungen)` : ''}${x.t > since ? ' · NEU' : ''}`);
+    lines.push(`Zuerst ${fmt(x.t)} (v${x.version}), zuletzt ${fmt(x.last)}.${x.reopened ? ' Wieder aufgetreten nach „erledigt".' : ''}`);
+    if (x.detail) lines.push(x.detail);
+    if (x.evidence.length) { lines.push('Belege:'); x.evidence.forEach(e => lines.push('    ' + e)); }
+    if (x.cause) lines.push('Vermutete Ursache: ' + x.cause);
+    if (x.fix) lines.push('Vorschlag: ' + x.fix);
+    lines.push('');
+  });
+  if (!auto.length) lines.push('(keine)', '');
+  lines.push(`## Til hat notiert (${notes.length})`);
+  notes.forEach(x => lines.push(`- ${x.id} · ${fmt(x.t)}${x.where ? ' · ' + x.where : ''}: ${x.detail || x.title}`));
+  if (!notes.length) lines.push('(keine)');
+  lines.push('');
+  const ch = D.changes.filter(c => c.t > since - 86400000 * 30);
+  lines.push(`## Einstellungen geändert (${ch.length})`);
+  ch.forEach(c => lines.push(`- ${fmt(c.t)} ${WB_SETTINGS[c.k] ? WB_SETTINGS[c.k].label : c.k}: ${c.from} → ${c.to}${c.undone ? ' (zurückgenommen)' : ''} · ${c.src}${c.why ? ' · ' + c.why : ''}`));
+  const props = D.proposals.filter(p => p.t > since - 86400000 * 30 && p.status !== 'offen');
+  props.forEach(p => lines.push(`- Vorschlag ${p.status}: ${WB_SETTINGS[p.k] ? WB_SETTINGS[p.k].label : p.k} → ${p.to}${p.why ? ' · ' + p.why : ''}`));
+  if (!ch.length && !props.length) lines.push('(keine)');
+  lines.push('');
+  const good = all.slice(0, 8).flatMap(s => (s.good || []).map(g => `- ${fmt(s.start)}: ${g}`));
+  if (good.length) { lines.push('## Lief gut', ...good, ''); }
+  // Kennzahlen aus der App
+  lines.push('## Kennzahlen');
+  try { const L = dlLogList().slice(-8); if (L.length) lines.push('Auf die Minute: ' + L.map(x => `${x.min} Min ${x.diffSec > 0 ? '+' : ''}${x.diffSec}s (${x.edgesDone}/${x.edgesPlan} Kanten${x.finalTookMs ? ', Finale ' + Math.round(x.finalTookMs / 1000) + 's' : ''})`).join(' · ')); } catch (e) {}
+  try { const r = recentGames(); if (r.length) lines.push('Zuletzt gespielt: ' + r.join(', ')); } catch (e) {}
+  lines.push('Sitzungen: ' + all.slice(0, 12).map(s => `${fmt(s.start)} ${Math.round((s.end - s.start) / 60000)} Min, ${s.msgs || 0} Meldungen${s.errs && s.errs.length ? ', ' + s.errs.length + ' Fehler' : ''}`).join(' · '));
+  lines.push('Speicher: ' + storageDiag);
+  lines.push('');
+  // Protokoll(e) anhängen
+  const attach = opts.all ? all.filter(s => s.start > since).slice(0, 6) : all.slice(0, 1);
+  attach.forEach(s => {
+    let p = s.protocol || '';
+    if (!opts.withText) p = p.split('\n').filter(l => !/^\[[^\]]+\] TEXT (?!system)/.test(l)).map(l => /^\s*Beschreibung:/.test(l) ? '  Beschreibung: (ausgeblendet)' : l).join('\n');
+    if (p.length > 40000) p = p.slice(0, 3000) + '\n(… gekürzt …)\n' + p.slice(-36000);
+    lines.push(`## Protokoll ${fmt(s.start)}${opts.withText ? '' : ' (ohne Gesprächstext)'}`, '```', p, '```', '');
+  });
+  return lines.join('\n');
+}
+async function wbExport(opts) {
+  const text = await wbReport(opts);
+  const name = `notizen-bericht-${new Date().toISOString().slice(0, 10)}.md`;
+  wb.data.lastReport = Date.now(); wb.data.items.forEach(x => { if (x.status === 'offen') x.reported = Date.now(); }); wbSave();
+  try {
+    const file = new File([text], name, { type: 'text/markdown' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Notizen' }); return 'geteilt'; }
+  } catch (e) { if (e && e.name === 'AbortError') return 'abgebrochen'; }
+  try {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    return 'gespeichert';
+  } catch (e) {}
+  try { await navigator.clipboard.writeText(text); return 'kopiert'; } catch (e) {}
+  return 'fehlgeschlagen';
+}
+
+// ---------- Ansicht ----------
+function wbView() {
+  let v = document.getElementById('wbView');
+  if (v) return v;
+  v = document.createElement('div');
+  v.id = 'wbView';
+  v.style.cssText = 'display:none; position:fixed; inset:0; z-index:2044; background:var(--bg, #120d10); color:var(--text, #eee); flex-direction:column;';
+  v.innerHTML = `<div style="display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; border-bottom:1px solid var(--line);">
+      <div style="font-size:26px;">📒</div>
+      <div style="flex:1; min-width:0;"><div style="font:600 18px var(--font-display, serif);">Werkstattbuch</div><div id="wbSub" style="font-size:12px; color:var(--text-dim);"></div></div>
+      <button type="button" id="wbClose" aria-label="Schließen" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--text); font-size:16px;">✕</button>
+    </div>
+    <div id="wbBody" style="flex:1; overflow-y:auto; padding:14px 14px calc(env(safe-area-inset-bottom, 0px) + 20px);"></div>`;
+  document.body.appendChild(v);
+  v.querySelector('#wbClose').onclick = () => { v.style.display = 'none'; };
+  return v;
+}
+function wbOpen() { wbView().style.display = 'flex'; wbSaveNow(true).then(() => wbRender()); wbRender(); }
+const WB_SEV = { hoch: '#e0526b', mittel: '#e0a552', niedrig: '#7f9fb8' };
+async function wbRender() {
+  const v = document.getElementById('wbView'); if (!v || v.style.display === 'none') return;
+  const D = wb.data, all = await wbAllSessions();
+  const open = D.items.filter(x => x.status === 'offen');
+  const pend = all.filter(s => (s.protocol || '').length - Math.max(s.analyzedLen || 0, (s.protocol || '').split('\n## Verlauf')[0].length) >= 600).length;
+  v.querySelector('#wbSub').textContent = `${all.length} Sitzungen gesichert · ${open.length} offene Punkte${pend ? ` · ${pend} noch nicht ausgewertet` : ''}`;
+  const fmt = t => new Date(t).toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const card = (x) => `<div style="border:1px solid var(--line); border-left:4px solid ${WB_SEV[x.sev] || '#888'}; border-radius:12px; padding:10px 12px; margin-bottom:8px; background:var(--bg-panel, #1a1416);">
+      <div style="display:flex; gap:8px; align-items:baseline;"><b style="flex:1; font-size:14.5px;">${esc(x.title)}</b><span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">${x.id}${x.count > 1 ? ' · ' + x.count + '×' : ''}</span></div>
+      <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">${x.kind === 'note' ? '📝 Notiz' : x.sev} · ${fmt(x.last)}${x.reported ? ' · gemeldet' : ''}${x.reopened ? ' · wieder aufgetreten' : ''}</div>
+      ${x.detail && x.kind !== 'note' ? `<div style="font-size:13.5px; margin-top:6px; line-height:1.45;">${esc(x.detail)}</div>` : x.kind === 'note' && x.detail ? `<div style="font-size:13.5px; margin-top:6px;">${esc(x.detail)}</div>` : ''}
+      ${x.cause || x.fix || x.evidence.length ? `<details style="margin-top:6px;"><summary style="font-size:12.5px; color:var(--text-dim); cursor:pointer;">Belege und Ursache</summary>
+        ${x.evidence.map(e => `<div style="font:11.5px/1.4 ui-monospace, monospace; color:var(--text-dim); margin-top:4px; word-break:break-word;">${esc(e)}</div>`).join('')}
+        ${x.cause ? `<div style="font-size:13px; margin-top:6px;"><b>Ursache:</b> ${esc(x.cause)}</div>` : ''}${x.fix ? `<div style="font-size:13px; margin-top:4px;"><b>Vorschlag:</b> ${esc(x.fix)}</div>` : ''}</details>` : ''}
+      ${x.status === 'offen' ? `<div style="display:flex; gap:6px; margin-top:8px;"><button type="button" class="btn-secondary" data-wb="done" data-id="${x.id}" style="width:auto; padding:5px 10px; font-size:12.5px;">✓ erledigt</button><button type="button" class="btn-secondary" data-wb="drop" data-id="${x.id}" style="width:auto; padding:5px 10px; font-size:12.5px;">verwerfen</button><button type="button" class="btn-secondary" data-wb="ask" data-id="${x.id}" style="width:auto; padding:5px 10px; font-size:12.5px;">💬 mit Mila</button></div>` : `<div style="font-size:12px; color:var(--text-dim); margin-top:6px;">${x.status}${x.fixedIn ? ' in Version ' + x.fixedIn : ''}</div>`}
+    </div>`;
+  const props = D.proposals.filter(p => p.status === 'offen');
+  const body = v.querySelector('#wbBody');
+  body.innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <button type="button" class="btn-primary" data-wb="report" style="grid-column:1/-1;">📤 Bericht für Claude</button>
+      <button type="button" class="btn-secondary" data-wb="analyze">${wb.busy ? '🔍 wertet aus …' : '🔍 Jetzt auswerten'}</button>
+      <button type="button" class="btn-secondary" data-wb="note">📝 Notiz</button>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--text-dim);"><input type="checkbox" id="wbAllProt" style="width:auto; margin:0;"> alle Sitzungen seit dem letzten Bericht anhängen (sonst nur die letzte)</label>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12.5px; color:var(--text-dim);"><input type="checkbox" id="wbWithText" style="width:auto; margin:0;"> Gesprächstext mitschicken</label>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12.5px; color:var(--text-dim);"><input type="checkbox" id="wbAuto" style="width:auto; margin:0;" ${D.auto ? 'checked' : ''}> nach jeder Sitzung automatisch auswerten (kostet je etwa 0,1 ct)</label>
+    <div id="wbMsg" style="font-size:13px; color:var(--accent, #d0516a); min-height:18px; margin-top:6px;"></div>
+    ${props.length ? `<div class="home-label" style="margin-top:12px;">Vorschläge von Mila</div>${props.map(p => { const S = WB_SETTINGS[p.k] || { label: p.k }; return `<div style="border:1px solid var(--accent, #d0516a); border-radius:12px; padding:10px 12px; margin-bottom:8px;"><b style="font-size:14px;">${esc(S.label)}: ${esc(wbShow(p.k, wbGet(p.k)))} → ${esc(wbShow(p.k, p.to))}</b><div style="font-size:13px; margin-top:4px; line-height:1.45;">${esc(p.why)}</div><div style="display:flex; gap:6px; margin-top:8px;"><button type="button" class="btn-primary" data-wb="pyes" data-i="${D.proposals.indexOf(p)}" style="width:auto; padding:6px 12px; font-size:13px;">Übernehmen</button><button type="button" class="btn-secondary" data-wb="ptalk" data-i="${D.proposals.indexOf(p)}" style="width:auto; padding:6px 12px; font-size:13px;">💬 Diskutieren</button><button type="button" class="btn-secondary" data-wb="pno" data-i="${D.proposals.indexOf(p)}" style="width:auto; padding:6px 12px; font-size:13px;">Ablehnen</button></div></div>`; }).join('')}` : ''}
+    <div class="home-label" style="margin-top:14px;">Offen (${open.length})</div>
+    ${open.length ? open.slice().sort((a, b) => ({ hoch: 0, mittel: 1, niedrig: 2 }[a.sev] - { hoch: 0, mittel: 1, niedrig: 2 }[b.sev]) || b.last - a.last).map(card).join('') : '<p class="hint">Nichts offen. Nach der nächsten Sitzung schaut Mila wieder nach.</p>'}
+    ${D.changes.length ? `<div class="home-label" style="margin-top:14px;">Geänderte Einstellungen</div>${D.changes.slice().reverse().slice(0, 12).map(c => { const i = D.changes.indexOf(c); const S = WB_SETTINGS[c.k] || { label: c.k }; return `<div style="display:flex; gap:8px; align-items:center; font-size:13px; padding:6px 0; border-bottom:1px solid var(--line);"><span style="flex:1;">${fmt(c.t)} · ${esc(S.label)}: ${esc(wbShow(c.k, c.from))} → ${esc(wbShow(c.k, c.to))}${c.undone ? ' <i>(zurückgenommen)</i>' : ''}</span>${c.undone ? '' : `<button type="button" class="btn-secondary" data-wb="undo" data-i="${i}" style="width:auto; padding:4px 10px; font-size:12px;">↶</button>`}</div>`; }).join('')}` : ''}
+    <details style="margin-top:14px;"><summary class="home-label" style="cursor:pointer;">Gesicherte Sitzungen (${all.length})</summary>
+      ${all.map(s => `<div style="display:flex; gap:8px; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px solid var(--line);"><span style="flex:1;">${fmt(s.start)} · ${Math.max(1, Math.round((s.end - s.start) / 60000))} Min · ${s.msgs || 0} Meldungen${s.cast && s.cast.length ? ' · ' + esc(s.cast.join(', ')) : ''}${s.errs && s.errs.length ? ' · ⚠ ' + s.errs.length : ''}${s.analyzedAt ? ' · ✓' : ''}</span><button type="button" class="btn-secondary" data-wb="sdel" data-sid="${s.id}" style="width:auto; padding:4px 10px; font-size:12px;">🗑</button></div>`).join('') || '<p class="hint">Noch nichts gesichert.</p>'}
+    </details>
+    <details style="margin-top:10px;"><summary class="home-label" style="cursor:pointer;">Erledigt und verworfen (${D.items.length - open.length})</summary>${D.items.filter(x => x.status !== 'offen').slice(-20).reverse().map(card).join('')}</details>`;
+  body.querySelector('#wbAuto').onchange = e => { D.auto = e.target.checked; wbSave(); };
+  const msg = t => { const m = body.querySelector('#wbMsg'); if (m) m.textContent = t; };
+  body.querySelectorAll('[data-wb]').forEach(b => b.onclick = async () => {
+    const a = b.dataset.wb, it = b.dataset.id && D.items.find(x => x.id === b.dataset.id), p = b.dataset.i != null ? D.proposals[+b.dataset.i] : null;
+    if (a === 'report') { msg('Bericht wird erstellt …'); const r = await wbExport({ all: body.querySelector('#wbAllProt').checked, withText: body.querySelector('#wbWithText').checked }); msg(r === 'geteilt' ? '✓ Bericht geteilt' : r === 'gespeichert' ? '✓ Bericht als Datei gespeichert (Downloads)' : r === 'kopiert' ? '✓ Bericht in die Zwischenablage kopiert' : r === 'abgebrochen' ? 'Abgebrochen' : 'Ging nicht'); wbRender(); return; }
+    if (a === 'analyze') { msg('Mila wertet aus …'); b.textContent = '🔍 wertet aus …'; const r = await wbAnalyzePending(true); msg(r ? (r.n ? `✓ ${r.n} Sitzung(en) ausgewertet: ${r.added} neu, ${r.merged} bekannt` : 'Nichts Neues zum Auswerten.') : 'Läuft schon …'); return; }
+    if (a === 'note') { const t = prompt('Notiz für Claude:'); if (t && t.trim()) { wbNote(t, 'Werkstattbuch'); wbRender(); } return; }
+    if (a === 'done' && it) { it.status = 'erledigt'; it.doneAt = Date.now(); }
+    if (a === 'drop' && it) { it.status = 'verworfen'; it.doneAt = Date.now(); }
+    if (a === 'ask' && it) { document.getElementById('wbView').style.display = 'none'; helpOpen(); helpAsk(`Erklär mir den Punkt ${it.id} aus dem Werkstattbuch: „${it.title}". Was bedeutet das, und kann ich selbst etwas tun?`, { payload: `Erklär mir den Punkt ${it.id} aus dem Werkstattbuch und was ich selbst tun kann.\nTitel: ${it.title}\nDetail: ${it.detail}\nBelege: ${it.evidence.join(' | ')}\nUrsache: ${it.cause}\nVorschlag: ${it.fix}` }); return; }
+    if (a === 'pyes' && p) { if (wbApply(p.k, p.to, p.why, 'Vorschlag, bestätigt')) { p.status = 'übernommen'; p.at = Date.now(); } }
+    if (a === 'pno' && p) { p.status = 'abgelehnt'; p.at = Date.now(); }
+    if (a === 'ptalk' && p) { const S = WB_SETTINGS[p.k]; document.getElementById('wbView').style.display = 'none'; helpOpen(); helpAsk(`Lass uns über deinen Vorschlag reden: ${S.label} von ${wbShow(p.k, wbGet(p.k))} auf ${wbShow(p.k, p.to)}.`, { payload: `Du hast im Werkstattbuch vorgeschlagen: ${S.label} von ${wbShow(p.k, wbGet(p.k))} auf ${wbShow(p.k, p.to)}. Deine Begründung: ${p.why}\nIch will darüber reden, bevor ich zustimme. Erklär kurz, was sich dadurch für mich ändert und was dagegen spricht; wenn wir uns einig werden, schlag den Wert mit [[set:${p.k}=WERT]] vor.` }); return; }
+    if (a === 'undo') { wbUndo(+b.dataset.i); }
+    if (a === 'sdel') { if (confirm('Diese gesicherte Sitzung löschen?')) await wbDelSession(+b.dataset.sid); }
+    wbSave(); wbRender();
+  });
+}
+// Zugang: Menü und Mila
+{
+  const it = document.createElement('button');
+  it.className = 'drawer-item'; it.id = 'navWb';
+  it.innerHTML = '<span class="glyph">📒</span><span>Werkstattbuch<span class="sub">Auffälliges, Notizen, Bericht für Claude</span></span>';
+  const ref = document.getElementById('navHelp') || els.navSetup;
+  ref.parentNode.insertBefore(it, ref.nextSibling);
+  it.onclick = () => { setDrawer(false); wbOpen(); };
+}
+OV_DEFS.push(['wbView', () => { const v = document.getElementById('wbView'); return !!v && v.style.display !== 'none'; }, () => { document.getElementById('wbView').style.display = 'none'; }]);
+
+// ---------- Mila kennt das Werkstattbuch, nimmt Notizen an und schlägt Einstellungen vor ----------
+{
+  const origSys = helpSystem;
+  helpSystem = function () {
+    const open = wb.data.items.filter(x => x.status === 'offen').slice(-12).map(x => `${x.id} (${x.sev}): ${x.title}`);
+    return origSys() + `
+
+WERKSTATTBUCH (offene Punkte, die du schon gefunden hast oder Til notiert hat)
+${open.join('\n') || '(keine)'}
+
+EINSTELLUNGEN, DIE DU VORSCHLAGEN DARFST
+Du änderst nie selbst etwas. Wenn eine Änderung sinnvoll ist, erklär sie und hänge einen Knopf an: [[set:SCHLÜSSEL=WERT]] - Til bestätigt dann selbst. Ist Til unsicher, diskutiert ihr; schlag nur vor, wenn das Protokoll oder Tils Schilderung es nahelegt.
+${Object.entries(WB_SETTINGS).map(([k, S]) => `- ${k}: ${S.label}, jetzt ${wbShow(k, wbGet(k))}${S.vals ? ' (erlaubt ' + S.vals.join('/') + ')' : S.bool ? ' (an/aus)' : ` (${S.min} bis ${S.max})`}`).join('\n')}
+Notizen: Schreibt Til „Notiz: …", ist sie schon im Werkstattbuch gespeichert. Du kannst auch selbst anbieten, etwas als Notiz für Claude festzuhalten: [[note:kurzer Text]].
+Zum Werkstattbuch führt [[open:wb]].`;
+  };
+  HELP_ACTIONS.wb = ['📒 Werkstattbuch', () => { helpClose(); wbOpen(); }];
+  // Notizen direkt speichern, ohne KI
+  const origAsk = helpAsk;
+  helpAsk = function (text, opts) {
+    const m = String(text || '').match(/^\s*(notiz(\s+für\s+claude)?|note)\s*[:\-]\s*([\s\S]+)/i);
+    if (m && !(opts && opts.payload)) {
+      const it = wbNote(m[3], 'Mila');
+      HELP.msgs.push({ role: 'user', content: text });
+      HELP.msgs.push({ role: 'assistant', content: it ? `Notiert als ${it.id} im Werkstattbuch. Kommt in den nächsten Bericht für Claude. [[open:wb]]` : 'Da stand nichts drin.' });
+      helpSave(); helpRender(); return Promise.resolve();
+    }
+    return origAsk(text, opts);
+  };
+  // Knöpfe für [[set:…]] und [[note:…]] in Milas Antworten
+  const origRender = helpRender;
+  helpRender = function () {
+    origRender();
+    const box = document.getElementById('helpMsgs'); if (!box) return;
+    const bubbles = [...box.children];
+    HELP.msgs.forEach((m, idx) => {
+      if (m.role === 'user') return;
+      const d = bubbles[idx]; if (!d) return;
+      const sets = [...String(m.content || '').matchAll(/\[\[set:([a-zA-Z0-9]+)=([^\]]+)\]\]/g)];
+      const notes = [...String(m.content || '').matchAll(/\[\[note:([^\]]+)\]\]/g)];
+      // die rohen Marker aus dem Text nehmen
+      d.querySelectorAll('div').forEach(x => { if (/\[\[(set|note):/.test(x.innerHTML)) x.innerHTML = x.innerHTML.replace(/\[\[(set|note):[^\]]*\]\]/g, ''); });
+      if (!sets.length && !notes.length) return;
+      const row = document.createElement('div'); row.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
+      sets.forEach(([, k, v]) => {
+        const S = WB_SETTINGS[k]; const val = wbValid(k, v); if (!S || val == null) return;
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-primary'; b.style.cssText = 'width:auto; padding:6px 11px; font-size:13px;';
+        const done = wbGet(k) === val;
+        b.textContent = done ? `✓ ${S.label}: ${wbShow(k, val)}` : `Übernehmen: ${S.label} → ${wbShow(k, val)}`;
+        b.disabled = done;
+        b.onclick = () => { if (wbConfirmSet(k, val, 'Mit Mila besprochen')) { const p = wb.data.proposals.find(x => x.k === k && x.status === 'offen'); if (p) { p.status = 'übernommen'; p.at = Date.now(); wbSave(); } helpRender(); } };
+        row.appendChild(b);
+      });
+      notes.forEach(([, t]) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; padding:6px 11px; font-size:13px;';
+        const exists = wb.data.items.some(x => x.kind === 'note' && x.title === t.trim().slice(0, 120));
+        b.textContent = exists ? '✓ notiert' : '📝 Als Notiz für Claude merken'; b.disabled = exists;
+        b.onclick = () => { wbNote(t, 'Mila'); helpRender(); };
+        row.appendChild(b);
+      });
+      if (row.children.length) d.appendChild(row);
+    });
+  };
+}
+// Mila: Werkstattbuch-Knopf in ihrer Kopfzeile und als Schnellwahl
+{
+  const v = helpView();
+  const clear = v.querySelector('#helpClear');
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'helpWb'; b.setAttribute('aria-label', 'Werkstattbuch');
+  b.style.cssText = clear.style.cssText; b.textContent = '📒';
+  b.onclick = () => { helpClose(); wbOpen(); };
+  clear.parentNode.insertBefore(b, clear);
+  const chips = v.querySelector('#helpChips');
+  const n = document.createElement('button'); n.type = 'button'; n.className = 'btn-secondary'; n.style.cssText = 'width:auto; flex:0 0 auto; padding:7px 12px; font-size:13px; white-space:nowrap;';
+  n.textContent = '📝 Notiz für Claude';
+  n.onclick = () => { const i = v.querySelector('#helpInput'); i.value = 'Notiz: '; i.focus(); };
+  chips.insertBefore(n, chips.children[1] || null);
+}
+
+// =====================================================================
+// ======================= 💶 VERBRAUCH =======================
+// =====================================================================
+// Zählt mit, was die App bei Venice und ElevenLabs verbraucht - an der Stelle,
+// an der die Anfragen das Handy verlassen. Text nach den Token-Angaben der
+// Antwort, Bilder nach Stückpreis, Stimmen nach Zeichen. Dazu holt sie auf
+// Wunsch das echte Restguthaben bei Venice und den Zeichenstand bei ElevenLabs.
+const SP_KEY = 'companion_spend';
+const SP_TEXT_PRICE = { 'gemma-4-uncensored': [0.16, 0.50], 'venice-uncensored-1-2': [0.20, 0.90], 'venice-uncensored': [0.20, 0.90], 'venice-uncensored-role-play': [0.50, 2.00] };
+const SP_IMG = { generate: 0.01, edit: 0.04, multi: 0.04 };
+const sp = { data: null, bal: null, el: null, at: 0, warned: '' };
+function spLoad() { try { return JSON.parse(localStorage.getItem(SP_KEY) || '{}'); } catch (e) { return {}; } }
+function spGet() { if (!sp.data) { sp.data = spLoad(); sp.data.days = sp.data.days || {}; } return sp.data; }
+function spSave() { const D = spGet(); const keys = Object.keys(D.days).sort(); keys.slice(0, Math.max(0, keys.length - 60)).forEach(k => delete D.days[k]); try { safeSet(SP_KEY, JSON.stringify(D)); } catch (e) {} }
+function spDay(d) { const k = new Date(d || Date.now()); return k.getFullYear() + '-' + String(k.getMonth() + 1).padStart(2, '0') + '-' + String(k.getDate()).padStart(2, '0'); }
+function spToday() { const D = spGet(); const k = spDay(); return D.days[k] || (D.days[k] = { usd: 0, text: { n: 0, inT: 0, outT: 0, usd: 0 }, img: { n: 0, usd: 0 }, edit: { n: 0, usd: 0 }, video: { n: 0 }, el: { n: 0, chars: 0 }, sfx: { n: 0 } }); }
+function spAddUsd(bucket, usd) { const T = spToday(); T[bucket].usd = (T[bucket].usd || 0) + usd; T.usd += usd; }
+{
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async function (input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const res = await origFetch(input, init);
+    try {
+      if (!res.ok) return res;
+      if (url.startsWith('https://api.venice.ai/api/v1/chat/completions')) {
+        res.clone().json().then(j => {
+          const u = j && j.usage; if (!u) return;
+          const model = String(j.model || '').toLowerCase();
+          const pr = SP_TEXT_PRICE[model] || Object.entries(SP_TEXT_PRICE).find(([k]) => model.startsWith(k))?.[1] || [0.5, 2.0];
+          const usd = (u.prompt_tokens || 0) * pr[0] / 1e6 + (u.completion_tokens || 0) * pr[1] / 1e6;
+          const T = spToday(); T.text.n++; T.text.inT += u.prompt_tokens || 0; T.text.outT += u.completion_tokens || 0;
+          spAddUsd('text', usd); spSave();
+        }).catch(() => {});
+      } else if (/api\.venice\.ai\/api\/v1\/image\/(generate|edit|multi)/.test(url)) {
+        const kind = url.match(/image\/(generate|edit|multi)/)[1];
+        const T = spToday(); const b = kind === 'generate' ? 'img' : 'edit';
+        T[b].n++; spAddUsd(b, SP_IMG[kind]); spSave();
+      } else if (url.startsWith('https://api.venice.ai/api/v1/video/') && /queue|generate/.test(url)) {
+        spToday().video.n++; spSave();
+      } else if (url.startsWith('https://api.elevenlabs.io/v1/text-to-speech/')) {
+        let chars = 0; try { chars = String(JSON.parse(init && init.body || '{}').text || '').length; } catch (e) {}
+        const T = spToday(); T.el.n++; T.el.chars += chars; spSave();
+      } else if (/api\.elevenlabs\.io\/v1\/(sound-generation|music)/.test(url)) {
+        spToday().sfx.n++; spSave();
+      }
+    } catch (e) {}
+    return res;
+  };
+}
+// Echte Stände abfragen
+async function spRefresh() {
+  const out = {};
+  try {
+    const key = apiKeyFor('companion_apiKey_venice');
+    if (key) {
+      const r = await fetch('https://api.venice.ai/api/v1/api_keys/rate_limits', { headers: { Authorization: 'Bearer ' + key } });
+      if (r.ok) { const j = await r.json(); const b = (j && j.data && j.data.balances) || {}; out.venice = { usd: b.USD, diem: b.DIEM, bundled: b.BUNDLED_CREDITS }; }
+      else out.veniceErr = 'Venice ' + r.status;
+    }
+  } catch (e) { out.veniceErr = 'Venice nicht erreichbar'; }
+  try {
+    const key = localStorage.getItem('companion_elevenKey');
+    if (key) {
+      const r = await fetch('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': key } });
+      if (r.ok) { const j = await r.json(); out.eleven = { used: j.character_count, limit: j.character_limit, reset: j.next_character_count_reset_unix, tier: j.tier }; }
+      else out.elevenErr = 'ElevenLabs ' + r.status;
+    }
+  } catch (e) { out.elevenErr = 'ElevenLabs nicht erreichbar'; }
+  sp.bal = out; sp.at = Date.now();
+  try { safeSet('companion_spendBal', JSON.stringify({ at: sp.at, bal: out })); } catch (e) {}
+  spWarn();
+  return out;
+}
+try { const o = JSON.parse(localStorage.getItem('companion_spendBal') || 'null'); if (o) { sp.bal = o.bal; sp.at = o.at; } } catch (e) {}
+setTimeout(() => { if (!sp.at || Date.now() - sp.at > 3600000) spRefresh().catch(() => {}); }, 15000);
+setInterval(() => { if (Date.now() - sp.at > 3600000) spRefresh().catch(() => {}); }, 600000);
+// Einmal am Tag warnen, wenn ein Guthaben knapp wird
+function spLow() {
+  const B = sp.bal || {}; const out = [];
+  if (B.venice && Number.isFinite(B.venice.usd) && (B.venice.usd + (B.venice.bundled || 0)) < 1 && !(B.venice.diem > 0)) out.push(`Venice-Guthaben fast leer (${spUsd((B.venice.usd || 0) + (B.venice.bundled || 0))})`);
+  if (B.eleven && B.eleven.limit && B.eleven.limit - B.eleven.used < B.eleven.limit * 0.08) out.push(`ElevenLabs: nur noch ${(B.eleven.limit - B.eleven.used).toLocaleString('de-DE')} Zeichen`);
+  return out;
+}
+function spWarn() {
+  const low = spLow(); if (!low.length) return;
+  const key = spDay() + low.join();
+  if (sp.warned === key || localStorage.getItem('companion_spendWarned') === key) return;
+  sp.warned = key; safeSet('companion_spendWarned', key);
+  try { addMsg('system', '💶 ' + low.join(' · ') + '. Details unter Ich → Verbrauch.'); } catch (e) {}
+}
+function spUsd(v) { return (v < 0.1 ? (v * 100).toFixed(1).replace('.', ',') + ' ct' : '$' + v.toFixed(2).replace('.', ',')); }
+function spSum(days) {
+  const D = spGet(); const S = { usd: 0, text: 0, img: 0, edit: 0, el: 0, chars: 0, video: 0, sfx: 0, textUsd: 0, imgUsd: 0, editUsd: 0 };
+  for (let i = 0; i < days; i++) {
+    const T = D.days[spDay(Date.now() - i * 86400000)]; if (!T) continue;
+    S.usd += T.usd; S.text += T.text.n; S.textUsd += T.text.usd || 0; S.img += T.img.n; S.imgUsd += T.img.usd || 0; S.edit += T.edit.n; S.editUsd += T.edit.usd || 0; S.el += T.el.n; S.chars += T.el.chars; S.video += T.video.n; S.sfx += T.sfx.n;
+  }
+  return S;
+}
+function spCardHtml() {
+  const t = spSum(1), w = spSum(7), m = spSum(30);
+  const B = sp.bal || {};
+  const ven = B.venice ? `${spUsd(B.venice.usd || 0)}${B.venice.bundled ? ' + ' + spUsd(B.venice.bundled) + ' Bonus' : ''}${B.venice.diem ? ' · ' + B.venice.diem + ' DIEM' : ''}` : (B.veniceErr || (apiKeyFor('companion_apiKey_venice') ? '-' : 'kein Schlüssel'));
+  const el = B.eleven ? `${(B.eleven.limit - B.eleven.used).toLocaleString('de-DE')} von ${B.eleven.limit.toLocaleString('de-DE')} Zeichen frei${B.eleven.reset ? ' · neu ab ' + new Date(B.eleven.reset * 1000).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : ''}` : (B.elevenErr || (localStorage.getItem('companion_elevenKey') ? '-' : 'kein Schlüssel'));
+  const elPct = B.eleven && B.eleven.limit ? Math.min(100, Math.round(B.eleven.used / B.eleven.limit * 100)) : null;
+  const low = spLow();
+  const row = (l, v) => `<div style="display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:3px 0;"><span style="color:var(--text-dim);">${l}</span><span style="font-variant-numeric:tabular-nums; text-align:right;">${v}</span></div>`;
+  return `<div class="me-card" id="spCard"><div style="display:flex; align-items:center;"><div class="home-label" style="margin:0; flex:1;">💶 Verbrauch</div><button type="button" id="spRefresh" class="btn-secondary" style="width:auto; padding:5px 10px; font-size:12px;">↻ Guthaben</button></div>
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:10px 0 8px; text-align:center;">
+      ${[['heute', t.usd], ['7 Tage', w.usd], ['30 Tage', m.usd]].map(([l, v]) => `<div style="background:var(--bg-panel-raised, #241c1f); border-radius:12px; padding:8px 4px;"><div style="font:700 18px var(--font-body, sans-serif); font-variant-numeric:tabular-nums;">${spUsd(v)}</div><div style="font-size:11.5px; color:var(--text-dim);">${l}</div></div>`).join('')}
+    </div>
+    ${row('Venice-Guthaben', ven)}
+    ${row('ElevenLabs', el)}
+    ${elPct != null ? `<div style="height:6px; border-radius:3px; background:var(--line); overflow:hidden; margin:4px 0 6px;"><div style="height:100%; width:${elPct}%; background:${elPct > 90 ? '#e0526b' : 'var(--accent, #d0516a)'};"></div></div>` : ''}
+    ${low.length ? `<div style="font-size:13px; color:#e0526b; margin:4px 0;">⚠ ${esc(low.join(' · '))}</div>` : ''}
+    <details style="margin-top:6px;"><summary style="font-size:12.5px; color:var(--text-dim); cursor:pointer;">Aufschlüsselung (7 Tage)</summary>
+      ${row(`Antworten (${w.text})`, spUsd(w.textUsd))}
+      ${row(`Bilder neu (${w.img})`, spUsd(w.imgUsd))}
+      ${row(`Bilder über Vorlage (${w.edit})`, spUsd(w.editUsd))}
+      ${w.video ? row('Videos', w.video + ' (Preis je nach Modell)') : ''}
+      ${row(`Stimmen ElevenLabs (${w.el})`, w.chars.toLocaleString('de-DE') + ' Zeichen')}
+      ${w.sfx ? row('Geräusche/Musik erzeugt', String(w.sfx)) : ''}
+      <p class="hint" style="margin:6px 0 0;">Venice-Beträge sind aus Listenpreisen und den Token-Angaben gerechnet; der Guthabenstand kommt direkt von Venice${sp.at ? ' (Stand ' + new Date(sp.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ')' : ''}. ElevenLabs rechnet in Zeichen bzw. Credits deines Tarifs.</p>
+    </details></div>`;
+}
+function spPaint() {
+  const host = document.getElementById('meSummary'); if (!host) return;
+  host.querySelector('#spCard')?.remove();
+  const d = document.createElement('div'); d.innerHTML = spCardHtml();
+  const card = d.firstElementChild;
+  host.insertBefore(card, host.children[1] || null);
+  card.querySelector('#spRefresh').onclick = async e => { e.target.textContent = '…'; await spRefresh(); spPaint(); };
+}
+{
+  const orig = renderMeSummary;
+  renderMeSummary = function () { orig.apply(this, arguments); try { spPaint(); } catch (e) { console.error(e); } };
+}
+// Mila kennt Verbrauch und Guthaben
+{
+  const orig = helpContext;
+  helpContext = function () {
+    const w = spSum(7), t = spSum(1), B = sp.bal || {};
+    return orig() + `\nVerbrauch: heute ${spUsd(t.usd)}, 7 Tage ${spUsd(w.usd)} (Antworten ${spUsd(w.textUsd)}, Bilder ${spUsd(w.imgUsd + w.editUsd)}, ElevenLabs ${w.chars} Zeichen). Guthaben: Venice ${B.venice ? spUsd((B.venice.usd || 0) + (B.venice.bundled || 0)) : 'unbekannt'}${B.eleven ? `, ElevenLabs ${B.eleven.limit - B.eleven.used} von ${B.eleven.limit} Zeichen frei` : ''}.${spLow().length ? ' KNAPP: ' + spLow().join(', ') + ' - sprich das an.' : ''} Die Übersicht steht unter Ich → Verbrauch ([[open:me]]).`;
+  };
+}
+
+// ---------- Miteinander scherzen, Geräusche ansagen ----------
+{
+  const orig = crowdBlock;
+  crowdBlock = function () {
+    let t = orig();
+    const n = aiCharacters().filter(c => !c.isNarrator).length;
+    if (n >= 2) t += `\n\nMITEINANDER: Die Figuren dürfen zwischendurch auch miteinander scherzen - sich necken, aufziehen, sich gegenseitig zum Lachen bringen, gemeinsam herzhaft lachen ([lacht herzhaft], [prustet los]). Kurz und passend zur Stimmung, aus ihrem Charakter heraus, nicht in jeder Antwort; in sehr intensiven Momenten höchstens ein frecher Halbsatz.`;
+    try { if (sfxEnabled()) t += `\n\nGERÄUSCHE: Was ihr in der Handlung beschreibt, hört Til teils wirklich - etwa wenn eine Peitsche oder Gerte knallt, Handschellen klicken, eine Kette rasselt, Gläser anstoßen, eine Tür aufgeht, ein Klaps fällt. Nutzt das, wenn es zur Szene passt, aber nicht ständig.`; } catch (e) {}
+    return t;
   };
 }
 
