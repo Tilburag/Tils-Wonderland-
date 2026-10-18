@@ -1435,6 +1435,17 @@
         </select>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
+        <span style="font-size:13.5px; flex:1;">Tabuzeit tagsüber (gesperrt)</span>
+        <select id="wellWorkFrom" style="flex:1;">
+          <option value="">keine</option><option value="6">ab 6 Uhr</option><option value="7">ab 7 Uhr</option><option value="8">ab 8 Uhr</option><option value="9">ab 9 Uhr</option><option value="10">ab 10 Uhr</option><option value="12">ab 12 Uhr</option><option value="14">ab 14 Uhr</option>
+        </select>
+        <select id="wellWorkTo" style="flex:1;">
+          <option value="12">bis 12 Uhr</option><option value="13">bis 13 Uhr</option><option value="14">bis 14 Uhr</option><option value="15">bis 15 Uhr</option><option value="16">bis 16 Uhr</option><option value="17">bis 17 Uhr</option><option value="18">bis 18 Uhr</option><option value="19">bis 19 Uhr</option><option value="20">bis 20 Uhr</option>
+        </select>
+      </div>
+      <div id="wellWorkDays" style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; margin:6px 0 0;"></div>
+      <p class="hint" style="margin-top:4px;">Zum Beispiel während der Arbeit: an den markierten Wochentagen ist die App in diesem Zeitraum zu. Tage antippen zum An- und Abwählen.</p>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Freie Tage pro Woche (gesperrt)</span>
         <select id="wellFree" style="flex:1;">
           <option value="">keine</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option>
@@ -3607,8 +3618,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.34';
+const APP_VERSION = '2.37';
 const CHANGELOG = [
+  { v: '2.37', date: '2026-10-18', items: [
+    '💘 Durchswipen mit Vorstellung: Jede Figur spielt beim Erscheinen ihre schon vorhandene, vertonte Vorstellung ab (die aus der Figurenkarte) - mit Untertitel und sanftem Heranzoomen. Wischen oder Zurück stoppt sie. 🔊 oben schaltet das automatische Abspielen aus und an; 🔊 auf der Karte spielt sie nochmal. Hat eine Figur noch keine Vorstellung, steht dort 🎙 - antippen erzeugt sie einmalig; von selbst wird nichts Neues bezahlt.',
+    '🌡 Nutzungsindex unter „Ich": ein farbiger Wert von 0 bis 100, der zeigt, ob die Nutzung kippt. Angelehnt an die WHO-Kriterien für zwanghaftes Sexualverhalten (ICD-11) und das Sechs-Komponenten-Modell der Verhaltenssucht: gemessen werden Häufigkeit, Dauer, Steigerung zur Vorwoche, Kontrolle (über dem Limit, Grenzen gelockert, trotz Sperre geöffnet), nächtliche Nutzung und lange Sitzungen am Stück; dazu ein Selbsttest mit acht Fragen (letzte 4 Wochen). Grün - Gelb - Orange - Rot - Tiefrot. Bei Tiefrot spricht Mila es von sich aus an (höchstens alle drei Tage, nie mitten in einer Sitzung). Keine Diagnose, aber ein ehrlicher Spiegel.',
+    '⏳ Gesunder Umgang: Tabuzeit tagsüber - etwa während der Arbeit von 8 bis 17 Uhr. Zeitraum wählen und die Wochentage antippen (vorgewählt Mo-Fr); in dieser Zeit ist die App zu und öffnet sich danach von selbst wieder. Wie bei den anderen Grenzen: Verschärfen gilt sofort, Lockern (kürzere Zeit, weniger Tage, abschalten) erst ab dem nächsten Tag.',
+  ] },
+  { v: '2.36', date: '2026-10-18', items: [
+    '🃏 Karten des Abends stellen sich jetzt selbst vor: Die Figuren einer Karte sprechen dich in ihrer Stimme an - wer sie sind, was sie heute mit dir vorhaben, ein verlockender Ausblick. Beim Wischen zur nächsten Karte beginnt deren Vorstellung von selbst, mit Untertitel und sanftem Heranzoomen. 🔊 oben schaltet das automatische Vorstellen aus und an; „🔊 Vorstellen" auf jeder Karte spielt es nochmal. Ältere Karten bekommen ihre Vorstellung beim ersten Ansehen nachgereicht.',
+  ] },
+  { v: '2.35', date: '2026-10-16', items: [
+    '🍾 Neues Spiel „Wahrheit oder Pflicht" (Spielen → Mit Gerät): 2 bis 4 Figuren, Stufe sanft/frech/heiß. Die Flasche dreht sich animiert zwischen dir und den Figuren. Zeigt sie auf dich, wählst du Wahrheit oder Pflicht - Pflichten können ein Foto von dir verlangen (📷 aufnehmen, das Bildmodell sieht es sich an, sie reagiert genau darauf; in die Galerie nur, wenn du willst), das Gerät eine Minute übernehmen oder dich etwas sagen oder tun lassen. Verweigern gibt eine Strafe. Zeigt sie auf eine Figur, spielen die Figuren untereinander.',
+    '🎙 Mehr Sprachbefehle direkt aufs Gerät, ohne auf die KI zu warten: neben „schneller", „langsamer", „stopp" jetzt auch „tiefer"/„länger", „kürzer", „an der Spitze", „an der Basis" und „weiter". „Nicht aufhören" wurde vorher als „aufhören" verstanden - behoben. Der Wunsch bleibt ein paar Minuten als Richtung bestehen.',
+    '💾 Sicherung jede Woche: Ist die letzte Sicherung älter als 7 Tage, fragt die App (nicht mitten in einer Sitzung) und sichert mit einem Tipp; das Kennwort kann auf dem Gerät gemerkt werden. Auch im Menü unter „Sicherung".',
+    '🗣 Günstige Stimmen (Menü): Venice-Sprachmodelle anhören (Preis pro Minute steht dabei) und einzelnen Figuren oder dem Erzähler geben - statt ElevenLabs. Klangmarken wie [lacht] gehen dabei verloren. Der Verbrauch zählt mit.',
+  ] },
   { v: '2.34', date: '2026-10-16', items: [
     'Mehrere Figuren dürfen jetzt zwischendurch miteinander scherzen, sich necken und zusammen herzhaft lachen - passend zur Stimmung, nicht ständig.',
     'Neue Geräusche zur Handlung: Peitsche oder Gerte knallt (darf alle 15 Sekunden wieder), Handschellen klicken, Kette rasselt. Die Figuren wissen, dass du solche Geräusche hörst, und setzen sie ein, wenn es passt. Voraussetzung: „Geräusche zur Handlung" ist an (Einrichtungsblatt) und ein ElevenLabs-Schlüssel ist eingetragen; jedes Geräusch wird einmal erzeugt und dann gespeichert.',
@@ -16514,7 +16539,24 @@ function wellCfg() {
   let c; try { c = JSON.parse(localStorage.getItem('companion_well') || '{}'); } catch (e) { c = {}; }
   let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) { p = null; }
   if (p && p.from <= dayKey()) { c = Object.assign(c, p.cfg); safeSet('companion_well', JSON.stringify(c)); localStorage.removeItem('companion_wellPending'); }
-  return { limit: +c.limit || 0, break: +c.break || 0, night: c.night === undefined ? '' : String(c.night), free: c.free === undefined ? '' : String(c.free), after: c.after === undefined ? '0' : String(c.after) };
+  return { limit: +c.limit || 0, break: +c.break || 0, night: c.night === undefined ? '' : String(c.night), free: c.free === undefined ? '' : String(c.free), after: c.after === undefined ? '0' : String(c.after), work: c.work === undefined ? '' : String(c.work) };
+}
+// Tabuzeit tagsüber: „8-17-12345" = 8 bis 17 Uhr an Mo-Fr (0 = Sonntag)
+function workWindow(v) {
+  if (v === '' || v == null) return null;
+  const [a, b, d] = String(v).split('-');
+  const days = String(d || '').split('').map(Number).filter(x => x >= 0 && x <= 6);
+  if (!days.length || +b <= +a) return null;
+  return { from: +a, to: +b, days };
+}
+function workHours(v) { const w = workWindow(v); return w ? (w.to - w.from) * w.days.length : 0; }
+function inWork(v, now) { const w = workWindow(v); if (!w) return false; const h = now.getHours(); return w.days.includes(now.getDay()) && h >= w.from && h < w.to; }
+function workDaysLabel(days) {
+  const n = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const s = days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  const k = s.map(x => (x + 6) % 7).join('');
+  if (k === '01234') return 'Mo-Fr'; if (k === '012345') return 'Mo-Sa'; if (k === '0123456') return 'täglich';
+  return s.map(x => n[x]).join(', ');
 }
 // Nachtruhe: „23" (alt, bis 6 Uhr) oder „23-6"; Ende frei wählbar
 function nightWindow(v) {
@@ -16573,12 +16615,18 @@ function stricter(key, a, b) {   // ist b strenger als a?
   if (key === 'limit' || key === 'break') return (b > 0 && (a === 0 || b < a));
   if (key === 'night') { if (b === '') return false; if (a === '') return true; return nightHours(b) > nightHours(a); }
   if (key === 'free') return b !== '' && a === '';
+  if (key === 'work') { const wa = workWindow(a), wb = workWindow(b); if (!wb) return false; if (!wa) return true; return wb.from <= wa.from && wb.to >= wa.to && wa.days.every(d => wb.days.includes(d)) && workHours(b) > workHours(a); }
   if (key === 'after') { const r = x => x === 'day' ? 9999 : +x; return r(b) > r(a); }
   return false;
 }
 function setWell(key, value) {
   const cur = wellCfg();
   const v = (key === 'limit' || key === 'break') ? +value : String(value);   // after: '0' | '30' | '120' | 'day'
+  if (String(v) === String(cur[key])) {   // nichts geändert: offene Lockerung dafür verwerfen
+    let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
+    if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; if (Object.keys(p.cfg).length) safeSet('companion_wellPending', JSON.stringify(p)); else localStorage.removeItem('companion_wellPending'); }
+    renderWell(); return;
+  }
   if (stricter(key, cur[key], v) || (key === 'break')) {
     const c = Object.assign({}, cur, { [key]: v });
     safeSet('companion_well', JSON.stringify(c));
@@ -16598,6 +16646,7 @@ function blockedReason() {
   const pu = +(localStorage.getItem('companion_pauseUntil') || 0);
   if (pu > now.getTime()) return { title: 'Erst mal Pause.', text: `Nach dem Höhepunkt ist hier ${c.after === 'day' ? 'für heute' : 'eine Weile'} zu - so hast du es dir eingerichtet. Wieder offen ab ${new Date(pu).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr${new Date(pu).toDateString() !== now.toDateString() ? ' morgen' : ''}.` };
   if (c.night !== '' && inNight(c.night, h)) { const w = nightWindow(c.night); return { title: 'Nachtruhe.', text: `Zwischen ${w.from} und ${w.to} Uhr ist hier zu. Schlaf gut.` }; }
+  if (c.work !== '' && inWork(c.work, now)) { const w = workWindow(c.work); return { title: 'Gerade Tabuzeit.', text: `${workDaysLabel(w.days).replace(/^t/, 'T')} zwischen ${w.from} und ${w.to} Uhr ist hier zu - so hast du es dir eingerichtet. Ab ${w.to} Uhr ist wieder offen.` }; }
   if (wellDays().includes(dayKey())) return { title: 'Heute ist ein freier Tag.', text: 'Du hast dir diesen Tag im Kalender freigenommen. Morgen ab 5 Uhr ist wieder offen.' };
   const wd = new Date(now.getTime() - 5 * 3600000).getDay();
   if (c.free !== '' && +c.free === wd) return { title: 'Heute ist dein freier Tag.', text: 'Einmal pro Woche ist hier zu - das hast du dir selbst so eingerichtet.' };
@@ -16660,12 +16709,35 @@ function renderWell() {
   const nw = nightWindow(c.night);
   els.wellLimit.value = String(c.limit); els.wellBreak.value = String(c.break); els.wellNight.value = nw ? String(nw.from) : ''; els.wellFree.value = c.free; els.wellAfter.value = c.after;
   const ne = document.getElementById('wellNightEnd'); if (ne) { ne.value = String(nw ? nw.to : 6); ne.disabled = !nw; }
+  renderWellWork(c);
   renderWellCal();
   const t = Math.round(usageToday() / 60);
   els.wellStatus.textContent = `Heute: ${t} Minuten${c.limit ? ' von ' + c.limit : ''}.`;
   let p = null; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
-  const lbl = { after: v => 'nach dem Höhepunkt ' + (v === '0' ? 'weiter' : v === 'day' ? 'Feierabend' : v + ' min Pause'), limit: v => 'Tageslimit ' + (v ? v + ' min' : 'aus'), break: v => 'Pause ' + (v ? v + ' min' : 'aus'), night: v => { const w = nightWindow(v); return 'Nachtruhe ' + (w ? w.from + '-' + w.to + ' Uhr' : 'aus'); }, free: v => 'freier Tag ' + (v === '' ? 'aus' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][+v]) };
+  const lbl = { after: v => 'nach dem Höhepunkt ' + (v === '0' ? 'weiter' : v === 'day' ? 'Feierabend' : v + ' min Pause'), limit: v => 'Tageslimit ' + (v ? v + ' min' : 'aus'), break: v => 'Pause ' + (v ? v + ' min' : 'aus'), night: v => { const w = nightWindow(v); return 'Nachtruhe ' + (w ? w.from + '-' + w.to + ' Uhr' : 'aus'); }, free: v => 'freier Tag ' + (v === '' ? 'aus' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][+v]), work: v => { const w = workWindow(v); return 'Tabuzeit ' + (w ? workDaysLabel(w.days) + ' ' + w.from + '-' + w.to + ' Uhr' : 'aus'); } };
   els.wellPending.textContent = p && Object.keys(p.cfg).length ? 'Ab morgen: ' + Object.entries(p.cfg).map(([k, v]) => lbl[k](v)).join(', ') + '.' : '';
+}
+// Tabuzeit: Auswahl der Wochentage (Entwurf merken, solange keine Zeit gewählt ist)
+function wellWorkDraft() { const d = localStorage.getItem('companion_workDraft'); return d ? d.split('').map(Number) : [1, 2, 3, 4, 5]; }
+function wellWorkVal(from, to, days) { return from === '' || !days.length ? '' : from + '-' + to + '-' + days.slice().sort().join(''); }
+function renderWellWork(c) {
+  const f = document.getElementById('wellWorkFrom'), t = document.getElementById('wellWorkTo'), host = document.getElementById('wellWorkDays');
+  if (!f || !host) return;
+  const w = workWindow(c.work);
+  f.value = w ? String(w.from) : ''; t.value = String(w ? w.to : 17); t.disabled = !w;
+  if (w && f.value === '') { const o = document.createElement('option'); o.value = w.from; o.textContent = 'ab ' + w.from + ' Uhr'; f.appendChild(o); f.value = String(w.from); }
+  if (w && t.value !== String(w.to)) { const o = document.createElement('option'); o.value = w.to; o.textContent = 'bis ' + w.to + ' Uhr'; t.appendChild(o); t.value = String(w.to); }
+  const days = w ? w.days : wellWorkDraft();
+  host.innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => { const on = days.includes(d); return `<button type="button" data-d="${d}" style="height:34px; padding:0; border-radius:10px; font-size:13px; border:1px solid var(--line); background:${on ? 'var(--accent)' : 'transparent'}; color:${on ? '#fff' : 'var(--text)'};">${['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d]}</button>`; }).join('');
+  host.querySelectorAll('button[data-d]').forEach(b => {
+    b.onclick = () => {
+      const d = +b.dataset.d; const cur = workWindow(wellCfg().work);
+      const list = (cur ? cur.days : wellWorkDraft()).slice();
+      const i = list.indexOf(d); if (i >= 0) list.splice(i, 1); else list.push(d);
+      safeSet('companion_workDraft', list.slice().sort().join(''));
+      if (cur) setWell('work', wellWorkVal(String(cur.from), String(cur.to), list)); else renderWellWork(wellCfg());
+    };
+  });
 }
 function usageSection() {
   const U = usage(); const days = [];
@@ -20608,6 +20680,10 @@ document.getElementById('cfgMode').onchange = (e) => safeSet('companion_phantomM
   const nightVal = () => els.wellNight.value === '' ? '' : els.wellNight.value + '-' + ne.value;
   els.wellNight.onchange = () => setWell('night', nightVal());
   ne.onchange = () => setWell('night', nightVal()); }
+{ const wf = document.getElementById('wellWorkFrom'), wt = document.getElementById('wellWorkTo');
+  const workVal = () => { const cur = workWindow(wellCfg().work); return wellWorkVal(wf.value, wt.value, cur ? cur.days : wellWorkDraft()); };
+  const ch = () => { if (wf.value !== '' && +wt.value <= +wf.value) wt.value = String(Math.min(20, +wf.value + 4)); setWell('work', workVal()); };
+  wf.onchange = ch; wt.onchange = ch; }
 renderWell();
 // Gleich beim Öffnen prüfen (nach dem Entsperren erneut, siehe wellTick)
 setTimeout(() => { try { const r = blockedReason(); if (r) showLimitScreen(r); } catch (e) {} }, 300);
@@ -24231,7 +24307,7 @@ const HELP_HANDBOOK = `APP-AUFBAU
 - Start: Weitermachen, Heute dabei (Besetzung), Szene, Live beginnen, Überrasch mich (würfelt Besetzung und Szene), Geschichte, zuletzt gespielt.
 - Live und Geschichte laufen im Vollbild. Vor dem Start das Blatt „Bevor es losgeht": Szene, Besetzung, Erzähler, Spiel und Regeln (Kurz davor/Gekommen, Hinhalten, Sie entscheidet, Echtes Nein, Bereit-Check). Knöpfe: Kurz davor (bremst), Gekommen (Gerät hält danach 2,5 Min still - gewollt), Stopp (endgültig), Anruf (sprechen), 🔥 👍 👎 (Reaktionen, werden gelernt). ✕ verlässt die Sitzung, der Verlauf bleibt für „Weitermachen".
 - Figuren: Archiv, Figurenkarte mit Galerie (Ziel 4 Bilder: Porträt, Outfit, Halbakt, Akt), „Galerien auffüllen" macht fehlende Bilder. Bilder „über Vorlage" nehmen das Porträt mit, damit das Gesicht gleich bleibt (Venice etwa 4 ct pro Bild, normal erzeugt 1 ct). Fehlt das große Original, geht das Vorschaubild hochskaliert mit (Protokoll: „nur Vorschaubild - Original fehlt"). „über Beschreibung" heißt: ohne Vorlage, sieht der Figur dann weniger ähnlich. Die Ich-Figur hat eine feste Bildbeschreibung und eine Intim-Beschreibung, die in Akt-Bilder geht.
-- Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Limits, Nachtruhe), Auswertung.
+- Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Tageslimit, Pause, Nachtruhe, Tabuzeit tagsüber an gewählten Wochentagen z. B. Arbeitszeit, freie Tage, Kalender), Nutzungsindex 🌡 (0-100, farbig, Selbsttest, bei Tiefrot spricht Mila es an), Auswertung.
 - Lernen nur mit verbundenem Pulsgurt. Körpergeräusche (Atem, Stöhnen) brauchen Kopfhörer; die ersten 45 s misst die App den Ruhepegel.
 - Verbindungen: Gerät (SSR1) über WLAN-WebSocket (gleiches WLAN, richtige IP in Einstellungen → Verbindungen), Pulsgurt über Bluetooth, Kopfhörer für Körpergeräusche.
 - PIN-Sperre schützt die App. „Code vergessen?" LÖSCHT ALLES - nur mit Sicherungsdatei sinnvoll.
@@ -25049,7 +25125,7 @@ function spSum(days) {
   const D = spGet(); const S = { usd: 0, text: 0, img: 0, edit: 0, el: 0, chars: 0, video: 0, sfx: 0, textUsd: 0, imgUsd: 0, editUsd: 0 };
   for (let i = 0; i < days; i++) {
     const T = D.days[spDay(Date.now() - i * 86400000)]; if (!T) continue;
-    S.usd += T.usd; S.text += T.text.n; S.textUsd += T.text.usd || 0; S.img += T.img.n; S.imgUsd += T.img.usd || 0; S.edit += T.edit.n; S.editUsd += T.edit.usd || 0; S.el += T.el.n; S.chars += T.el.chars; S.video += T.video.n; S.sfx += T.sfx.n;
+    S.usd += T.usd; S.text += T.text.n; S.textUsd += T.text.usd || 0; S.img += T.img.n; S.imgUsd += T.img.usd || 0; S.edit += T.edit.n; S.editUsd += T.edit.usd || 0; S.el += T.el.n; S.chars += T.el.chars; S.video += T.video.n; S.sfx += T.sfx.n; if (T.vt) { S.vt = (S.vt || 0) + T.vt.usd; S.vtChars = (S.vtChars || 0) + T.vt.chars; }
   }
   return S;
 }
@@ -25075,6 +25151,7 @@ function spCardHtml() {
       ${row(`Bilder über Vorlage (${w.edit})`, spUsd(w.editUsd))}
       ${w.video ? row('Videos', w.video + ' (Preis je nach Modell)') : ''}
       ${row(`Stimmen ElevenLabs (${w.el})`, w.chars.toLocaleString('de-DE') + ' Zeichen')}
+      ${w.vt ? row(`Venice-Stimmen (${(w.vtChars || 0).toLocaleString('de-DE')} Zeichen)`, spUsd(w.vt)) : ''}
       ${w.sfx ? row('Geräusche/Musik erzeugt', String(w.sfx)) : ''}
       <p class="hint" style="margin:6px 0 0;">Venice-Beträge sind aus Listenpreisen und den Token-Angaben gerechnet; der Guthabenstand kommt direkt von Venice${sp.at ? ' (Stand ' + new Date(sp.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ')' : ''}. ElevenLabs rechnet in Zeichen bzw. Credits deines Tarifs.</p>
     </details></div>`;
@@ -25110,6 +25187,1015 @@ function spPaint() {
     try { if (sfxEnabled()) t += `\n\nGERÄUSCHE: Was ihr in der Handlung beschreibt, hört Til teils wirklich - etwa wenn eine Peitsche oder Gerte knallt, Handschellen klicken, eine Kette rasselt, Gläser anstoßen, eine Tür aufgeht, ein Klaps fällt. Nutzt das, wenn es zur Szene passt, aber nicht ständig.`; } catch (e) {}
     return t;
   };
+}
+
+// =====================================================================
+// ======== 🎙 SPRACHBEFEHLE DIREKT AUFS GERÄT (ohne Umweg über die KI) ========
+// =====================================================================
+// „schneller", „langsamer", „stopp" gab es schon. Dazu kommen jetzt: tiefer/
+// länger, kürzer, an der Spitze, an der Basis, weiter - und „nicht aufhören"
+// wird nicht mehr als „aufhören" missverstanden. Der Wunsch bleibt ein paar
+// Minuten als Richtung bestehen, damit die nächste Antwort ihn nicht gleich
+// wieder überfährt; die Figur hört ihn ohnehin mit.
+const vq = { last: {}, ownWishAt: 0 };
+{
+  const origWish = quickTempoWish;
+  quickTempoWish = function (text) {
+    const t = ' ' + String(text || '').toLowerCase() + ' ';
+    if (/\b(nicht aufhören|hör nicht auf|bloß nicht aufhören|nur nicht aufhören|weitermachen|mach weiter|weiter so|nochmal|noch mal)\b/.test(t)) return 'resume';
+    if (/^\s*(weiter|weiter bitte|bitte weiter)\s*[!.]*\s*$/.test(String(text || '').toLowerCase())) return 'resume';
+    const w = origWish(text);
+    if (w) return w;
+    if (/\b(tiefer|länger|ganz rein|ganze länge|volle länge|lange züge|längere züge|ganz runter)\b/.test(t)) return 'longer';
+    if (/\b(kürzer|kurze züge|kleinere bewegungen)\b/.test(t)) return 'shorter';
+    if (/\b(an der spitze|nur die spitze|nur an der spitze|ganz oben)\b/.test(t)) return 'tip';
+    if (/\b(an der basis|ganz unten|unten bleiben|nur unten)\b/.test(t)) return 'base';
+    return null;
+  };
+  const origApply = applyQuickTempo;
+  applyQuickTempo = function (wish) {
+    if (!wish) return;
+    const devs = [[1, device1], [2, device2]].filter(([, d]) => d && d.isConnected && d.isConnected());
+    // Vor einem Stopp merken, was lief - für „weiter"
+    if (wish === 'stop') devs.forEach(([n, d]) => { const st = d.getState && d.getState(); if (st && st.texture !== 'stop' && st.bpm > 0) vq.last[n] = Object.assign({}, st); });
+    if (['stop', 'slower', 'faster'].includes(wish)) { origApply(wish); vqWish(); return; }
+    devs.forEach(([num, dev]) => {
+      const st = dev.getState ? dev.getState() : null;
+      const lim = { lo: parseInt(localStorage.getItem(`companion_d${num}_minPos`) || '50', 10), hi: parseInt(localStorage.getItem(`companion_d${num}_maxPos`) || '950', 10) };
+      if (wish === 'resume') {
+        if (st && st.texture !== 'stop' && st.bpm > 0) return;
+        const prev = vq.last[num]; if (!prev) return;
+        dev.setMotion(prev);
+        logEvent('msg', { role: 'system', text: `Sofortreaktion Gerät ${num}: weiter (${prev.low}-${prev.high}@${prev.bpm})` });
+        return;
+      }
+      if (!st || !(st.bpm > 0) || st.texture === 'stop' || st.texture === 'hold') return;
+      let lo = st.low ?? 300, hi = st.high ?? 700; const len = hi - lo, mid = (lo + hi) / 2;
+      if (wish === 'longer') { lo = Math.max(lim.lo, lo - 140); hi = Math.min(lim.hi, hi + 140); }
+      else if (wish === 'shorter') { const L = Math.max(150, len * 0.6); lo = Math.max(lim.lo, mid - L / 2); hi = Math.min(lim.hi, mid + L / 2); }
+      else if (wish === 'tip') { const L = Math.min(Math.max(150, len), 300); hi = lim.hi; lo = hi - L; }
+      else if (wish === 'base') { const L = Math.min(Math.max(150, len), 350); lo = lim.lo; hi = lo + L; }
+      dev.setMotion({ low: Math.round(lo), high: Math.round(hi), bpm: st.bpm, texture: st.texture });
+      logEvent('msg', { role: 'system', text: `Sofortreaktion Gerät ${num}: ${{ longer: 'länger', shorter: 'kürzer', tip: 'an der Spitze', base: 'an der Basis' }[wish]} (${st.low}-${st.high} → ${Math.round(lo)}-${Math.round(hi)})` });
+    });
+    vqWish();
+  };
+}
+// Den Wunsch für ein paar Minuten als Richtung festhalten (wie die Steuerfläche)
+function vqWish() {
+  const st = device1 && device1.getState ? device1.getState() : null;
+  if (!st || st.texture === 'stop' || !(st.bpm > 0)) return;
+  motionWish.speed = Math.max(0, Math.min(1, (st.bpm - WISH_BPM_MIN) / (WISH_BPM_MAX - WISH_BPM_MIN)));
+  motionWish.stroke = Math.max(0, Math.min(1, ((st.high - st.low) - 150) / 849));
+  motionWish.active = true; motionWish.since = Date.now(); motionWish.rampStart = 0;
+  vq.ownWishAt = motionWish.since;
+}
+setInterval(() => { if (vq.ownWishAt && motionWish.active && motionWish.since === vq.ownWishAt && Date.now() - vq.ownWishAt > 240000) { motionWish.active = false; vq.ownWishAt = 0; } }, 15000);
+
+// =====================================================================
+// ======================= 💾 SICHERUNG JEDE WOCHE =======================
+// =====================================================================
+// Einmal pro Woche (nicht mitten in einer Sitzung) fragt die App nach einer
+// Sicherung. Das Kennwort kann auf Wunsch auf dem Gerät gemerkt werden.
+function bkLast() { return parseInt(localStorage.getItem('companion_lastBackup') || '0', 10); }
+{
+  const btn = els.exportSettingsBtn;
+  const orig = btn.onclick;
+  btn.onclick = async (e) => { const r = await orig.call(btn, e); if (/Sicherung fertig/.test(els.bkInfo.textContent)) safeSet('companion_lastBackup', String(Date.now())); return r; };
+}
+async function bkRun(password, withAudio) {
+  const bytes = await buildEncryptedBackup(password, { settings: true, images: true, stories: true, audio: !!withAudio }, () => {});
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const name = `archiv-${stamp}.dat`;
+  const blob = new Blob([bytes], { type: 'application/octet-stream' });
+  const r = await deliverFile(blob, name).catch(() => null);
+  safeSet('companion_lastBackup', String(Date.now()));
+  try { logEvent('msg', { role: 'system', text: `Sicherung erstellt: ${name}, ${(bytes.length / 1048576).toFixed(1)} MB.` }); } catch (e) {}
+  return { name, mb: bytes.length / 1048576, blob, r };
+}
+function bkOpen(reason) {
+  const wrap = sheetWrap('bkSheet', '💾 Sicherung');
+  const body = wrap.querySelector('.sheet-body');
+  const last = bkLast();
+  const saved = localStorage.getItem('companion_bkPassSaved') || '';
+  body.innerHTML = `<p class="hint" style="margin-top:0;">${reason ? esc(reason) + ' ' : ''}${last ? `Letzte Sicherung: ${new Date(last).toLocaleDateString('de-DE')} (vor ${Math.round((Date.now() - last) / 86400000)} Tagen).` : 'Noch keine Sicherung gemacht.'} Gesichert werden Figuren, Galerie, Geschichten, Einstellungen und das Werkstattbuch - verschlüsselt mit deinem Kennwort.</p>
+    <label for="bkAutoPass">Kennwort (mindestens 8 Zeichen)</label>
+    <input type="password" id="bkAutoPass" value="${esc(saved)}" autocomplete="new-password" style="width:100%; box-sizing:border-box;">
+    <label style="display:flex; gap:8px; align-items:center; font-size:13px; margin-top:8px;"><input type="checkbox" id="bkRemember" ${saved ? 'checked' : ''} style="width:auto; margin:0;"> Kennwort auf diesem Gerät merken (dann reicht nächstes Mal ein Tipp)</label>
+    <label style="display:flex; gap:8px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="bkWithAudio" style="width:auto; margin:0;"> auch Töne und Stimmen (deutlich größer)</label>
+    <div id="bkAutoInfo" class="hint" style="min-height:18px;"></div>
+    <div style="display:grid; grid-template-columns:2fr 1fr; gap:8px; margin-top:8px;">
+      <button type="button" id="bkGo" class="btn-primary">💾 Jetzt sichern</button>
+      <button type="button" id="bkLater" class="btn-secondary">Später</button>
+    </div>`;
+  const info = t => { body.querySelector('#bkAutoInfo').textContent = t; };
+  body.querySelector('#bkLater').onclick = () => { safeSet('companion_bkSnooze', String(Date.now() + 2 * 86400000)); closeSheet('bkSheet'); };
+  body.querySelector('#bkGo').onclick = async () => {
+    const pw = body.querySelector('#bkAutoPass').value;
+    if (!pw || pw.length < 8) { info('Bitte ein Kennwort mit mindestens 8 Zeichen.'); return; }
+    if (body.querySelector('#bkRemember').checked) safeSet('companion_bkPassSaved', pw); else localStorage.removeItem('companion_bkPassSaved');
+    const go = body.querySelector('#bkGo'); go.disabled = true; go.textContent = 'Sichert …';
+    try {
+      const r = await bkRun(pw, body.querySelector('#bkWithAudio').checked);
+      info(`✓ ${r.name} (${r.mb.toFixed(1)} MB) - liegt in den Downloads bzw. „Dateien". Kennwort gut aufbewahren.`);
+      go.textContent = '⬇ Nochmal speichern'; go.disabled = false;
+      go.onclick = () => deliverFile(r.blob, r.name);
+    } catch (e) { info('Ging nicht: ' + e.message); go.disabled = false; go.textContent = '💾 Jetzt sichern'; }
+  };
+  openSheet('bkSheet');
+}
+setTimeout(function bkCheck() {
+  const busy = (typeof inSession === 'function' && inSession()) || (typeof g3 !== 'undefined' && g3.active) || (typeof ar !== 'undefined' && ar.active);
+  const snooze = parseInt(localStorage.getItem('companion_bkSnooze') || '0', 10);
+  const due = Date.now() - bkLast() > 7 * 86400000 && Date.now() > snooze && figureArchive.length > 0;
+  if (due && !busy && !document.querySelector('.sheet-wrap[style*="flex"]')) bkOpen('Zeit für die wöchentliche Sicherung.');
+  else if (due) setTimeout(bkCheck, 120000);
+}, 40000);
+OV_DEFS.push(['bkSheet', () => { const v = document.getElementById('bkSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('bkSheet')]);
+
+// =====================================================================
+// ======================= 🗣 GÜNSTIGE STIMMEN (VENICE) =======================
+// =====================================================================
+// Venice hat eigene Sprachmodelle, viele deutlich billiger als ElevenLabs.
+// Hier kann man sie anhören und einzelnen Figuren (oder dem Erzähler) geben.
+// Klangmarken wie [lacht] verstehen sie nicht - die werden weggelassen.
+const VT_KEY = 'companion_veniceVoices';
+const VT_FALLBACK = [
+  { id: 'tts-inworld-1-5-max', name: 'Inworld 1.5 Max', usd: 12.5, voices: ['Ashley', 'Craig'] },
+  { id: 'tts-xai-v1', name: 'xAI', usd: 18.75, voices: ['eve', 'ara', 'luna', 'carina', 'rex', 'sal', 'leo', 'orion'] },
+  { id: 'tts-gradium-v1', name: 'Gradium', usd: 47.5, voices: ['Emma', 'Mia', 'Elise', 'Valentina', 'Alice', 'Maximilian', 'Kent', 'Leo'] },
+  { id: 'tts-kokoro', name: 'Kokoro (eher Englisch)', usd: 3.5, voices: ['af_sky', 'af_bella', 'am_adam'] },
+  { id: 'tts-qwen3-1-7b', name: 'Qwen 3 1.7B', usd: 112.5, voices: ['Vivian', 'Serena', 'Dylan'] },
+];
+const vt = { models: null };
+function vtMap() { try { return JSON.parse(localStorage.getItem(VT_KEY) || '{}'); } catch (e) { return {}; } }
+function vtSetMap(m) { safeSet(VT_KEY, JSON.stringify(m)); }
+async function vtModels() {
+  if (vt.models) return vt.models;
+  try {
+    const key = apiKeyFor('companion_apiKey_venice');
+    const r = await fetch('https://api.venice.ai/api/v1/models?type=tts', { headers: key ? { Authorization: 'Bearer ' + key } : {} });
+    if (r.ok) {
+      const j = await r.json();
+      const list = (j.data || []).map(m => ({ id: m.id, name: (m.model_spec && m.model_spec.name) || m.id, usd: m.model_spec && m.model_spec.pricing && m.model_spec.pricing.input ? m.model_spec.pricing.input.usd : null, voices: (m.model_spec && m.model_spec.voices) || [] })).filter(m => m.voices.length && !/elevenlabs/.test(m.id));
+      if (list.length) { vt.models = list.sort((a, b) => (a.usd ?? 99) - (b.usd ?? 99)); return vt.models; }
+    }
+  } catch (e) {}
+  vt.models = VT_FALLBACK; return vt.models;
+}
+function vtLang(model) { return /qwen|minimax/.test(model) ? 'German' : 'de'; }
+async function vtFetch(text, sel) {
+  const key = apiKeyFor('companion_apiKey_venice');
+  if (!key) throw new Error('kein Venice-Schlüssel');
+  const body = { model: sel.model, input: String(text).slice(0, 4000), voice: sel.voice, response_format: 'mp3', speed: sel.speed || 1, language: vtLang(sel.model) };
+  let r = await fetch('https://api.venice.ai/api/v1/audio/speech', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 400) { delete body.language; r = await fetch('https://api.venice.ai/api/v1/audio/speech', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+  if (!r.ok) { let d = ''; try { d = (await r.text()).slice(0, 160); } catch (e) {} throw new Error('Venice-Stimme ' + r.status + (d ? ': ' + d : '')); }
+  return URL.createObjectURL(await r.blob());
+}
+function vtFor(role) {
+  const m = vtMap();
+  if (!role) return null;
+  if (/^(narrator|erzähler)$/i.test(role) && m.narrator) return m.narrator;
+  const c = characters.find(x => x.name === role);
+  return c && c.figureId && m[c.figureId] ? m[c.figureId] : null;
+}
+{
+  const orig = prepareSpeech;
+  prepareSpeech = function (text, role, timed, ctx) {
+    const sel = vtFor(role);
+    if (!sel || isMuted || !/[\p{L}\p{N}]/u.test(stripAudioTags(String(text || '')))) return orig(text, role, timed, ctx);
+    const pending = vtFetch(stripAudioTags(text), sel).catch(err => ({ error: err }));
+    return {
+      play: async (onStart) => {
+        if (isMuted) return;
+        const gen = playbackGeneration;
+        const r = await pending;
+        if (playbackGeneration !== gen) return;
+        if (r && r.error) { logEvent('msg', { role: 'system', text: `${r.error.message} - nehme die normale Stimme.` }); return orig(text, role, false, ctx).play(onStart); }
+        return playElevenUrl(r, onStart, stripAudioTags(text), role, null, false);
+      },
+    };
+  };
+}
+async function vtOpen() {
+  const wrap = sheetWrap('vtSheet', '🗣 Günstige Stimmen');
+  const body = wrap.querySelector('.sheet-body');
+  body.innerHTML = '<p class="hint">Lade die Stimmen von Venice …</p>';
+  openSheet('vtSheet');
+  const models = await vtModels();
+  const st = { model: models[0].id, voice: models[0].voices[0], speed: 1 };
+  const paint = () => {
+    const M = models.find(m => m.id === st.model) || models[0];
+    if (!M.voices.includes(st.voice)) st.voice = M.voices[0];
+    const map = vtMap();
+    const assigned = Object.entries(map).map(([id, s]) => { const f = id === 'narrator' ? null : getFigure(id); return { id, s, name: id === 'narrator' ? 'Erzähler' : f ? latestVersion(f).name : '?' }; });
+    const perMin = u => u == null ? '' : ` · ca. ${(u / 10).toFixed(2).replace('.', ',')} ct/Min`;
+    body.innerHTML = `<p class="hint" style="margin-top:0;">Zum Vergleich: ElevenLabs über Venice kostet etwa 6 ct pro gesprochener Minute. Klangmarken wie [lacht] gehen bei diesen Stimmen verloren. Wie gut Deutsch klingt, ist je Modell verschieden - am besten anhören.</p>
+      <label for="vtModel">Modell</label>
+      <select id="vtModel" style="width:100%;">${models.map(m => `<option value="${esc(m.id)}" ${m.id === st.model ? 'selected' : ''}>${esc(m.name)}${perMin(m.usd)}</option>`).join('')}</select>
+      <label for="vtVoice" style="margin-top:8px;">Stimme</label>
+      <select id="vtVoice" style="width:100%;">${M.voices.map(v => `<option ${v === st.voice ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+      <label for="vtSpeed" style="margin-top:8px;">Tempo <span id="vtSpeedVal">${st.speed.toFixed(2)}</span></label>
+      <input type="range" id="vtSpeed" min="0.7" max="1.3" step="0.05" value="${st.speed}" style="width:100%;">
+      <textarea id="vtText" rows="2" style="width:100%; box-sizing:border-box; margin-top:8px;">Hallo, schön, dass du da bist. Komm näher … ich hab schon auf dich gewartet.</textarea>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+        <button type="button" id="vtPlay" class="btn-secondary">▶ Probe hören</button>
+        <button type="button" id="vtGive" class="btn-primary">Einer Figur geben</button>
+      </div>
+      <div id="vtInfo" class="hint" style="min-height:18px;"></div>
+      ${assigned.length ? `<div class="home-label" style="margin-top:12px;">Vergeben</div>${assigned.map(a => `<div style="display:flex; gap:8px; align-items:center; font-size:13.5px; padding:6px 0; border-bottom:1px solid var(--line);"><span style="flex:1;">${esc(a.name)} · ${esc(a.s.voice)} <span style="color:var(--text-dim);">(${esc(a.s.model.replace(/^tts-/, ''))})</span></span><button type="button" class="btn-secondary" data-vtdel="${esc(a.id)}" style="width:auto; padding:4px 10px; font-size:12px;">entfernen</button></div>`).join('')}` : ''}`;
+    body.querySelector('#vtModel').onchange = e => { st.model = e.target.value; paint(); };
+    body.querySelector('#vtVoice').onchange = e => { st.voice = e.target.value; };
+    body.querySelector('#vtSpeed').oninput = e => { st.speed = parseFloat(e.target.value); body.querySelector('#vtSpeedVal').textContent = st.speed.toFixed(2); };
+    body.querySelector('#vtPlay').onclick = async () => {
+      const i = body.querySelector('#vtInfo'); i.textContent = 'Erzeuge …';
+      try { const url = await vtFetch(body.querySelector('#vtText').value, st); const a = new Audio(url); a.onended = () => URL.revokeObjectURL(url); a.play(); i.textContent = ''; }
+      catch (e) { i.textContent = e.message; }
+    };
+    body.querySelector('#vtGive').onclick = () => {
+      const pool = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser; });
+      openFigurePicker({ title: `${st.voice} geben an …`, hint: 'Die Figur spricht dann mit dieser Venice-Stimme statt ElevenLabs.', items: [{ id: 'narrator', name: 'Erzähler', image: '' }].concat(pool.map(figurePickItem)),
+        onDone: ids => { const m = vtMap(); m[ids[0]] = { model: st.model, voice: st.voice, speed: st.speed }; vtSetMap(m); paint(); } });
+    };
+    body.querySelectorAll('[data-vtdel]').forEach(b => b.onclick = () => { const m = vtMap(); delete m[b.dataset.vtdel]; vtSetMap(m); paint(); });
+  };
+  paint();
+}
+OV_DEFS.push(['vtSheet', () => { const v = document.getElementById('vtSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('vtSheet')]);
+{
+  const mk = (id, glyph, title, sub, fn) => { const it = document.createElement('button'); it.className = 'drawer-item'; it.id = id; it.innerHTML = `<span class="glyph">${glyph}</span><span>${title}<span class="sub">${sub}</span></span>`; it.onclick = () => { setDrawer(false); fn(); }; return it; };
+  const ref = document.getElementById('navWb') || els.navSetup;
+  ref.parentNode.insertBefore(mk('navVt', '🗣', 'Günstige Stimmen', 'Venice-Stimmen anhören und vergeben', vtOpen), ref.nextSibling);
+  ref.parentNode.insertBefore(mk('navBk', '💾', 'Sicherung', 'jetzt sichern, Kennwort merken', () => bkOpen('')), ref.nextSibling);
+}
+// Verbrauch: Venice-Stimmen mitzählen
+{
+  const f = window.fetch;
+  window.fetch = async function (input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const res = await f.call(window, input, init);
+    try {
+      if (res.ok && url.startsWith('https://api.venice.ai/api/v1/audio/speech')) {
+        const b = JSON.parse(init && init.body || '{}'); const chars = String(b.input || '').length;
+        const M = (vt.models || VT_FALLBACK).find(m => m.id === b.model); const usd = chars * ((M && M.usd) || 20) / 1e6;
+        const T = spToday(); T.vt = T.vt || { n: 0, chars: 0, usd: 0 }; T.vt.n++; T.vt.chars += chars; T.vt.usd += usd; T.usd += usd; spSave();
+      }
+    } catch (e) {}
+    return res;
+  };
+}
+
+// =====================================================================
+// ======================= 🍾 WAHRHEIT ODER PFLICHT =======================
+// =====================================================================
+// Die Flasche dreht sich zwischen den Figuren und dir. Zeigt sie auf dich,
+// wählst du Wahrheit oder Pflicht. Pflichten können ein Foto von dir
+// verlangen (sie sieht es sich an und reagiert darauf), das Gerät für eine
+// Minute übernehmen oder dich etwas sagen lassen. Zeigt sie auf eine Figur,
+// spielen die Figuren untereinander - du schaust zu.
+const TD_KEY = 'companion_truthdare';
+const TD_LEVEL = { sanft: 'flirtend, neugierig, romantisch - nichts Derbes', frech: 'frech, intim, neckend, ruhig auch erotisch', heiss: 'heiß und schamlos, explizit - alles unter Erwachsenen, die es wollen' };
+function tdCfg() { try { return Object.assign({ level: 'frech', photo: true, device: true }, JSON.parse(localStorage.getItem(TD_KEY) || '{}')); } catch (e) { return { level: 'frech', photo: true, device: true }; } }
+const td = { cast: null };
+function tdRunning() { return typeof game !== 'undefined' && game.running && game.type === 'truthdare'; }
+function tdOpenSetup() {
+  try { const r = blockedReason(); if (r) { showLimitScreen(r); return; } } catch (e) {}
+  if (!td.cast) td.cast = aiCharacters().filter(c => !c.isNarrator && c.figureId).map(c => c.figureId).slice(0, 4);
+  if (td.cast.length < 2) td.cast = pickFigures(3).map(f => f.id);
+  const wrap = sheetWrap('tdSheet', '🍾 Wahrheit oder Pflicht');
+  const body = wrap.querySelector('.sheet-body');
+  const paint = () => {
+    const c = tdCfg(); const figs = td.cast.map(getFigure).filter(Boolean);
+    body.innerHTML = `<p class="hint" style="margin-top:0;">Die Flasche dreht sich zwischen den Figuren und dir. Bei Pflicht können sie ein Foto von dir verlangen, das Gerät übernehmen oder dich etwas sagen lassen. Zeigt sie auf eine Figur, spielen die Figuren untereinander.</p>
+      <div><b>Wer spielt mit?</b> <span class="hint">(2 bis 4)</span></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">${figs.map(f => { const v = latestVersion(f) || {}; return `<div style="width:62px; text-align:center;"><div style="width:58px; height:58px; border-radius:50%; overflow:hidden; margin:0 auto; border:2px solid var(--accent); background:var(--bg-panel-raised);">${v.image ? `<img src="${v.image}" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : ''}</div><div style="font-size:12px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc((v.name || '').split(' ')[0])}</div></div>`; }).join('')}
+        <button type="button" id="tdCast" style="width:58px; height:58px; border-radius:50%; border:1px dashed var(--line); background:none; color:var(--text-dim); font-size:22px;">✎</button></div>
+      <div style="margin-top:14px;"><b>Wie weit?</b></div>
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:6px;">${Object.keys(TD_LEVEL).map(k => `<button type="button" class="${c.level === k ? 'btn-primary' : 'btn-secondary'}" data-lv="${k}" style="padding:8px 0;">${{ sanft: '🌸 sanft', frech: '😏 frech', heiss: '🔥 heiß' }[k]}</button>`).join('')}</div>
+      <label style="display:flex; gap:8px; align-items:center; margin-top:12px;"><input type="checkbox" id="tdPhoto" ${c.photo ? 'checked' : ''} style="width:auto; margin:0;"> Pflichten dürfen ein Foto von mir verlangen</label>
+      <label style="display:flex; gap:8px; align-items:center; margin-top:6px;"><input type="checkbox" id="tdDevice" ${c.device ? 'checked' : ''} style="width:auto; margin:0;"> Pflichten dürfen das Gerät übernehmen</label>
+      <p class="hint">Fotos sieht sich das eingestellte Bildmodell an, damit sie darauf reagieren kann. Gespeichert wird ein Foto nur, wenn du es danach in deine Galerie legst.</p>
+      <button type="button" id="tdGo" class="btn-primary" ${figs.length >= 2 ? '' : 'disabled'}>Los geht's</button>`;
+    const save = o => { localStorage.setItem(TD_KEY, JSON.stringify(Object.assign(tdCfg(), o))); };
+    body.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { save({ level: b.dataset.lv }); paint(); });
+    body.querySelector('#tdPhoto').onchange = e => save({ photo: e.target.checked });
+    body.querySelector('#tdDevice').onchange = e => save({ device: e.target.checked });
+    body.querySelector('#tdCast').onclick = () => {
+      const pool = pickFigures(999).sort((a, b) => latestVersion(a).name.localeCompare(latestVersion(b).name));
+      openFigurePicker({ title: 'Wer spielt mit?', hint: '2 bis 4 Figuren.', items: pool.map(figurePickItem), multi: true, max: 4, selected: td.cast,
+        random: () => pickFigures(2 + Math.floor(Math.random() * 2)).map(f => f.id), onDone: ids => { td.cast = ids; paint(); } });
+    };
+    body.querySelector('#tdGo').onclick = () => { closeSheet('tdSheet'); tdLaunch(); };
+  };
+  paint();
+  openSheet('tdSheet');
+}
+OV_DEFS.push(['tdSheet', () => { const v = document.getElementById('tdSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('tdSheet')]);
+OV_DEFS.push(['tdSpin', () => !!document.getElementById('tdSpin'), () => document.getElementById('tdSpin').remove()]);
+function tdLaunch() {
+  const figs = td.cast.map(getFigure).filter(Boolean);
+  if (figs.length < 2) return;
+  try { if (game.running) endGame('neues Spiel'); } catch (e) {}
+  try { if (history.length) writeDiaries(history.slice()); } catch (e) {}
+  try { resetSession('Wahrheit oder Pflicht'); els.transcript.innerHTML = ''; } catch (e) {}
+  switchMode('live');
+  const meFig = archiveMeFigure();
+  const me = characters.find(c => c.isUser) || (meFig ? characterFromVersion(meFig) : null);
+  characters = [me, ...figs.map(f => characterFromVersion(f))].filter(Boolean);
+  saveCharacters();
+  try { if (!history.length) els.transcript.innerHTML = ''; } catch (e) {}
+  try { renderLivePanel(); } catch (e) {}
+  if (!els.gameSelect.querySelector('option[value="truthdare"]')) { const o = document.createElement('option'); o.value = 'truthdare'; o.textContent = 'Wahrheit oder Pflicht'; els.gameSelect.appendChild(o); }
+  els.gameSelect.value = 'truthdare';
+  els.liveStartBtn.click();
+  noteRecent('truthdare'); noteSession('truthdare', 'Wahrheit oder Pflicht', figs.map(f => latestVersion(f).name.split(' ')[0]));
+  try { updateSessionTitle(); } catch (e) {}
+  els.gameSelect.value = ''; safeSet('companion_game', '');
+}
+{
+  const orig = startGame;
+  startGame = function (type) {
+    if (type !== 'truthdare') return orig(type);
+    const cast = aiCharacters().filter(c => !c.isNarrator);
+    if (cast.length < 2) { addMsg('system', 'Für Wahrheit oder Pflicht braucht es mindestens zwei Figuren.'); return; }
+    clearInterval(game.timer);
+    const cfg = tdCfg();
+    Object.assign(game, { type: 'truthdare', running: true, phase: 'play', startedAt: Date.now(), choices: [], bets: [] });
+    game.td = { cfg, round: 0, state: 'spin', target: null, asker: null, kind: null, dare: null, devUntil: 0, devReq: null, photos: 0, log: [] };
+    if (sceneStep <= INTRO_STEPS) sceneStep = INTRO_STEPS + 1;
+    addMsg('system', `🍾 Wahrheit oder Pflicht mit ${cast.map(c => c.name.split(' ')[0]).join(', ')} · ${{ sanft: 'sanft', frech: 'frech', heiss: 'heiß' }[cfg.level]}. Tippe unten auf „Flasche drehen".`);
+    logEvent('msg', { role: 'system', text: `Wahrheit oder Pflicht gestartet (${cfg.level}, Foto ${cfg.photo ? 'ja' : 'nein'}, Gerät ${cfg.device ? 'ja' : 'nein'}).` });
+    askActive('(WAHRHEIT ODER PFLICHT beginnt: Die Figuren setzen sich im Kreis, eine stellt eine leere Flasche in die Mitte, alle freuen sich kurz und frech auf das Spiel. Noch niemand dreht.)', { silent: true });
+    game.timer = setInterval(gameTick, 1000);
+    renderGameHud();
+  };
+}
+function tdCast() { return aiCharacters().filter(c => !c.isNarrator).map(c => c.name); }
+function tdSpin() {
+  const T = game.td; if (!T || T.state === 'spinning') return;
+  try { interruptPlayback(); } catch (e) {}
+  const names = tdCast();
+  const meName = (characters.find(c => c.isUser) || {}).name || 'Ich';
+  const seats = [meName].concat(names);
+  // Meistens auf dich, manchmal auf eine Figur
+  const targetIdx = Math.random() < 0.62 ? 0 : 1 + Math.floor(Math.random() * names.length);
+  const target = seats[targetIdx];
+  const askers = names.filter(n => n !== target);
+  const asker = askers[Math.floor(Math.random() * askers.length)];
+  T.state = 'spinning'; T.round++;
+  document.getElementById('tdSpin')?.remove();
+  const ov = document.createElement('div'); ov.id = 'tdSpin';
+  ov.style.cssText = 'position:fixed; inset:0; z-index:2050; background:rgba(6,3,8,0.88); display:flex; align-items:center; justify-content:center;';
+  const R = Math.min(innerWidth, innerHeight) * 0.36;
+  const ava = name => { const c = characters.find(x => x.name === name); const v = c && c.figureId && getFigure(c.figureId) ? latestVersion(getFigure(c.figureId)) : c; return v && v.image ? `<img src="${v.image}" style="width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : `<span style="font-size:22px;">${esc(String(name).charAt(0))}</span>`; };
+  ov.innerHTML = `<div style="position:relative; width:${2 * R + 80}px; height:${2 * R + 80}px;">
+    ${seats.map((n, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / seats.length; return `<div class="td-seat" data-i="${i}" style="position:absolute; left:${R + 40 + Math.cos(a) * R - 34}px; top:${R + 40 + Math.sin(a) * R - 34}px; width:68px; text-align:center; transition:transform .3s;"><div style="width:62px; height:62px; margin:0 auto; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,0.3); background:#2a1a24; display:flex; align-items:center; justify-content:center; color:#fff;">${ava(n)}</div><div style="font-size:12px; color:#fff; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(i === 0 ? 'Du' : n.split(' ')[0])}</div></div>`; }).join('')}
+    <div id="tdBottle" style="position:absolute; left:50%; top:50%; width:44px; height:${Math.round(R * 0.9)}px; margin-left:-22px; margin-top:-${Math.round(R * 0.45)}px; transform:rotate(0deg); transition:transform 2.6s cubic-bezier(.12,.6,.2,1); filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));">
+      <svg viewBox="0 0 44 160" width="44" height="100%" preserveAspectRatio="none"><defs><linearGradient id="tdg" x1="0" x2="1"><stop offset="0" stop-color="#1f5a3a"/><stop offset=".45" stop-color="#4fbf86"/><stop offset="1" stop-color="#16402a"/></linearGradient></defs>
+        <rect x="17" y="0" width="10" height="10" rx="2" fill="#d9ad62"/><path d="M16 10h12v28c0 8 12 14 12 30v84a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V68c0-16 12-22 12-30z" fill="url(#tdg)" opacity=".92"/><rect x="9" y="90" width="26" height="30" rx="3" fill="#f4e7d0" opacity=".85"/></svg></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const turns = 4 + Math.floor(Math.random() * 3);
+  const angle = turns * 360 + targetIdx * 360 / seats.length;
+  requestAnimationFrame(() => requestAnimationFrame(() => { ov.querySelector('#tdBottle').style.transform = `rotate(${angle}deg)`; }));
+  try { g3Tone(420, 0.3, { type: 'triangle', to: 220, vol: 0.05 }); } catch (e) {}
+  setTimeout(() => {
+    const seat = ov.querySelector(`.td-seat[data-i="${targetIdx}"]`);
+    if (seat) { seat.style.transform = 'scale(1.18)'; seat.querySelector('div').style.borderColor = '#ffcf4d'; seat.querySelector('div').style.boxShadow = '0 0 20px #ffcf4d'; }
+    try { g3Sfx.good(); } catch (e) {}
+  }, 2700);
+  setTimeout(() => {
+    ov.remove();
+    T.target = target; T.asker = asker; T.kind = null; T.dare = null;
+    if (targetIdx === 0) {
+      T.state = 'choose';
+      addMsg('system', `🍾 Die Flasche zeigt auf dich - ${asker.split(' ')[0]} fragt: Wahrheit oder Pflicht?`);
+      askActive(`(WAHRHEIT ODER PFLICHT, Runde ${T.round}: Die Flasche zeigt auf Til. ${asker} fragt ihn mit einem Satz: „Wahrheit oder Pflicht?" - mehr nicht, dann wartet sie auf seine Wahl.)`, { silent: true });
+    } else {
+      T.state = 'others';
+      addMsg('system', `🍾 Die Flasche zeigt auf ${target.split(' ')[0]} - ${asker.split(' ')[0]} ist dran.`);
+      askActive(`(WAHRHEIT ODER PFLICHT, Runde ${T.round}: Die Flasche zeigt auf ${target}. ${asker} fragt: „Wahrheit oder Pflicht?" ${target} wählt selbst. ${asker} stellt die Frage oder Aufgabe (${TD_LEVEL[T.cfg.level]}), ${target} beantwortet bzw. erfüllt sie gleich in dieser Antwort; die anderen kommentieren, lachen, necken. Gern darf die Aufgabe Til mit einbeziehen.)`, { silent: true });
+    }
+    renderGameHud();
+  }, 3600);
+  renderGameHud();
+}
+function tdChoose(kind) {
+  const T = game.td; if (!T || T.state !== 'choose') return;
+  T.kind = kind;
+  const a = T.asker, lv = TD_LEVEL[T.cfg.level];
+  if (kind === 'truth') {
+    T.state = 'answer';
+    els.textInput.value = 'Wahrheit!'; sendTypedMessageWithHint(`(Til wählt WAHRHEIT. ${a} stellt ihm jetzt EINE Wahrheitsfrage - ${lv}. Nur die Frage, die anderen warten gespannt; noch keine Antwort vorwegnehmen.)`);
+  } else {
+    const opts = [['say', 3]].concat(T.cfg.photo ? [['photo', 4]] : []).concat(T.cfg.device ? [['device', 3]] : []).concat([['act', 2]]);
+    const tot = opts.reduce((s, o) => s + o[1], 0); let r = Math.random() * tot; let dare = 'say';
+    for (const [k, w] of opts) { if ((r -= w) <= 0) { dare = k; break; } }
+    T.dare = dare;
+    const PH = { sanft: 'etwas Harmloses, z. B. dein Lächeln, deine Hände, was du gerade anhast', frech: 'etwas Freches, z. B. dein Oberkörper, ein Stück Haut, wo du gerade liegst', heiss: 'etwas Heißes und Explizites von dir - ohne Scheu' };
+    const txt = {
+      photo: `${a} verlangt von Til ein FOTO: Sie sagt genau, was darauf zu sehen sein soll (${PH[T.cfg.level]}), und dass sie es sehen will. Dann wartet sie gespannt.`,
+      device: `${a} übernimmt für EINE MINUTE das Gerät: Sie sagt, was sie mit ihm macht, und Til muss stillhalten und darf dabei nicht kommen. Kündige es an.`,
+      say: `${a} gibt Til eine Pflicht, die er laut aussprechen oder vormachen muss - etwas gestehen, betteln, ihr etwas ins Ohr flüstern, eine Fantasie erzählen (${lv}).`,
+      act: `${a} gibt Til eine kleine Aufgabe, die er jetzt tun und ansagen muss - sich hinlegen, die Augen schließen, etwas ausziehen, sich berühren (${lv}).`,
+    }[dare];
+    T.state = dare === 'photo' ? 'photo' : dare === 'device' ? 'device' : 'answer';
+    els.textInput.value = 'Pflicht!'; sendTypedMessageWithHint(`(Til wählt PFLICHT. ${txt})`);
+    if (dare === 'device') setTimeout(() => tdDevice(60, 1), 4500);
+  }
+  renderGameHud();
+}
+// Eine eigene Zeile senden und der KI dazu sagen, was sie tun soll
+function sendTypedMessageWithHint(hint) {
+  game.td.hint = hint;
+  sendTypedMessage();
+}
+function tdDevice(sec, strength) {
+  const T = game.td; if (!T) return;
+  const L = { sanft: 0, frech: 1, heiss: 2 }[T.cfg.level] + (strength > 1 ? 1 : 0);
+  const reqs = [{ low: 250, high: 850, bpm: 55, texture: 'smooth' }, { low: 120, high: 950, bpm: 90, texture: 'smooth' }, { low: 60, high: 985, bpm: 130, texture: 'accel' }, { low: 40, high: 990, bpm: 165, texture: 'pulse' }];
+  T.devReq = reqs[Math.min(3, L)]; T.devUntil = Date.now() + sec * 1000;
+  try { device1.setMotion(Object.assign({}, T.devReq)); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `Wahrheit oder Pflicht: Gerät ${sec} s (${T.devReq.low}-${T.devReq.high}@${T.devReq.bpm}).` });
+  renderGameHud();
+}
+async function tdPhoto(file) {
+  const T = game.td; if (!T || !file) return;
+  T.state = 'looking'; renderGameHud();
+  let img = '';
+  try { img = await readImageFile(file, 1024); } catch (e) { addMsg('system', 'Foto ließ sich nicht lesen.'); T.state = 'photo'; renderGameHud(); return; }
+  T.photos++; T.lastPhoto = img;
+  addMsg('system', '📷 Foto geschickt.');
+  try { const box = els.transcript.lastElementChild; if (box) { const im = document.createElement('img'); im.src = img; im.style.cssText = 'display:block; max-width:140px; border-radius:10px; margin-top:6px;'; box.appendChild(im); } } catch (e) {}
+  let desc = '';
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    desc = String(await callProvider(provider, 'Du siehst ein Foto, das ein erwachsener Mann (Til) in einem einvernehmlichen Spiel unter Erwachsenen von sich selbst gemacht und geschickt hat. Beschreibe in zwei, drei sachlichen Sätzen genau, was zu sehen ist: Körperteile, Pose, Kleidung oder Nacktheit, Licht, Umgebung. Keine Bewertung, keine Einleitung.', [{ role: 'user', content: 'Hier das Foto.', images: [img] }], 0.2, taskBudget('vision', 300), { task: 'vision' }) || '').trim();
+  } catch (e) { desc = ''; }
+  logEvent('msg', { role: 'system', text: `Pflicht-Foto angesehen: ${desc ? desc.slice(0, 200) : '(Bildmodell konnte es nicht beschreiben)'}` });
+  T.state = 'answer';
+  askActive(`(Til hat ${T.asker} das verlangte Foto geschickt. ${desc ? 'Darauf zu sehen: ' + desc : 'Beschreiben kann sie es nicht genau - sie reagiert auf das, was sie verlangt hatte.'} ${T.asker} schaut es sich an und reagiert persönlich und lebendig: ob er die Pflicht erfüllt hat, was ihr daran gefällt, was sie neckt. Die anderen dürfen auch einen Blick werfen und kommentieren.)`, { silent: true });
+  renderGameHud();
+}
+function tdRefuse() {
+  const T = game.td; if (!T) return;
+  T.state = 'answer';
+  askActive(`(Til VERWEIGERT die Pflicht. ${T.asker} verhängt lachend eine Strafe: ${T.cfg.device ? 'Sie übernimmt 30 Sekunden lang das Gerät, härter als zuvor.' : 'eine kleine, freche Strafaufgabe.'} Die anderen johlen.)`, { silent: true });
+  if (T.cfg.device) setTimeout(() => tdDevice(30, 2), 3500);
+  renderGameHud();
+}
+// Prompt: Spielrahmen, und die eigene Zeile mit Hinweis
+{
+  const orig = gameBlock;
+  gameBlock = function () {
+    if (!tdRunning()) return orig();
+    const T = game.td; const names = tdCast();
+    let t = `\n\nSPIEL: WAHRHEIT ODER PFLICHT mit ${names.join(', ')} und Til. Stimmung: ${TD_LEVEL[T.cfg.level]}. Runde ${T.round}. Die Flasche entscheidet, wer dran ist; eine Figur stellt Fragen und Aufgaben, die anderen fiebern mit, kommentieren, lachen und necken sich auch untereinander. Fragen und Aufgaben kurz und konkret, eine pro Runde. Til darf eine Pflicht verweigern - dann gibt es eine Strafe.`;
+    if (T.state === 'answer' && T.target && T.kind) t += ` Gerade: ${T.asker} hat Til eine ${T.kind === 'truth' ? 'Wahrheitsfrage' : 'Pflicht'} gestellt - reagiert auf seine Antwort bzw. darauf, wie er sie erfüllt; danach kann die Flasche wieder gedreht werden.`;
+    if (T.state === 'photo') t += ` ${T.asker} wartet auf das verlangte Foto.`;
+    if (T.devUntil > Date.now()) t += ` ${T.asker} hat gerade das Gerät (noch ${Math.ceil((T.devUntil - Date.now()) / 1000)} s) und beschreibt, was sie tut.`;
+    if (T.hint) { t += `\n\nJETZT: ${T.hint}`; T.hint = ''; }
+    return t;
+  };
+  const origReq = gameRequest;
+  gameRequest = function (req) {
+    req = origReq(req);
+    if (tdRunning() && game.td.devUntil > Date.now() && req && req.texture !== 'stop') return Object.assign({}, game.td.devReq);
+    return req;
+  };
+  const origTick = gameTick;
+  gameTick = function () {
+    if (!tdRunning()) return origTick();
+    const T = game.td;
+    if (T.devUntil && Date.now() > T.devUntil) { T.devUntil = 0; try { device1.setMotion({ texture: 'stop' }); } catch (e) {} if (T.state === 'device') T.state = 'answer'; addMsg('system', '✓ Pflicht geschafft.'); }
+    renderGameHud();
+  };
+  const origHud = renderGameHud;
+  renderGameHud = function () {
+    if (!tdRunning()) return origHud();
+    const T = game.td;
+    els.gameHud.style.display = '';
+    const key = 'td|' + T.state;
+    if (key !== gameHudKey) {
+      gameHudKey = key;
+      const B = els.gameButtons; B.innerHTML = '';
+      if (T.state === 'choose') { B.appendChild(gameButton('💬 Wahrheit', () => tdChoose('truth'), true)); B.appendChild(gameButton('🔥 Pflicht', () => tdChoose('dare'), true)); }
+      else if (T.state === 'photo') {
+        const lab = document.createElement('label'); lab.className = 'btn-primary'; lab.style.cssText = 'width:auto; flex:0 1 auto; padding:7px 12px; font-size:13.5px; display:inline-flex; align-items:center; cursor:pointer;';
+        lab.innerHTML = '📷 Foto aufnehmen<input type="file" accept="image/*" style="display:none;">';
+        lab.querySelector('input').onchange = e => tdPhoto(e.target.files && e.target.files[0]);
+        B.appendChild(lab);
+        B.appendChild(gameButton('Verweigern', () => tdRefuse()));
+      } else if (T.state !== 'spinning' && T.state !== 'looking') {
+        B.appendChild(gameButton('🍾 Flasche drehen', () => tdSpin(), true));
+        if (T.state === 'answer' && T.kind === 'dare' && T.dare !== 'photo') B.appendChild(gameButton('Verweigern', () => tdRefuse()));
+        if (T.lastPhoto && T.photos && !T.photoSaved) B.appendChild(gameButton('🖼 Foto in meine Galerie', async () => { const me = archiveMeFigure(); if (me) { await galleryAdd(T.lastPhoto, 'image', [me.id], 'Pflicht-Foto'); T.photoSaved = true; gameHudKey = ''; renderGameHud(); addMsg('system', '✓ In deiner Galerie.'); } }));
+      }
+      B.appendChild(gameButton('Beenden', () => endGame('beendet')));
+    }
+    const dev = T.devUntil > Date.now() ? ` · 🎛 ${Math.ceil((T.devUntil - Date.now()) / 1000)} s` : '';
+    els.gameStatus.textContent = `🍾 Runde ${T.round}${T.state === 'choose' ? ' · Wahrheit oder Pflicht?' : T.state === 'photo' ? ` · ${String(T.asker || '').split(' ')[0]} will ein Foto` : T.state === 'looking' ? ' · sie schaut sich das Foto an …' : T.state === 'spinning' ? ' · die Flasche dreht sich …' : T.target ? ` · ${String(T.asker || '').split(' ')[0]} ist dran` : ''}${dev}`;
+  };
+  // Neues Foto-Feld bei jedem Zustand neu - nach dem Foto zurücksetzen
+  const origEnd = endGame;
+  endGame = function () { if (tdRunning()) { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} } return origEnd.apply(this, arguments); };
+}
+GAME_INFO.truthdare = { icon: '🍾', title: 'Wahrheit oder Pflicht', go: () => tdOpenSetup() };
+{
+  const g = PLAY_GROUPS.find(x => x[0] === 'Mit Gerät'); if (g) g[1].splice(1, 0, 'truthdare');
+  const orig = gameSub;
+  gameSub = function (key) { if (key === 'truthdare') return 'Flasche drehen, Fotos, Pflichten'; return orig(key); };
+}
+
+// =====================================================================
+// ======================= 🃏 KARTEN DES ABENDS: SIE STELLEN SICH VOR =======================
+// =====================================================================
+// Jede Karte wird von ihren Figuren selbst vorgestellt - in ihrer Stimme,
+// direkt an Til: wer sie sind, was sie vorhaben, ein verlockender Ausblick.
+// Beim Wischen zur nächsten Karte beginnt deren Vorstellung von selbst.
+const pv = { token: 0, added: [], obs: null, cur: -1, auto: localStorage.getItem('companion_ptAuto') !== 'false' };
+{
+  // Neue Karten bringen ihre Vorstellung gleich mit
+  const sysMark = 'Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}';
+  const origMake = makePitches;
+  makePitches = async function () {
+    const origCall = callProvider;
+    callProvider = function (prov, sys, msgs, temp, budget, opts) {
+      if (typeof sys === 'string' && sys.includes(sysMark)) {
+        sys = sys.replace(sysMark, `Dazu je Karte "voice": Die Figuren der Karte stellen sie Til SELBST vor, gesprochen und direkt an ihn: wer sie sind (ein Halbsatz, mit Namen), was sie heute Abend mit ihm vorhaben, ein verlockender Ausblick, der Lust macht, ohne alles zu verraten. 1 bis 3 Zeilen, jede von einer Figur dieser Karte (bei mehreren Figuren gern abwechselnd, auch mal frech übereinander), zusammen höchstens 60 Wörter. Audio-Tags wie [lacht leise], [flüstert], [seufzt] sind erlaubt.
+Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "...", "voice": [{"name": "...", "text": "..."}]}]}`);
+        budget = Math.max(budget || 0, taskBudget('draft', 2400));
+      }
+      return origCall.call(this, prov, sys, msgs, temp, budget, opts);
+    };
+    let P;
+    try { P = await origMake(); } finally { callProvider = origCall; }
+    return P;
+  };
+}
+// Die Rohantwort steckt in der Karte nicht mehr drin - deshalb die Vorstellung
+// aus der Antwort fischen, bevor makePitches sie verwirft
+{
+  const origParse = parseJsonLoose;
+  parseJsonLoose = function (raw) {
+    const j = origParse(raw);
+    try { if (j && Array.isArray(j.cards) && j.cards.some(c => c && c.voice)) pv.lastVoices = j.cards.map(c => c && Array.isArray(c.voice) ? c.voice : null); } catch (e) {}
+    return j;
+  };
+  const origMake = makePitches;
+  makePitches = async function () {
+    pv.lastVoices = null;
+    const P = await origMake();
+    if (P && pv.lastVoices) {
+      P.cards.forEach((c, i) => { const v = pv.lastVoices[i]; if (v) c.voice = pvClean(v, c); });
+      safeSet('companion_pitches', JSON.stringify(P));
+    }
+    return P;
+  };
+}
+function pvClean(lines, c) {
+  const names = c.cast.length ? c.cast : [];
+  return (lines || []).map(l => ({ name: (matchSpeakerName(String(l.name || ''), names) || names[0] || ''), text: String(l.text || '').trim() })).filter(l => l.name && l.text).slice(0, 3);
+}
+// Ältere Karten (oder fehlende Vorstellung): einzeln nachholen
+async function pvVoice(P, i) {
+  const c = P.cards[i];
+  if (c.voice && c.voice.length) return c.voice;
+  if (c._voiceBusy) return c._voiceBusy;
+  c._voiceBusy = (async () => {
+    const figs = c.cast.map(n => figureByName(n)).filter(Boolean).map(f => latestVersion(f));
+    if (!figs.length) return [];
+    const sys = `Karte für heute Abend: „${c.title}" - ${c.teaser}
+Szene: ${c.scene}
+Figuren: ${figs.map(v => v.name + ': ' + figureGist(v)).join('\n')}
+Die Figuren stellen diese Karte Til SELBST vor, gesprochen und direkt an ihn: wer sie sind (ein Halbsatz, mit Namen), was sie heute Abend mit ihm vorhaben, ein verlockender Ausblick, der Lust macht, ohne alles zu verraten. Erwachsene, erotisch, in ihrer eigenen Art zu sprechen. 1 bis 3 Zeilen, jede von einer dieser Figuren, zusammen höchstens 60 Wörter. Audio-Tags wie [lacht leise], [flüstert], [seufzt] sind erlaubt.
+Antworte NUR als JSON: {"voice": [{"name": "...", "text": "..."}]}`;
+    try {
+      const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+      const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.95, taskBudget('draft', 600), { task: 'draft' }));
+      c.voice = pvClean(j && j.voice, c);
+    } catch (e) { c.voice = []; }
+    const cur = pitchesToday();
+    if (cur && cur.set === P.set) { cur.cards[i].voice = c.voice; safeSet('companion_pitches', JSON.stringify(cur)); }
+    delete c._voiceBusy;
+    return c.voice;
+  })();
+  return c._voiceBusy;
+}
+// Stimmen brauchen die Figuren in der Besetzung - kurz dazunehmen, beim Schließen wieder raus
+function pvEnsure(names) {
+  names.forEach(n => {
+    if (characters.some(c => c.name === n)) return;
+    const f = figureByName(n); if (!f) return;
+    const ch = characterFromVersion(f); if (!ch) return;
+    characters.push(ch); pv.added.push(ch.name);
+  });
+}
+function pvCleanup() {
+  pvStop();
+  if (pv.added.length && !(typeof inSession === 'function' && inSession())) characters = characters.filter(c => !pv.added.includes(c.name));
+  pv.added = [];
+  if (pv.obs) { pv.obs.disconnect(); pv.obs = null; }
+  pv.cur = -1;
+}
+function pvStop() {
+  pv.token++;
+  try { interruptPlayback(); } catch (e) {}
+  document.querySelectorAll('.pv-cap').forEach(x => { x.style.opacity = '0'; });
+  document.querySelectorAll('.pt-card.pv-live').forEach(x => x.classList.remove('pv-live'));
+}
+async function pvSpeak(P, i) {
+  pvStop();
+  const my = pv.token;
+  const card = els.ptList.children[i]; if (!card) return;
+  const cap = card.querySelector('.pv-cap'); const btn = card.querySelector('.pv-btn');
+  if (btn) btn.textContent = '⏳ …';
+  const lines = await pvVoice(P, i);
+  if (my !== pv.token) return;
+  if (btn) btn.textContent = '⏹ Stopp';
+  if (!lines.length) { if (btn) btn.textContent = '🔊 Vorstellen'; return; }
+  pvEnsure(lines.map(l => l.name));
+  card.classList.add('pv-live');
+  for (const l of lines) {
+    if (my !== pv.token) return;
+    const v = latestVersion(figureByName(l.name) || { versions: [] }) || {};
+    cap.innerHTML = `<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:0 0 44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid var(--gold, #d9ad62); background:#2a1a24;">${v.image ? `<img src="${v.image}" style="position:static; width:100%; height:100%; object-fit:cover; object-position:50% 18%;">` : ''}</div>
+      <div><div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold, #d9ad62);">${esc(l.name.split(' ')[0])}</div><div style="font-family:var(--font-display); font-style:italic; font-size:18px; line-height:1.4; margin-top:2px;">${esc(stripAudioTags(l.text))}</div></div></div>`;
+    cap.style.opacity = '1';
+    try { await prepareSpeech(l.text, l.name, false, { level: 0 }).play(); } catch (e) {}
+    if (my !== pv.token) return;
+    await new Promise(r => setTimeout(r, 350));
+  }
+  if (my !== pv.token) return;
+  card.classList.remove('pv-live');
+  if (btn) btn.textContent = '🔊 Nochmal';
+  const play = card.querySelector('button[data-i]'); if (play) play.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 700, iterations: 2 });
+}
+{
+  const orig = renderPitches;
+  renderPitches = function (P) {
+    orig(P);
+    if (pv.obs) pv.obs.disconnect();
+    [...els.ptList.children].forEach((card, i) => {
+      if (!card.classList.contains('pt-card')) return;
+      const cap = document.createElement('div'); cap.className = 'pv-cap';
+      cap.style.cssText = 'position:absolute; z-index:5; left:16px; right:16px; top:calc(env(safe-area-inset-top, 0px) + 78px); padding:12px 14px; border-radius:16px; background:rgba(10,6,9,0.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.12); color:#fff; opacity:0; transition:opacity .35s; pointer-events:none;';
+      card.appendChild(cap);
+      const row = card.querySelector('.btn-row');
+      if (row) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary pv-btn'; b.textContent = '🔊 Vorstellen';
+        b.style.cssText = 'width:auto; flex:0 0 auto; padding:12px 14px;';
+        b.onclick = () => { if (card.classList.contains('pv-live') || /Stopp/.test(b.textContent)) { pvStop(); b.textContent = '🔊 Vorstellen'; } else pvSpeak(P, i); };
+        row.insertBefore(b, row.children[1] || null);
+      }
+      // Vorstellung schon vorbereiten
+      pvVoice(P, i).catch(() => {});
+    });
+    // Beim Wischen: die sichtbare Karte stellt sich vor
+    pv.obs = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting || en.intersectionRatio < 0.7) return;
+        const i = [...els.ptList.children].indexOf(en.target);
+        if (i === pv.cur) return;
+        pv.cur = i;
+        if (pv.auto) pvSpeak(P, i); else pvStop();
+      });
+    }, { root: els.ptList, threshold: [0.7] });
+    [...els.ptList.children].forEach(c => { if (c.classList.contains('pt-card')) pv.obs.observe(c); });
+  };
+}
+// Schalter in der Kopfzeile: automatisch vorstellen an/aus
+{
+  const head = document.getElementById('ptRefresh').parentNode;
+  const t = document.createElement('button'); t.type = 'button'; t.className = 'btn-secondary'; t.id = 'ptAuto';
+  t.style.cssText = 'width:40px; height:40px; padding:0; flex:0 0 40px; font-size:16px;';
+  const paint = () => { t.textContent = pv.auto ? '🔊' : '🔈'; t.title = pv.auto ? 'Karten stellen sich automatisch vor' : 'Nur auf Tipp vorstellen'; t.setAttribute('aria-label', t.title); };
+  t.onclick = () => { pv.auto = !pv.auto; safeSet('companion_ptAuto', pv.auto ? 'true' : 'false'); paint(); if (!pv.auto) pvStop(); };
+  paint();
+  head.insertBefore(t, document.getElementById('ptRefresh'));
+  const h1 = head.querySelector('h1'); if (h1) { h1.style.fontSize = '20px'; h1.style.whiteSpace = 'nowrap'; h1.style.overflow = 'hidden'; h1.style.textOverflow = 'ellipsis'; h1.style.minWidth = '0'; }
+  const back = document.getElementById('ptBack'); const ob = back.onclick;
+  back.onclick = e => { pvCleanup(); return ob && ob.call(back, e); };
+  const rf = document.getElementById('ptRefresh'); const orf = rf.onclick;
+  rf.onclick = e => { pvStop(); pv.cur = -1; return orf && orf.call(rf, e); };
+  const op = playPitch;
+  playPitch = function (c) { pvCleanup(); return op(c); };
+}
+// Sanftes Heranzoomen des Bildes, solange sie spricht
+{
+  const st = document.createElement('style');
+  st.textContent = '.pt-card > img { transition: transform 9s ease-out; } .pt-card.pv-live > img { transform: scale(1.08); }';
+  document.head.appendChild(st);
+}
+
+// =====================================================================
+// ======================= 💘 DURCHSWIPEN: SIE STELLEN SICH VOR =======================
+// =====================================================================
+// Beim Durchswipen spielt jede Figur ihre schon vorhandene, vertonte
+// Vorstellung ab (die aus der Figurenkarte) - mit Untertitel. Fehlt eine,
+// gibt es auf der Karte einen Knopf zum Erzeugen; von selbst wird nichts
+// Neues bezahlt.
+const swv = { on: localStorage.getItem('companion_swVoice') !== 'false', audio: null, token: 0 };
+function swvStop() {
+  swv.token++;
+  if (swv.audio) { try { swv.audio.pause(); } catch (e) {} swv.audio = null; }
+  try { speechSynthesis.cancel(); } catch (e) {}
+  document.querySelectorAll('#swStage .swv-cap').forEach(c => { c.style.opacity = '0'; });
+  document.querySelectorAll('#swStage .sw-card.swv-live').forEach(c => c.classList.remove('swv-live'));
+}
+async function swvPlay(f, card, manual) {
+  swvStop();
+  const my = swv.token;
+  const v = latestVersion(f); if (!v) return;
+  const stored = loadIntroMap()[f.id];
+  const cap = card.querySelector('.swv-cap'), btn = card.querySelector('.swv-btn');
+  const show = text => { if (cap && text) { cap.innerHTML = `<div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold, #d9ad62);">${esc(v.name.split(' ')[0])}</div><div style="font-family:var(--font-display); font-style:italic; font-size:17px; line-height:1.4; margin-top:2px;">${esc(stripAudioTags(text))}</div>`; cap.style.opacity = '1'; } };
+  const done = () => { if (my !== swv.token) return; card.classList.remove('swv-live'); if (btn) btn.textContent = '🔊'; setTimeout(() => { if (my === swv.token && cap) cap.style.opacity = '0'; }, 1800); };
+  if (!stored) {
+    if (!manual) return;
+    // Auf Wunsch neu erzeugen (kostet einmalig), danach abspielen
+    if (btn) btn.textContent = '…';
+    try { await introduceFigure(v, f.id, null, false); } catch (e) {}
+    const s2 = loadIntroMap()[f.id];
+    if (s2) show(s2.text);
+    if (btn) btn.textContent = '🔊';
+    return;
+  }
+  card.classList.add('swv-live');
+  if (btn) btn.textContent = '⏹';
+  show(stored.text);
+  const blob = await dbGet(STORE_AUDIO, INTRO_PREFIX + f.id).catch(() => null);
+  if (my !== swv.token) return;
+  if (blob) {
+    const a = new Audio(URL.createObjectURL(blob));
+    swv.audio = a;
+    try { routeAudio(a, 'voice', v.name, stored.text); } catch (e) {}
+    a.onended = () => { URL.revokeObjectURL(a.src); done(); };
+    a.onerror = done;
+    a.play().catch(done);
+  } else if (stored.text) {
+    await speakWithBrowser(stored.text, v);
+    done();
+  } else done();
+}
+{
+  const orig = renderSwipe;
+  renderSwipe = async function () {
+    swvStop();
+    await orig.apply(this, arguments);
+    const card = els.swStage.querySelector('.sw-card'); if (!card) return;
+    const f = sw.list[sw.i]; if (!f) return;
+    const has = !!loadIntroMap()[f.id];
+    const cap = document.createElement('div'); cap.className = 'swv-cap';
+    cap.style.cssText = 'position:absolute; z-index:3; left:12px; right:12px; top:14px; padding:10px 12px; border-radius:14px; background:rgba(10,6,9,0.7); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); color:#fff; opacity:0; transition:opacity .35s; pointer-events:none;';
+    card.appendChild(cap);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'swv-btn';
+    b.textContent = has ? '🔊' : '🎙';
+    b.title = has ? 'Vorstellung abspielen' : 'Vorstellung erzeugen (einmalig)';
+    b.setAttribute('aria-label', b.title);
+    b.style.cssText = 'position:absolute; z-index:4; right:14px; top:70px; width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,0.35); background:rgba(0,0,0,0.45); color:#fff; font-size:18px;';
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+    b.addEventListener('pointerup', e => e.stopPropagation());
+    b.onclick = e => { e.stopPropagation(); if (card.classList.contains('swv-live')) { swvStop(); b.textContent = '🔊'; } else swvPlay(f, card, true); };
+    card.appendChild(b);
+    if (swv.on && has) setTimeout(() => { if (sw.list[sw.i] === f && els.swipeView.style.display !== 'none') swvPlay(f, card, false); }, 450);
+  };
+  const oAct = swipeAct;
+  swipeAct = function (kind) { swvStop(); return oAct(kind); };
+  const back = document.getElementById('swBack'); const ob = back.onclick;
+  back.onclick = e => { swvStop(); return ob && ob.call(back, e); };
+  // Schalter oben: automatisch vorstellen an/aus
+  const head = document.getElementById('swCount').parentNode;
+  const t = document.createElement('button'); t.type = 'button'; t.id = 'swVoiceToggle'; t.className = 'btn-secondary';
+  t.style.cssText = 'width:40px; height:40px; padding:0; flex:0 0 40px; font-size:16px;';
+  const paint = () => { t.textContent = swv.on ? '🔊' : '🔈'; t.title = swv.on ? 'Figuren stellen sich automatisch vor' : 'Vorstellung nur auf Tipp'; t.setAttribute('aria-label', t.title); };
+  t.onclick = () => { swv.on = !swv.on; safeSet('companion_swVoice', swv.on ? 'true' : 'false'); paint(); if (!swv.on) swvStop(); else { const c = els.swStage.querySelector('.sw-card'); const f = sw.list[sw.i]; if (c && f) swvPlay(f, c, false); } };
+  paint();
+  head.insertBefore(t, document.getElementById('swCount'));
+  const st = document.createElement('style');
+  st.textContent = '.sw-card > img { transition: transform 8s ease-out; } .sw-card.swv-live > img { transform: scale(1.07); }';
+  document.head.appendChild(st);
+}
+
+// =====================================================================
+// ======================= 🌡 NUTZUNGSINDEX (SUCHT-ANZEIGER) =======================
+// =====================================================================
+// Ein Index von 0 bis 100, der zeigt, ob die Nutzung in eine ungesunde
+// Richtung kippt. Angelehnt an die fachlichen Kriterien der WHO für
+// „zwanghaftes Sexualverhalten" (ICD-11, 6C72: Kontrollverlust, wird zum
+// Lebensmittelpunkt, erfolglose Versuche zu reduzieren, weitermachen trotz
+// Folgen oder wenig Befriedigung, Leidensdruck) und an das Sechs-Komponenten-
+// Modell der Verhaltenssucht (Griffiths), auf dem die Skalen zu problematischem
+// Pornokonsum aufbauen (Salienz, Stimmungsregulation, Konflikt, Toleranz,
+// Entzug, Rückfall). Zwei Quellen: was die App selbst misst (Verhalten) und
+// ein kurzer Selbsttest. Keine Diagnose - ein Spiegel.
+const RISK = { log: null };
+function riskLog() {
+  if (!RISK.log) { try { RISK.log = JSON.parse(localStorage.getItem('companion_riskLog') || '{}'); } catch (e) { RISK.log = {}; } }
+  const L = RISK.log; ['hours', 'long', 'blocked', 'came'].forEach(k => { L[k] = L[k] || {}; }); L.loosen = L.loosen || [];
+  return L;
+}
+function riskSave() {
+  const L = riskLog(); const keep = dayKey(new Date(Date.now() - 45 * 86400000));
+  ['hours', 'long', 'blocked', 'came'].forEach(k => Object.keys(L[k]).forEach(d => { if (d < keep) delete L[k][d]; }));
+  L.loosen = L.loosen.filter(t => t > Date.now() - 45 * 86400000);
+  safeSet('companion_riskLog', JSON.stringify(L));
+}
+// ---------- Mitschreiben ----------
+{
+  const orig = wellTick;
+  wellTick = function () {
+    const r = orig.apply(this, arguments);
+    try {
+      const visible = document.visibilityState === 'visible' && !document.documentElement.classList.contains('locked');
+      const lim = document.getElementById('limitScreen');
+      if (visible && !(lim && lim.style.display === 'flex')) {
+        const L = riskLog(), k = dayKey(), h = new Date().getHours();
+        L.hours[k] = L.hours[k] || {}; L.hours[k][h] = (L.hours[k][h] || 0) + 15;
+        const run = Math.round((Date.now() - well.sessionStart) / 60000);
+        if (run > (L.long[k] || 0)) L.long[k] = run;
+        riskSave();
+      }
+    } catch (e) {}
+    return r;
+  };
+  // Öffnen trotz Sperre = Versuch, die eigene Grenze zu umgehen
+  const oShow = showLimitScreen;
+  showLimitScreen = function (r) {
+    try { if (document.visibilityState === 'visible' && !/Pause/.test(r.title || '')) { const L = riskLog(), k = dayKey(); const last = L._lastBlock || 0; if (Date.now() - last > 30 * 60000) { L.blocked[k] = (L.blocked[k] || 0) + 1; L._lastBlock = Date.now(); riskSave(); } } } catch (e) {}
+    return oShow.apply(this, arguments);
+  };
+  // Grenzen lockern
+  const oSet = setWell;
+  setWell = function (key, value) {
+    try {
+      const cur = wellCfg(); const v = (key === 'limit' || key === 'break') ? +value : String(value);
+      if (key !== 'break' && String(v) !== String(cur[key]) && !stricter(key, cur[key], v)) { riskLog().loosen.push(Date.now()); riskSave(); }
+    } catch (e) {}
+    return oSet.apply(this, arguments);
+  };
+  const oCame = onCame;
+  onCame = function () { try { const L = riskLog(), k = dayKey(); L.came[k] = (L.came[k] || 0) + 1; riskSave(); } catch (e) {} return oCame.apply(this, arguments); };
+}
+// ---------- Selbsttest ----------
+// Eigene Formulierungen entlang der Kriterien (letzte 4 Wochen), 0 = nie … 4 = sehr oft
+const RISK_ITEMS = [
+  ['salience', 'Ich denke an die App oder an Sex mit ihr, auch wenn ich eigentlich mit anderem beschäftigt bin.'],
+  ['mood', 'Ich öffne sie, um Stress, Langeweile, Einsamkeit oder schlechte Laune wegzumachen.'],
+  ['tolerance', 'Ich brauche länger oder Heftigeres als früher, damit es mich noch genauso packt.'],
+  ['control', 'Ich bleibe länger oder öfter dran, als ich mir vorgenommen hatte.'],
+  ['relapse', 'Ich habe mir vorgenommen, weniger zu machen - und es hat nicht geklappt.'],
+  ['conflict', 'Schlaf, Arbeit, Freunde, Partnerschaft oder Hobbys kommen deswegen zu kurz.'],
+  ['withdrawal', 'Wenn ich nicht kann (Sperre, keine Zeit), werde ich unruhig, gereizt oder schlecht gelaunt.'],
+  ['distress', 'Hinterher fühle ich mich leer, unzufrieden oder schäme mich - und mache trotzdem weiter.'],
+];
+const RISK_SCALE = ['nie', 'selten', 'manchmal', 'oft', 'sehr oft'];
+function riskTest() { try { return JSON.parse(localStorage.getItem('companion_riskTest') || 'null'); } catch (e) { return null; } }
+function riskTestOpen() {
+  const wrap = sheetWrap('riskSheet', '🌡 Selbsttest');
+  const body = wrap.querySelector('.sheet-body');
+  const prev = riskTest(); const ans = prev && prev.a ? prev.a.slice() : RISK_ITEMS.map(() => -1);
+  const draw = () => {
+    body.innerHTML = `<p class="hint" style="margin-top:0;">Denk an die <b>letzten vier Wochen</b>. Ehrlich ist hier das Einzige, was zählt - das sieht niemand außer dir (und Mila, wenn du mit ihr darüber sprichst).</p>
+      ${RISK_ITEMS.map(([k, q], i) => `<div style="margin:14px 0 0;"><div style="font-size:14.5px; line-height:1.45; margin-bottom:6px;">${i + 1}. ${esc(q)}</div>
+        <div style="display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:4px;">${RISK_SCALE.map((s, j) => `<button type="button" data-q="${i}" data-v="${j}" style="height:36px; padding:0 2px; border-radius:10px; font-size:12px; border:1px solid var(--line); background:${ans[i] === j ? 'var(--accent)' : 'transparent'}; color:${ans[i] === j ? '#fff' : 'var(--text)'};">${s}</button>`).join('')}</div></div>`).join('')}
+      <button type="button" id="riskSave" style="margin-top:18px;" ${ans.includes(-1) ? 'disabled' : ''}>Auswerten</button>
+      <p class="hint">Angelehnt an die WHO-Kriterien für zwanghaftes Sexualverhalten (ICD-11) und das Sechs-Komponenten-Modell der Verhaltenssucht. Kein Diagnoseinstrument - eine Diagnose kann nur eine Fachperson stellen.</p>`;
+    body.querySelectorAll('button[data-q]').forEach(b => { b.onclick = () => { ans[+b.dataset.q] = +b.dataset.v; const y = wrap.querySelector('.sheet-panel').scrollTop; draw(); wrap.querySelector('.sheet-panel').scrollTop = y; }; });
+    const s = body.querySelector('#riskSave');
+    s.onclick = () => {
+      safeSet('companion_riskTest', JSON.stringify({ t: Date.now(), a: ans }));
+      const hist = (() => { try { return JSON.parse(localStorage.getItem('companion_riskHist') || '[]'); } catch (e) { return []; } })();
+      hist.push({ t: Date.now(), i: riskIndex().index }); safeSet('companion_riskHist', JSON.stringify(hist.slice(-24)));
+      closeSheet('riskSheet');
+      try { if (typeof renderMeSummary === 'function' && document.getElementById('mePanel') && document.getElementById('mePanel').offsetParent) showMe(); } catch (e) {}
+      riskMaybeTalk(true);
+    };
+  };
+  draw(); openSheet('riskSheet');
+}
+OV_DEFS.push(['riskSheet', () => { const v = document.getElementById('riskSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('riskSheet')]);
+// ---------- Berechnung ----------
+function riskIndex() {
+  const cl = x => Math.max(0, Math.min(1, x));
+  const U = usage(), L = riskLog(), c = wellCfg();
+  const days = n => { const o = []; for (let i = n - 1; i >= 0; i--) o.push(dayKey(new Date(Date.now() - i * 86400000))); return o; };
+  const d14 = days(14), d7 = d14.slice(-7), p7 = d14.slice(0, 7);
+  const min = k => (U[k] || 0) / 60;
+  const tracked = Object.keys(U).length;
+  const used14 = d14.filter(k => min(k) >= 3).length;
+  const week = d7.reduce((a, k) => a + min(k), 0), prev = p7.reduce((a, k) => a + min(k), 0);
+  const used7 = d7.filter(k => min(k) >= 3).length;
+  const avgUsed = used7 ? week / used7 : 0;
+  const overLimit = c.limit ? d14.filter(k => min(k) >= c.limit).length : 0;
+  const loosen30 = L.loosen.filter(t => t > Date.now() - 30 * 86400000).length;
+  const blocked14 = d14.reduce((a, k) => a + (L.blocked[k] || 0), 0);
+  const night14 = d14.reduce((a, k) => { const H = L.hours[k] || {}; return a + [0, 1, 2, 3, 4].reduce((s, h) => s + (H[h] || 0), 0) / 60; }, 0);
+  const long14 = d14.filter(k => (L.long[k] || 0) >= 90).length;
+  const came7 = d7.reduce((a, k) => a + (L.came[k] || 0), 0);
+  const parts = [
+    { k: 'freq', label: 'Häufigkeit', hint: `${used14} von 14 Tagen`, w: 0.18, v: cl((used14 - 4) / 8) },
+    { k: 'dur', label: 'Dauer', hint: `Ø ${Math.round(avgUsed)} min an Nutzungstagen`, w: 0.18, v: cl((avgUsed - 25) / 95) },
+    { k: 'tol', label: 'Steigerung', hint: prev >= 30 ? `${prev ? Math.round((week / prev - 1) * 100) : 0} % zur Vorwoche` : 'noch kein Vergleich', w: 0.12, v: prev >= 30 ? cl((week / prev - 1.1) / 0.9) : 0 },
+    { k: 'ctrl', label: 'Kontrolle', hint: `${overLimit} × über Limit, ${loosen30} × gelockert, ${blocked14} × trotz Sperre geöffnet`, w: 0.24, v: cl(overLimit * 0.2 + loosen30 * 0.15 + blocked14 * 0.12) },
+    { k: 'night', label: 'Nachts', hint: `${Math.round(night14)} min zwischen 0 und 5 Uhr`, w: 0.12, v: cl(night14 / 240) },
+    { k: 'long', label: 'Am Stück', hint: `${long14} × länger als 1,5 Stunden`, w: 0.16, v: cl(long14 / 5) },
+  ];
+  const beh = Math.round(100 * parts.reduce((a, p) => a + p.w * p.v, 0));
+  const T = riskTest(); const fresh = T && T.a && Date.now() - T.t < 45 * 86400000;
+  const self = fresh ? Math.round(100 * T.a.reduce((a, x) => a + Math.max(0, x), 0) / (4 * RISK_ITEMS.length)) : null;
+  // Leidensdruck oder Kontrollverlust im Selbsttest hoch -> wiegt schwerer (Kernkriterien der ICD-11)
+  const core = fresh ? Math.max(T.a[3], T.a[4], T.a[5], T.a[7]) : 0;
+  let index = self == null ? beh : Math.round(0.5 * beh + 0.5 * self);
+  if (fresh && core >= 4) index = Math.max(index, 70);
+  return { index, beh, self, testAge: fresh ? Math.floor((Date.now() - T.t) / 86400000) : null, parts, tracked, week: Math.round(week), came7, enough: tracked >= 5 };
+}
+function riskLevel(i) {
+  if (i >= 80) return { c: '#9b0f1f', name: 'sehr hoch', text: 'Deine Nutzung trägt deutliche Merkmale eines Kontrollverlusts. Das ist ein guter Moment, ehrlich hinzuschauen - und dir Unterstützung zu holen.' };
+  if (i >= 65) return { c: '#d8342c', name: 'hoch', text: 'Mehrere Warnzeichen auf einmal. Feste Grenzen (Tageslimit, Tabuzeit, freie Tage) helfen - und ein Gespräch mit jemandem, dem du vertraust.' };
+  if (i >= 45) return { c: '#ee8a2a', name: 'erhöht', text: 'Es kippt ein wenig. Achte darauf, dass anderes im Leben nicht zu kurz kommt.' };
+  if (i >= 25) return { c: '#d6c13a', name: 'im Blick behalten', text: 'Meist im grünen Bereich, mit einzelnen Ausreißern.' };
+  return { c: '#3fae6a', name: 'unauffällig', text: 'Alles im gesunden Rahmen.' };
+}
+function riskSection() {
+  const R = riskIndex(), Lv = riskLevel(R.index);
+  const T = riskTest();
+  const testLine = R.self == null ? (T ? 'Selbsttest ist älter als 6 Wochen - bitte neu machen.' : 'Noch kein Selbsttest - nur das Verhalten zählt.') : `Selbsttest vor ${R.testAge === 0 ? 'heute' : R.testAge + ' Tag' + (R.testAge === 1 ? '' : 'en')}: ${R.self} · Verhalten: ${R.beh}`;
+  return `<div id="riskCard" style="margin-top:22px; padding:14px; border:1px solid var(--line); border-radius:16px; ${R.index >= 80 ? 'box-shadow:0 0 0 2px ' + Lv.c + ' inset;' : ''}">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;"><h3 style="margin:0; font-size:16px;">🌡 Nutzungsindex</h3><span style="font-size:26px; font-weight:700; color:${Lv.c};">${R.index}</span></div>
+    <div style="position:relative; height:12px; border-radius:6px; margin:10px 0 4px; background:linear-gradient(90deg, #3fae6a 0%, #d6c13a 30%, #ee8a2a 52%, #d8342c 72%, #9b0f1f 100%);">
+      <div style="position:absolute; top:-4px; left:calc(${R.index}% - 3px); width:6px; height:20px; border-radius:3px; background:#fff; box-shadow:0 0 0 2px ${Lv.c};"></div></div>
+    <div style="font-size:13.5px; font-weight:600; color:${Lv.c}; margin-top:6px;">${Lv.name}</div>
+    <p class="hint" style="margin:4px 0 8px;">${Lv.text}${R.enough ? '' : ' (Noch wenige Tage gemessen - der Wert wird mit der Zeit genauer.)'}</p>
+    ${R.parts.map(p => `<div style="display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12.5px;"><span style="flex:0 0 78px;">${p.label}</span><div style="flex:1; height:6px; border-radius:3px; background:var(--line);"><div style="width:${Math.round(p.v * 100)}%; height:100%; border-radius:3px; background:${riskLevel(p.v * 100).c};"></div></div><span style="flex:0 0 46%; color:var(--text-dim); font-size:11.5px;">${esc(p.hint)}</span></div>`).join('')}
+    <p class="hint" style="margin-top:8px;">${testLine}</p>
+    <div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-secondary" id="riskTestBtn">📋 Selbsttest (2 Min)</button><button type="button" class="btn-secondary" id="riskTalkBtn">💬 Mit Mila reden</button></div>
+    <p class="hint" style="margin-top:8px;">Angelehnt an die WHO-Kriterien für zwanghaftes Sexualverhalten (ICD-11) und das Sechs-Komponenten-Modell der Verhaltenssucht. Keine Diagnose. Hilfe gibt es bei jeder Suchtberatungsstelle (z. B. Caritas, Diakonie), bei Hausarzt oder Psychotherapeut (Terminservice 116 117) und in Selbsthilfegruppen.</p></div>`;
+}
+{
+  const orig = usageSection;
+  usageSection = function () { return orig.apply(this, arguments) + riskSection(); };
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('#riskTestBtn, #riskTalkBtn'); if (!t) return;
+    if (t.id === 'riskTestBtn') riskTestOpen(); else riskTalk(false);
+  });
+}
+// ---------- Mila spricht es an ----------
+function riskSummary() {
+  const R = riskIndex(), Lv = riskLevel(R.index);
+  return `Nutzungsindex ${R.index}/100 (${Lv.name}). Verhalten ${R.beh}${R.self != null ? ', Selbsttest ' + R.self : ', kein aktueller Selbsttest'}. ${R.parts.map(p => p.label + ': ' + p.hint).join('; ')}. Letzte 7 Tage ${R.week} Minuten, ${R.came7} × gekommen.`;
+}
+{
+  const orig = helpSystem;
+  helpSystem = function () {
+    return orig.apply(this, arguments) + `
+
+NUTZUNGSINDEX (Sucht-Anzeiger unter „Ich")
+${riskSummary()}
+Er ist angelehnt an die ICD-11-Kriterien für zwanghaftes Sexualverhalten und das Sechs-Komponenten-Modell; Selbsttest [[open:risk]]. Wenn Til darüber spricht oder du es ansprichst: ehrlich, warm, auf Augenhöhe, ohne Moralpredigt und ohne Scham zu machen. Keine Diagnose stellen. Konkrete Zahlen aus dem Index nennen, nachfragen, wie es ihm damit geht, und konkrete Schritte vorschlagen: Tageslimit, Tabuzeit tagsüber, Nachtruhe, freie Tage (unter Ich → Gesunder Umgang [[open:me]]), Dinge außerhalb der App. Bei hohem Wert auch offen ansprechen, dass Hilfe von außen sinnvoll ist: Suchtberatungsstelle (Caritas, Diakonie, kostenlos und vertraulich), Hausarzt oder Psychotherapeut (Terminservice 116 117), Selbsthilfegruppen. Wirkt Til verzweifelt oder spricht von Selbstverletzung: Telefonseelsorge 0800 111 0 111 (kostenlos, rund um die Uhr).`;
+  };
+  HELP_ACTIONS.risk = ['📋 Selbsttest', () => { helpClose(); riskTestOpen(); }];
+}
+async function riskTalk(auto) {
+  helpOpen();
+  if (HELP.busy) return;
+  const R = riskIndex(), Lv = riskLevel(R.index);
+  HELP.busy = true; helpRender();
+  let text = '';
+  try {
+    const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+    const ask = auto
+      ? `[Hinweis der App, nicht von Til: Der Nutzungsindex steht auf ${R.index} (${Lv.name}). Sprich Til jetzt von dir aus darauf an - in 4 bis 7 Sätzen: sag ehrlich, was dir auffällt (mit 2-3 konkreten Werten), frag, wie es ihm gerade geht und ob er das selbst so sieht, und biete an, gemeinsam eine Grenze einzurichten. Erwähne kurz, dass Hilfe von außen kein Scheitern ist (Suchtberatung, Hausarzt/Psychotherapeut). Am Ende passende Knöpfe.]`
+      : `[Til möchte über seinen Nutzungsindex reden. Erkläre ihm kurz, was die Werte bedeuten und was dir auffällt, und frag nach, wie es ihm damit geht.]`;
+    const convo = HELP.msgs.slice(-6).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.display || m.content }));
+    while (convo.length && convo[0].role !== 'user') convo.shift();
+    convo.push({ role: 'user', content: ask });
+    text = String(await callProvider(provider, helpSystem(), convo, 0.6, taskBudget('draft', 700), { task: 'draft' }) || '').trim();
+  } catch (e) {}
+  if (!text) text = auto
+    ? `Hey, ich muss dich mal was fragen - ganz ohne Vorwurf. Dein Nutzungsindex steht gerade bei **${R.index}**: ${R.parts.filter(p => p.v >= 0.5).map(p => p.label + ' (' + p.hint + ')').join(', ') || 'mehrere Werte sind hoch'}. Wie geht es dir damit? Fühlt sich das noch nach deiner Entscheidung an? Wenn du magst, richten wir zusammen eine feste Grenze ein - und falls es dir schon länger schwerfällt aufzuhören: Eine Suchtberatung oder dein Hausarzt sind gute, vertrauliche Anlaufstellen. Das ist kein Scheitern. [[open:me]] [[open:risk]]`
+    : `Dein Nutzungsindex steht bei **${R.index}** (${Lv.name}). ${Lv.text} Wie geht es dir damit? [[open:risk]] [[open:me]]`;
+  HELP.msgs.push({ role: 'assistant', content: text });
+  HELP.busy = false; helpSave(); helpRender();
+  if (auto) safeSet('companion_riskTalkAt', String(Date.now()));
+}
+function riskMaybeTalk(now) {
+  try {
+    const busy = (typeof inSession === 'function' && inSession()) || (typeof g3 !== 'undefined' && g3.active) || (typeof ar !== 'undefined' && ar.active) || document.documentElement.classList.contains('locked');
+    const lim = document.getElementById('limitScreen'); if (lim && lim.style.display === 'flex') return false;
+    const R = riskIndex(); if (R.index < 80 || !R.enough) return false;
+    const last = +(localStorage.getItem('companion_riskTalkAt') || 0);
+    if (!now && Date.now() - last < 3 * 86400000) return false;
+    if (busy) return false;
+    riskTalk(true); return true;
+  } catch (e) { return false; }
+}
+// Beim Start (nach Sperre/Sicherung) und nach jeder Sitzung prüfen
+setTimeout(function riskCheck() { if (!riskMaybeTalk(false)) { const R = (() => { try { return riskIndex(); } catch (e) { return { index: 0 }; } })(); if (R.index >= 80) setTimeout(riskCheck, 10 * 60000); } }, 75000);
+{
+  const oLeave = leaveSession;
+  leaveSession = function () { const r = oLeave.apply(this, arguments); setTimeout(() => riskMaybeTalk(false), 4000); return r; };
 }
 
 window.__appReady = true;
