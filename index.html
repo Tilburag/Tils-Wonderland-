@@ -1445,7 +1445,7 @@
         </select>
       </div>
       <div id="wellWorkDays" style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; margin:6px 0 0;"></div>
-      <p class="hint" style="margin-top:4px;">Zum Beispiel während der Arbeit: an den markierten Wochentagen ist die App in diesem Zeitraum zu. Tage antippen zum An- und Abwählen. Außerhalb der Tabuzeit gilt jede Änderung sofort; nur während sie gerade läuft, wird Lockern erst ab morgen wirksam.</p>
+      <p class="hint" style="margin-top:4px;">Zum Beispiel während der Arbeit: an den markierten Wochentagen ist die App in diesem Zeitraum zu. Tage antippen zum An- und Abwählen.</p>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Freie Tage pro Woche (gesperrt)</span>
         <select id="wellFree" style="flex:1;">
@@ -1455,7 +1455,7 @@
       <div style="margin:14px 0 0;">
         <div style="font-size:13.5px; margin-bottom:6px;">📅 Freie Tage im Kalender (ganzer Tag gesperrt)</div>
         <div id="wellCal" style="border:1px solid var(--line); border-radius:14px; padding:10px;"></div>
-        <p class="hint" style="margin-top:6px;">Tag antippen = markieren. Markieren gilt sofort; einen markierten Tag wieder freigeben geht nur, wenn er mindestens übermorgen ist - so lässt er sich nicht kurzfristig umgehen.</p>
+        <p class="hint" style="margin-top:6px;">Tag antippen = markieren, nochmal antippen = wieder freigeben (mit kurzer Rückfrage).</p>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Nach dem Höhepunkt</span>
@@ -1463,7 +1463,7 @@
           <option value="0">weiter wie bisher</option><option value="30">30 Minuten Pause</option><option value="120">2 Stunden Pause</option><option value="day">Feierabend für heute</option>
         </select>
       </div>
-      <p class="hint">Strengere Grenzen gelten sofort. Lockerungen - höheres Limit, weniger Nachtruhe, Grenze abschalten - gelten erst <b>ab dem nächsten Tag</b>. So lassen sie sich nicht im Moment umgehen. Kurz vor dem Limit leiten die Figuren einen Abschluss ein, dann ist bis zum nächsten Morgen (5 Uhr) Schluss.</p>
+      <p class="hint">Alle Einstellungen kannst du jederzeit ändern - strenger wie lockerer, beides gilt sofort. Beim Lockern kommt eine kurze Rückfrage. Kurz vor dem Limit leiten die Figuren einen Abschluss ein, dann ist bis zum nächsten Morgen (5 Uhr) Schluss.</p>
       <p class="hint" id="wellPending"></p>
     </details>
 
@@ -3620,8 +3620,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.47';
+const APP_VERSION = '2.48';
 const CHANGELOG = [
+  { v: '2.48', date: '2026-10-19', items: [
+    '⏳ Gesunder Umgang: Alle Grenzen sind jetzt jederzeit frei einstellbar - Tageslimit, Pause, Nachtruhe (z. B. 22 auf 23 Uhr), Tabuzeit, freier Wochentag, Kalendertage, „Nach dem Höhepunkt". Strenger wie lockerer gilt sofort; beim Lockern kommt nur eine kurze Rückfrage. Noch offene „ab morgen"-Änderungen aus früheren Versionen werden gleich übernommen.',
+  ] },
   { v: '2.47', date: '2026-10-19', items: [
     '⏳ Tabuzeit tagsüber lässt sich wieder frei ändern: Tage abwählen, Uhrzeiten verschieben, ganz abschalten - das gilt sofort, solange die Tabuzeit gerade nicht läuft. Nur während der gesperrten Zeit wird Lockern erst ab morgen wirksam (und zählt dann auch für den Nutzungsindex).',
   ] },
@@ -16583,7 +16586,7 @@ function usageToday() { return usage()[dayKey()] || 0; }
 function wellCfg() {
   let c; try { c = JSON.parse(localStorage.getItem('companion_well') || '{}'); } catch (e) { c = {}; }
   let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) { p = null; }
-  if (p && p.from <= dayKey()) { c = Object.assign(c, p.cfg); safeSet('companion_well', JSON.stringify(c)); localStorage.removeItem('companion_wellPending'); }
+  if (p && p.cfg) { c = Object.assign(c, p.cfg); safeSet('companion_well', JSON.stringify(c)); localStorage.removeItem('companion_wellPending'); }
   return { limit: +c.limit || 0, break: +c.break || 0, night: c.night === undefined ? '' : String(c.night), free: c.free === undefined ? '' : String(c.free), after: c.after === undefined ? '0' : String(c.after), work: c.work === undefined ? '' : String(c.work) };
 }
 // Tabuzeit tagsüber: „8-17-12345" = 8 bis 17 Uhr an Mo-Fr (0 = Sonntag)
@@ -16616,8 +16619,7 @@ function wellDays() { try { return JSON.parse(localStorage.getItem('companion_we
 function toggleWellDay(k) {
   const d = new Set(wellDays());
   if (d.has(k)) {
-    const minFree = dayKey(new Date(Date.now() + 2 * 86400000));
-    if (k < minFree) { alert('Diesen Tag kannst du nicht mehr freigeben - nur Tage ab übermorgen. So lässt er sich nicht kurzfristig umgehen.'); return; }
+    if (!confirm(k === dayKey() ? 'Den heutigen freien Tag aufheben? Die App ist dann sofort wieder offen.' : 'Diesen Tag wieder freigeben?')) return;
     d.delete(k);
   } else {
     if (k === dayKey() && !confirm('Heute sperren? Die App ist dann sofort bis morgen früh (5 Uhr) zu.')) return;
@@ -16672,21 +16674,15 @@ function setWell(key, value) {
     if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; if (Object.keys(p.cfg).length) safeSet('companion_wellPending', JSON.stringify(p)); else localStorage.removeItem('companion_wellPending'); }
     renderWell(); return;
   }
-  // Tabuzeit tagsüber: frei änderbar, solange sie gerade NICHT läuft - nur
-  // während der gesperrten Zeit gilt Lockern erst ab morgen (sonst wäre sie im Moment umgehbar)
-  const workFree = key === 'work' && !(cur.work !== '' && inWork(cur.work, new Date()));
-  if (stricter(key, cur[key], v) || (key === 'break') || workFree) {
-    const c = Object.assign({}, cur, { [key]: v });
-    safeSet('companion_well', JSON.stringify(c));
-    let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
-    if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; safeSet('companion_wellPending', JSON.stringify(p)); }
-  } else {
-    const t = new Date(Date.now() + 86400000);
-    let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
-    p = p || { from: dayKey(t), cfg: {} };
-    p.from = dayKey(t); p.cfg[key] = v;
-    safeSet('companion_wellPending', JSON.stringify(p));
-  }
+  // Alle Grenzen sind jederzeit änderbar. Strenger gilt sofort; Lockern auch,
+  // aber mit kurzer Rückfrage (und es zählt im Nutzungsindex als „gelockert").
+  const loosen = !stricter(key, cur[key], v) && key !== 'break' && !(key === 'work' && !(cur.work !== '' && inWork(cur.work, new Date())));
+  if (loosen && !confirm('Diese Grenze lockern? Die Änderung gilt sofort.')) { renderWell(); return; }
+  const c = Object.assign({}, cur, { [key]: v });
+  safeSet('companion_well', JSON.stringify(c));
+  let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
+  if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; if (Object.keys(p.cfg).length) safeSet('companion_wellPending', JSON.stringify(p)); else localStorage.removeItem('companion_wellPending'); }
+  try { const r = blockedReason(); const lim = document.getElementById('limitScreen'); if (!r && lim && lim.style.display === 'flex') lim.style.display = 'none'; } catch (e) {}
   renderWell();
 }
 function blockedReason() {
