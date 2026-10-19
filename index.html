@@ -3619,8 +3619,15 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.42';
+const APP_VERSION = '2.43';
 const CHANGELOG = [
+  { v: '2.43', date: '2026-10-19', items: [
+    '🛏 3D: Sie ist jetzt in einem Schlafzimmer - Bett mit Laken und Kissen, Holzboden, Nachttischlampe, flackernde Kerzen. Beim Reiten liegst du auf dem Bett (angedeuteter Körper, Decke über den Beinen), bei Hand und Mund stehst du an der Bettkante.',
+    '💡 Warmes Abendlicht mit echten Schatten (Arm auf Bauch, Brüste, Haare), dazu Abdunklung in Hautfalten (unter der Brust, Achseln, Leisten, Hals), Umgebungsreflexe und eine leichte Vignette.',
+    '🙂 Ihr Gesicht aus dem Porträt: Die Bild-KI bestimmt einmal Augen, Nase, Mund und Kinn im Porträt, dann wird ihr echtes Gesicht (Brauen, Lippen, Make-up, Teint) auf das 3D-Gesicht übertragen und der Hautton des ganzen Körpers angeglichen. Unter ⚙ abschaltbar; „🎯 Gesichtspunkte" zeigt die Punkte zum Nachziehen, falls etwas verrutscht ist.',
+    '💇 Haare: Der Oberkopf ist jetzt glatt und glänzend statt zerzaust, die langen Strähnen fallen hinten und seitlich.',
+    'Neue koerper.bin - bitte im Repository ersetzen.',
+  ] },
   { v: '2.42', date: '2026-10-19', items: [
     '🧍 3D: Stellungen je nach Handlung - mit der Hand, mit dem Mund (ihr Mund gleitet im Takt des Geräts am Schaft entlang, die Augen schauen zu dir hoch) und sie reitet dich (aus deiner Sicht von unten, ihr Becken folgt dem Gerät). Was die Figuren sagen oder erzählen („bläst", „setzt sich auf dich", „reitet" …) wechselt die Stellung von selbst, mit kurzer Blende. Der neue Knopf oben (Auto / ✋ / 👄 / 🐎) legt sie auch fest.',
     '✋ Die zweite Hand folgt der Handlung: krault deine Eier, kneift oder zwirbelt ihre Nippel, streichelt sich, holt zum Klaps aus - sonst ruht sie auf ihrem Schenkel.',
@@ -24331,7 +24338,7 @@ const HELP_HANDBOOK = `APP-AUFBAU
 - Live und Geschichte laufen im Vollbild. Vor dem Start das Blatt „Bevor es losgeht": Szene, Besetzung, Erzähler, Spiel und Regeln (Kurz davor/Gekommen, Hinhalten, Sie entscheidet, Echtes Nein, Bereit-Check). Knöpfe: Kurz davor (bremst), Gekommen (Gerät hält danach 2,5 Min still - gewollt), Stopp (endgültig), Anruf (sprechen), 🔥 👍 👎 (Reaktionen, werden gelernt). ✕ verlässt die Sitzung, der Verlauf bleibt für „Weitermachen".
 - Figuren: Archiv, Figurenkarte mit Galerie (Ziel 4 Bilder: Porträt, Outfit, Halbakt, Akt), „Galerien auffüllen" macht fehlende Bilder. Bilder „über Vorlage" nehmen das Porträt mit, damit das Gesicht gleich bleibt (Venice etwa 4 ct pro Bild, normal erzeugt 1 ct). Fehlt das große Original, geht das Vorschaubild hochskaliert mit (Protokoll: „nur Vorschaubild - Original fehlt"). „über Beschreibung" heißt: ohne Vorlage, sieht der Figur dann weniger ähnlich. Die Ich-Figur hat eine feste Bildbeschreibung und eine Intim-Beschreibung, die in Akt-Bilder geht.
 - Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Tageslimit, Pause, Nachtruhe, Tabuzeit tagsüber an gewählten Wochentagen z. B. Arbeitszeit, freie Tage, Kalender), Nutzungsindex 🌡 (0-100, farbig, Selbsttest, bei Tiefrot spricht Mila es an), Auswertung.
-- 3D-Ansicht 🧍 (oben in der Sitzung oder in der Figurenkarte): weibliche Figuren automatisch als nackter 3D-Körper aus dem Baukasten (aus ihrem Phantombild; Datei koerper.bin muss im Repository liegen), mit Tils Penis aus seinem Profil, Brust-/Haarphysik; Stellungen Hand/Mund/Reiten wechseln je nach Handlung (Knopf Auto/✋/👄/🐎), zweite Hand: Eier, Nippel, streicheln, Klaps; alternativ eigene VRM-Datei; Hand folgt Gerät 1; 🎥 Perspektive, Wischen dreht, ▶ Probelauf, ⚙ Modelle laden/zuordnen (VRoid Studio) und Verzögerung/Richtung. [[open:avatar]] öffnet sie.
+- 3D-Ansicht 🧍 (oben in der Sitzung oder in der Figurenkarte): weibliche Figuren automatisch als nackter 3D-Körper aus dem Baukasten (aus ihrem Phantombild; Datei koerper.bin muss im Repository liegen), mit Tils Penis aus seinem Profil, Brust-/Haarphysik; Stellungen Hand/Mund/Reiten wechseln je nach Handlung (Knopf Auto/✋/👄/🐎), zweite Hand: Eier, Nippel, streicheln, Klaps; Schlafzimmer mit Schatten; Gesicht wird aus dem Porträt übertragen (⚙ → 🎯 Gesichtspunkte zum Nachziehen); alternativ eigene VRM-Datei; Hand folgt Gerät 1; 🎥 Perspektive, Wischen dreht, ▶ Probelauf, ⚙ Modelle laden/zuordnen (VRoid Studio) und Verzögerung/Richtung. [[open:avatar]] öffnet sie.
 - Lernen nur mit verbundenem Pulsgurt. Körpergeräusche (Atem, Stöhnen) brauchen Kopfhörer; die ersten 45 s misst die App den Ruhepegel.
 - Verbindungen: Gerät (SSR1) über WLAN-WebSocket (gleiches WLAN, richtige IP in Einstellungen → Verbindungen), Pulsgurt über Bluetooth, Kopfhörer für Körpergeräusche.
 - PIN-Sperre schützt die App. „Code vergessen?" LÖSCHT ALLES - nur mit Sicherungsdatei sinnvoll.
@@ -26759,6 +26766,8 @@ async function mhLoadKit(url) {
   if (head.make) K.make = new Blob([arr(Uint8Array, head.make)], { type: 'image/png' });
   K.expr = {}; (head.expr || []).forEach(m => { K.expr[m.n] = { i: arr(Uint16Array, m.i), d: arr(Int16Array, m.d), s: m.s }; });
   K.lash = (head.lash || []).map(b => arr(Uint16Array, b));
+  if (head.ao) K.ao = new Blob([arr(Uint8Array, head.ao)], { type: 'image/png' });
+  if (head.face) { const f = head.face; K.face = { size: f.size, lm: f.lm, c: f.c, idx: arr(Uint32Array, f.idx), pos: arr(Int16Array, f.pos), w: arr(Uint8Array, f.w) }; }
   return K;
 }
 // Regler (alle 0..1 bzw. -1..1) -> Gewichte der Formen
@@ -26794,7 +26803,54 @@ function shape(K, weights) {
   return P;
 }
 const hexRGB = h => { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+// Affine Abbildung 3D-Gesicht (x,y) -> Bildpunkte, kleinste Quadrate aus Orientierungspunkten
+function fitAffine(src, dst) {
+  // löst [u v] = [x y 1] * M (3x2)
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], Bu = [0, 0, 0], Bv = [0, 0, 0];
+  src.forEach((p, i) => { const r = [p[0], p[1], 1]; for (let a = 0; a < 3; a++) { for (let b = 0; b < 3; b++) A[a][b] += r[a] * r[b]; Bu[a] += r[a] * dst[i][0]; Bv[a] += r[a] * dst[i][1]; } });
+  const solve = (M, y) => { const m = M.map((r, i) => r.concat([y[i]])); for (let i = 0; i < 3; i++) { let p = i; for (let k = i + 1; k < 3; k++) if (Math.abs(m[k][i]) > Math.abs(m[p][i])) p = k; [m[i], m[p]] = [m[p], m[i]]; for (let k = 0; k < 3; k++) if (k !== i) { const f = m[k][i] / m[i][i]; for (let j = i; j < 4; j++) m[k][j] -= f * m[i][j]; } } return m.map((r, i) => r[3] / r[i]); };
+  return { u: solve(A, Bu), v: solve(A, Bv) };
+}
+async function portraitLayer(K, pt, size) {
+  // pt: { img (Bild/Bitmap), lm: { eyeImgLeft, eyeImgRight, mouth, nose, chin } in 0..1 }
+  const F = K.face; if (!F || !pt || !pt.img || !pt.lm) return null;
+  const iw = pt.img.width, ih = pt.img.height;
+  const src = document.createElement('canvas'); src.width = iw; src.height = ih; const sg = src.getContext('2d'); sg.drawImage(pt.img, 0, 0);
+  const sd = sg.getImageData(0, 0, iw, ih).data;
+  const L3 = F.lm, P2 = (k) => [pt.lm[k][0] * iw, pt.lm[k][1] * ih];
+  // Bild-links = ihr rechtes Auge
+  const pairs = [[L3.eyeR, P2('eyeImgLeft')], [L3.eyeL, P2('eyeImgRight')], [L3.mouth, P2('mouth')]];
+  if (pt.lm.nose) pairs.push([L3.nose, P2('nose')]);
+  if (pt.lm.chin) pairs.push([L3.chin, P2('chin')]);
+  const M = fitAffine(pairs.map(p => [p[0][0], p[0][1]]), pairs.map(p => p[1]));
+  const map = (x, y) => [M.u[0] * x + M.u[1] * y + M.u[2], M.v[0] * x + M.v[1] * y + M.v[2]];
+  // mittlere Bildhelligkeit fürs Glätten des Porträtlichts
+  const out = document.createElement('canvas'); out.width = out.height = F.size; const og = out.getContext('2d'); const od = og.createImageData(F.size, F.size);
+  let sum = [0, 0, 0], n = 0; const cols = new Float32Array(F.idx.length * 3); const ok = new Uint8Array(F.idx.length);
+  for (let k = 0; k < F.idx.length; k++) {
+    const x = F.c[0] + F.pos[k * 3] * 4e-6, y = F.c[1] + F.pos[k * 3 + 1] * 4e-6;
+    const [u, v] = map(x, y); const ui = u | 0, vi = v | 0;
+    if (ui < 0 || vi < 0 || ui >= iw || vi >= ih) continue;
+    const o = (vi * iw + ui) * 4; ok[k] = 1;
+    cols[k * 3] = sd[o]; cols[k * 3 + 1] = sd[o + 1]; cols[k * 3 + 2] = sd[o + 2];
+    if (F.w[k] > 200) { sum[0] += sd[o]; sum[1] += sd[o + 1]; sum[2] += sd[o + 2]; n++; }
+  }
+  const avg = n ? sum.map(v => v / n) : [200, 160, 140];
+  for (let k = 0; k < F.idx.length; k++) {
+    if (!ok[k]) continue;
+    const i = F.idx[k] * 4;
+    for (let c = 0; c < 3; c++) od.data[i + c] = Math.max(0, Math.min(255, avg[c] + (cols[k * 3 + c] - avg[c]) * 0.85));
+    // Fremdes (Haare, Hintergrund) erkennen: weit weg von der mittleren Hautfarbe -> ausblenden
+    const dc = Math.hypot(cols[k * 3] - avg[0], cols[k * 3 + 1] - avg[1], cols[k * 3 + 2] - avg[2]);
+    const keep = Math.max(0, Math.min(1, 1 - (dc - 48) / 40));
+    od.data[i + 3] = F.w[k] * keep * (pt.strength === undefined ? 0.92 : pt.strength);
+  }
+  og.putImageData(od, 0, 0);
+  return { canvas: out, avg };
+}
 async function skinTexture(K, look) {
+  const portrait = look.portrait ? await portraitLayer(K, look.portrait).catch(() => null) : null;
+  if (portrait && look.portraitSkin !== false) { const a = portrait.avg, s0 = hexRGB(look.skin || '#e8b9a0'); look = Object.assign({}, look, { skin: '#' + [0, 1, 2].map(i => Math.round(s0[i] * 0.35 + a[i] * 0.65).toString(16).padStart(2, '0')).join('') }); }
   const img = await createImageBitmap(K.masks);
   const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
   const g = c.getContext('2d'); g.drawImage(img, 0, 0);
@@ -26828,6 +26884,8 @@ async function skinTexture(K, look) {
     d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; d[i + 3] = 255;
   }
   g.putImageData(id, 0, 0);
+  if (portrait) { g.save(); g.filter = 'blur(1px)'; g.imageSmoothingEnabled = true; g.drawImage(portrait.canvas, 0, 0, W, Hh); g.restore(); }
+  if (K.ao) { const ai = await createImageBitmap(K.ao); g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.55; g.drawImage(ai, 0, 0, W, Hh); g.restore(); }
   if (look.freckles && red) {
     g.fillStyle = 'rgba(125,72,48,0.32)';
     for (let n = 0; n < 5000; n++) { const x = Math.random() * W | 0, y = Math.random() * Hh | 0; const rv = red[(y * W + x) * 4]; if (rv > 60 && rv < 200 && y < Hh * 0.6) { g.beginPath(); g.arc(x, y, 0.7 + Math.random() * 1.1, 0, 6.283); g.fill(); } }
@@ -26906,7 +26964,8 @@ async function mhBuild(THREE, K, params, look) {
   for (let i = 0; i < nd.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 70; nd.data[i] = nd.data[i + 1] = nd.data[i + 2] = v; nd.data[i + 3] = 255; }
   ng.putImageData(nd, 0, 0);
   const bump = new THREE.CanvasTexture(nz); bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(6, 6);
-  const mat = new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.52, metalness: 0, sheen: 0.55, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xff8c78), specularIntensity: 0.45, specularColor: new THREE.Color(0xffe2d6), clearcoat: 0.06, clearcoatRoughness: 0.45, bumpMap: bump, bumpScale: 0.25, envMapIntensity: 0.6 });
+  let aoTex = null; if (K.ao) { const ai = await createImageBitmap(K.ao); const ac = document.createElement('canvas'); ac.width = ai.width; ac.height = ai.height; ac.getContext('2d').drawImage(ai, 0, 0); aoTex = new THREE.CanvasTexture(ac); }
+  const mat = new THREE.MeshPhysicalMaterial({ map: tex, aoMap: aoTex, aoMapIntensity: 1, roughness: 0.52, metalness: 0, sheen: 0.55, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xff8c78), specularIntensity: 0.45, specularColor: new THREE.Color(0xffe2d6), clearcoat: 0.06, clearcoatRoughness: 0.45, bumpMap: bump, bumpScale: 0.25, envMapIntensity: 0.6 });
   const mesh = new THREE.SkinnedMesh(geo, mat);
   mesh.morphTargetDictionary = Object.fromEntries(exprNames.map((n, i) => [n, i])); mesh.morphTargetInfluences = exprNames.map(() => 0);
   mesh.add(bones[0]);
@@ -27183,7 +27242,8 @@ function mhHair(THREE, B, o) {
   const strands = [];
   const SEG = 7;
   const len = o.style === 'bob' ? 0.2 : o.style === 'pixie' ? 0.075 : o.style === 'short' ? 0 : o.length;
-  for (let s = 0; s < (len ? o.count : 0); s++) {
+  let guard = 0;
+  for (let s = 0; s < (len ? o.count : 0) && guard < o.count * 20; s++, guard++) {
     // Wurzel auf der Kopfhaut; Strähnen legen sich nach hinten/seitlich und fallen
     const root = scalp[(Math.random() * scalp.length) | 0].clone();
     const dir = root.clone().sub(center).normalize();
@@ -27197,7 +27257,7 @@ function mhHair(THREE, B, o) {
         L = 0.075 + Math.random() * 0.02;
         const fall = new THREE.Vector3(dir.x * 0.25, -1, 0.42).normalize();
         for (let i = 1; i <= SEG; i++) pts.push(root.clone().addScaledVector(dir, 0.006 * Math.min(1, i / 2)).addScaledVector(fall, L / SEG * i));
-      } else {
+      } else if (!o.combed) { s--; continue; } else {
         // nach hinten über den Kopf gekämmt, dann fallend
         L = len * (0.9 + Math.random() * 0.25);
         const back = new THREE.Vector3(dir.x * 0.7 + (Math.random() - 0.5) * 0.15, -0.15, -1).normalize();
@@ -27498,7 +27558,7 @@ return { mhLoadKit, mhBuild, mhJiggle, mhRig, mhPenis, mhHair };
 })();
 
 const AVK = { pose: 'hand', poseMode: 'auto', hand2: null, hand2Until: 0, poseAt: 0, pen3: null, K: null, B: null, rig: null, jig: null, hair: null, pen: null, figId: null, base: null, on: false, lights: null, spec: null, build: 0, frames: 0 };
-const AVK_KIT_VER = 'mhk2';
+const AVK_KIT_VER = 'mhk3';
 async function avkKit() {
   if (AVK.K) return AVK.K;
   let blob = null;
@@ -27615,25 +27675,162 @@ function avkPenisSpec() {
   const ov = (() => { try { return JSON.parse(localStorage.getItem('companion_pen3d') || '{}'); } catch (e) { return {}; } })();
   return Object.assign(o, ov);
 }
+// ---------- Gesicht aus dem Porträt: Orientierungspunkte ----------
+function avkLmCache() { try { return JSON.parse(localStorage.getItem('companion_faceLm') || '{}'); } catch (e) { return {}; } }
+function avkLmKey(v) { return (v && (v.imageKey || v.anchorKey || String(v.image || '').slice(-60))) || ''; }
+async function avkLoadImg(url) { return await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; }); }
+async function avkFaceLm(v, force) {
+  const key = avkLmKey(v); if (!key) return null;
+  const url = await refUrl(v).catch(() => ''); if (!url) return null;
+  const img = await avkLoadImg(url).catch(() => null); if (!img) return null;
+  const c = avkLmCache();
+  if (c[key] && !force) return { img, lm: c[key] };
+  // Bild mit feinem Koordinatengitter an die Bild-KI (hilft beim genauen Ablesen)
+  const k = Math.min(1, 768 / Math.max(img.width, img.height));
+  const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  const g = cv.getContext('2d'); g.drawImage(img, 0, 0, cv.width, cv.height);
+  g.strokeStyle = 'rgba(0,255,255,0.35)'; g.fillStyle = 'rgba(0,255,255,0.9)'; g.font = '11px sans-serif'; g.lineWidth = 1;
+  for (let i = 1; i < 10; i++) { const x = cv.width * i / 10, y = cv.height * i / 10; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, cv.height); g.moveTo(0, y); g.lineTo(cv.width, y); g.stroke(); g.fillText('0.' + i, x + 2, 11); g.fillText('0.' + i, 2, y - 2); }
+  const data = cv.toDataURL('image/jpeg', 0.88);
+  const sys = `Du bekommst das Porträt einer erwachsenen Figur mit einem feinen Koordinatengitter (Linien bei 0.1, 0.2 … 0.9; Ursprung oben links, x nach rechts, y nach unten). Bestimme möglichst genau die Mitte der Pupille des Auges auf der LINKEN Bildseite, die Mitte der Pupille des Auges auf der RECHTEN Bildseite, die Nasenspitze, die Mitte des Mundes (zwischen den Lippen) und die Kinnspitze. Werte als Anteil von Breite und Höhe mit drei Nachkommastellen.
+Antworte NUR als JSON: {"eyeImgLeft":[x,y],"eyeImgRight":[x,y],"nose":[x,y],"mouth":[x,y],"chin":[x,y],"frontal":true}
+"frontal" ist false, wenn der Kopf deutlich zur Seite gedreht ist.`;
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  for (const model of (typeof visionCandidates === 'function' ? visionCandidates() : []).concat([undefined]).slice(0, 3)) {
+    try {
+      const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier das Porträt.', image: data }], 0, taskBudget('vision', 300), model ? { task: 'vision', model } : { task: 'vision' });
+      const j = parseJsonLoose(raw) || {};
+      const ok = ['eyeImgLeft', 'eyeImgRight', 'mouth'].every(k => Array.isArray(j[k]) && j[k].length === 2 && j[k].every(n => n >= 0 && n <= 1));
+      if (!ok) continue;
+      const [l, r, m] = [j.eyeImgLeft, j.eyeImgRight, j.mouth];
+      const ed = Math.hypot(r[0] - l[0], r[1] - l[1]);
+      if (r[0] <= l[0] || ed < 0.04 || ed > 0.7 || m[1] <= Math.max(l[1], r[1]) || Math.abs(l[1] - r[1]) > 0.15) continue;
+      const lm = { eyeImgLeft: l, eyeImgRight: r, mouth: m };
+      if (Array.isArray(j.nose) && j.nose[1] > Math.min(l[1], r[1]) && j.nose[1] < m[1]) lm.nose = j.nose;
+      if (Array.isArray(j.chin) && j.chin[1] > m[1]) lm.chin = j.chin;
+      lm.frontal = j.frontal !== false;
+      const c2 = avkLmCache(); c2[key] = lm; safeSet('companion_faceLm', JSON.stringify(c2));
+      return { img, lm };
+    } catch (e) {}
+  }
+  return null;
+}
+// Punkte von Hand nachziehen (optional)
+async function avkLmEditor(figId) {
+  const v = latestVersion(getFigure(figId)); const r = await avkFaceLm(v); 
+  const wrap = sheetWrap('avkLmSheet', '🎯 Gesichtspunkte');
+  const body = wrap.querySelector('.sheet-body');
+  if (!r) { body.innerHTML = '<p class="hint">Für dieses Porträt konnten keine Gesichtspunkte bestimmt werden.</p>'; openSheet('avkLmSheet'); return; }
+  const lm = JSON.parse(JSON.stringify(r.lm));
+  body.innerHTML = `<p class="hint" style="margin-top:0;">Zieh die Punkte auf Pupillen, Nasenspitze, Mund und Kinn. Danach wird ihr Gesicht neu aufgetragen.</p><div style="position:relative;"><canvas id="avkLmCv" style="width:100%; border-radius:12px; touch-action:none;"></canvas></div><div class="btn-row" style="margin-top:10px;"><button type="button" class="btn-primary" id="avkLmOk">Übernehmen</button><button type="button" class="btn-secondary" id="avkLmAi">🪄 Neu bestimmen</button></div>`;
+  const cv = body.querySelector('#avkLmCv'); const im = r.img;
+  const k = Math.min(1, 900 / Math.max(im.width, im.height)); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+  const g = cv.getContext('2d'); const keys = ['eyeImgLeft', 'eyeImgRight', 'nose', 'mouth', 'chin'].filter(x => lm[x]);
+  const col = { eyeImgLeft: '#4af', eyeImgRight: '#4af', nose: '#fd4', mouth: '#f46', chin: '#4f8' };
+  const draw = () => { g.drawImage(im, 0, 0, cv.width, cv.height); keys.forEach(x => { g.fillStyle = col[x]; g.strokeStyle = '#000'; g.beginPath(); g.arc(lm[x][0] * cv.width, lm[x][1] * cv.height, Math.max(5, cv.width / 90), 0, 6.283); g.fill(); g.stroke(); }); };
+  draw();
+  let drag = null;
+  const pt = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height]; };
+  cv.onpointerdown = e => { const q = pt(e); let best = null, bd = 0.05; keys.forEach(x => { const d = Math.hypot(lm[x][0] - q[0], lm[x][1] - q[1]); if (d < bd) { bd = d; best = x; } }); drag = best; if (drag) cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove = e => { if (!drag) return; lm[drag] = pt(e).map(x => Math.max(0, Math.min(1, x))); draw(); };
+  cv.onpointerup = () => { drag = null; };
+  body.querySelector('#avkLmOk').onclick = () => { const c = avkLmCache(); c[avkLmKey(v)] = lm; safeSet('companion_faceLm', JSON.stringify(c)); closeSheet('avkLmSheet'); avkShow(figId); };
+  body.querySelector('#avkLmAi').onclick = async (e) => { e.currentTarget.disabled = true; e.currentTarget.textContent = 'Schaue …'; await avkFaceLm(v, true); avkLmEditor(figId); };
+  openSheet('avkLmSheet');
+}
+OV_DEFS.push(['avkLmSheet', () => { const v = document.getElementById('avkLmSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('avkLmSheet')]);
 // ---------- Ansicht ----------
+// ---------- Zimmer, Licht und Schatten ----------
+function avkTex(w, h, draw, rep) { const T = AV.T; const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; if (rep) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } t.anisotropy = 4; return t; }
+function avkNoise(g, w, h, n, a, col) { for (let i = 0; i < n; i++) { g.fillStyle = `rgba(${col},${Math.random() * a})`; g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3); } }
+function avkRoom() {
+  if (AVK.room) return AVK.room;
+  const T = AV.T, R = new T.Group(), M = (o) => new T.MeshStandardMaterial(o);
+  const wood = avkTex(512, 512, (g, w, h) => { for (let y = 0; y < h; y += 32) { const b = 60 + Math.random() * 25; g.fillStyle = `rgb(${b + 40},${b + 18},${b})`; g.fillRect(0, y, w, 31); for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(30,15,8,${Math.random() * 0.25})`; g.beginPath(); const yy = y + Math.random() * 31; g.moveTo(0, yy); g.bezierCurveTo(w * 0.3, yy + 3, w * 0.6, yy - 3, w, yy + 1); g.stroke(); } g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, y + 31, w, 1); g.fillRect((Math.random() * w) | 0, y, 1, 32); } }, [4, 4]);
+  const wall = avkTex(256, 256, (g, w, h) => { g.fillStyle = '#3a2a2c'; g.fillRect(0, 0, w, h); avkNoise(g, w, h, 4000, 0.06, '255,240,230'); avkNoise(g, w, h, 3000, 0.08, '0,0,0'); }, [6, 3]);
+  const linen = avkTex(512, 512, (g, w, h) => { g.fillStyle = '#efe6e0'; g.fillRect(0, 0, w, h); for (let i = 0; i < w; i += 2) { g.fillStyle = `rgba(120,100,95,${0.05 + Math.random() * 0.05})`; g.fillRect(i, 0, 1, h); g.fillRect(0, i, w, 1); } avkNoise(g, w, h, 3000, 0.06, '90,70,70'); }, [3, 3]);
+  const floor = new T.Mesh(new T.PlaneGeometry(9, 9), M({ map: wood, roughness: 0.55, color: 0xb08870 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -0.34; floor.receiveShadow = true; R.add(floor);
+  const back = new T.Mesh(new T.PlaneGeometry(9, 3.4), M({ map: wall, roughness: 0.95, color: 0xb59a9a })); back.position.set(0, 1.36, -2.4); back.receiveShadow = true; R.add(back);
+  for (const sx of [-1, 1]) { const w = new T.Mesh(new T.PlaneGeometry(9, 3.4), M({ map: wall, roughness: 0.95, color: 0xa89090 })); w.position.set(sx * 2.6, 1.36, 0); w.rotation.y = -sx * Math.PI / 2; w.receiveShadow = true; R.add(w); }
+  // Bett (verschiebbar je Stellung)
+  const bed = new T.Group(); R.add(bed);
+  const frame = new T.Mesh(new T.BoxGeometry(1.95, 0.16, 2.25), M({ map: wood, color: 0x6a4030, roughness: 0.5 })); frame.position.y = -0.3; frame.castShadow = frame.receiveShadow = true; bed.add(frame);
+  const matt = new T.Mesh(new T.BoxGeometry(1.85, 0.24, 2.15, 1, 1, 1), M({ color: 0xf2ece6, roughness: 0.9 })); matt.position.y = -0.12; matt.receiveShadow = true; bed.add(matt);
+  // Laken mit leichten Falten
+  const sg = new T.PlaneGeometry(1.9, 2.2, 90, 100); const sp = sg.attributes.position;
+  for (let i = 0; i < sp.count; i++) { const x = sp.getX(i), y = sp.getY(i); sp.setZ(i, 0.006 * Math.sin(x * 9 + Math.sin(y * 3) * 2) * Math.sin(y * 7) + 0.004 * Math.sin(x * 23 + y * 17)); }
+  sg.computeVertexNormals();
+  const sheet = new T.Mesh(sg, new T.MeshPhysicalMaterial({ map: linen, color: 0xffffff, roughness: 0.85, sheen: 0.6, sheenColor: new T.Color(0xffffff), sheenRoughness: 0.8 })); sheet.rotation.x = -Math.PI / 2; sheet.position.y = 0.002; sheet.receiveShadow = true; bed.add(sheet);
+  const head = new T.Mesh(new T.BoxGeometry(1.95, 0.9, 0.08), M({ map: wood, color: 0x5a3426, roughness: 0.45 })); head.position.set(0, 0.2, -1.12); head.castShadow = head.receiveShadow = true; bed.add(head);
+  const pil = new T.MeshPhysicalMaterial({ map: linen, color: 0xfbf3ee, roughness: 0.9, sheen: 0.5, sheenColor: new T.Color(0xffffff) });
+  for (const px of [-0.45, 0.45]) { const p = new T.Mesh(new T.SphereGeometry(0.3, 32, 16), pil); p.scale.set(1.25, 0.32, 0.65); p.position.set(px, 0.08, -0.85); p.castShadow = p.receiveShadow = true; bed.add(p); }
+  // Nachttisch, Lampe, Kerzen
+  const tbl = new T.Mesh(new T.BoxGeometry(0.45, 0.55, 0.4), M({ map: wood, color: 0x6a4030, roughness: 0.5 })); tbl.position.set(-1.3, -0.065, -0.85); tbl.castShadow = tbl.receiveShadow = true; bed.add(tbl);
+  const shade = new T.Mesh(new T.CylinderGeometry(0.11, 0.16, 0.2, 24, 1, true), new T.MeshStandardMaterial({ color: 0xffd0a0, emissive: 0xffa860, emissiveIntensity: 1.4, side: T.DoubleSide })); shade.position.set(-1.3, 0.48, -0.85); bed.add(shade);
+  const flames = [];
+  for (const [x, y, z] of [[-1.2, 0.28, -0.7], [-1.38, 0.3, -0.75], [1.25, -0.06, -0.6]]) {
+    const cd = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 0.12 + Math.random() * 0.06, 16), M({ color: 0xf5ece0, roughness: 0.6 })); cd.position.set(x, y - 0.07, z); cd.castShadow = true; bed.add(cd);
+    const fl = new T.Mesh(new T.SphereGeometry(0.012, 10, 8), new T.MeshBasicMaterial({ color: 0xffc070 })); fl.scale.set(1, 2, 1); fl.position.set(x, y + 0.01, z); bed.add(fl);
+    const pl = new T.PointLight(0xff9a4a, 0.5, 3, 2); pl.position.set(x, y + 0.04, z); bed.add(pl); flames.push([fl, pl]);
+  }
+  // Licht
+  const key = new T.DirectionalLight(0xffd2a8, 2.3); key.position.set(-1.3, 2.3, 1.5); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); const sc = key.shadow.camera; sc.left = -1.2; sc.right = 1.2; sc.top = 1.6; sc.bottom = -1.0; sc.near = 0.5; sc.far = 7; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015; key.shadow.radius = 4;
+  R.add(key); R.add(key.target);
+  const fill = new T.DirectionalLight(0x9fb0ff, 0.45); fill.position.set(1.8, 1.2, 1.2); R.add(fill);
+  const rim = new T.DirectionalLight(0xffa080, 1.3); rim.position.set(0.8, 1.9, -2); R.add(rim);
+  const hemi = new T.HemisphereLight(0xffe2d0, 0x2a1810, 0.45); R.add(hemi);
+  // Sein Körper (beim Reiten unter ihr): Becken, Bauch, Oberschenkel, Decke über den Beinen
+  const his = new T.Group(); R.add(his);
+  AVK.room = { R, bed, his, flames, key };
+  return AVK.room;
+}
+function avkHisBody() {
+  const T = AV.T, his = AVK.room.his; his.clear();
+  if (AVK.pose !== 'ride' || !AVK.pen3) return;
+  const b = AVK.pen3.base;
+  const pen = avkPenisSpec();
+  const skin = new T.MeshPhysicalMaterial({ color: new T.Color(pen.skin), roughness: 0.6, sheen: 0.4, sheenColor: new T.Color(0xff9a80) });
+  const caps = (r, len, pos, rot, sc) => { const m = new T.Mesh(new T.CapsuleGeometry(r, len, 8, 20), skin); m.position.copy(pos); if (rot) m.rotation.set(...rot); if (sc) m.scale.set(...sc); m.castShadow = m.receiveShadow = true; his.add(m); return m; };
+  caps(0.16, 0.42, b.clone().add(new T.Vector3(0, -0.11, 0.42)), [Math.PI / 2, 0, 0], [1.15, 1, 0.55]);   // Bauch/Brust
+  caps(0.17, 0.05, b.clone().add(new T.Vector3(0, -0.1, 0.02)), [0, 0, Math.PI / 2], [1, 1.05, 0.6]);     // Becken
+  for (const sx of [-1, 1]) caps(0.085, 0.42, b.clone().add(new T.Vector3(sx * 0.11, -0.11, -0.32)), [Math.PI / 2, 0, sx * 0.08], [1, 1, 0.8]);
+  const linen = AVK.room.bed.children.find(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+  const dg = new T.PlaneGeometry(1.1, 0.9, 40, 30); const dp = dg.attributes.position;
+  for (let i = 0; i < dp.count; i++) { const x = dp.getX(i), y = dp.getY(i); dp.setZ(i, 0.13 * Math.exp(-(x * x) / 0.05) + 0.02 * Math.sin(x * 11 + y * 5) + 0.015 * Math.sin(y * 13)); }
+  dg.computeVertexNormals();
+  const duvet = new T.Mesh(dg, linen ? linen.material : skin); duvet.rotation.x = -Math.PI / 2; duvet.position.copy(b.clone().add(new T.Vector3(0, -0.12, -0.75))); duvet.castShadow = duvet.receiveShadow = true; his.add(duvet);
+}
+function avkPlaceRoom() {
+  const r = AVK.room; if (!r || !AVK.pen3) return;
+  const b = AVK.pen3.base;
+  if (AVK.pose === 'ride') { r.bed.position.set(0, Math.min(b.y - 0.13, 0.03), b.z - 0.05); r.bed.rotation.y = Math.PI; }
+  else { r.bed.position.set(0, 0, b.z - 0.1 - 1.12); r.bed.rotation.y = 0; }
+  avkHisBody();
+  // Schatten-Kamera auf sie richten
+  const c = AVK.chest || b; r.key.target.position.set(0, c.y - 0.25, c.z); r.key.position.set(c.x - 1.3, c.y + 1.8, c.z + 1.6);
+}
 function avkLights(on) {
   const T = AV.T;
-  if (!AVK.lights) {
-    const g = new T.Group();
-    const k = new T.DirectionalLight(0xfff2e8, 2.2); k.position.set(1.2, 2.4, 2); g.add(k);
-    const f = new T.DirectionalLight(0xffc8d8, 0.8); f.position.set(-1.5, 1.2, 1); g.add(f);
-    const r = new T.DirectionalLight(0xffc4d4, 0.9); r.position.set(-0.5, 1.8, -2); g.add(r);
-    const h = new T.HemisphereLight(0xfff0f0, 0x3a2028, 1.3); g.add(h);
-    AVK.lights = g; AV.scene.add(g);
-    import('three/addons/environments/RoomEnvironment.js').then(m => { try { const pm = new T.PMREMGenerator(AV.renderer); AVK.env = pm.fromScene(new m.RoomEnvironment(), 0.04).texture; if (AVK.on) { AV.scene.environment = AVK.env; AV.scene.environmentIntensity = 0.25; } } catch (e) {} }).catch(() => {});
+  const room = avkRoom();
+  if (!room.R.parent) AV.scene.add(room.R);
+  room.R.visible = on;
+  if (!AVK.envReq) {
+    AVK.envReq = true;
+    import('three/addons/environments/RoomEnvironment.js').then(m => { try { const pm = new T.PMREMGenerator(AV.renderer); AVK.env = pm.fromScene(new m.RoomEnvironment(), 0.04).texture; if (AVK.on) { AV.scene.environment = AVK.env; AV.scene.environmentIntensity = 0.18; } } catch (e) {} }).catch(() => {});
   }
-  AVK.lights.visible = on;
-  // die VRM-Lichter dimmen, solange der Baukasten-Körper zu sehen ist
-  AV.scene.children.forEach(c => { if (c.isLight && c.parent === AV.scene) c.visible = !on; });
+  // die VRM-Lichter und den VRM-Boden ausblenden, solange das Zimmer zu sehen ist
+  AV.scene.children.forEach(c => { if ((c.isLight || (c.isMesh && c.geometry && c.geometry.type === 'CircleGeometry')) && c.parent === AV.scene) c.visible = !on; });
   AV.renderer.toneMapping = on ? T.ACESFilmicToneMapping : T.NoToneMapping;
-  AV.renderer.toneMappingExposure = 0.92;
-  AV.scene.environment = on && AVK.env ? AVK.env : null; AV.scene.environmentIntensity = 0.25;
+  AV.renderer.toneMappingExposure = 0.95;
+  AV.renderer.shadowMap.enabled = true; AV.renderer.shadowMap.type = T.PCFSoftShadowMap;
+  AV.scene.environment = on && AVK.env ? AVK.env : null; AV.scene.environmentIntensity = 0.18;
+  AV.scene.background = on ? new T.Color(0x120a0b) : null;
+  AV.scene.fog = on ? new T.FogExp2(0x120a0b, 0.12) : null;
+  const v = document.getElementById('av3dView');
+  if (v) { let vg = document.getElementById('avkVignette'); if (!vg) { vg = document.createElement('div'); vg.id = 'avkVignette'; vg.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);'; v.insertBefore(vg, v.children[1]); } vg.style.display = on ? '' : 'none'; }
 }
+function avkShadows(obj) { obj.traverse(o => { if (o.isMesh) { o.castShadow = !(o.material && o.material.transparent && !o.material.alphaTest); o.receiveShadow = true; } }); }
 function avkUnload() {
   if (!AVK.B) return;
   const s = AV.scene;
@@ -27664,6 +27861,12 @@ async function avkShow(figId) {
   avUnload();
   avkUnload();
   const spec = avkSpec(figId);
+  if (localStorage.getItem('companion_av3dFace') !== 'false') {
+    avMsg('<span style="color:rgba(255,255,255,0.75);">Ich übertrage ihr Gesicht …</span>');
+    try { const r = await avkFaceLm(v); if (r && r.lm) spec.look.portrait = { img: r.img, lm: r.lm, strength: r.lm.frontal === false ? 0.55 : 0.92 }; } catch (e) {}
+    if (my !== AVK.build) return;
+    avMsg('<span style="color:rgba(255,255,255,0.75);">Körper wird gebaut …</span>');
+  }
   const B = await MH.mhBuild(AV.T, K, spec.params, spec.look);
   if (my !== AVK.build) return;
   AVK.spec = spec; AVK.figId = figId; AVK.B = B;
@@ -27680,6 +27883,8 @@ async function avkShow(figId) {
   AVK.hair = MH.mhHair(AV.T, B, spec.hair); AV.scene.add(AVK.hair.group);
   for (let i = 0; i < 60; i++) avkPlace(0.5, 1 / 60, true);
   avkLights(true);
+  avkShadows(B.root); if (AVK.hair) avkShadows(AVK.hair.group); avkShadows(AVK.pen); if (B.eyes) B.eyes.castShadow = false; if (B.lashes) B.lashes.castShadow = false;
+  avkPlaceRoom();
   AVK.on = true; AV.key = '__kit';
   avMsg('');
   avHint((v ? v.name : '') + ' · aus ihrem Phantombild gebaut');
@@ -27702,6 +27907,7 @@ function avkSetPose(pose) {
   AVK.pen.updateMatrixWorld(true);
   // Kamera-Bezug nach dem ersten Bild neu (Brust/Kopf sitzen nach dem Platzieren anders)
   AVK.refresh = 3;
+  if (AVK.room) avkPlaceRoom();
 }
 function avkPlace(p, dt) {
   const T = AV.T, B = AVK.B;
@@ -27780,6 +27986,7 @@ function avkCamera(t) {
     if (cfg.invert) p = 1 - p;
     avkCamera(t);
     avkPlace(p, dt);
+    if (AVK.room) AVK.room.flames.forEach(([fl, pl], i) => { const f = 0.85 + 0.15 * Math.sin(t * 11 + i * 2) * Math.sin(t * 7.3 + i) + 0.05 * Math.random(); pl.intensity = 0.5 * f; fl.scale.set(1, 2 * f, 1); });
     AV.renderer.render(AV.scene, AV.camera);
   };
   const oClose = avClose;
@@ -27803,7 +28010,8 @@ function avkCamera(t) {
       </div>
       <label style="display:block; font-size:13px; margin-top:8px;">Haarlänge<input type="range" data-h="length" min="0.1" max="0.6" step="0.02" value="${sp.hair.length || 0.45}" style="width:100%;"></label>
       <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" data-h="bangs" ${sp.hair.bangs ? 'checked' : ''}> Pony</label>
-      <div class="btn-row" style="margin-top:10px;"><button type="button" class="btn-secondary" id="avkReset">↺ Wieder aus dem Phantombild</button></div>
+      <label style="display:flex; gap:10px; align-items:center; margin-top:10px; font-size:13px;"><input type="checkbox" id="avkFace" ${localStorage.getItem('companion_av3dFace') !== 'false' ? 'checked' : ''}> Gesicht aus ihrem Porträt übernehmen</label>
+      <div class="btn-row" style="margin-top:10px;"><button type="button" class="btn-secondary" id="avkReset">↺ Wieder aus dem Phantombild</button><button type="button" class="btn-secondary" id="avkLm">🎯 Gesichtspunkte</button></div>
       <h3 style="font-size:15px; margin:16px 0 6px;">Dein Penis</h3>
       <p class="hint" style="margin-top:0;">Aus deinem Profil (Phantombild Intimbereich). Feinjustierung:</p>
       ${(() => { const ps = avkPenisSpec(); return `<label style="display:block; font-size:13px;">Länge: <span id="avkPL">${Math.round(ps.length * 100)}</span> cm<input type="range" id="avkPLen" min="0.09" max="0.24" step="0.005" value="${ps.length}" style="width:100%;"></label>
@@ -27815,8 +28023,10 @@ function avkCamera(t) {
     box.querySelectorAll('input[data-p]').forEach(i => i.oninput = () => { avkSetOverride(AVK.figId, 'params', i.dataset.p, +i.value); rebuild(); });
     box.querySelectorAll('input[data-l]').forEach(i => i.onchange = () => { avkSetOverride(AVK.figId, 'look', i.dataset.l, i.value); rebuild(); });
     box.querySelectorAll('input[data-h]').forEach(i => i[i.type === 'range' ? 'oninput' : 'onchange'] = () => { avkSetOverride(AVK.figId, 'hair', i.dataset.h, i.type === 'checkbox' ? i.checked : i.type === 'range' ? +i.value : i.value); rebuild(); });
+    box.querySelector('#avkFace').onchange = e => { safeSet('companion_av3dFace', e.target.checked ? 'true' : 'false'); rebuild(); };
+    box.querySelector('#avkLm').onclick = () => { closeSheet('av3dSheet'); avkLmEditor(AVK.figId); };
     box.querySelector('#avkReset').onclick = () => { const S = avkStore(); delete S[AVK.figId]; safeSet('companion_body3d', JSON.stringify(S)); avSheet(); avkShow(AVK.figId); };
-    const pen = (k, id, lab) => { const i = box.querySelector(id); i.oninput = () => { const o = (() => { try { return JSON.parse(localStorage.getItem('companion_pen3d') || '{}'); } catch (e) { return {}; } })(); o[k] = +i.value; safeSet('companion_pen3d', JSON.stringify(o)); box.querySelector(lab).textContent = Math.round(+i.value * 100); clearTimeout(tmr); tmr = setTimeout(() => { if (!AVK.B) return; AV.scene.remove(AVK.pen); AVK.pen = MH.mhPenis(AV.T, avkPenisSpec()); AV.scene.add(AVK.pen); avkSetPose(AVK.pose); }, 300); }; };
+    const pen = (k, id, lab) => { const i = box.querySelector(id); i.oninput = () => { const o = (() => { try { return JSON.parse(localStorage.getItem('companion_pen3d') || '{}'); } catch (e) { return {}; } })(); o[k] = +i.value; safeSet('companion_pen3d', JSON.stringify(o)); box.querySelector(lab).textContent = Math.round(+i.value * 100); clearTimeout(tmr); tmr = setTimeout(() => { if (!AVK.B) return; AV.scene.remove(AVK.pen); AVK.pen = MH.mhPenis(AV.T, avkPenisSpec()); avkShadows(AVK.pen); AV.scene.add(AVK.pen); avkSetPose(AVK.pose); }, 300); }; };
     pen('length', '#avkPLen', '#avkPL'); pen('girth', '#avkPGir', '#avkPG');
   };
 }
@@ -27836,6 +28046,8 @@ function avkCamera(t) {
   AVK.poseMode = localStorage.getItem('companion_av3dPose') || 'auto'; paint();
   const cam = v.querySelector('#av3dCam'); cam.parentNode.insertBefore(b, cam);
 }
+
+{ const st = document.createElement('style'); st.textContent = '#av3dSheet, #avkLmSheet { z-index: 2500 !important; }'; document.head.appendChild(st); }
 
 window.__appReady = true;
 </script>
