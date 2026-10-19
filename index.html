@@ -1445,7 +1445,7 @@
         </select>
       </div>
       <div id="wellWorkDays" style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; margin:6px 0 0;"></div>
-      <p class="hint" style="margin-top:4px;">Zum Beispiel während der Arbeit: an den markierten Wochentagen ist die App in diesem Zeitraum zu. Tage antippen zum An- und Abwählen.</p>
+      <p class="hint" style="margin-top:4px;">Zum Beispiel während der Arbeit: an den markierten Wochentagen ist die App in diesem Zeitraum zu. Tage antippen zum An- und Abwählen. Außerhalb der Tabuzeit gilt jede Änderung sofort; nur während sie gerade läuft, wird Lockern erst ab morgen wirksam.</p>
       <div style="display:flex; align-items:center; gap:8px; margin:10px 0 0;">
         <span style="font-size:13.5px; flex:1;">Freie Tage pro Woche (gesperrt)</span>
         <select id="wellFree" style="flex:1;">
@@ -1837,7 +1837,7 @@
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
-        <span style="font-size:13.5px;">Neue Figuren bekommen automatisch ein Portfolio (4 Bilder)</span>
+        <span style="font-size:13.5px;">Neue Figuren bekommen automatisch ein Portfolio (3 Bilder)</span>
       </label>
       <div id="figureList"></div>
       <div class="btn-row">
@@ -2073,7 +2073,8 @@
   <div style="position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 14px; background:linear-gradient(rgba(11,7,9,0.95) 60%, transparent);">
     <button type="button" class="btn-secondary" id="ptBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
     <h1 style="margin:0; font-weight:600; font-size:24px; flex:1;">Karten des Abends</h1>
-    <button type="button" class="btn-secondary" id="ptRefresh" style="width:auto; height:40px; padding:0 14px; font-size:13.5px;">🔄 Neu mischen</button>
+    <button type="button" class="btn-secondary" id="ptOne" style="width:auto; height:40px; padding:0 12px; font-size:13.5px;" title="Eine neue Karte">＋1</button>
+    <button type="button" class="btn-secondary" id="ptRefresh" style="width:auto; height:40px; padding:0 12px; font-size:13.5px;" title="Drei neue Karten">🎲 3 neue</button>
   </div>
   <div id="ptList" style="position:absolute; inset:0; overflow-y:auto; scroll-snap-type:y mandatory;"></div>
 </div>
@@ -3619,8 +3620,22 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.43';
+const APP_VERSION = '2.47';
 const CHANGELOG = [
+  { v: '2.47', date: '2026-10-19', items: [
+    '⏳ Tabuzeit tagsüber lässt sich wieder frei ändern: Tage abwählen, Uhrzeiten verschieben, ganz abschalten - das gilt sofort, solange die Tabuzeit gerade nicht läuft. Nur während der gesperrten Zeit wird Lockern erst ab morgen wirksam (und zählt dann auch für den Nutzungsindex).',
+  ] },
+  { v: '2.46', date: '2026-10-19', items: [
+    '📸 Portfolio und „Galerien auffüllen" machen jetzt 3 statt 4 Bilder je Figur (Porträt, Outfit, Akt - das Halbakt-Bild entfällt). Spart ein Viertel der Bildkosten; vorhandene Bilder bleiben.',
+  ] },
+  { v: '2.45', date: '2026-10-19', items: [
+    '🃏 Karten des Abends als wachsender Stapel: Neue Karten kommen oben dazu, die alten bleiben darunter - einfach weiter nach unten wischen (mit Hinweis „Ältere Karten" und Datum je Karte). „🎲 3 neue" legt drei frische Karten oben auf, „＋1" eine einzelne. Die Figuren vermeiden dabei, was es schon gab. Jede alte Karte lässt sich jederzeit nochmal spielen; 🗑 nimmt eine Karte aus dem Stapel. Es bleiben die letzten 60.',
+    'Bilder und Vorstellungen entstehen von selbst nur für neue Karten - ältere ohne Bild bekommen eins auf Tipp (↻ Bild). Die Karten von heute sind schon im Stapel.',
+  ] },
+  { v: '2.44', date: '2026-10-19', items: [
+    '🧍 3D: Weißer Bildschirm behoben - die Grafik hat den Grafikchip überfordert, er hat aufgegeben. Jetzt gibt es drei Grafikstufen (⚙ → Grafik: hoch / mittel / einfach), Standard ist „mittel" (einfachere Materialien, schärfere Schatten, keine Umgebungsreflexe). Die Shader werden vor dem ersten Bild im Hintergrund vorbereitet. Gibt der Grafikchip trotzdem auf, startet die Ansicht von selbst eine Stufe einfacher neu.',
+    'Im Protokoll steht jetzt, welcher Grafikchip erkannt wurde, welche Stufe läuft und ob etwas schiefging (Zeilen „3D: …").',
+  ] },
   { v: '2.43', date: '2026-10-19', items: [
     '🛏 3D: Sie ist jetzt in einem Schlafzimmer - Bett mit Laken und Kissen, Holzboden, Nachttischlampe, flackernde Kerzen. Beim Reiten liegst du auf dem Bett (angedeuteter Körper, Decke über den Beinen), bei Hand und Mund stehst du an der Bettkante.',
     '💡 Warmes Abendlicht mit echten Schatten (Arm auf Bauch, Brüste, Haare), dazu Abdunklung in Hautfalten (unter der Brust, Achseln, Leisten, Hals), Umgebungsreflexe und eine leichte Vignette.',
@@ -16657,7 +16672,10 @@ function setWell(key, value) {
     if (p && p.cfg && key in p.cfg) { delete p.cfg[key]; if (Object.keys(p.cfg).length) safeSet('companion_wellPending', JSON.stringify(p)); else localStorage.removeItem('companion_wellPending'); }
     renderWell(); return;
   }
-  if (stricter(key, cur[key], v) || (key === 'break')) {
+  // Tabuzeit tagsüber: frei änderbar, solange sie gerade NICHT läuft - nur
+  // während der gesperrten Zeit gilt Lockern erst ab morgen (sonst wäre sie im Moment umgehbar)
+  const workFree = key === 'work' && !(cur.work !== '' && inWork(cur.work, new Date()));
+  if (stricter(key, cur[key], v) || (key === 'break') || workFree) {
     const c = Object.assign({}, cur, { [key]: v });
     safeSet('companion_well', JSON.stringify(c));
     let p; try { p = JSON.parse(localStorage.getItem('companion_wellPending') || 'null'); } catch (e) {}
@@ -17609,7 +17627,6 @@ function referencePrompt(shot, gender) {
 const PORTFOLIO_SHOTS = [
   ['Porträt', 'professional portrait photo, head and shoulders, wearing {outfit}, {place0}, soft natural light, shallow depth of field, looking into the camera'],
   ['Outfit', 'full body photo, standing, wearing {outfit}, {pose}, {place1}, natural light'],
-  ['Halbakt', 'sensual photo, partly undressed, {place2}, soft warm light, seductive look'],
   ['Akt', 'artistic nude photo, fully naked, {nudepose}, {place3}, soft cinematic light, full body visible'],
 ];
 // Orte, die zur Figur passen (Elfe: Wald, Lichtung, Bach; Feuerwehrfrau:
@@ -18874,85 +18891,147 @@ function closeSpeedDating() {
 }
 
 // ======================= KARTEN DES ABENDS =======================
-function pitchesToday() { try { const j = JSON.parse(localStorage.getItem('companion_pitches') || 'null'); return j && j.day === dayKeyLocal() ? j : null; } catch (e) { return null; } }
+// Ein wachsender Stapel: neue Karten kommen oben dazu, ältere bleiben darunter
+// (zum Weiterscrollen und erneut Spielen). Jede Karte hat einen festen
+// Schlüssel - Bild und Vorstellung hängen daran, nicht an der Position.
+const PITCH_MAX = 60;
+function pitchesToday() {
+  try {
+    const j = JSON.parse(localStorage.getItem('companion_pitches') || 'null');
+    if (!j || !Array.isArray(j.cards)) return null;
+    // Altes Format (eine Mischung pro Tag): Schlüssel nachtragen, Bilder bleiben erhalten
+    let changed = false;
+    j.cards.forEach((c, i) => { if (!c.key) { c.key = j.day + (j.set ? '_' + j.set : '') + '_' + i; c.made = c.made || Date.parse(j.day) || Date.now(); c.batch = c.batch || j.set || j.day; changed = true; } });
+    if (j.set !== 'deck') { j.set = 'deck'; changed = true; }
+    if (changed) safeSet('companion_pitches', JSON.stringify(j));
+    return j;
+  } catch (e) { return null; }
+}
 function dayKeyLocal() { const d = new Date(Date.now() - 5 * 3600000); return d.toISOString().slice(0, 10); }
-async function openPitches(force) {
+function pitchSave(P) {
+  if (P.cards.length > PITCH_MAX) { P.cards.slice(PITCH_MAX).forEach(c => { dbDelete(STORE_IMAGES, 'pitch_' + c.key).catch(() => {}); }); P.cards = P.cards.slice(0, PITCH_MAX); }
+  safeSet('companion_pitches', JSON.stringify(P));
+}
+async function openPitches(force, count) {
   els.pitchView.style.display = 'block';
   let P = pitchesToday();
-  if (!P || force) {
-    els.ptList.innerHTML = '<div class="pt-card" style="display:flex; align-items:center; justify-content:center;"><div style="text-align:center;"><div class="sp-dice" style="font-size:40px;">🎲</div><p class="hint">Deine Figuren überlegen sich etwas …</p></div></div>';
-    P = await makePitches(); if (!P) return;
+  if (!P || !P.cards.length || force) {
+    if (P && P.cards.length) renderPitches(P);
+    const wait = document.createElement('div'); wait.className = 'pt-card pt-making';
+    wait.style.cssText = 'display:flex; align-items:center; justify-content:center;';
+    wait.innerHTML = `<div style="text-align:center;"><div class="sp-dice" style="font-size:40px;">🎲</div><p class="hint">Deine Figuren überlegen sich ${count === 1 ? 'eine neue Karte' : 'neue Karten'} …</p></div>`;
+    els.ptList.insertBefore(wait, els.ptList.firstChild); els.ptList.scrollTop = 0;
+    const NP = await makePitches(count || 3);
+    if (!NP) { wait.remove(); if (P && P.cards.length) renderPitches(P); return; }
+    P = NP;
   }
   renderPitches(P);
+  els.ptList.scrollTop = 0;
 }
-async function makePitches() {
+async function makePitches(count) {
+  count = Math.max(1, Math.min(5, count || 3));
   const pool = surprisePool();
   if (!pool.length) { els.ptList.innerHTML = '<p class="hint" style="padding:90px 20px;">Erst ein paar Figuren anlegen.</p>'; return null; }
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const R = relations();
-  const sys = `Deine Figuren haben sich für heute Abend etwas für Til ausgedacht - fünf verschiedene Vorschläge, wie Karten zum Aussuchen. Erwachsene, erotisch, verführerisch.
+  const old = pitchesToday();
+  const recent = old ? old.cards.slice(0, 15).map(c => c.title).filter(Boolean) : [];
+  const zahl = ['eine', 'zwei', 'drei', 'vier', 'fünf'][count - 1];
+  const sys = `Deine Figuren haben sich für heute Abend etwas für Til ausgedacht - ${count === 1 ? 'einen neuen Vorschlag' : zahl + ' verschiedene Vorschläge'}, wie Karten zum Aussuchen. Erwachsene, erotisch, verführerisch.
 Figuren:
 ${pool.slice(0, 14).map(x => '- ' + x.v.name + ': ' + figureGist(x.v)).join('\n')}
 ${Object.keys(R).length ? 'Beziehungen: ' + Object.entries(R).slice(0, 8).map(([k, r]) => k.replace('|', ' & ') + ': ' + r.text).join('; ') : ''}
-Regeln: fünf deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen).
+${recent.length ? 'Diese Karten gab es schon - mach etwas anderes (anderer Ort, andere Stimmung, andere Figuren): ' + recent.join(' · ') : ''}
+Regeln: ${count === 1 ? 'ein frischer, überraschender Vorschlag' : 'deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen'}. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen). Genau ${count} Karte${count === 1 ? '' : 'n'}.
 Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}`;
   let j = null;
-  try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 1.0, taskBudget('draft', 1600), { task: 'draft' })); } catch (e) { els.ptList.innerHTML = '<p class="hint" style="padding:90px 20px;">' + esc(e.message) + '</p>'; return null; }
+  try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 1.0, taskBudget('draft', 600 + 400 * count), { task: 'draft' })); } catch (e) { addMsg('system', 'Karten: ' + e.message); return null; }
   const names = pool.map(x => x.v.name);
-  const cards = ((j && j.cards) || []).slice(0, 5).map(c => ({ title: String(c.title || ''), teaser: String(c.teaser || ''), scene: String(c.scene || ''), cast: (c.cast || []).map(n => matchSpeakerName(n, names)).filter(Boolean) })).filter(c => c.scene && c.cast.length);
-  const old = pitchesToday();
-  // Eigene Kennung je Mischung - vorher zeigten neu gemischte Karten die Bilder der alten
-  const P = { day: dayKeyLocal(), set: Date.now().toString(36), cards, refreshes: (old ? old.refreshes || 0 : 0) + (old ? 1 : 0) };
-  safeSet('companion_pitches', JSON.stringify(P));
+  const batch = Date.now().toString(36);
+  const fresh = ((j && j.cards) || []).slice(0, count).map((c, i) => ({ key: batch + '_' + i, batch, made: Date.now(), isNew: true, title: String(c.title || ''), teaser: String(c.teaser || ''), scene: String(c.scene || ''), cast: (c.cast || []).map(n => matchSpeakerName(n, names)).filter(Boolean) })).filter(c => c.scene && c.cast.length);
+  if (!fresh.length) return null;
+  const rest = old ? old.cards.map(c => Object.assign(c, { isNew: false })) : [];
+  const P = { day: dayKeyLocal(), set: 'deck', cards: fresh.concat(rest), refreshes: (old ? old.refreshes || 0 : 0) + 1 };
+  pitchSave(P);
   return P;   // die Bilder holt renderPitches nach und nach
 }
 const pitchBusy = new Set();
 let pitchChain = Promise.resolve();
 function pitchImage(P, i, force) { pitchChain = pitchChain.then(() => pitchImageNow(P, i, force)).catch(() => {}); return pitchChain; }
 async function pitchImageNow(P, i, force) {
-  const id = P.day + (P.set ? '_' + P.set : '') + '_' + i;
+  const card = P.cards[i]; if (!card) return;
+  const id = card.key;
   if (pitchBusy.has(id)) return;
   pitchBusy.add(id);
-  const wait = document.getElementById('ptWait' + i);
+  const wait = document.getElementById('ptWait_' + id);
   if (wait) wait.textContent = 'Bild entsteht …';
   try {
-    const cast = P.cards[i].cast.map(n => figureByName(n)).filter(Boolean).map(f => characterFromVersion(f));
-    const { dataUrl } = await makeSceneImage(P.cards[i].scene, cast);
+    const cast = card.cast.map(n => figureByName(n)).filter(Boolean).map(f => characterFromVersion(f));
+    const { dataUrl } = await makeSceneImage(card.scene, cast);
     const cur = pitchesToday();
-    if (!cur || cur.set !== P.set) return;   // inzwischen neu gemischt
+    if (!cur || !cur.cards.some(c => c.key === id)) return;   // inzwischen entfernt
     await dbPut(STORE_IMAGES, 'pitch_' + id, await (await fetch(dataUrl)).blob());
-    const el = document.getElementById('ptImg' + i); if (el) { el.dataset.scene = '1'; el.src = dataUrl; }
-    const w2 = document.getElementById('ptWait' + i); if (w2) w2.textContent = '';
+    const el = document.getElementById('ptImg_' + id); if (el) { el.dataset.scene = '1'; el.src = dataUrl; }
+    const w2 = document.getElementById('ptWait_' + id); if (w2) w2.textContent = '';
   } catch (e) {
-    logEvent('msg', { role: 'system', text: `Karte ${i + 1}: Bild fehlgeschlagen - ${e.message}` });
+    logEvent('msg', { role: 'system', text: `Karte „${card.title}": Bild fehlgeschlagen - ${e.message}` });
     if (wait) wait.textContent = 'Kein Bild bekommen - unten „↻ Bild" versuchen';
-  } finally { pitchBusy.delete(id); }
+  } finally {
+    pitchBusy.delete(id);
+    const cur = pitchesToday(); const k = cur ? cur.cards.findIndex(c => c.key === id) : -1;
+    if (k >= 0 && !cur.cards[k].imgTried) { cur.cards[k].imgTried = true; safeSet('companion_pitches', JSON.stringify(cur)); }
+  }
+}
+function pitchWhen(c) {
+  const d = new Date(c.made || Date.now()), today = dayKeyLocal(), dk = new Date(d.getTime() - 5 * 3600000).toISOString().slice(0, 10);
+  if (dk === today) return 'heute';
+  const y = new Date(Date.now() - 29 * 3600000).toISOString().slice(0, 10);
+  if (dk === y) return 'gestern';
+  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
 }
 function renderPitches(P) {
   els.ptList.innerHTML = '';
+  let lastBatch = null;
   P.cards.forEach((c, i) => {
-    const card = document.createElement('div'); card.className = 'pt-card';
-    card.innerHTML = `<img id="ptImg${i}" alt=""><div class="pt-info">
-      <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">${i + 1} von ${P.cards.length} · ${esc(c.cast.map(n => n.split(' ')[0]).join(', '))}</div>
+    const card = document.createElement('div'); card.className = 'pt-card'; card.dataset.key = c.key;
+    const firstOld = !c.isNew && (i === 0 || P.cards[i - 1].isNew);
+    card.innerHTML = `<img id="ptImg_${c.key}" alt=""><div class="pt-info">
+      <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">${c.isNew ? '✨ Neu · ' : ''}${i + 1} von ${P.cards.length} · ${pitchWhen(c)} · ${esc(c.cast.map(n => n.split(' ')[0]).join(', '))}</div>
       <h2 style="margin:6px 0; font-size:32px; font-weight:600;">${esc(c.title)}</h2>
       <p style="margin:0 0 8px; font-family:var(--font-display); font-style:italic; font-size:19px; line-height:1.4;">${esc(c.teaser)}</p>
       <p style="margin:0; font-size:14px; line-height:1.5; color:var(--text-dim);">${esc(c.scene)}</p>
-      <div class="btn-row" style="margin-top:14px;"><button type="button" class="btn-primary" data-i="${i}">Diese Karte spielen</button></div>
-      ${i === P.cards.length - 1 ? `<p class="hint" style="margin-top:10px;">Das waren die Karten für heute${P.refreshes ? ` (heute ${P.refreshes}× neu gemischt)` : ''}.</p>` : ''}</div>`;
+      <div class="btn-row" style="margin-top:14px;"><button type="button" class="btn-primary" data-i="${i}">${c.played ? 'Nochmal spielen' : 'Diese Karte spielen'}</button></div>
+      ${i === P.cards.length - 1 ? `<p class="hint" style="margin-top:10px;">Das ist die älteste Karte im Stapel (es bleiben die letzten ${PITCH_MAX}). Oben „＋1" oder „🎲 3 neue" für frische Karten.</p>` : ''}</div>`;
+    if (firstOld && i > 0) card.insertAdjacentHTML('afterbegin', '<div style="position:absolute; z-index:6; left:0; right:0; top:calc(env(safe-area-inset-top, 0px) + 150px); text-align:center;"><span class="chip" style="background:rgba(11,7,9,0.7); height:28px; font-size:12px;">⤓ Ältere Karten</span></div>');
     els.ptList.appendChild(card);
-    card.insertAdjacentHTML('afterbegin', `<div class="pt-wait" id="ptWait${i}"></div>`);
+    card.insertAdjacentHTML('afterbegin', `<div class="pt-wait" id="ptWait_${c.key}"></div>`);
     const img = card.querySelector('img');
     // Bis das Szenenbild da ist: das Porträt der ersten Figur statt Schwarz
     const f0 = figureByName(c.cast[0]); if (f0) hiResUrl(latestVersion(f0)).then(u => { if (u && !img.dataset.scene) img.src = u; });
-    dbGet(STORE_IMAGES, 'pitch_' + P.day + (P.set ? '_' + P.set : '') + '_' + i).then(b => {
+    dbGet(STORE_IMAGES, 'pitch_' + c.key).then(b => {
       if (b) { img.dataset.scene = '1'; img.src = URL.createObjectURL(b); }
-      else pitchImage(P, i);   // fehlt (fehlgeschlagen oder noch nicht fertig) - jetzt nachholen
+      else if (!c.imgTried && (c.isNew || i < 3)) pitchImage(P, i);   // nur für frische Karten automatisch - ältere auf Tipp (↻ Bild)
+      else { const w = document.getElementById('ptWait_' + c.key); if (w) w.textContent = ''; }
     }).catch(() => {});
-    card.querySelector('button[data-i]').onclick = () => playPitch(c);
+    card.querySelector('button[data-i]').onclick = () => {
+      const cur = pitchesToday(); const k = cur ? cur.cards.findIndex(x => x.key === c.key) : -1;
+      if (k >= 0) { cur.cards[k].played = (cur.cards[k].played || 0) + 1; safeSet('companion_pitches', JSON.stringify(cur)); }
+      playPitch(c);
+    };
     const redo = document.createElement('button'); redo.type = 'button'; redo.className = 'btn-secondary'; redo.textContent = '↻ Bild';
     redo.style.cssText = 'width:auto; flex:0 0 auto; padding:12px 16px;';
     redo.onclick = () => pitchImage(P, i, true);
     card.querySelector('.btn-row').appendChild(redo);
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'btn-secondary'; del.textContent = '🗑'; del.title = 'Karte entfernen'; del.setAttribute('aria-label', del.title);
+    del.style.cssText = 'width:auto; flex:0 0 auto; padding:12px 14px;';
+    del.onclick = () => {
+      if (!confirm(`„${c.title}" aus dem Stapel entfernen?`)) return;
+      const cur = pitchesToday(); if (!cur) return;
+      cur.cards = cur.cards.filter(x => x.key !== c.key); dbDelete(STORE_IMAGES, 'pitch_' + c.key).catch(() => {});
+      safeSet('companion_pitches', JSON.stringify(cur));
+      const y = els.ptList.scrollTop; renderPitches(cur); els.ptList.scrollTop = Math.min(y, els.ptList.scrollHeight);
+    };
+    card.querySelector('.btn-row').appendChild(del);
   });
 }
 function playPitch(c) {
@@ -19152,7 +19231,7 @@ function showFigureCard(figure) {
     const m = document.createElement('div');
     m.className = 'more-sheet open';
     m.style.cssText = 'position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 90px); z-index:2060;';
-    m.innerHTML = '<button type="button" class="btn-secondary" id="fmUp">⟳ Auf aktuellen Stand bringen</button>' + (v.isNarrator ? '' : '<button type="button" class="btn-secondary" id="fmPort">📸 Portfolio erstellen (4 Bilder)</button>');
+    m.innerHTML = '<button type="button" class="btn-secondary" id="fmUp">⟳ Auf aktuellen Stand bringen</button>' + (v.isNarrator ? '' : '<button type="button" class="btn-secondary" id="fmPort">📸 Portfolio erstellen (3 Bilder)</button>');
     document.body.appendChild(m);
     const close = () => m.remove();
     setTimeout(() => document.addEventListener('click', function h(e) { if (!m.contains(e.target)) { close(); document.removeEventListener('click', h); } }), 0);
@@ -20656,7 +20735,7 @@ document.getElementById('homePhotoBtn').onclick = () => psChoose();
   const s = document.getElementById(id); if (s) { s.dataset.pickTitle = t; enhanceFigureSelect(s); }
 });
 document.getElementById('homeSpeedBtn').onclick = () => openSpeedDating();
-document.getElementById('ptRefresh').onclick = () => openPitches(true);
+document.getElementById('ptRefresh').onclick = () => openPitches(true, 3);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
 document.getElementById('swipeOpenBtn').onclick = openSwipe;
 document.getElementById('swBack').onclick = () => { els.swipeView.style.display = 'none'; try { renderFigureList(); } catch (e) {} };
@@ -20668,7 +20747,7 @@ document.getElementById('deriveAllBtn').onclick = (e) => deriveAllFromPortraits(
 // Galerien auffüllen: jede Figur (auch das Ich) bekommt Bilder, bis sie
 // mindestens 4 hat. Wer schon 4 hat, wird übersprungen - der Knopf fängt also
 // nicht mehr jedes Mal oben an. Noch einmal tippen hält nach der laufenden Figur an.
-const GALLERY_TARGET = 4;
+const GALLERY_TARGET = 3;
 let portfolioRun = null;
 document.getElementById('portfolioAllBtn').onclick = async (e) => {
   const btn = e.currentTarget;
@@ -21041,7 +21120,7 @@ function gameSub(key) {
     if (key === 'tournament') { const t = Object.entries(r.tourWins || {}).sort((a, b) => b[1] - a[1])[0]; return t ? `Titel: ${t[0].split(' ')[0]}` : 'alle gegen alle'; }
     if (key === 'adventure') return 'du wählst den Weg';
     if (key === 'story') return 'vorab geschrieben, dann anhören';
-    if (key === 'pitches') { const P = pitchesToday(); return P ? `heute ${P.cards.length} Karten` : 'Ideen deiner Figuren'; }
+    if (key === 'pitches') { const P = pitchesToday(); return P && P.cards.length ? `${P.cards.length} Karten im Stapel` : 'Ideen deiner Figuren'; }
     if (key === 'campfire') return 'du hörst heimlich zu';
     if (key === 'discover') return 'Stimmen-Blindtest mit Puls';
     if (key === 'live') return 'freies Gespräch';
@@ -24336,7 +24415,7 @@ const HELP_HANDBOOK = `APP-AUFBAU
 - Einstellungen in Gruppen mit Suche: Verbindungen (Gerät 1/2, Pulsgurt), Stimme & Klang (inkl. Körpergeräusche, Dazwischenreden), KI & Bilder (Anbieter, Modelle, Bild über Vorlage), Schutz & Sicherung (PIN, Sicherung), Anzeige.
 - Start: Weitermachen, Heute dabei (Besetzung), Szene, Live beginnen, Überrasch mich (würfelt Besetzung und Szene), Geschichte, zuletzt gespielt.
 - Live und Geschichte laufen im Vollbild. Vor dem Start das Blatt „Bevor es losgeht": Szene, Besetzung, Erzähler, Spiel und Regeln (Kurz davor/Gekommen, Hinhalten, Sie entscheidet, Echtes Nein, Bereit-Check). Knöpfe: Kurz davor (bremst), Gekommen (Gerät hält danach 2,5 Min still - gewollt), Stopp (endgültig), Anruf (sprechen), 🔥 👍 👎 (Reaktionen, werden gelernt). ✕ verlässt die Sitzung, der Verlauf bleibt für „Weitermachen".
-- Figuren: Archiv, Figurenkarte mit Galerie (Ziel 4 Bilder: Porträt, Outfit, Halbakt, Akt), „Galerien auffüllen" macht fehlende Bilder. Bilder „über Vorlage" nehmen das Porträt mit, damit das Gesicht gleich bleibt (Venice etwa 4 ct pro Bild, normal erzeugt 1 ct). Fehlt das große Original, geht das Vorschaubild hochskaliert mit (Protokoll: „nur Vorschaubild - Original fehlt"). „über Beschreibung" heißt: ohne Vorlage, sieht der Figur dann weniger ähnlich. Die Ich-Figur hat eine feste Bildbeschreibung und eine Intim-Beschreibung, die in Akt-Bilder geht.
+- Figuren: Archiv, Figurenkarte mit Galerie (Ziel 3 Bilder: Porträt, Outfit, Akt), „Galerien auffüllen" macht fehlende Bilder. Bilder „über Vorlage" nehmen das Porträt mit, damit das Gesicht gleich bleibt (Venice etwa 4 ct pro Bild, normal erzeugt 1 ct). Fehlt das große Original, geht das Vorschaubild hochskaliert mit (Protokoll: „nur Vorschaubild - Original fehlt"). „über Beschreibung" heißt: ohne Vorlage, sieht der Figur dann weniger ähnlich. Die Ich-Figur hat eine feste Bildbeschreibung und eine Intim-Beschreibung, die in Akt-Bilder geht.
 - Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Tageslimit, Pause, Nachtruhe, Tabuzeit tagsüber an gewählten Wochentagen z. B. Arbeitszeit, freie Tage, Kalender), Nutzungsindex 🌡 (0-100, farbig, Selbsttest, bei Tiefrot spricht Mila es an), Auswertung.
 - 3D-Ansicht 🧍 (oben in der Sitzung oder in der Figurenkarte): weibliche Figuren automatisch als nackter 3D-Körper aus dem Baukasten (aus ihrem Phantombild; Datei koerper.bin muss im Repository liegen), mit Tils Penis aus seinem Profil, Brust-/Haarphysik; Stellungen Hand/Mund/Reiten wechseln je nach Handlung (Knopf Auto/✋/👄/🐎), zweite Hand: Eier, Nippel, streicheln, Klaps; Schlafzimmer mit Schatten; Gesicht wird aus dem Porträt übertragen (⚙ → 🎯 Gesichtspunkte zum Nachziehen); alternativ eigene VRM-Datei; Hand folgt Gerät 1; 🎥 Perspektive, Wischen dreht, ▶ Probelauf, ⚙ Modelle laden/zuordnen (VRoid Studio) und Verzögerung/Richtung. [[open:avatar]] öffnet sie.
 - Lernen nur mit verbundenem Pulsgurt. Körpergeräusche (Atem, Stöhnen) brauchen Kopfhörer; die ersten 45 s misst die App den Ruhepegel.
@@ -25750,7 +25829,7 @@ const pv = { token: 0, added: [], obs: null, cur: -1, auto: localStorage.getItem
   // Neue Karten bringen ihre Vorstellung gleich mit
   const sysMark = 'Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}';
   const origMake = makePitches;
-  makePitches = async function () {
+  makePitches = async function (...args) {
     const origCall = callProvider;
     callProvider = function (prov, sys, msgs, temp, budget, opts) {
       if (typeof sys === 'string' && sys.includes(sysMark)) {
@@ -25761,7 +25840,7 @@ Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..
       return origCall.call(this, prov, sys, msgs, temp, budget, opts);
     };
     let P;
-    try { P = await origMake(); } finally { callProvider = origCall; }
+    try { P = await origMake(...args); } finally { callProvider = origCall; }
     return P;
   };
 }
@@ -25775,9 +25854,9 @@ Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..
     return j;
   };
   const origMake = makePitches;
-  makePitches = async function () {
+  makePitches = async function (...args) {
     pv.lastVoices = null;
-    const P = await origMake();
+    const P = await origMake(...args);
     if (P && pv.lastVoices) {
       P.cards.forEach((c, i) => { const v = pv.lastVoices[i]; if (v) c.voice = pvClean(v, c); });
       safeSet('companion_pitches', JSON.stringify(P));
@@ -25808,7 +25887,7 @@ Antworte NUR als JSON: {"voice": [{"name": "...", "text": "..."}]}`;
       c.voice = pvClean(j && j.voice, c);
     } catch (e) { c.voice = []; }
     const cur = pitchesToday();
-    if (cur && cur.set === P.set) { cur.cards[i].voice = c.voice; safeSet('companion_pitches', JSON.stringify(cur)); }
+    if (cur) { const k = cur.cards.findIndex(x => x.key === c.key); if (k >= 0) { cur.cards[k].voice = c.voice; safeSet('companion_pitches', JSON.stringify(cur)); } }
     delete c._voiceBusy;
     return c.voice;
   })();
@@ -25881,7 +25960,7 @@ async function pvSpeak(P, i) {
         row.insertBefore(b, row.children[1] || null);
       }
       // Vorstellung schon vorbereiten
-      pvVoice(P, i).catch(() => {});
+      if (i < 3 || P.cards[i].isNew) pvVoice(P, i).catch(() => {});
     });
     // Beim Wischen: die sichtbare Karte stellt sich vor
     pv.obs = new IntersectionObserver(entries => {
@@ -26062,7 +26141,8 @@ function riskSave() {
   setWell = function (key, value) {
     try {
       const cur = wellCfg(); const v = (key === 'limit' || key === 'break') ? +value : String(value);
-      if (key !== 'break' && String(v) !== String(cur[key]) && !stricter(key, cur[key], v)) { riskLog().loosen.push(Date.now()); riskSave(); }
+      const wFree = key === 'work' && !(cur.work !== '' && inWork(cur.work, new Date()));
+      if (key !== 'break' && !wFree && String(v) !== String(cur[key]) && !stricter(key, cur[key], v)) { riskLog().loosen.push(Date.now()); riskSave(); }
     } catch (e) {}
     return oSet.apply(this, arguments);
   };
@@ -27740,6 +27820,9 @@ async function avkLmEditor(figId) {
 }
 OV_DEFS.push(['avkLmSheet', () => { const v = document.getElementById('avkLmSheet'); return !!v && v.style.display !== 'none'; }, () => closeSheet('avkLmSheet')]);
 // ---------- Ansicht ----------
+// ---------- Grafikstufe: hoch / mittel / einfach (sinkt automatisch, wenn das Handy überfordert ist) ----------
+function avkQ() { return localStorage.getItem('companion_av3dQ') || 'mittel'; }
+function avkLog(t) { try { logEvent('msg', { role: 'system', text: '3D: ' + t }); } catch (e) {} }
 // ---------- Zimmer, Licht und Schatten ----------
 function avkTex(w, h, draw, rep) { const T = AV.T; const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; if (rep) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } t.anisotropy = 4; return t; }
 function avkNoise(g, w, h, n, a, col) { for (let i = 0; i < n; i++) { g.fillStyle = `rgba(${col},${Math.random() * a})`; g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3); } }
@@ -27771,18 +27854,18 @@ function avkRoom() {
   for (const [x, y, z] of [[-1.2, 0.28, -0.7], [-1.38, 0.3, -0.75], [1.25, -0.06, -0.6]]) {
     const cd = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 0.12 + Math.random() * 0.06, 16), M({ color: 0xf5ece0, roughness: 0.6 })); cd.position.set(x, y - 0.07, z); cd.castShadow = true; bed.add(cd);
     const fl = new T.Mesh(new T.SphereGeometry(0.012, 10, 8), new T.MeshBasicMaterial({ color: 0xffc070 })); fl.scale.set(1, 2, 1); fl.position.set(x, y + 0.01, z); bed.add(fl);
-    const pl = new T.PointLight(0xff9a4a, 0.5, 3, 2); pl.position.set(x, y + 0.04, z); bed.add(pl); flames.push([fl, pl]);
+    let pl = null; if (avkQ() === 'hoch' || (avkQ() === 'mittel' && !flames.length)) { pl = new T.PointLight(0xff9a4a, 0.5, 3, 2); pl.position.set(x, y + 0.04, z); bed.add(pl); } flames.push([fl, pl]);
   }
   // Licht
   const key = new T.DirectionalLight(0xffd2a8, 2.3); key.position.set(-1.3, 2.3, 1.5); key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048); const sc = key.shadow.camera; sc.left = -1.2; sc.right = 1.2; sc.top = 1.6; sc.bottom = -1.0; sc.near = 0.5; sc.far = 7; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015; key.shadow.radius = 4;
+  key.castShadow = avkQ() !== 'einfach'; key.shadow.mapSize.set(avkQ() === 'hoch' ? 2048 : 1024, avkQ() === 'hoch' ? 2048 : 1024); const sc = key.shadow.camera; sc.left = -1.2; sc.right = 1.2; sc.top = 1.6; sc.bottom = -1.0; sc.near = 0.5; sc.far = 7; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015; key.shadow.radius = 4;
   R.add(key); R.add(key.target);
   const fill = new T.DirectionalLight(0x9fb0ff, 0.45); fill.position.set(1.8, 1.2, 1.2); R.add(fill);
   const rim = new T.DirectionalLight(0xffa080, 1.3); rim.position.set(0.8, 1.9, -2); R.add(rim);
-  const hemi = new T.HemisphereLight(0xffe2d0, 0x2a1810, 0.45); R.add(hemi);
+  const hemi = new T.HemisphereLight(0xffe2d0, 0x2a1810, 0.45); R.add(hemi); AVK.roomHemi = hemi;
   // Sein Körper (beim Reiten unter ihr): Becken, Bauch, Oberschenkel, Decke über den Beinen
   const his = new T.Group(); R.add(his);
-  AVK.room = { R, bed, his, flames, key };
+  AVK.room = { R, bed, his, flames, key, hemi };
   return AVK.room;
 }
 function avkHisBody() {
@@ -27790,7 +27873,7 @@ function avkHisBody() {
   if (AVK.pose !== 'ride' || !AVK.pen3) return;
   const b = AVK.pen3.base;
   const pen = avkPenisSpec();
-  const skin = new T.MeshPhysicalMaterial({ color: new T.Color(pen.skin), roughness: 0.6, sheen: 0.4, sheenColor: new T.Color(0xff9a80) });
+  const skin = new T.MeshStandardMaterial({ color: new T.Color(pen.skin), roughness: 0.6 });
   const caps = (r, len, pos, rot, sc) => { const m = new T.Mesh(new T.CapsuleGeometry(r, len, 8, 20), skin); m.position.copy(pos); if (rot) m.rotation.set(...rot); if (sc) m.scale.set(...sc); m.castShadow = m.receiveShadow = true; his.add(m); return m; };
   caps(0.16, 0.42, b.clone().add(new T.Vector3(0, -0.11, 0.42)), [Math.PI / 2, 0, 0], [1.15, 1, 0.55]);   // Bauch/Brust
   caps(0.17, 0.05, b.clone().add(new T.Vector3(0, -0.1, 0.02)), [0, 0, Math.PI / 2], [1, 1.05, 0.6]);     // Becken
@@ -27815,7 +27898,7 @@ function avkLights(on) {
   const room = avkRoom();
   if (!room.R.parent) AV.scene.add(room.R);
   room.R.visible = on;
-  if (!AVK.envReq) {
+  if (!AVK.envReq && avkQ() === 'hoch') {
     AVK.envReq = true;
     import('three/addons/environments/RoomEnvironment.js').then(m => { try { const pm = new T.PMREMGenerator(AV.renderer); AVK.env = pm.fromScene(new m.RoomEnvironment(), 0.04).texture; if (AVK.on) { AV.scene.environment = AVK.env; AV.scene.environmentIntensity = 0.18; } } catch (e) {} }).catch(() => {});
   }
@@ -27823,12 +27906,30 @@ function avkLights(on) {
   AV.scene.children.forEach(c => { if ((c.isLight || (c.isMesh && c.geometry && c.geometry.type === 'CircleGeometry')) && c.parent === AV.scene) c.visible = !on; });
   AV.renderer.toneMapping = on ? T.ACESFilmicToneMapping : T.NoToneMapping;
   AV.renderer.toneMappingExposure = 0.95;
-  AV.renderer.shadowMap.enabled = true; AV.renderer.shadowMap.type = T.PCFSoftShadowMap;
+  const q = avkQ();
+  AV.renderer.shadowMap.enabled = q !== 'einfach'; AV.renderer.shadowMap.type = q === 'hoch' ? T.PCFSoftShadowMap : T.PCFShadowMap;
+  AV.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, on ? (q === 'hoch' ? 1.6 : q === 'mittel' ? 1.25 : 1) : 1.75));
+  if (on && room.hemi) room.hemi.intensity = q === 'hoch' ? 0.45 : 0.75;
   AV.scene.environment = on && AVK.env ? AVK.env : null; AV.scene.environmentIntensity = 0.18;
   AV.scene.background = on ? new T.Color(0x120a0b) : null;
   AV.scene.fog = on ? new T.FogExp2(0x120a0b, 0.12) : null;
   const v = document.getElementById('av3dView');
   if (v) { let vg = document.getElementById('avkVignette'); if (!vg) { vg = document.createElement('div'); vg.id = 'avkVignette'; vg.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);'; v.insertBefore(vg, v.children[1]); } vg.style.display = on ? '' : 'none'; }
+}
+// Für mittel/einfach: aufwendige Physik-Materialien gegen einfachere tauschen (kürzere Shader)
+function avkSimplify(obj) {
+  if (avkQ() === 'hoch' || !obj) return;
+  const T = AV.T;
+  obj.traverse(o => {
+    if (!o.material) return;
+    const conv = m => {
+      if (!m || !m.isMeshPhysicalMaterial) return m;
+      const n = new T.MeshStandardMaterial();
+      ['map', 'aoMap', 'aoMapIntensity', 'bumpMap', 'bumpScale', 'color', 'roughness', 'metalness', 'vertexColors', 'transparent', 'alphaTest', 'side', 'emissive', 'emissiveMap', 'emissiveIntensity', 'depthWrite', 'opacity', 'envMapIntensity'].forEach(k => { if (m[k] !== undefined && m[k] !== null) n[k] = (m[k] && m[k].isColor) ? m[k].clone() : m[k]; });
+      m.dispose(); return n;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
+  });
 }
 function avkShadows(obj) { obj.traverse(o => { if (o.isMesh) { o.castShadow = !(o.material && o.material.transparent && !o.material.alphaTest); o.receiveShadow = true; } }); }
 function avkUnload() {
@@ -27883,8 +27984,12 @@ async function avkShow(figId) {
   AVK.hair = MH.mhHair(AV.T, B, spec.hair); AV.scene.add(AVK.hair.group);
   for (let i = 0; i < 60; i++) avkPlace(0.5, 1 / 60, true);
   avkLights(true);
+  avkSimplify(B.root); if (AVK.hair) avkSimplify(AVK.hair.group); avkSimplify(AVK.pen); avkSimplify(AVK.room && AVK.room.R);
   avkShadows(B.root); if (AVK.hair) avkShadows(AVK.hair.group); avkShadows(AVK.pen); if (B.eyes) B.eyes.castShadow = false; if (B.lashes) B.lashes.castShadow = false;
   avkPlaceRoom();
+  // Shader vorab im Hintergrund übersetzen (kein Ruckeln/Absturz beim ersten Bild)
+  try { if (AV.renderer.compileAsync) { avMsg('<span style="color:rgba(255,255,255,0.75);">Grafik wird vorbereitet …</span>'); await AV.renderer.compileAsync(AV.scene, AV.camera); avMsg(''); } } catch (e) {}
+  if (my !== AVK.build) return;
   AVK.on = true; AV.key = '__kit';
   avMsg('');
   avHint((v ? v.name : '') + ' · aus ihrem Phantombild gebaut');
@@ -27986,7 +28091,7 @@ function avkCamera(t) {
     if (cfg.invert) p = 1 - p;
     avkCamera(t);
     avkPlace(p, dt);
-    if (AVK.room) AVK.room.flames.forEach(([fl, pl], i) => { const f = 0.85 + 0.15 * Math.sin(t * 11 + i * 2) * Math.sin(t * 7.3 + i) + 0.05 * Math.random(); pl.intensity = 0.5 * f; fl.scale.set(1, 2 * f, 1); });
+    if (AVK.room) AVK.room.flames.forEach(([fl, pl], i) => { const f = 0.85 + 0.15 * Math.sin(t * 11 + i * 2) * Math.sin(t * 7.3 + i) + 0.05 * Math.random(); if (pl) pl.intensity = 0.5 * f; fl.scale.set(1, 2 * f, 1); });
     AV.renderer.render(AV.scene, AV.camera);
   };
   const oClose = avClose;
@@ -28010,6 +28115,7 @@ function avkCamera(t) {
       </div>
       <label style="display:block; font-size:13px; margin-top:8px;">Haarlänge<input type="range" data-h="length" min="0.1" max="0.6" step="0.02" value="${sp.hair.length || 0.45}" style="width:100%;"></label>
       <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" data-h="bangs" ${sp.hair.bangs ? 'checked' : ''}> Pony</label>
+      <label style="display:block; font-size:13px; margin-top:10px;">Grafik <select id="avkQual" style="width:auto; margin-left:6px;"><option value="hoch">hoch (Schatten weich, Reflexe)</option><option value="mittel">mittel</option><option value="einfach">einfach (ohne Schatten)</option></select></label>
       <label style="display:flex; gap:10px; align-items:center; margin-top:10px; font-size:13px;"><input type="checkbox" id="avkFace" ${localStorage.getItem('companion_av3dFace') !== 'false' ? 'checked' : ''}> Gesicht aus ihrem Porträt übernehmen</label>
       <div class="btn-row" style="margin-top:10px;"><button type="button" class="btn-secondary" id="avkReset">↺ Wieder aus dem Phantombild</button><button type="button" class="btn-secondary" id="avkLm">🎯 Gesichtspunkte</button></div>
       <h3 style="font-size:15px; margin:16px 0 6px;">Dein Penis</h3>
@@ -28023,10 +28129,11 @@ function avkCamera(t) {
     box.querySelectorAll('input[data-p]').forEach(i => i.oninput = () => { avkSetOverride(AVK.figId, 'params', i.dataset.p, +i.value); rebuild(); });
     box.querySelectorAll('input[data-l]').forEach(i => i.onchange = () => { avkSetOverride(AVK.figId, 'look', i.dataset.l, i.value); rebuild(); });
     box.querySelectorAll('input[data-h]').forEach(i => i[i.type === 'range' ? 'oninput' : 'onchange'] = () => { avkSetOverride(AVK.figId, 'hair', i.dataset.h, i.type === 'checkbox' ? i.checked : i.type === 'range' ? +i.value : i.value); rebuild(); });
+    const qs = box.querySelector('#avkQual'); qs.value = avkQ(); qs.onchange = () => { safeSet('companion_av3dQ', qs.value); avkLog('Grafikstufe ' + qs.value); const fig = AVK.figId; closeSheet('av3dSheet'); avkHardReset(); avOpen(fig); };
     box.querySelector('#avkFace').onchange = e => { safeSet('companion_av3dFace', e.target.checked ? 'true' : 'false'); rebuild(); };
     box.querySelector('#avkLm').onclick = () => { closeSheet('av3dSheet'); avkLmEditor(AVK.figId); };
     box.querySelector('#avkReset').onclick = () => { const S = avkStore(); delete S[AVK.figId]; safeSet('companion_body3d', JSON.stringify(S)); avSheet(); avkShow(AVK.figId); };
-    const pen = (k, id, lab) => { const i = box.querySelector(id); i.oninput = () => { const o = (() => { try { return JSON.parse(localStorage.getItem('companion_pen3d') || '{}'); } catch (e) { return {}; } })(); o[k] = +i.value; safeSet('companion_pen3d', JSON.stringify(o)); box.querySelector(lab).textContent = Math.round(+i.value * 100); clearTimeout(tmr); tmr = setTimeout(() => { if (!AVK.B) return; AV.scene.remove(AVK.pen); AVK.pen = MH.mhPenis(AV.T, avkPenisSpec()); avkShadows(AVK.pen); AV.scene.add(AVK.pen); avkSetPose(AVK.pose); }, 300); }; };
+    const pen = (k, id, lab) => { const i = box.querySelector(id); i.oninput = () => { const o = (() => { try { return JSON.parse(localStorage.getItem('companion_pen3d') || '{}'); } catch (e) { return {}; } })(); o[k] = +i.value; safeSet('companion_pen3d', JSON.stringify(o)); box.querySelector(lab).textContent = Math.round(+i.value * 100); clearTimeout(tmr); tmr = setTimeout(() => { if (!AVK.B) return; AV.scene.remove(AVK.pen); AVK.pen = MH.mhPenis(AV.T, avkPenisSpec()); avkSimplify(AVK.pen); avkShadows(AVK.pen); AV.scene.add(AVK.pen); avkSetPose(AVK.pose); }, 300); }; };
     pen('length', '#avkPLen', '#avkPL'); pen('girth', '#avkPGir', '#avkPG');
   };
 }
@@ -28048,6 +28155,44 @@ function avkCamera(t) {
 }
 
 { const st = document.createElement('style'); st.textContent = '#av3dSheet, #avkLmSheet { z-index: 2500 !important; }'; document.head.appendChild(st); }
+
+function avkHardReset() {
+  try { AV.renderer && AV.renderer.dispose(); } catch (e) {}
+  const old = document.getElementById('av3dCanvas');
+  if (old) { const c = old.cloneNode(false); old.parentNode.replaceChild(c, old); avkWatchCanvas(c); }
+  cancelAnimationFrame(AV.raf); AV.raf = 0;
+  AV.renderer = null; AV.scene = null; AV.camera = null; AV.vrm = null; AV.key = null;
+  AVK.room = null; AVK.env = null; AVK.envReq = false; AVK.B = null; AVK.on = false; AVK.hair = null; AVK.pen = null; AVK.pen3 = null; AVK.rig = null;
+}
+function avkWatchCanvas(c) {
+  if (!c || c.__avkWatch) return; c.__avkWatch = true;
+  c.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    const q = avkQ(), nq = q === 'hoch' ? 'mittel' : 'einfach';
+    avkLog(`Grafik-Kontext verloren (Stufe ${q}) - starte mit Stufe ${nq} neu`);
+    safeSet('companion_av3dQ', nq);
+    const fig = AV.figId;
+    setTimeout(() => { avkHardReset(); if (AV.open) { avMsg(`<span style="color:rgba(255,255,255,0.8);">Die Grafik war zu viel für das Handy - ich starte mit einfacherer Stufe (${nq}) neu …</span>`); avOpen(fig); } }, 400);
+  });
+}
+{
+  const oInit = avInit;
+  avInit = async function () {
+    const first = !AV.renderer;
+    const r = await oInit.apply(this, arguments);
+    avkWatchCanvas(document.getElementById('av3dCanvas'));
+    if (first && AV.renderer) {
+      try { const gl = AV.renderer.getContext(); const ext = gl.getExtension('WEBGL_debug_renderer_info'); const gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); avkLog(`gestartet - GPU ${gpu}, Stufe ${avkQ()}, Pixel ${window.devicePixelRatio}`); } catch (e) {}
+      AV.renderer.debug.onShaderError = (gl, prog, vs, fs) => { avkLog('Shader-Fehler: ' + String(gl.getProgramInfoLog(prog) || gl.getShaderInfoLog(fs) || '').slice(0, 200)); };
+    }
+    return r;
+  };
+}
+
+{
+  const one = document.getElementById('ptOne');
+  if (one) one.onclick = () => { try { pvStop(); pv.cur = -1; } catch (e) {} openPitches(true, 1); };
+}
 
 window.__appReady = true;
 </script>
