@@ -3620,8 +3620,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.49';
+const APP_VERSION = '2.51';
 const CHANGELOG = [
+  { v: '2.51', date: '2026-10-20', items: [
+    '🌀 3D-Foto: Aus jedem Porträt (Figurenkarte, Knopf 🌀) und jedem Galeriebild (🌀 3D) wird ein Bild mit Tiefe. Handy kippen oder mit dem Finger ziehen: nahe und ferne Teile verschieben sich gegeneinander. Ihr Gesicht bleibt dabei stehen, dadurch wirkt es, als würde sie dich ansehen und dir folgen. Die Tiefe berechnet ein kleines KI-Modell direkt auf dem Handy (einmal ca. 27 MB laden, danach gespeichert).',
+  ] },
+  { v: '2.50', date: '2026-10-20', items: [
+    '🧍 3D: Eigene VRM-Figuren können jetzt alles: Hand, Mund und Reiten, im Zimmer, mit dir und deinem Penis statt dem Zylinder. Antippen lässt sie wippen.',
+    '🧍 3D: VRM-Kleidung lässt sich ausziehen (⚙ → „Kleidung ausziehen"), soweit das Modell es zulässt. Bei Modellen, deren Lizenz keine sexuelle Darstellung erlaubt, bleibt sie an. Die VRM-Datei kannst du dort auch wieder als Datei speichern.',
+    '🧍 3D: Reiten natürlicher - Knie und Füße bleiben auf dem Bett, das Becken rollt und hebt sich, statt dass der ganze Körper hüpft.',
+    '🧍 3D: Beim Reiten ist das Kopfteil des Bettes weg, es hat die Sicht verdeckt.',
+  ] },
   { v: '2.49', date: '2026-10-20', items: [
     '🧍 3D: Du bist jetzt mit im Bild - dein Körper aus deinem Profil (Größe, Figur, Alter, Haut, Haare). Die Kamera sitzt in deinen Augen; beim Reiten liegst du unter ihr, sonst stehst du vor ihr. Unter ⚙ „Dein Körper" an-/abschaltbar und nachjustierbar. Braucht die neue koerper.bin.',
     '🧍 3D: Antippen lässt ihre Brüste wippen (Ziehen dreht weiter die Ansicht).',
@@ -26839,6 +26848,10 @@ async function avSheet() {
 
 
 
+
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -27633,8 +27646,11 @@ function mhRig(THREE, B, opts) {
       setBlow(st.bb === undefined ? 0.5 : st.bb);
     } else if (pose === 'ride') {
       // aufrecht, Becken kippt beim Auf und Ab, leichtes Hohlkreuz
-      bn('spine05').rotation.set(-0.08 + 0.1 * (p - 0.5), 0.03 * Math.sin(t * 0.5), 0.03 * Math.sin(t * 0.9));
-      bn('spine04').rotation.set(-0.05 - 0.05 * vv, 0, 0);
+      // Becken kippt (rollt) mit, der Oberkörper bleibt aufrecht und schwingt nur wenig nach
+      const tilt = 0.22 * (p - 0.5);
+      bn('root').rotation.set(tilt, 0, 0.02 * Math.sin(t * 0.9));
+      bn('spine05').rotation.set(-0.08 - tilt * 0.85, 0.03 * Math.sin(t * 0.5), 0.02 * Math.sin(t * 0.9));
+      bn('spine04').rotation.set(-0.05 - 0.04 * vv, 0, 0);
       bn('spine03').rotation.set(0.04 + 0.015 * breath * (1 + ar), 0, 0);
       bn('spine01').rotation.set(0.05, 0, 0);
     } else {
@@ -27675,10 +27691,21 @@ function mhRig(THREE, B, opts) {
       st.headLocked = bn('head').quaternion.clone();
     } else if (pose === 'ride') {
       // Schritt sitzt auf dem Schaft: oben (p=1) nur die Spitze, unten ganz
-      const depth = 0.15 + 0.75 * (1 - p);
+      const depth = 0.25 + 0.62 * (1 - p);
       const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
       const kp = keyPoints();
       B.root.position.add(want.sub(kp.crotch)); B.root.updateMatrixWorld(true);
+      // Knie und Füße bleiben auf dem Bett: nur Becken und Oberkörper bewegen sich
+      if (!st.rideKnees || st.rideKey !== pen.base) {
+        st.rideKey = pen.base; st.rideKnees = {};
+        ['L', 'R'].forEach(sd => { st.rideKnees[sd] = { k: bn('lowerleg01.' + sd).getWorldPosition(V()), f: bn('foot.' + sd).getWorldPosition(V()) }; });
+      }
+      ['L', 'R'].forEach(sd => {
+        const K = st.rideKnees[sd];
+        mhAim(THREE, bn('upperleg01.' + sd), H.off('upperleg01.' + sd, 'lowerleg01.' + sd), K.k);
+        mhAim(THREE, bn('lowerleg01.' + sd), H.off('lowerleg01.' + sd, 'foot.' + sd), K.f);
+      });
+      B.root.updateMatrixWorld(true);
     } else {
       let minY = Infinity; ['lowerleg02.L', 'lowerleg02.R', 'foot.L', 'foot.R', 'toe1-1.L'].forEach(n => { const b = bn(n); if (b) minY = Math.min(minY, b.getWorldPosition(V()).y); });
       B.root.position.y -= minY - 0.05; B.root.updateMatrixWorld(true);
@@ -28080,7 +28107,7 @@ function avkRoom() {
   for (let i = 0; i < sp.count; i++) { const x = sp.getX(i), y = sp.getY(i); sp.setZ(i, 0.006 * Math.sin(x * 9 + Math.sin(y * 3) * 2) * Math.sin(y * 7) + 0.004 * Math.sin(x * 23 + y * 17)); }
   sg.computeVertexNormals();
   const sheet = new T.Mesh(sg, new T.MeshPhysicalMaterial({ map: linen, color: 0xffffff, roughness: 0.85, sheen: 0.6, sheenColor: new T.Color(0xffffff), sheenRoughness: 0.8 })); sheet.rotation.x = -Math.PI / 2; sheet.position.y = 0.002; sheet.receiveShadow = true; bed.add(sheet);
-  const head = new T.Mesh(new T.BoxGeometry(1.95, 0.9, 0.08), M({ map: wood, color: 0x5a3426, roughness: 0.45 })); head.position.set(0, 0.2, -1.12); head.castShadow = head.receiveShadow = true; bed.add(head);
+  const head = new T.Mesh(new T.BoxGeometry(1.95, 0.9, 0.08), M({ map: wood, color: 0x5a3426, roughness: 0.45 })); head.position.set(0, 0.2, -1.12); head.castShadow = head.receiveShadow = true; bed.add(head); bed.userData.headboard = head;
   const pil = new T.MeshPhysicalMaterial({ map: linen, color: 0xfbf3ee, roughness: 0.9, sheen: 0.5, sheenColor: new T.Color(0xffffff) });
   for (const px of [-0.45, 0.45]) { const p = new T.Mesh(new T.SphereGeometry(0.3, 32, 16), pil); p.scale.set(1.25, 0.32, 0.65); p.position.set(px, 0.08, -0.85); p.castShadow = p.receiveShadow = true; bed.add(p); }
   // Nachttisch, Lampe, Kerzen
@@ -28124,6 +28151,7 @@ function avkHisBody() {
 function avkPlaceRoom() {
   const r = AVK.room; if (!r || !AVK.pen3) return;
   const b = AVK.pen3.base;
+  if (r.bed.userData.headboard) r.bed.userData.headboard.visible = AVK.pose !== 'ride';   // Kopfteil würde beim Reiten die Sicht verdecken
   if (AVK.pose === 'ride') { r.bed.position.set(0, Math.min(b.y - 0.13, 0.03), b.z - 0.05); r.bed.rotation.y = Math.PI; }
   else { r.bed.position.set(0, 0, b.z - 0.1 - 1.12); r.bed.rotation.y = 0; }
   avkHisBody();
@@ -28175,9 +28203,10 @@ function avkShadows(obj) { obj.traverse(o => { if (o.isMesh) { o.castShadow = !(
 function avkUnload() {
   if (!AVK.B) return;
   const s = AV.scene;
-  [AVK.B.root, AVK.hair && AVK.hair.group, AVK.pen].forEach(o => { if (o) { s.remove(o); o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) [].concat(x.material).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); }); } });
+  if (AVK.B.isVrm) { if (AVK.pen) { s.remove(AVK.pen); AVK.pen.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } if (AV.sleeve) AV.sleeve.visible = true; if (AV.vrm) { AV.vrm.scene.traverse(o => { if (o.isMesh) o.visible = true; }); } }
+  else [AVK.B.root, AVK.hair && AVK.hair.group, AVK.pen].forEach(o => { if (o) { s.remove(o); o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) [].concat(x.material).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); }); } });
   if (AVK.me && AVK.me.B.root.parent) AVK.me.B.root.parent.remove(AVK.me.B.root);
-  AVK.B = AVK.rig = AVK.jig = AVK.hair = AVK.pen = null; AVK.on = false; AVK.base = null; AVK.pen3 = null;
+  AVK.B = AVK.rig = AVK.jig = AVK.hair = AVK.pen = null; AVK.on = false; AVK.base = null; AVK.pen3 = null; AVK.vrmMode = false;
   avkLights(false);
 }
 async function avkShow(figId) {
@@ -28229,6 +28258,7 @@ async function avkShow(figId) {
   AVK.hair = MH.mhHair(AV.T, B, spec.hair); AV.scene.add(AVK.hair.group);
   for (let i = 0; i < 60; i++) avkPlace(0.5, 1 / 60, true);
   avkLights(true);
+  if (AVK.room) AVK.room.key.intensity = 2.3; if (AVK.camFill) AVK.camFill.intensity = 0.7;
   if (AVK.me && !AVK.me.simple) { AVK.me.simple = true; avkSimplify(AVK.me.B.root); avkShadows(AVK.me.B.root); }
   avkSimplify(B.root); if (AVK.hair) avkSimplify(AVK.hair.group); avkSimplify(AVK.pen); avkSimplify(AVK.room && AVK.room.R);
   avkShadows(B.root); if (AVK.hair) avkShadows(AVK.hair.group); avkShadows(AVK.pen); if (B.eyes) B.eyes.castShadow = false; if (B.lashes) B.lashes.castShadow = false;
@@ -28249,9 +28279,9 @@ function avkSetPose(pose) {
   let base, axis;
   if (pose === 'blow') { axis = new T.Vector3(0, -0.04, -1).normalize(); base = kp.mouth.clone().addScaledVector(axis, -L * 0.85); }
   else if (pose === 'ride') { axis = new T.Vector3(0, 1, 0.12).normalize(); base = new T.Vector3(kp.crotch.x, kp.crotch.y - 0.475 * L, kp.crotch.z); }
-  else { const bl = B.bones['breast.L'].getWorldPosition(new T.Vector3()); base = new T.Vector3(0, bl.y - (AVK.me ? 0.08 : 0.03), bl.z + (AVK.me ? 0.37 : 0.37)); axis = new T.Vector3(0, 0.05, -1).normalize(); }
+  else { const bl = B.isVrm ? kp.nipL.clone() : B.bones['breast.L'].getWorldPosition(new T.Vector3()); base = new T.Vector3(0, bl.y - (AVK.me ? 0.08 : 0.03), bl.z + (AVK.me ? 0.37 : 0.37)); axis = new T.Vector3(0, 0.05, -1).normalize(); }
   AVK.pen3 = { base, axis, L };
-  AVK.base = base; AVK.chest = B.bones['breast.L'].getWorldPosition(new T.Vector3()).setX(0); AVK.head = kp.head.clone(); AVK.mouth = kp.mouth.clone();
+  AVK.base = base; AVK.chest = (B.isVrm ? kp.nipL.clone() : B.bones['breast.L'].getWorldPosition(new T.Vector3())).setX(0); AVK.head = kp.head.clone(); AVK.mouth = kp.mouth.clone();
   AVK.pen.position.copy(base);
   const x = new T.Vector3(0, 1, 0).cross(axis); if (x.lengthSq() < 1e-6) x.set(1, 0, 0); x.normalize();
   AVK.pen.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(x, axis.clone().cross(x), axis));
@@ -28316,7 +28346,7 @@ function avkFromText(text) {
 function avkSwitch(pose) {
   const c = document.getElementById('av3dCanvas');
   if (c) { c.style.transition = 'opacity .25s'; c.style.opacity = '0'; }
-  setTimeout(() => { avkSetPose(pose); if (AVK.hair && AVK.hair.reset) AVK.hair.reset(); for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); if (c) c.style.opacity = '1'; avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich' }[pose]); }, 260);
+  setTimeout(() => { avkSetPose(pose); if (AVK.hair && AVK.hair.reset) AVK.hair.reset(); if (AVK.B && AVK.B.isVrm) { for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); try { AVK.B.vrm.springBoneManager.reset(); } catch (e) {} } for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); if (c) c.style.opacity = '1'; avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich' }[pose]); }, 260);
 }
 function avkCamera(t) {
   const T = AV.T, cam = AV.camera, b = AVK.base, ch = AVK.chest || b, hd = AVK.head || b;
@@ -28325,7 +28355,7 @@ function avkCamera(t) {
   const eye = AVK.me && AVK.me.kp && AVK.me.kp.eye;
   if (AV.camMode === 0 && eye) {
     pos = eye.clone();
-    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : b.clone().add(new T.Vector3(0, 0.08, -0.35));
+    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : b.clone().lerp(hd, 0.72);
   } else if (AV.camMode === 2 && AVK.me) {
     const c = ch.clone().lerp(b, 0.5); c.y = (Math.max(hd.y, b.y) + Math.min(ch.y, b.y)) / 2 - 0.05; c.x = 0;
     pos = c.clone().add(new T.Vector3(1.75, 0.25, pose === 'ride' ? 0.35 : 0.1)); at = c;
@@ -28344,11 +28374,223 @@ function avkCamera(t) {
   if (cam.fov !== fov || cam.near !== near) { cam.fov = fov; cam.near = near; cam.updateProjectionMatrix(); }
   cam.position.copy(pos); cam.lookAt(at);
 }
+// ---------- Eigene VRM-Figuren im Zimmer: Stellungen, dein Körper, Penis ----------
+// Normalisierte VRM-Knochen haben (wie der Baukasten) achsen-ausgerichtete Ruhelagen.
+// VRM 0.x ist nach rotateVRM0 um 180° gedreht: dort X- und Z-Drehungen umkehren (k0).
+const AVK_CLOTH_RX = /CLOTH|Shoes|Accessory|Socks|Glove|Tops|Bottoms|Onepiece|Underwear|Inner|Bra|Pants|Skirt|Jacket|Coat|Dress|Shirt/i;
+function avkVrmNudeMap() { try { return JSON.parse(localStorage.getItem('companion_vrmNude') || '{}'); } catch (e) { return {}; } }
+function avkVrmNude(key, meta) { const m = avkVrmNudeMap(); if (meta && meta.sexual === false) return false; return m[key] === undefined ? true : !!m[key]; }
+function avkVrmClothes(vrm, nude) {
+  let n = 0;
+  vrm.scene.traverse(o => { if (!o.isMesh) return; const ms = [].concat(o.material); const cloth = ms.length && ms.every(m => m && AVK_CLOTH_RX.test(m.name || '') && !/SKIN|FACE|HAIR|EYE/i.test(m.name || '')); if (cloth) { o.visible = !nude; n++; } });
+  return n;
+}
+function avkVrmCalib(vrm) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), B = n => vrm.humanoid.getNormalizedBoneNode(n);
+  vrm.humanoid.resetNormalizedPose(); vrm.scene.position.set(0, 0, 0); vrm.update(0); vrm.scene.updateMatrixWorld(true);
+  const wp = n => B(n).getWorldPosition(V());
+  const head = wp('head'), hips = wp('hips');
+  const s = Math.max(0.6, (head.y - hips.y) / 0.62);
+  // Mund: Mitte der Mundinnen-Fläche (VRoid: FaceMouth), sonst Schätzung vor dem Kopf
+  let sum = V(0, 0, 0), cnt = 0; const v = V(0, 0, 0);
+  vrm.scene.traverse(o => {
+    if (!o.isSkinnedMesh) return;
+    const mats = [].concat(o.material), g = o.geometry, idx = g.index;
+    const groups = g.groups && g.groups.length ? g.groups : [{ start: 0, count: idx ? idx.count : g.attributes.position.count, materialIndex: 0 }];
+    groups.forEach(gr => {
+      const m = mats[gr.materialIndex || 0]; if (!m || !/FaceMouth|Mouth/i.test(m.name || '')) return;
+      const seen = new Set();
+      for (let i = gr.start; i < gr.start + gr.count && seen.size < 4000; i++) { const vi = idx ? idx.getX(i) : i; if (seen.has(vi)) continue; seen.add(vi); o.getVertexPosition(vi, v); v.applyMatrix4(o.matrixWorld); sum.add(v); cnt++; }
+    });
+  });
+  let mouth = cnt ? sum.divideScalar(cnt).add(V(0, 0, 0.012 * s)) : head.clone().add(V(0, 0.035 * s, 0.075 * s));
+  if (mouth.distanceTo(head) > 0.25 * s) mouth = head.clone().add(V(0, 0.035 * s, 0.075 * s));
+  // Brustwarzen: VRoid-Brustknochen (J_Sec_L_Bust2), sonst Schätzung
+  const chestN = B('upperChest') ? 'upperChest' : 'chest';
+  const cpos = wp(chestN);
+  let bl = null, br = null;
+  vrm.scene.traverse(o => { const n = o.name || ''; if (/Bust.?2/i.test(n) || /Bust2/i.test(n)) { const p = o.getWorldPosition(V()); if (p.x > 0) bl = bl || p; else br = br || p; } });
+  const nipL = bl ? bl.add(V(0, -0.005, 0.02 * s)) : cpos.clone().add(V(0.07 * s, -0.03 * s, 0.1 * s));
+  const nipR = br ? br.add(V(0, -0.005, 0.02 * s)) : cpos.clone().add(V(-0.07 * s, -0.03 * s, 0.1 * s));
+  const ul = wp('leftUpperLeg'), ur = wp('rightUpperLeg');
+  const crotch = ul.clone().add(ur).multiplyScalar(0.5).add(V(0, -0.075 * s, 0.03 * s));
+  const loc = (n, p) => p.clone().applyMatrix4(B(n).matrixWorld.clone().invert());
+  return {
+    s, chestN,
+    mouth: loc('head', mouth), top: loc('head', head.clone().add(V(0, 0.16 * s, -0.02 * s))),
+    nipL: loc(chestN, nipL), nipR: loc(chestN, nipR), crotch: loc('hips', crotch),
+    hipL: loc('hips', hips.clone().add(V(0.13 * s, 0.0, 0))), hipR: loc('hips', hips.clone().add(V(-0.13 * s, 0.0, 0))),
+  };
+}
+function avkVrmRig(vrm, cal) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), B = n => vrm.humanoid.getNormalizedBoneNode(n);
+  const k0 = (vrm.meta && vrm.meta.metaVersion === '0') ? -1 : 1, s0 = cal.s;
+  const R = (n, x, y, z) => { const b = B(n); if (b) b.rotation.set(x * k0, y, z * k0); };
+  const W = (n, l) => l.clone().applyMatrix4(B(n).matrixWorld);
+  const keyPoints = () => ({ mouth: W('head', cal.mouth), head: B('head').getWorldPosition(V()), headTop: W('head', cal.top), crotch: W('hips', cal.crotch), nipL: W(cal.chestN, cal.nipL), nipR: W(cal.chestN, cal.nipR), hipL: W('hips', cal.hipL), hipR: W('hips', cal.hipR) });
+  const names = []; vrm.humanoid.humanBones && Object.keys(vrm.humanoid.humanBones).forEach(n => names.push(n));
+  const sceneQ = () => vrm.scene.getWorldQuaternion(new T.Quaternion());
+  const aim = (bone, child, target) => { if (!bone || !child) return; bone.updateWorldMatrix(true, true); const bp = bone.getWorldPosition(V()), cp = child.getWorldPosition(V()); const dq = new T.Quaternion().setFromUnitVectors(cp.sub(bp).normalize(), target.clone().sub(bp).normalize()); const pq = bone.parent.getWorldQuaternion(new T.Quaternion()); bone.quaternion.premultiply(pq.clone().invert().multiply(dq).multiply(pq)); bone.updateWorldMatrix(false, true); };
+  const limb = (u, l, e, target, pole) => {
+    const U = B(u), L = B(l), E = B(e); if (!U || !L || !E) return;
+    U.quaternion.identity(); L.quaternion.identity(); U.updateWorldMatrix(true, true);
+    const A = U.getWorldPosition(V()), E0 = L.getWorldPosition(V()), W0 = E.getWorldPosition(V());
+    const l1 = A.distanceTo(E0), l2 = E0.distanceTo(W0);
+    const toT = target.clone().sub(A); let d = toT.length(); d = Math.max(Math.abs(l1 - l2) + 0.01, Math.min(l1 + l2 - 0.004, d));
+    const dir = toT.normalize(); const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const pd = pole.clone().sub(A); pd.sub(dir.clone().multiplyScalar(pd.dot(dir))).normalize();
+    aim(U, L, A.clone().addScaledVector(dir, a).addScaledVector(pd, h)); aim(L, E, A.clone().addScaledVector(dir, d));
+  };
+  const fist = (sd, amt) => ['Index', 'Middle', 'Ring', 'Little'].forEach((f, i) => ['Proximal', 'Intermediate', 'Distal'].forEach((sg, j) => R(sd + f + sg, 0, 0, (sd === 'right' ? 1 : -1) * amt[j] * (1 + i * 0.04))));
+  const fistCircle = () => { const n1 = B('rightMiddleProximal'), n2 = B('rightMiddleIntermediate'), n3 = B('rightMiddleDistal'); if (!n1 || !n2 || !n3) return null; const a = n1.getWorldPosition(V()), b = n2.getWorldPosition(V()), c = n3.getWorldPosition(V()); const tip = n3.children[0] ? n3.children[0].getWorldPosition(V()) : c.clone().add(c.clone().sub(b).multiplyScalar(0.8)); const ab = b.clone().sub(a), ac = tip.clone().sub(a), n = V(0, 0, 0).crossVectors(ab, ac); const nn = n.lengthSq(); if (nn < 1e-10) return null; const off = V(0, 0, 0).crossVectors(n, ab).multiplyScalar(ac.lengthSq()).add(V(0, 0, 0).crossVectors(ac, n).multiplyScalar(ab.lengthSq())).multiplyScalar(1 / (2 * nn)); return { c: a.clone().add(off), r: off.length() }; };
+  const st = { t: 0, blinkAt: 2, blinkT: -1, look: null, glanceAt: 3, glance: null, wristOff: null, pokeT: 0, fistR: 0 };
+  function gripR(point, axis) {
+    fist('right', [0.95, 1.15, 0.85]); R('rightThumbMetacarpal', 0, 0.55, 0.25); R('rightThumbProximal', 0, 0.5, 0); R('rightThumbDistal', 0, 0.4, 0);
+    const zW = axis.clone(), upW = V(-0.35, 1, 0); const yW = upW.sub(zW.clone().multiplyScalar(upW.dot(zW))).normalize(); const xW = V(0, 0, 0).crossVectors(yW, zW).normalize();
+    const qW = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(xW, yW, zW)).multiply(sceneQ());
+    const sh = B('rightUpperArm').getWorldPosition(V()), pole = sh.clone().add(V(-0.35 * s0, -0.45 * s0, -0.25 * s0)), hand = B('rightHand');
+    let wrist = st.wristOff ? point.clone().add(st.wristOff) : point.clone().add(V(-0.06 * s0, 0.03 * s0, 0));
+    for (let it = 0; it < 3; it++) {
+      limb('rightUpperArm', 'rightLowerArm', 'rightHand', wrist, pole);
+      const pq = hand.parent.getWorldQuaternion(new T.Quaternion()); hand.quaternion.copy(pq.invert().multiply(qW)); hand.updateWorldMatrix(false, true);
+      const fc = fistCircle(); if (!fc) break; st.fistR = fc.r;
+      const corr = point.clone().sub(fc.c); corr.sub(zW.clone().multiplyScalar(corr.dot(zW))); wrist.add(corr);
+    }
+    st.wristOff = wrist.clone().sub(point);
+  }
+  // freie Hand auf einen Punkt legen (Ellbogen nach außen/unten), Finger locker
+  function rest(sd, target) {
+    const sg = sd === 'left' ? 1 : -1, sh = B(sd + 'UpperArm').getWorldPosition(V());
+    const wrist = target.clone().add(V(0, 0.025 * s0, 0)).addScaledVector(target.clone().sub(sh).setY(0).normalize(), -0.06 * s0);
+    limb(sd + 'UpperArm', sd + 'LowerArm', sd + 'Hand', wrist, sh.clone().add(V(sg * 0.5, -0.5, -0.2)));
+    const h = B(sd + 'Hand'); if (h) h.quaternion.identity();
+    R(sd + 'Hand', 0, 0, -sg * 0.35);
+    fist(sd, [0.2, 0.25, 0.15]);
+  }
+  function legs(pose) {
+    if (pose === 'ride') { R('leftUpperLeg', -1.15, 0, 0.62); R('rightUpperLeg', -1.15, 0, -0.62); R('leftLowerLeg', 2.45, 0, 0); R('rightLowerLeg', 2.45, 0, 0); R('leftFoot', -0.6, 0, 0); R('rightFoot', -0.6, 0, 0); }
+    else { const u = pose === 'blow' ? -0.45 : -0.3; R('leftUpperLeg', u, 0, 0.06); R('rightUpperLeg', u, 0, -0.06); R('leftLowerLeg', pose === 'blow' ? 2.1 : 1.85, 0, 0); R('rightLowerLeg', pose === 'blow' ? 2.1 : 1.85, 0, 0); R('leftFoot', -0.4, 0, 0); R('rightFoot', -0.4, 0, 0); }
+  }
+  const floorLow = () => { let m = Infinity; ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot', 'leftToes', 'rightToes'].forEach(n => { const b = B(n); if (b) m = Math.min(m, b.getWorldPosition(V()).y); }); return isFinite(m) ? m : 0; };
+  function frame(dt, s) {
+    st.t += dt; const t = st.t, pose = s.pose || 'hand', p = s.p, ar = s.arousal || 0, pen = s.pen, him = s.him;
+    vrm.humanoid.resetNormalizedPose();
+    legs(pose);
+    st.pv = st.pv === undefined ? p : st.pv; const vel = (p - st.pv) / Math.max(dt, 1e-3); st.pv = p; const vv = Math.max(-1, Math.min(1, vel * 0.3));
+    const breath = Math.sin(t * Math.PI * 2 * ((s.bpm || 70) / 60) / 4.2);
+    st.pokeT = Math.max(0, st.pokeT - dt); const pk = st.pokeT > 0 ? 0.06 * Math.sin(st.pokeT * 55) * (st.pokeT / 0.35) : 0;
+    const chestN = cal.chestN;
+    const setBlow = b => { R('spine', 0.15 + 0.5 * b, 0.03 * Math.sin(t * 0.43), 0.03 * Math.sin(t * 0.7)); R('chest', 0.05 + 0.25 * b + 0.03 * vv, 0, 0); if (B('upperChest')) R('upperChest', 0.03 + 0.1 * b + pk, 0, 0); R('neck', -0.2 * b, 0, 0); };
+    if (pose === 'blow') setBlow(st.bb === undefined ? 0.5 : st.bb);
+    else if (pose === 'ride') { const tilt = 0.22 * (p - 0.5); R('hips', tilt, 0, 0.02 * Math.sin(t * 0.9)); R('spine', -0.06 - tilt * 0.85, 0.03 * Math.sin(t * 0.5), 0.02 * Math.sin(t * 0.9)); R('chest', 0.03 + 0.015 * breath * (1 + ar) + pk, 0, 0); }
+    else { R('spine', (him ? 0.14 : 0.2) + 0.05 * (p - 0.5), 0.04 * Math.sin(t * 0.5), 0.015 * Math.sin(t * 0.7)); R('chest', 0.06 + 0.02 * breath * (1 + ar) + pk, 0, 0); }
+    vrm.scene.updateMatrixWorld(true);
+    // Platzierung
+    if (s.measure || !pen || pose === 'hand') {
+      vrm.scene.position.y -= floorLow() - 0.04; if (s.measure) { vrm.scene.position.x = 0; vrm.scene.position.z = 0; } vrm.scene.updateMatrixWorld(true);
+      if (s.measure) return keyPoints();
+    } else if (pose === 'blow') {
+      const depth = 0.12 + 0.5 * p;
+      const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1.0 - depth));
+      const face = pen.axis.clone().negate();
+      const aimHead = () => { const h = B('head'); h.quaternion.identity(); vrm.scene.updateMatrixWorld(true); const hp = h.getWorldPosition(V()); MH.mhAim(T, h, V(0, 0, 0.1 * k0), hp.clone().add(face.clone().add(V(0, -0.12, 0)))); };
+      const mouthAt = b => { setBlow(b); vrm.scene.updateMatrixWorld(true); aimHead(); return keyPoints().mouth; };
+      if (!st.blowRoot || st.blowKey !== pen.base) { st.bb = 0.5; const m = mouthAt(0.5); vrm.scene.position.add(want.clone().sub(m)); st.blowRoot = vrm.scene.position.clone(); st.blowKey = pen.base; }
+      vrm.scene.position.copy(st.blowRoot);
+      let b = st.bb;
+      for (let it = 0; it < 3; it++) { const m0 = mouthAt(b), m1 = mouthAt(b + 0.04), d = m1.sub(m0).divideScalar(0.04); const db = want.clone().sub(m0).dot(d) / Math.max(1e-6, d.lengthSq()); b = Math.max(-0.3, Math.min(1.4, b + db * 0.9)); }
+      st.bb = b; const m = mouthAt(b);
+      vrm.scene.position.add(want.clone().sub(m)); vrm.scene.updateMatrixWorld(true);
+      st.blowRoot.lerp(vrm.scene.position, Math.min(1, dt * 0.3));
+    } else if (pose === 'ride') {
+      const depth = 0.25 + 0.62 * (1 - p);
+      const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
+      vrm.scene.position.add(want.sub(keyPoints().crotch)); vrm.scene.updateMatrixWorld(true);
+      if (!st.rideKnees || st.rideKey !== pen.base) { st.rideKey = pen.base; st.rideKnees = {}; ['left', 'right'].forEach(sd => { st.rideKnees[sd] = { k: B(sd + 'LowerLeg').getWorldPosition(V()), f: B(sd + 'Foot').getWorldPosition(V()) }; }); }
+      ['left', 'right'].forEach(sd => { const K = st.rideKnees[sd]; aim(B(sd + 'UpperLeg'), B(sd + 'LowerLeg'), K.k); aim(B(sd + 'LowerLeg'), B(sd + 'Foot'), K.f); });
+      vrm.scene.updateMatrixWorld(true);
+    }
+    const kp = keyPoints();
+    // Hände
+    const thighPt = sd => { const a = B(sd + 'UpperLeg').getWorldPosition(V()), k = B(sd + 'LowerLeg').getWorldPosition(V()); return a.lerp(k, 0.55).add(V(0, 0.07 * s0, 0)); };
+    const restOn = sd => {
+      const sg = sd === 'left' ? 1 : -1;
+      if (him && pose === 'ride') return rest(sd, him.belly.clone().lerp(him.chest, 0.35).add(V(sg * 0.09, 0.105, 0)));
+      if (him && pose === 'blow') { const th = (sd === 'left') === (him.thighL.x > him.thighR.x) ? him.thighL : him.thighR; return rest(sd, th.clone().add(V(0, 0.02, -0.075))); }
+      rest(sd, thighPt(sd));
+    };
+    if (pose === 'hand' && s.grip) gripR(s.grip.point, s.grip.axis);
+    else if (pose === 'blow' && pen) gripR(pen.base.clone().addScaledVector(pen.axis, pen.L * (0.14 + 0.08 * p)), pen.axis);
+    else restOn('right');
+    const act = s.hand2;
+    if (act === 'nipple' || act === 'stroke') rest('left', kp.nipL.clone().add(V(0.01, act === 'stroke' ? -0.04 - 0.03 * Math.sin(t) : 0, 0.02)));
+    else if (act === 'balls' && s.balls) rest('left', s.balls.clone().add(V(0, -0.02, 0)));
+    else restOn('left');
+    vrm.scene.updateMatrixWorld(true);
+    // Kopf und Blick
+    if (t > st.glanceAt) { st.glance = Math.random() < 0.3 ? V((Math.random() - 0.5) * 0.4, -0.18 - Math.random() * 0.17, 0) : null; st.glanceAt = t + (st.glance ? 0.8 + Math.random() * 0.7 : 4 + Math.random() * 6); }
+    const want = s.cam.clone(); if (st.glance) want.add(st.glance);
+    st.look = st.look ? st.look.lerp(want, Math.min(1, dt * 6)) : want.clone();
+    if (pose !== 'blow') {
+      const hp = B('head').getWorldPosition(V()); const dv = st.look.clone().sub(hp);
+      const yaw = Math.atan2(dv.x, dv.z), pitch = Math.atan2(dv.y, Math.hypot(dv.x, dv.z));
+      R('neck', -(pitch * 0.35) - 0.03, yaw * 0.35, 0.03 * Math.sin(t * 0.33)); R('head', -(pitch * 0.35) - 0.03, yaw * 0.35, 0.05 * Math.sin(t * 0.33));
+    }
+    if (AV.look) AV.look.position.copy(st.look);
+    // Mimik
+    const em = vrm.expressionManager;
+    if (em) {
+      if (st.blinkT < 0 && t > st.blinkAt) st.blinkT = 0;
+      let bl = 0; if (st.blinkT >= 0) { st.blinkT += dt; bl = st.blinkT < 0.08 ? st.blinkT / 0.08 : st.blinkT < 0.18 ? 1 - (st.blinkT - 0.08) / 0.1 : 0; if (st.blinkT >= 0.18) { st.blinkT = -1; st.blinkAt = t + 2 + Math.random() * 4; } }
+      const set = (n, x) => { try { em.setValue(n, Math.max(0, Math.min(1, x))); } catch (e) {} };
+      const talk = s.talking && pose !== 'blow' ? 0.12 + 0.5 * Math.abs(Math.sin(t * 13.1) * Math.sin(t * 7.7 + 1)) : 0;
+      set('blink', bl); set('aa', pose === 'blow' ? 0.75 : talk + (pose === 'ride' ? 0.15 * ar : 0)); set('oh', pose === 'blow' ? 0.35 : 0.05 + 0.12 * ar);
+      set('relaxed', 0.25 + 0.45 * ar); set('happy', pose === 'blow' ? 0 : s.talking ? 0.12 : 0.2 * (1 - ar));
+    }
+    st.kp = kp;
+    return st;
+  }
+  frame.poke = () => { st.pokeT = 0.35; };
+  return frame;
+}
+async function avkVrmShow(figId) {
+  const vrm = AV.vrm; if (!vrm) return;
+  const my = ++AVK.build, T = AV.T;
+  const rec = AV.key ? await avGet(AV.key).catch(() => null) : null;
+  const meta = (rec && rec.meta) || {};
+  if (AV.sleeve) AV.sleeve.visible = false;
+  avkVrmClothes(vrm, avkVrmNude(AV.key, meta));
+  const cal = avkVrmCalib(vrm);
+  AVK.B = { root: vrm.scene, isVrm: true, vrm, bones: {} }; AVK.vrmMode = true; AVK.figId = figId; AVK.spec = null;
+  AVK.rig = avkVrmRig(vrm, cal);
+  AVK.jig = dt => { vrm.update(dt); }; AVK.jig.poke = () => AVK.rig.poke();
+  AVK.hair = null;
+  AVK.pen = MH.mhPenis(T, avkPenisSpec()); AV.scene.add(AVK.pen);
+  let K = null; try { K = await avkKit(); } catch (e) {}
+  if (my !== AVK.build) return;
+  if (K && localStorage.getItem('companion_av3dMe') !== 'false') { try { const me = await avkMeBuild(K); if (me) AV.scene.add(me.B.root); } catch (e) { avkMeUnload(); } } else avkMeUnload();
+  if (my !== AVK.build) return;
+  AVK.pen3 = null; AVK.frames = 0;
+  avkSetPose(AVK.poseMode === 'auto' ? (AVK.pose || 'hand') : AVK.poseMode);
+  avkPlace(0.5, 1 / 60); avkCamera(0);
+  for (let i = 0; i < 30; i++) avkPlace(0.5, 1 / 30);
+  try { vrm.springBoneManager && vrm.springBoneManager.reset(); } catch (e) {}
+  avkLights(true);
+  AV.renderer.toneMapping = T.NoToneMapping;   // Anime-Materialien (MToon) sind für ungefilterte Farben gemacht
+  if (AVK.room) { AVK.room.key.intensity = 1.25; if (AVK.room.hemi) AVK.room.hemi.intensity = 0.45; } if (AVK.camFill) AVK.camFill.intensity = 0.35;
+  if (AVK.me && !AVK.me.simple) { AVK.me.simple = true; avkSimplify(AVK.me.B.root); avkShadows(AVK.me.B.root); }
+  avkSimplify(AVK.pen); avkSimplify(AVK.room && AVK.room.R); avkShadows(AVK.pen);
+  vrm.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+  avkPlaceRoom();
+  try { if (AV.renderer.compileAsync) await AV.renderer.compileAsync(AV.scene, AV.camera); } catch (e) {}
+  if (my !== AVK.build) return;
+  AVK.on = true; avMsg('');
+}
 {
   const oShow = avShowFigure;
   avShowFigure = async function (figId) {
     AV.figId = figId;
-    if (avMap()[figId]) { avkUnload(); AV.key = null; return oShow.call(this, figId); }
+    if (avMap()[figId]) { avkUnload(); AV.key = null; const r = await oShow.call(this, figId); if (AV.vrm && localStorage.getItem('companion_vrmRoom') !== 'false') { try { await avkVrmShow(figId); } catch (e) { avkLog('VRM-Zimmer: ' + (e && e.message)); avkUnload(); } } return r; }
     return avkShow(figId);
   };
   const oFrame = avFrame;
@@ -28369,6 +28611,26 @@ function avkCamera(t) {
   const oSheet = avSheet;
   avSheet = async function () {
     await oSheet.apply(this, arguments);
+    if (AV.vrm && AV.key) {
+      const body0 = document.querySelector('#av3dSheet .sheet-body'); if (!body0) return;
+      const rec = await avGet(AV.key).catch(() => null), meta = (rec && rec.meta) || {};
+      const vb = document.createElement('div');
+      const lic = meta.sexual === false;
+      vb.innerHTML = `<h3 style="font-size:15px; margin:0 0 6px;">Eigene Figur (VRM)</h3>
+        <label style="display:flex; gap:10px; align-items:center; font-size:13px;"><input type="checkbox" id="avkVrmRoom" ${localStorage.getItem('companion_vrmRoom') !== 'false' ? 'checked' : ''}> Im Zimmer mit Stellungen (Hand, Mund, Reiten) und dir</label>
+        <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px; ${lic ? 'opacity:.5;' : ''}"><input type="checkbox" id="avkVrmNude" ${avkVrmNude(AV.key, meta) ? 'checked' : ''} ${lic ? 'disabled' : ''}> Kleidung ausziehen (soweit das Modell es zulässt)</label>
+        ${lic ? '<p class="hint">Die Lizenz dieses Modells erlaubt keine sexuelle Darstellung - deshalb bleibt es angezogen.</p>' : '<p class="hint" style="margin-top:4px;">Was der Ersteller direkt in die Haut gemalt hat (z. B. Unterwäsche), bleibt sichtbar.</p>'}
+        <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkMeOn2" ${localStorage.getItem('companion_av3dMe') !== 'false' ? 'checked' : ''}> Mich mit anzeigen</label>
+        <div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-secondary" id="avkVrmSave">⤓ VRM-Datei speichern</button></div>
+        <hr style="border:0; border-top:1px solid var(--line); margin:16px 0;">`;
+      body0.insertBefore(vb, body0.firstChild);
+      const reshow = () => { const f = AV.figId; AV.key = null; avkUnload(); avShowFigure(f); };
+      vb.querySelector('#avkVrmRoom').onchange = e => { safeSet('companion_vrmRoom', e.target.checked ? 'true' : 'false'); reshow(); };
+      const nu = vb.querySelector('#avkVrmNude'); if (!lic) nu.onchange = e => { const m = avkVrmNudeMap(); m[AV.key] = e.target.checked; safeSet('companion_vrmNude', JSON.stringify(m)); if (AV.vrm) avkVrmClothes(AV.vrm, e.target.checked && !!AVK.vrmMode); };
+      vb.querySelector('#avkMeOn2').onchange = e => { safeSet('companion_av3dMe', e.target.checked ? 'true' : 'false'); reshow(); };
+      vb.querySelector('#avkVrmSave').onclick = () => { if (!rec || !rec.blob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(rec.blob); a.download = (rec.name || 'figur').replace(/[^\w\-äöüÄÖÜß ]+/g, '_') + '.vrm'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
+      return;
+    }
     if (!AVK.on || !AVK.figId) return;
     const body = document.querySelector('#av3dSheet .sheet-body');
     const f = getFigure(AVK.figId), v = f && latestVersion(f);
@@ -28475,6 +28737,179 @@ function avkWatchCanvas(c) {
 {
   const one = document.getElementById('ptOne');
   if (one) one.onclick = () => { try { pvStop(); pv.cur = -1; } catch (e) {} openPitches(true, 1); };
+}
+
+// =====================================================================
+// ======================= 🌀 3D-FOTO: BILDER MIT TIEFE =======================
+// =====================================================================
+// Aus einem Bild schätzt ein kleines KI-Modell (Depth Anything V2, läuft im
+// Browser, einmalig ca. 27 MB) eine Tiefenkarte. Beim Kippen des Handys (oder
+// Ziehen) verschieben sich nahe und ferne Teile gegeneinander. Die Schärfe-
+// ebene liegt auf ihrem Gesicht: das Gesicht bleibt stehen, der Rest bewegt
+// sich - so wirkt es, als würde sie dich ansehen und dir folgen.
+const DP = { model: null, loading: null, raf: 0, gl: null };
+async function dpHash(img) {
+  const c = document.createElement('canvas'); c.width = c.height = 24; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, 24, 24);
+  const d = g.getImageData(0, 0, 24, 24).data; let h = 2166136261 >>> 0;
+  for (let i = 0; i < d.length; i += 4) { h ^= (d[i] >> 3) | ((d[i + 1] >> 3) << 5) | ((d[i + 2] >> 3) << 10); h = Math.imul(h, 16777619) >>> 0; }
+  return 'depth:' + h.toString(36) + ':' + img.width + 'x' + img.height;
+}
+async function dpModel(onProg) {
+  if (DP.model) return DP.model;
+  if (DP.loading) return DP.loading;
+  DP.loading = (async () => {
+    const TF = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5/dist/transformers.min.js');
+    TF.env.allowLocalModels = false;
+    const opts = d => ({ device: d, dtype: d === 'webgpu' ? 'fp16' : 'q8', progress_callback: p => { if (onProg && p && p.status === 'progress' && p.total) onProg(p.loaded / p.total); } });
+    let m = null;
+    if (navigator.gpu) { try { m = await TF.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', opts('webgpu')); } catch (e) { m = null; } }
+    if (!m) m = await TF.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', opts('wasm'));
+    DP.model = m; return m;
+  })();
+  try { return await DP.loading; } finally { DP.loading = null; }
+}
+// Ersatz, falls das Modell nicht geladen werden kann: grobe Tiefe (Mitte nah, Rand fern)
+function dpFallbackDepth(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+  const r = g.createRadialGradient(w / 2, h * 0.32, 0, w / 2, h * 0.45, Math.max(w, h) * 0.55); r.addColorStop(0, '#fff'); r.addColorStop(0.45, '#999'); r.addColorStop(1, '#111');
+  g.fillStyle = r; g.fillRect(0, 0, w, h); return c;
+}
+async function dpDepth(img, key, msg) {
+  try { const r = await avGet(key); if (r && r.blob) return { canvas: await createImageBitmap(r.blob), cached: true }; } catch (e) {}
+  let canvas = null, fallback = false;
+  try {
+    msg('Lade das Tiefen-Modell (einmalig ca. 27 MB) …');
+    const m = await dpModel(f => msg(`Lade das Tiefen-Modell … ${Math.round(f * 100)} %`));
+    msg('Berechne die Tiefe …');
+    const src = document.createElement('canvas'); const k = Math.min(1, 768 / Math.max(img.width, img.height));
+    src.width = Math.round(img.width * k); src.height = Math.round(img.height * k); src.getContext('2d').drawImage(img, 0, 0, src.width, src.height);
+    const out = await m(src.toDataURL('image/jpeg', 0.92));
+    canvas = out.depth.toCanvas();
+  } catch (e) {
+    try { avkLog('3D-Foto: Tiefen-Modell nicht verfügbar (' + String(e && e.message || e).slice(0, 80) + ')'); } catch (e2) {}
+    canvas = dpFallbackDepth(256, Math.round(256 * img.height / img.width)); fallback = true;
+  }
+  if (!fallback) { try { const blob = await new Promise(r => canvas.toBlob(r, 'image/png')); await avPut(key, { blob, name: '3D-Foto-Tiefe', meta: { depth: true }, added: Date.now() }); } catch (e) {} }
+  return { canvas, fallback };
+}
+// Schärfeebene: Tiefe des Gesichts (nächster Bereich im oberen Bilddrittel)
+function dpFocus(depthCanvas) {
+  const w = 64, h = Math.max(8, Math.round(64 * depthCanvas.height / depthCanvas.width));
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(depthCanvas, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, vals = [];
+  for (let y = Math.round(h * 0.08); y < Math.round(h * 0.5); y++) for (let x = Math.round(w * 0.2); x < Math.round(w * 0.8); x++) vals.push(d[(y * w + x) * 4]);
+  vals.sort((a, b) => a - b); return (vals[Math.floor(vals.length * 0.9)] || 200) / 255;
+}
+function dpGL(cv, img, depth) {
+  const gl = cv.getContext('webgl', { antialias: false, premultipliedAlpha: false }); if (!gl) throw new Error('kein WebGL');
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; uniform vec2 sc; void main(){ uv = vec2(p.x*0.5+0.5, 0.5-p.y*0.5); gl_Position = vec4(p*sc, 0.0, 1.0); }'));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision highp float; varying vec2 uv; uniform sampler2D img, dep; uniform vec2 tilt; uniform float focus, amt, zoom;
+    void main(){ vec2 base = (uv - 0.5) / zoom + 0.5; vec2 q = base;
+      for (int i = 0; i < 6; i++) { float d = texture2D(dep, q).r; q = base + tilt * (d - focus) * amt; }
+      gl_FragColor = texture2D(img, clamp(q, 0.001, 0.999)); }`));
+  gl.linkProgram(pr); gl.useProgram(pr);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const tex = (unit, src) => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); return t; };
+  tex(0, img); tex(1, depth);
+  gl.uniform1i(gl.getUniformLocation(pr, 'img'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'dep'), 1);
+  const U = n => gl.getUniformLocation(pr, n);
+  return { draw(tilt, focus, amt, zoom, sc) { gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('tilt'), tilt[0], tilt[1]); gl.uniform1f(U('focus'), focus); gl.uniform1f(U('amt'), amt); gl.uniform1f(U('zoom'), zoom); gl.uniform2f(U('sc'), sc[0], sc[1]); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } };
+}
+async function dpOpen(url, title) {
+  document.getElementById('dpView')?.remove();
+  const v = document.createElement('div'); v.id = 'dpView';
+  v.style.cssText = 'position:fixed; inset:0; z-index:2460; background:#000; touch-action:none; color:#fff;';
+  v.innerHTML = `<canvas id="dpCv" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+    <div style="position:absolute; left:12px; right:12px; top:calc(env(safe-area-inset-top, 0px) + 10px); display:flex; gap:8px; align-items:center;">
+      <button type="button" class="btn-secondary" id="dpClose" style="width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6);">‹</button>
+      <div style="flex:1; font-size:14px; opacity:.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(title || '3D-Foto')}</div>
+      <button type="button" class="btn-secondary" id="dpGyro" style="width:auto; height:44px; padding:0 12px; background:rgba(20,14,17,0.6); font-size:13px;">📱 Kippen</button>
+    </div>
+    <div id="dpMsg" style="position:absolute; left:20px; right:20px; top:45%; text-align:center; font-size:15px; color:rgba(255,255,255,0.85);"></div>
+    <div style="position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 14px);"><input type="range" id="dpAmt" min="0" max="0.12" step="0.005" value="0.05" style="width:100%;" aria-label="Stärke"></div>`;
+  document.body.appendChild(v);
+  const msg = t => { const m = v.querySelector('#dpMsg'); if (m) m.textContent = t || ''; };
+  let open = true, gyro = null, drag = null, dragT = [0, 0], base = null;
+  const close = () => { open = false; cancelAnimationFrame(DP.raf); window.removeEventListener('deviceorientation', onOri); v.remove(); };
+  v._close = close;
+  v.querySelector('#dpClose').onclick = close;
+  const onOri = e => { if (e.beta == null) return; if (!base) base = [e.beta, e.gamma]; gyro = [Math.max(-1, Math.min(1, (e.gamma - base[1]) / 22)), Math.max(-1, Math.min(1, (e.beta - base[0]) / 22))]; };
+  const startGyro = async () => { try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return; } window.addEventListener('deviceorientation', onOri); base = null; } catch (e) {} };
+  v.querySelector('#dpGyro').onclick = () => { startGyro(); avHintSafe('Handy langsam kippen'); };
+  startGyro();
+  const cv = v.querySelector('#dpCv');
+  cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; });
+  cv.addEventListener('pointermove', e => { if (!drag) return; dragT = [Math.max(-1, Math.min(1, (e.clientX - drag[0]) / 160)), Math.max(-1, Math.min(1, (e.clientY - drag[1]) / 160))]; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => cv.addEventListener(n, () => { drag = null; }));
+  msg('Bild wird geladen …');
+  let img;
+  try { img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = url; }); }
+  catch (e) { msg('Das Bild konnte nicht geladen werden.'); return; }
+  if (!open) return;
+  const key = await dpHash(img);
+  const dres = await dpDepth(img, key, msg);
+  if (!open) return;
+  msg(dres.fallback ? '' : '');
+  if (dres.fallback) avHintSafe('Ohne Tiefen-Modell (offline?) - nur grobe Tiefe');
+  // Bild in Texturgröße (max. 2048)
+  const k = Math.min(1, 2048 / Math.max(img.width, img.height));
+  const ic = document.createElement('canvas'); ic.width = Math.round(img.width * k); ic.height = Math.round(img.height * k); ic.getContext('2d').drawImage(img, 0, 0, ic.width, ic.height);
+  const dc = document.createElement('canvas'); dc.width = dres.canvas.width; dc.height = dres.canvas.height; const dg = dc.getContext('2d'); dg.filter = 'blur(2px)'; dg.drawImage(dres.canvas, 0, 0);
+  const focus = dpFocus(dc);
+  let R;
+  try { R = dpGL(cv, ic, dc); } catch (e) { msg('3D-Foto geht auf diesem Gerät nicht: ' + e.message); return; }
+  msg('');
+  const amtEl = v.querySelector('#dpAmt');
+  let cur = [0, 0]; const t0 = performance.now();
+  const loop = () => {
+    if (!open) return; DP.raf = requestAnimationFrame(loop);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2); const W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const t = (performance.now() - t0) / 1000;
+    // Ziel: Kippen > Ziehen > sanftes Pendeln
+    const want = gyro ? gyro : drag ? dragT : [0.55 * Math.sin(t * 0.7), 0.25 * Math.sin(t * 0.5 + 1)];
+    cur = [cur[0] + (want[0] - cur[0]) * 0.12, cur[1] + (want[1] - cur[1]) * 0.12];
+    const ia = ic.width / ic.height, va = W / H; const sc = ia > va ? [1, va / ia] : [ia / va, 1];
+    R.draw([-cur[0], -cur[1]], focus, +amtEl.value, 1.05, sc);
+  };
+  loop();
+}
+try { OV_DEFS.push(['dpView', () => !!document.getElementById('dpView'), () => { const v = document.getElementById('dpView'); if (v && v._close) v._close(); else if (v) v.remove(); }]); } catch (e) {}
+function avHintSafe(t) { try { const v = document.getElementById('dpView'); if (!v) return; let h = v.querySelector('#dpHint'); if (!h) { h = document.createElement('div'); h.id = 'dpHint'; h.style.cssText = 'position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom, 0px) + 56px); text-align:center; font-size:13px; color:rgba(255,255,255,0.8); transition:opacity .4s;'; v.appendChild(h); } h.textContent = t; h.style.opacity = '1'; clearTimeout(h._t); h._t = setTimeout(() => { h.style.opacity = '0'; }, 2500); } catch (e) {} }
+{
+  // Knopf in der Figurenkarte und in der Galerie
+  const oCard = showFigureCard;
+  showFigureCard = function (figure) {
+    const r = oCard.apply(this, arguments);
+    try {
+      const v = latestVersion(figure);
+      if (v && v.image) {
+        const row = els.figCard.querySelector('.fc-actions');
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-secondary'; btn.id = 'fcDepth';
+        btn.setAttribute('aria-label', '3D-Foto'); btn.title = '3D-Foto (kippen)'; btn.textContent = '🌀'; btn.style.cssText = 'flex:0 0 52px; padding:0;';
+        btn.onclick = async () => { const u = await refUrl(v).catch(() => '') || v.image; dpOpen(u, v.name + ' · 3D-Foto'); };
+        row.insertBefore(btn, row.children[1] || null);
+      }
+    } catch (e) {}
+    return r;
+  };
+  const oGal = openGalleryViewer;
+  openGalleryViewer = async function () {
+    const r = await oGal.apply(this, arguments);
+    try {
+      const gv = document.getElementById('galViewer'), row = gv && gv.querySelector('#galSave').parentNode;
+      if (row && !gv.querySelector('#galDepth')) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.id = 'galDepth'; b.style.width = 'auto'; b.textContent = '🌀 3D';
+        b.onclick = () => { const im = gv.querySelector('#galMedia img'); if (im) dpOpen(im.src, '3D-Foto'); else alert('3D-Foto geht nur bei Bildern.'); };
+        row.insertBefore(b, gv.querySelector('#galClose'));
+      }
+    } catch (e) {}
+    return r;
+  };
 }
 
 window.__appReady = true;
