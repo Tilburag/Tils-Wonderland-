@@ -3620,8 +3620,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.55';
+const APP_VERSION = '2.56';
 const CHANGELOG = [
+  { v: '2.56', date: '2026-10-21', items: [
+    '🖼 3D-Modelle mit Bild: In der Modell-Liste (⚙ in der 3D-Ansicht) hat jedes Modell jetzt ein Vorschaubild - das im VRM eingebaute, sonst nimmt die App beim ersten Anzeigen selbst ein Porträt auf. Bild antippen oder 🖼 = eigenes Bild wählen, 📸 = neues Foto aus der 3D-Ansicht (beim gerade gezeigten Modell), ✏ = umbenennen.',
+    '🧹 In der Modell-Liste tauchten auch die gespeicherten Tiefenkarten der 3D-Fotos und das Rundumbild als „Modelle" auf. Die sind jetzt raus.',
+  ] },
   { v: '2.55', date: '2026-10-21', items: [
     '🧍 Live-Gespräch mit 3D-Figur: Das Bild zuckte ständig, weil sich die Größenanpassung immer wieder selbst auslöste. Behoben. Außerdem wechselt die Stellung durch das Gesprochene höchstens alle 20 Sekunden (vorher alle 5).',
     '👗 Kleidung an/aus direkt in der 3D-Ansicht: rechts der Knopf 👗/👙, gilt je Modell. Die App prüft beim Laden, ob unter der Kleidung ein vollständiger Körper ist - fehlen dort Teile, bleibt die Figur von sich aus angezogen.',
@@ -29446,6 +29450,116 @@ async function live3dOpen() {
   const oEnter = enterLive;
   enterLive = function () { const r = oEnter.apply(this, arguments); if (history.length) go(); return r; };
   GAME_INFO.live.go = () => enterLive();
+}
+
+
+// =====================================================================
+// ======================= 🖼 VORSCHAUBILDER FÜR 3D-MODELLE =======================
+// =====================================================================
+// Jedes Modell in der Liste bekommt ein Bild: das im VRM eingebaute Vorschau-
+// bild, sonst ein Porträt, das die App beim ersten Anzeigen selbst aufnimmt.
+// Dazu: umbenennen, neues Foto aus der 3D-Ansicht, eigenes Bild wählen.
+// Außerdem tauchen 3D-Foto-Tiefen und Rundumbilder (liegen im selben Speicher)
+// nicht mehr als „Modelle" in der Liste auf.
+function avIsModelRec(k, r) { return !!r && !!r.blob && !String(k).startsWith('depth:') && !String(k).startsWith('__') && !(r.meta && r.meta.depth); }
+avList = async function () {
+  const keys = await avTx('readonly', s => s.getAllKeys());
+  const out = [];
+  for (const k of keys) { const r = await avGet(k); if (avIsModelRec(k, r)) out.push({ key: k, name: r.name, meta: r.meta || {}, size: r.blob ? r.blob.size : 0, thumb: r.thumb || '' }); }
+  return out;
+};
+async function avSmallImg(src, size) {
+  const bmp = await createImageBitmap(src);
+  const k = size / Math.min(bmp.width, bmp.height), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+  g.drawImage(bmp, (size - w) / 2, (size - h) / 2, w, h);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+// Im VRM eingebautes Vorschaubild (VRM 1: meta.thumbnailImage, VRM 0: meta.texture)
+async function avThumbFromBuf(buf) {
+  try {
+    const dv = new DataView(buf); if (dv.getUint32(0, true) !== 0x46546C67) return '';
+    const len = dv.getUint32(12, true);
+    const j = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, len)));
+    const ext = j.extensions || {};
+    let img = null;
+    if (ext.VRMC_vrm && ext.VRMC_vrm.meta && ext.VRMC_vrm.meta.thumbnailImage !== undefined) img = ext.VRMC_vrm.meta.thumbnailImage;
+    else if (ext.VRM && ext.VRM.meta && ext.VRM.meta.texture !== undefined && ext.VRM.meta.texture >= 0) { const t = (j.textures || [])[ext.VRM.meta.texture]; img = t ? t.source : null; }
+    if (img === null || img === undefined) return '';
+    const im = (j.images || [])[img]; if (!im || im.bufferView === undefined) return '';
+    const bv = j.bufferViews[im.bufferView];
+    const binStart = 20 + len + 8;
+    const blob = new Blob([new Uint8Array(buf, binStart + (bv.byteOffset || 0), bv.byteLength)], { type: im.mimeType || 'image/png' });
+    return await avSmallImg(blob, 160);
+  } catch (e) { return ''; }
+}
+// Porträt aus der 3D-Ansicht: Kopf von vorn, ohne dich und ohne Gerät
+function avSnapThumb() {
+  try {
+    const vrm = AV.vrm, T = AV.T, r = AV.renderer; if (!vrm || !r) return '';
+    const head = vrm.humanoid.getNormalizedBoneNode('head'); if (!head) return '';
+    vrm.scene.updateMatrixWorld(true);
+    const h = head.getWorldPosition(new T.Vector3());
+    const fwd = new T.Vector3(0, 0, 1).applyQuaternion(vrm.scene.getWorldQuaternion(new T.Quaternion())); fwd.y = 0; if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, 1); fwd.normalize();
+    const hide = [AVK && AVK.me && AVK.me.B && AVK.me.B.root, AVK && AVK.pen, AV.sleeve].filter(Boolean); const vis = hide.map(o => o.visible); hide.forEach(o => { o.visible = false; });
+    const sz = r.getSize(new T.Vector2());
+    const cam = new T.PerspectiveCamera(26, sz.x / sz.y, 0.02, 30);
+    cam.position.copy(h).addScaledVector(fwd, 0.62).add(new T.Vector3(0, 0.02, 0)); cam.lookAt(h.clone().add(new T.Vector3(0, -0.04, 0)));
+    r.render(AV.scene, cam);
+    const src = r.domElement, s = Math.min(src.width, src.height);
+    const c = document.createElement('canvas'); c.width = c.height = 160; c.getContext('2d').drawImage(src, (src.width - s) / 2, (src.height - s) / 2, s, s, 0, 0, 160, 160);
+    hide.forEach((o, i) => { o.visible = vis[i]; });
+    return c.toDataURL('image/jpeg', 0.85);
+  } catch (e) { return ''; }
+}
+async function avSetRec(k, patch) { const r = await avGet(k); if (!r) return; await avPut(k, Object.assign(r, patch)); }
+{
+  // Beim ersten Anzeigen eines Modells ohne Bild: eingebautes Bild, sonst Porträt aufnehmen
+  const oShow = avShowFigure;
+  avShowFigure = async function () {
+    const res = await oShow.apply(this, arguments);
+    const key = AV.key;
+    if (key && AV.vrm) setTimeout(async () => {
+      try {
+        if (AV.key !== key || !AV.vrm) return;
+        const r = await avGet(key); if (!avIsModelRec(key, r) || r.thumb) return;
+        let t = r.thumbTried ? '' : await avThumbFromBuf(await r.blob.arrayBuffer());
+        if (!t && AV.open && AV.key === key) t = avSnapThumb();
+        await avSetRec(key, { thumb: t || '', thumbTried: true });
+      } catch (e) {}
+    }, 2500);
+    return res;
+  };
+  // Liste unter ⚙: Bild, Umbenennen, Foto, eigenes Bild
+  const oSheet = avSheet;
+  avSheet = async function () {
+    await oSheet.apply(this, arguments);
+    const body = document.querySelector('#av3dSheet .sheet-body'); if (!body) return;
+    const list = await avList(); const byKey = {}; list.forEach(m => { byKey[m.key] = m; });
+    body.querySelectorAll('button[data-act="del"]').forEach(del => {
+      const k = del.dataset.k, m = byKey[k]; if (!m) return;
+      const card = del.parentNode.parentNode; if (!card || card.querySelector('.avThumb')) return;
+      const inner = document.createElement('div'); inner.style.cssText = 'flex:1; min-width:0;';
+      while (card.firstChild) inner.appendChild(card.firstChild);
+      card.style.display = 'flex'; card.style.gap = '12px'; card.style.alignItems = 'flex-start';
+      const th = document.createElement('div'); th.className = 'avThumb';
+      th.style.cssText = 'flex:0 0 64px; width:64px; height:64px; border-radius:12px; overflow:hidden; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer;';
+      th.innerHTML = m.thumb ? `<img src="${m.thumb}" alt="" style="width:100%; height:100%; object-fit:cover;">` : '🧍';
+      th.title = 'Bild ändern';
+      card.append(th, inner);
+      const row = del.parentNode;
+      const mk = (txt, title) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); b.style.cssText = 'width:auto; padding:7px 11px; font-size:13px;'; row.insertBefore(b, del); return b; };
+      mk('✏', 'Umbenennen').onclick = async () => { const n = prompt('Name für dieses Modell:', m.name || ''); if (n === null || !n.trim()) return; await avSetRec(k, { name: n.trim().slice(0, 60) }); avSheet(); };
+      const pick = async () => {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; try { await avSetRec(k, { thumb: await avSmallImg(f, 160), thumbTried: true }); avSheet(); } catch (e) { alert('Bild ging nicht: ' + e.message); } };
+        inp.click();
+      };
+      th.onclick = pick;
+      mk('🖼', 'Eigenes Bild wählen').onclick = pick;
+      if (AV.key === k && AV.vrm) mk('📸', 'Foto aus der 3D-Ansicht').onclick = async () => { const t = avSnapThumb(); if (!t) return; await avSetRec(k, { thumb: t, thumbTried: true }); avSheet(); };
+    });
+  };
 }
 
 window.__appReady = true;
