@@ -3620,8 +3620,23 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.51';
+const APP_VERSION = '2.54';
 const CHANGELOG = [
+  { v: '2.54', date: '2026-10-21', items: [
+    '🧍 Test: 3D-Figur im Live-Gespräch. Unter Szene & Regeln → „Darstellung (Test)" auf „3D-Figur" stellen, oder im Gespräch ⋯ → „🧍 3D-Figur (Test)". Sie spricht (Mund und Untertitel) und bewegt sich im Takt von Gerät 1; Eingabe, Anruf, Kurz davor und Stopp bleiben unten bedienbar. ‹ oben links führt zurück zum Verlauf. Standard bleibt Bild und Verlauf.',
+    '▶ Probelauf in der 3D-Ansicht: Die Figur wurde mit der Zeit immer schneller (nach ein, zwei Minuten raste sie). Jetzt bleibt das Tempo ruhig bei etwa 30-48 Takten pro Minute.',
+    '🌀 3D-Foto: Sie wird jetzt als eigene Ebene vom Hintergrund getrennt, die Lücke dahinter wird aus der Umgebung aufgefüllt. Keine verschmierten Streifen mehr an ihren Rändern. Die Stärke startet sanfter.',
+    '🗑 Die Intim-Beschreibung der Ich-Figur ist komplett entfernt (Feld, Foto-Ansichten, Phantombild Intimbereich). Gespeicherte Angaben werden beim Start gelöscht und gehen in keine Bilder und Gespräche mehr ein. Der 3D-Penis nutzt nur noch die Regler unter ⚙.',
+  ] },
+  { v: '2.53', date: '2026-10-20', items: [
+    '👁 Neu: „Sie sieht dich" - in der 3D-Ansicht rechts 👁 antippen. Die Frontkamera erkennt deinen Kopf (alles bleibt auf dem Handy, kein Bild wird gesendet). Bewegst du den Kopf, verschiebt sich die Ansicht wie durch ein Fenster, und sie hält Blickkontakt. Schaust du länger weg, merkt sie es.',
+    '👁 Auch im 3D-Foto: „👁 Kopf" - das Bild folgt deinem Kopf statt dem Kippen.',
+    '📱 Die Knöpfe zum Umschauen und für den Blickkontakt sitzen jetzt rechts unter der Leiste, damit der Figurenname oben wieder Platz hat.',
+  ] },
+  { v: '2.52', date: '2026-10-20', items: [
+    '🌐 3D: Rundumbild aus der Geschichte - unter ⚙ → Umgebung „Rundumbild aus der Geschichte (KI)". Die KI bestimmt aus dem Gespräch, wo ihr gerade seid, und malt daraus eine 360°-Umgebung. Bett, du und sie bleiben echte 3D-Körper mittendrin. „🔄 Neues Rundumbild malen", wenn sich der Ort ändert.',
+    '📱 3D: Umschauen als Til - oben 📱 antippen und das Handy drehen, oder im Ich-Blick mit dem Finger ziehen. Die Kamera bleibt in deinem Kopf, du drehst nur den Blick (auch nach hinten und oben).',
+  ] },
   { v: '2.51', date: '2026-10-20', items: [
     '🌀 3D-Foto: Aus jedem Porträt (Figurenkarte, Knopf 🌀) und jedem Galeriebild (🌀 3D) wird ein Bild mit Tiefe. Handy kippen oder mit dem Finger ziehen: nahe und ferne Teile verschieben sich gegeneinander. Ihr Gesicht bleibt dabei stehen, dadurch wirkt es, als würde sie dich ansehen und dir folgen. Die Tiefe berechnet ein kleines KI-Modell direkt auf dem Handy (einmal ca. 27 MB laden, danach gespeichert).',
   ] },
@@ -10892,13 +10907,22 @@ function loadArchive() {
     figureArchive = [];
   }
   if (!Array.isArray(figureArchive)) figureArchive = [];
+  if (purgeIntimate()) setTimeout(() => { try { saveArchive(); } catch (e) {} }, 0);
 }
 
 // Das Archiv trägt die Vorschaubilder und ist damit der größte Posten im
 // localStorage - ausgerechnet hier lief der Schreibvorgang bisher an safeSet
 // vorbei, sodass ein voller Speicher als nackter Fehler durchschlug statt als
 // erklärte Meldung.
+function purgeIntimate() {
+  let n = 0;
+  const strip = c => { if (!c || typeof c !== 'object') return; ['intimate', 'intimateFields', 'intimateViews'].forEach(k => { if (k in c) { delete c[k]; n++; } }); };
+  try { figureArchive.forEach(f => (f.versions || []).forEach(strip)); } catch (e) {}
+  try { (typeof characters !== 'undefined' ? characters : []).forEach(strip); } catch (e) {}
+  return n;
+}
 function saveArchive() {
+  purgeIntimate();
   safeSet('companion_figureArchive', JSON.stringify(figureArchive));
 }
 
@@ -10919,9 +10943,7 @@ function versionFromCharacter(c, versionNumber) {
     appearance: c.appearance || '',
     voiceDescription: c.voiceDescription || '',
     userStyle: c.userStyle || '',
-    intimate: c.intimate || '', intimateViews: Array.isArray(c.intimateViews) ? c.intimateViews.slice() : [],
     phantom: c.phantom && typeof c.phantom === 'object' ? Object.assign({}, c.phantom) : {},
-    intimateFields: c.intimateFields && typeof c.intimateFields === 'object' ? Object.assign({}, c.intimateFields) : {},
     isNarrator: !!c.isNarrator,
     // Gehört zur Figur, nicht zur Besetzung: wer ich bin, ändert sich nicht
     // dadurch, dass eine Figur gerade mitspielt oder nicht.
@@ -13126,69 +13148,6 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       us.placeholder = 'Wortwahl, Deutlichkeit, Ton - gilt, wenn dieses Ich in der Besetzung ist. Leer: die allgemeine Vorgabe.';
       us.oninput = () => { c.userStyle = us.value; };
       card.appendChild(us);
-
-      const inLabel = document.createElement('label');
-      inLabel.textContent = 'Intimbereich - nur für Bilder (privat)';
-      card.appendChild(inLabel);
-      const inta = document.createElement('textarea');
-      inta.value = c.intimate || '';
-      inta.style.minHeight = '64px';
-      inta.placeholder = 'Englisch, sachlich - z. B. Größe und Proportionen, Form, beschnitten oder nicht, Behaarung. Wird nur verwendet, wenn du auf einem Bild nackt zu sehen bist.';
-      inta.oninput = () => { c.intimate = inta.value; };
-      card.appendChild(inta);
-      const inRow = document.createElement('div');
-      inRow.className = 'btn-row';
-      const inBtn = document.createElement('button');
-      inBtn.type = 'button'; inBtn.className = 'btn-secondary';
-      const views = Array.isArray(c.intimateViews) ? c.intimateViews : [];
-      const viewSel = document.createElement('select');
-      viewSel.style.cssText = 'flex:0 0 auto; width:auto;';
-      [['vorne', 'von vorne'], ['seitlich', 'seitlich'], ['oben', 'von oben (deine Sicht)'], ['erigiert vorne', 'erigiert, von vorne'], ['erigiert seitlich', 'erigiert, seitlich']].forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l + (views.includes(v) ? ' ✓' : ''); viewSel.appendChild(o); });
-      const nextView = ['vorne', 'seitlich', 'oben', 'erigiert vorne', 'erigiert seitlich'].find(v => !views.includes(v)); if (nextView) viewSel.value = nextView;
-      inBtn.textContent = views.length ? `📷 Weitere Ansicht hinzufügen (${views.length} bisher)` : '📷 Ansicht hinzufügen - Schritt für Schritt genauer';
-      const inFile = document.createElement('input');
-      inFile.type = 'file'; inFile.accept = 'image/*'; inFile.style.display = 'none';
-      inBtn.onclick = () => inFile.click();
-      inRow.appendChild(viewSel);
-      inFile.onchange = async () => {
-        if (!inFile.files.length) return;
-        inBtn.disabled = true; inBtn.textContent = 'Schaue …';
-        try { await describeIntimateFromPhotos(inFile.files, inta); inBtn.textContent = '✓ Beschrieben - bitte prüfen und speichern'; }
-        catch (e) { inBtn.textContent = 'Fehlgeschlagen: ' + (e.message || e).slice(0, 60); }
-        finally { inBtn.disabled = false; inFile.value = ''; }
-      };
-      inRow.append(inBtn, inFile);
-      card.appendChild(inRow);
-      const inHint = document.createElement('p');
-      inHint.className = 'hint';
-      inHint.textContent = 'Eine Ansicht nach der anderen: Jedes Foto verfeinert die Beschreibung (die Seitenansicht klärt z. B. Krümmung und Proportionen). Das Foto wird nicht gespeichert und geht nur einmal an ein privates Modell; gespeichert wird nur die Beschreibung. Erst „Sichern" übernimmt sie.';
-      card.appendChild(inHint);
-      // Phantombild: feste Merkmale - genauer als der Freitext
-      const ph = document.createElement('details');
-      ph.style.cssText = 'border:1px solid var(--line); border-radius:14px; padding:8px 12px; margin-top:8px;';
-      ph.innerHTML = '<summary style="cursor:pointer; font-size:14px;">🧩 Phantombild Intimbereich (genauer)</summary>';
-      const phPrev = document.createElement('p'); phPrev.className = 'hint';
-      const upd = () => { phPrev.textContent = intimatePhrase(c) ? 'Fürs Bild: ' + intimatePhrase(c) : 'Noch nichts gewählt - dann gilt der Freitext oben.'; };
-      ph.appendChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd));
-      ph.appendChild(phPrev); upd();
-      card.appendChild(ph);
-      inFile.onchange = async () => {
-        if (!inFile.files.length) return;
-        const view = viewSel.value;
-        inBtn.disabled = true; inBtn.textContent = 'Schaue mir die Ansicht an …';
-        try {
-          const img = await readImageFile(inFile.files[0], 900);
-          const r = await refineIntimate(img, view, c);
-          c.intimate = r.text; inta.value = r.text;
-          if (r.fields && Object.keys(r.fields).length) c.intimateFields = Object.assign({}, c.intimateFields || {}, r.fields);
-          c.intimateViews = [...new Set((c.intimateViews || []).concat(view))];
-          ph.replaceChild(phantomEditor(c, INTIM_FIELDS, 'intimateFields', upd), ph.children[1]); upd();
-          inBtn.textContent = `✓ Ansicht „${view}" eingearbeitet (${c.intimateViews.length} insgesamt) - noch eine? Sonst „Sichern".`;
-          [...viewSel.options].forEach(o => { if (c.intimateViews.includes(o.value) && !/✓$/.test(o.textContent)) o.textContent += ' ✓'; });
-          const nv = [...viewSel.options].find(o => !c.intimateViews.includes(o.value)); if (nv) viewSel.value = nv.value;
-        } catch (e) { inBtn.textContent = 'Fehlgeschlagen: ' + (e.message || e).slice(0, 80); }
-        finally { inBtn.disabled = false; inFile.value = ''; }
-      };
 
       // Gehört zum Ich, nicht zu einer Version - sofort gesichert.
       if (c.figureId) {
@@ -17124,7 +17083,10 @@ function phantomPhrase(fields, defs) {
 }
 // Die schrittweise verfeinerte Beschreibung (aus mehreren Ansichten) ist
 // genauer als die Stichwörter - sie hat Vorrang, die Stichwörter sind Ersatz.
-function intimatePhrase(c) {
+// 2.54: Die Intim-Beschreibung ist komplett entfernt - sie kam auf den Bildern
+// nicht zuverlässig heraus. Es wird nichts mehr davon verwendet oder gespeichert.
+function intimatePhrase(c) { return ''; }
+function intimatePhraseOld(c) {
   const t = (c.intimate || '').trim();
   if (t && (Array.isArray(c.intimateViews) && c.intimateViews.length || t.split(/\s+/).length > 14)) return t;
   return phantomPhrase(c.intimateFields, INTIM_FIELDS) || t;
@@ -17443,9 +17405,8 @@ async function restoreVersion(figure, vnum) {
   const cur = latestVersion(figure), old = findVersion(figure, vnum);
   if (!old) return false;
   const c = characterFromVersion(figure, vnum, old.isUser);
-  ['signature', 'styleExamples', 'voiceDescription', 'intimate', 'userStyle'].forEach(k => { if (!(c[k] || '').trim() && (cur[k] || '').trim()) c[k] = cur[k]; });
+  ['signature', 'styleExamples', 'voiceDescription', 'userStyle'].forEach(k => { if (!(c[k] || '').trim() && (cur[k] || '').trim()) c[k] = cur[k]; });
   if ((!c.phantom || !Object.keys(c.phantom).length) && cur.phantom) c.phantom = Object.assign({}, cur.phantom);
-  if ((!c.intimateFields || !Object.keys(c.intimateFields).length) && cur.intimateFields) c.intimateFields = Object.assign({}, cur.intimateFields);
   if (!c.elevenVoice && cur.elevenVoice) c.elevenVoice = cur.elevenVoice;
   if (old.image) { const newer = figure.versions.filter(x => x.v > old.v).sort((a, b) => a.v - b.v)[0]; c.image = old.image; c.imageKey = await fullImageKeyFor(figure, old, newer); }
   c.lookTag = ''; c.lookTagSrc = '';
@@ -24439,7 +24400,7 @@ const HELP_HANDBOOK = `APP-AUFBAU
 HÄUFIGE PROBLEME
 - Gerät reagiert nicht: Statuszeile prüfen (Punkt bei Gerät), in Verbindungen neu verbinden, Handy und Gerät im selben WLAN, IP richtig. Nach „Gekommen" steht es 2,5 Min still, bei „Sie entscheidet" mit echtem Nein bis 15 Min.
 - Bilder sehen der Figur nicht ähnlich: im Protokoll „über Beschreibung" = keine Vorlage benutzt; „nur Vorschaubild" = Original fehlt. Abhilfe: Bild in der Galerie über „Aus Galerie" entfernen und „Galerien auffüllen".
-- Akt-Bild ohne Genitalien: Modell glättet - neu machen lassen; die Intim-Beschreibung geht mit.
+- Akt-Bild ohne Genitalien: Modell glättet - neu machen lassen.
 - Sperre ohne Tastenfeld oder gelber Hinweis „nicht vollständig geladen": Startfehler oder unvollständige Datei - der Fehlertext steht im Hinweis; neu laden, notfalls Datei neu hochladen.
 - Bilder/Galerie weg: der Browser hat Speicher geräumt; Sicherung laden bzw. Wiederherstellen; dauerhafter Speicher sollte „ja" sein (Protokollkopf).
 - Stimme fehlt oder klingt anders: ElevenLabs-Schlüssel/Guthaben prüfen; sonst springt die Android-Stimme ein.
@@ -26350,6 +26311,14 @@ window.motionHook = function (label, pos, ms) {
   AV.segs.push({ from, to: Math.max(0, Math.min(1, pos / 999)), at: now, ms: Math.max(16, ms) });
   if (AV.segs.length > 40) AV.segs.splice(0, AV.segs.length - 40);
 };
+// Probelauf: ruhiges Auf und Ab, Tempo schwankt sanft zwischen ca. 30 und 48 Takten pro Minute.
+// (Bis 2.53 wurde die Frequenz mit der Laufzeit multipliziert - nach ein, zwei
+// Minuten raste die Figur. Jetzt wird die Phase aufsummiert.)
+function avProbeP(t, dt) {
+  const f = 0.65 + 0.15 * Math.sin(t * 0.13);
+  AV.probePh = ((AV.probePh || 0) + Math.min(0.05, dt || 0) * Math.PI * 2 * f) % (Math.PI * 2);
+  return 0.5 + 0.5 * Math.sin(AV.probePh);
+}
 function avPosAt(t) {
   let s = null;
   for (let i = AV.segs.length - 1; i >= 0; i--) if (AV.segs[i].at <= t) { s = AV.segs[i]; break; }
@@ -26673,7 +26642,7 @@ function avFrame() {
   if (!vrm || !AV.ref) { AV.renderer.render(AV.scene, AV.camera); return; }
   const cfg = avCfg(), R = AV.ref, s = R.scale, B = avBone;
   // Position 0..1 (zeitversetzt wie das Gerät)
-  let p = AV.probe ? 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * (0.55 + 0.25 * Math.sin(t * 0.13))) : avPosAt(performance.now() - cfg.delay);
+  let p = AV.probe ? avProbeP(t, dt) : avPosAt(performance.now() - cfg.delay);
   if (cfg.invert) p = 1 - p;
   AV.vel = AV.vel * 0.85 + ((p - AV.lastP) / Math.max(dt, 0.001)) * 0.15; AV.lastP = p;
   // Körper: atmen (Puls), mit der Bewegung leicht mitgehen
@@ -26830,6 +26799,12 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
 
 
 
@@ -27956,8 +27931,8 @@ function avkSetOverride(figId, part, key, val) {
 function avkPenisSpec() {
   const me = typeof archiveMeFigure === 'function' ? archiveMeFigure() : null;
   const c = me ? latestVersion(me) : null;
-  const f = (c && c.intimateFields) || {};
-  const txt = ((c && c.intimate) || '').toLowerCase();
+  const f = {};   // keine Intim-Beschreibung mehr (2.54) - nur noch die Regler unter ⚙
+  const txt = '';
   const o = {};
   const cm = txt.match(/(\d{2}(?:[.,]\d)?)\s*cm/);
   o.length = cm ? Math.max(0.09, Math.min(0.24, parseFloat(cm[1].replace(',', '.')) / 100)) : ({ 'small penis': 0.12, 'average-sized penis': 0.145, 'above-average penis': 0.165, 'large penis': 0.185, 'very large penis': 0.205 }[f.length] || (/very large|huge/.test(txt) ? 0.205 : /large|big/.test(txt) ? 0.185 : /above/.test(txt) ? 0.165 : /small/.test(txt) ? 0.12 : 0.155));
@@ -28313,6 +28288,7 @@ function avkPlace(p, dt) {
     him = me.rig(dt, { pose: AVK.pose, base: P3.base, hands, floor });
     me.kp = him;
     if (me.B.eyes) me.B.eyes.visible = AV.camMode !== 0;
+    if (me.hair) { const hv = AV.camMode !== 0; if (me.hair.cap) me.hair.cap.visible = hv; (me.hair.shells || []).forEach(x => { x.visible = hv; }); }
   }
   const st = AVK.rig(dt, { p, cam: AV.camera.position.clone(), grip: show ? { point: gp, axis: P3.axis } : null, pen: show ? P3 : null, pose: show ? AVK.pose : 'hand', balls, hand2, bpm, arousal: aro, talking, him });
   if (st && st.kp) AVK.herKp = st.kp;
@@ -28366,8 +28342,18 @@ function avkCamera(t) {
     else { pos = b.clone().add(new T.Vector3(0, 0.62, 0.2)); at = b.clone().add(new T.Vector3(0, 0.02, -0.38)); }
   } else if (AV.camMode === 1) { pos = hd.clone().add(new T.Vector3(0.05, 0.1, 0.55)); at = hd.clone().add(new T.Vector3(0, 0.06, 0)); }
   else { pos = ch.clone().add(new T.Vector3(1.2, 0.15, 0.55)); at = ch.clone().add(new T.Vector3(0, -0.15, 0.15)); }
-  const piv = new T.Vector3(0, 0, ch.z);
-  const rel = pos.clone().sub(piv); rel.applyAxisAngle(new T.Vector3(0, 1, 0), AV.yaw); pos = piv.add(rel);
+  if (AV.camMode === 0 && eye) {
+    // aus deinen Augen: Ziehen bzw. Handy drehen = umschauen (der Kopf dreht sich, die Kamera bleibt in dir)
+    const g = AVK.gyro && AVK.gyro.on ? AVK.gyro : { yaw: 0, pitch: 0 };
+    const dir = at.clone().sub(pos); const len = dir.length() || 1; dir.normalize();
+    const yaw = (AVK.lookYaw || 0) + g.yaw, pitch = Math.max(-1.2, Math.min(1.2, (AVK.lookPitch || 0) + g.pitch));
+    dir.applyAxisAngle(new T.Vector3(0, 1, 0), yaw);
+    const side = new T.Vector3(0, 1, 0).cross(dir).normalize(); if (side.lengthSq() > 1e-6) dir.applyAxisAngle(side, -pitch);
+    at = pos.clone().addScaledVector(dir, len);
+  } else {
+    const piv = new T.Vector3(0, 0, ch.z);
+    const rel = pos.clone().sub(piv); rel.applyAxisAngle(new T.Vector3(0, 1, 0), AV.yaw); pos = piv.add(rel);
+  }
   pos.y += Math.sin(t * 0.4) * 0.004;
   // aus deinen Augen etwas weiter (wie echtes Sehen), sonst normal; nahe Ebene klein, damit nichts abgeschnitten wird
   const fov = AV.camMode === 0 && eye ? 64 : 50, near = AV.camMode === 0 && eye ? 0.02 : 0.05;
@@ -28598,7 +28584,7 @@ async function avkVrmShow(figId) {
     if (!AVK.on || !AVK.B) return oFrame.apply(this, arguments);
     const dt = Math.min(0.05, AV.clock.getDelta()), t = AV.clock.elapsedTime;
     const cfg = avCfg();
-    let p = AV.probe ? 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * (0.55 + 0.25 * Math.sin(t * 0.13))) : avPosAt(performance.now() - cfg.delay);
+    let p = AV.probe ? avProbeP(t, dt) : avPosAt(performance.now() - cfg.delay);
     if (cfg.invert) p = 1 - p;
     avkCamera(t);
     avkPlace(p, dt);
@@ -28705,7 +28691,12 @@ function avkWatchCanvas(c) {
   // Antippen: Brüste wippen. Ziehen dreht weiter die Ansicht.
   let down = null;
   c.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now(), yaw: AV.yaw }; });
-  c.addEventListener('pointermove', e => { if (down && c.__avkOwnDrag) AV.yaw = Math.max(-0.9, Math.min(0.9, down.yaw - (e.clientX - down.x) / 260)); });
+  c.addEventListener('pointerdown', e => { down && (down.ly = AVK.lookYaw || 0, down.lp = AVK.lookPitch || 0); });
+  c.addEventListener('pointermove', e => {
+    if (!down) return;
+    if (AVK.on && AV.camMode === 0 && AVK.me) { AVK.lookYaw = down.ly + (e.clientX - down.x) / 240; AVK.lookPitch = Math.max(-1.2, Math.min(1.2, down.lp + (e.clientY - down.y) / 240)); AV.yaw = 0; return; }
+    if (c.__avkOwnDrag) AV.yaw = Math.max(-0.9, Math.min(0.9, down.yaw - (e.clientX - down.x) / 260));
+  });
   c.addEventListener('pointerup', e => {
     if (!down) return; const d = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
     if (d < 12 && dt < 450 && AVK.on && AVK.jig && AVK.jig.poke) { const r = c.getBoundingClientRect(); const side = (e.clientX - r.left) / r.width < 0.5 ? -1 : 1; AVK.jig.poke(1.1, side); }
@@ -28732,6 +28723,237 @@ function avkWatchCanvas(c) {
     }
     return r;
   };
+}
+
+function avkSideCol() {
+  let c = document.getElementById('av3dSideCol');
+  if (!c) { c = document.createElement('div'); c.id = 'av3dSideCol'; c.style.cssText = 'position:absolute; right:14px; top:calc(env(safe-area-inset-top, 0px) + 74px); display:flex; flex-direction:column; gap:8px; z-index:3;'; avView().appendChild(c); }
+  return c;
+}
+// ---------- Rundumblick: KI-Umgebung aus der Geschichte + Umschauen mit dem Handy ----------
+// Die KI beschreibt den Ort der aktuellen Geschichte, Venice malt daraus ein
+// 360°-Panorama (2:1). Das liegt als Kugel um deinen Kopf; Bett, du und sie
+// bleiben echte 3D-Körper davor. Umschauen: Handy drehen oder ziehen.
+AVK.gyro = { on: false, yaw: 0, pitch: 0, base: null };
+function avkGyroHandler(e) {
+  const G = AVK.gyro; if (e.alpha == null || e.beta == null) return;
+  if (!G.base) G.base = [e.alpha, e.beta];
+  let da = e.alpha - G.base[0]; if (da > 180) da -= 360; if (da < -180) da += 360;
+  const tY = da * Math.PI / 180, tP = -(e.beta - G.base[1]) * Math.PI / 180;
+  G.yaw += (tY - G.yaw) * 0.35; G.pitch += (tP - G.pitch) * 0.35;
+}
+async function avkGyro(on) {
+  const G = AVK.gyro;
+  if (on) {
+    try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return false; } } catch (e) {}
+    G.base = null; G.yaw = G.pitch = 0; G.on = true; window.addEventListener('deviceorientation', avkGyroHandler); return true;
+  }
+  G.on = false; G.yaw = G.pitch = 0; window.removeEventListener('deviceorientation', avkGyroHandler); return false;
+}
+async function avkPanoLocation() {
+  const scene = (localStorage.getItem('companion_sceneDesc') || '').trim().slice(0, 600);
+  const recent = (typeof history !== 'undefined' ? history.slice(-8) : []).map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim()).filter(Boolean).join('\n').slice(-2000);
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = 'Du beschreibst Orte für ein 360-Grad-Panoramabild. Antworte NUR mit einem englischen Satz (max. 40 Wörter): wo die Szene gerade spielt, Raum oder Landschaft, Tageszeit, Licht, Stimmung, auffällige Einrichtung. KEINE Personen, keine Körper, nichts Sexuelles. Wenn unklar: ein gemütliches, warm beleuchtetes Schlafzimmer am Abend.';
+  try { const out = await callProvider(provider, sys, [{ role: 'user', content: `Szene: ${scene || '-'}\nVerlauf:\n${recent || '-'}` }], 0.5, 200, { task: 'draft' }); const t = cleanModelText(out || '').replace(/["„“”]/g, '').trim(); if (t && !looksLikeRefusal(t)) return t.slice(0, 300); } catch (e) {}
+  return 'a cozy bedroom in the evening, warm candle light, soft fabrics, wooden furniture, large window with city lights';
+}
+// Naht schließen: linker und rechter Rand laufen auf denselben Mittelwert zu
+function avkPanoSeam(img) {
+  const W = img.width, H = img.height, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+  const id = g.getImageData(0, 0, W, H), d = id.data, n = Math.max(8, Math.round(W * 0.03));
+  for (let y = 0; y < H; y++) {
+    const L = (y * W) * 4, R = (y * W + W - 1) * 4, avg = [0, 1, 2].map(k => (d[L + k] + d[R + k]) / 2);
+    for (let i = 0; i < n; i++) { const t = i / n, a = (y * W + i) * 4, b = (y * W + W - 1 - i) * 4; for (let k = 0; k < 3; k++) { d[a + k] = avg[k] * (1 - t) + d[a + k] * t; d[b + k] = avg[k] * (1 - t) + d[b + k] * t; } }
+  }
+  // Pole etwas glätten (oben/unten verzerren sonst stark)
+  g.putImageData(id, 0, 0);
+  const top = Math.round(H * 0.06);
+  [[0, top], [H - top, top]].forEach(([y0, h]) => { const sl = document.createElement('canvas'); sl.width = W; sl.height = h; const sg = sl.getContext('2d'); sg.filter = 'blur(6px)'; sg.drawImage(c, 0, y0, W, h, 0, 0, W, h); g.drawImage(sl, 0, y0); });
+  return c;
+}
+async function avkPanoMake(onMsg) {
+  const key = apiKeyFor('companion_apiKey_venice'); if (!key) throw new Error('Für das Rundumbild brauchst du den Venice-Schlüssel.');
+  onMsg && onMsg('Ich schaue, wo ihr gerade seid …');
+  const loc = await avkPanoLocation();
+  const model = modelFor('companion_imageModel') || 'venice-sd35';
+  const prompt = `360 degree equirectangular panorama photo, seamless wraparound, full spherical view from eye level, ${loc}. Photorealistic, natural perspective, soft cinematic lighting, high detail, empty scene without people.`;
+  onMsg && onMsg('Das Rundumbild wird gemalt …');
+  const gen = async (w, h) => fetchWithRetry('https://api.venice.ai/api/v1/image/generate', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, prompt, negative_prompt: 'people, person, man, woman, body, nude, text, watermark, frame, border, split screen, collage, fisheye circle, vignette', width: w, height: h, format: 'webp', safe_mode: false, hide_watermark: true }) });
+  let res = await gen(1280, 640);
+  if (!res.ok) res = await gen(1024, 512);
+  if (!res.ok) { let d = ''; try { d = JSON.stringify(await res.json()).slice(0, 160); } catch (e) {} throw new Error('Bildfehler ' + res.status + (d ? ': ' + d : '')); }
+  const body = await res.json();
+  let b64 = (Array.isArray(body.images) && body.images[0]) || (body.data && body.data[0] && body.data[0].b64_json) || '';
+  if (!b64) throw new Error('Die Antwort enthielt kein Bild.');
+  let blob = await (await fetch('data:image/webp;base64,' + b64)).blob();
+  // schärfer machen (falls der Anbieter das kann)
+  try {
+    onMsg && onMsg('Rundumbild wird geschärft …');
+    const up = await fetch('https://api.venice.ai/api/v1/image/upscale', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ image: b64, scale: 2 }) });
+    if (up.ok) { const ct = up.headers.get('content-type') || ''; if (/image/.test(ct)) blob = await up.blob(); else { const j = await up.json().catch(() => null); const u = j && ((j.images && j.images[0]) || j.image); if (u) blob = await (await fetch('data:image/png;base64,' + u)).blob(); } }
+  } catch (e) {}
+  const bmp = await createImageBitmap(blob);
+  const seam = avkPanoSeam(bmp);
+  const out = await new Promise(r => seam.toBlob(r, 'image/jpeg', 0.9));
+  await avPut('__pano', { blob: out, name: 'Rundumbild', meta: { loc, t: Date.now() }, added: Date.now() });
+  avkLog('Rundumbild: ' + loc);
+  return out;
+}
+function avkPanoApply(blob) {
+  const T = AV.T; if (!AV.scene) return;
+  avkPanoRemove();
+  const url = URL.createObjectURL(blob);
+  new T.TextureLoader().load(url, tex => {
+    URL.revokeObjectURL(url);
+    tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+    const sph = new T.Mesh(new T.SphereGeometry(12, 64, 32), new T.MeshBasicMaterial({ map: tex, side: T.BackSide, fog: false, depthWrite: false }));
+    sph.scale.x = -1;   // von innen nicht spiegelverkehrt
+    sph.renderOrder = -10; sph.name = 'avkPano';
+    AV.scene.add(sph); AVK.pano = sph;
+    avkPanoRoom(true);
+  });
+}
+function avkPanoRemove() { if (AVK.pano) { AV.scene.remove(AVK.pano); AVK.pano.geometry.dispose(); if (AVK.pano.material.map) AVK.pano.material.map.dispose(); AVK.pano.material.dispose(); AVK.pano = null; } avkPanoRoom(false); }
+// Zimmer-Wände/Boden/Möbel ausblenden, Bett (Matratze, Laken, Kissen) bleibt
+function avkPanoRoom(on) {
+  const r = AVK.room; if (!r) return;
+  r.R.children.forEach(o => { if (o === r.bed || o.isLight || o === r.his) return; if (o.isMesh) o.visible = !on; });
+  r.bed.children.forEach(o => { if (!o.isMesh) return; const g = o.geometry && o.geometry.type; const keep = g === 'PlaneGeometry' || (g === 'SphereGeometry' && o.scale.y < 0.5) || (g === 'BoxGeometry' && o.geometry.parameters.width > 1.5 && o.position.y > -0.2 && o.position.y < 0); if (!keep && o !== r.bed.userData.headboard) o.visible = !on; });
+  if (r.bed.userData.headboard) r.bed.userData.headboard.visible = !on && AVK.pose !== 'ride';
+  if (!AV.scene) return;
+  AV.scene.fog = on ? null : (AVK.on ? new AV.T.FogExp2(0x120a0b, 0.12) : AV.scene.fog);
+  AV.scene.background = on ? new AV.T.Color(0x000000) : (AVK.on ? new AV.T.Color(0x120a0b) : AV.scene.background);
+}
+// Panorama folgt deinem Kopf (keine Verschiebung beim Umschauen)
+{
+  const oCam = avkCamera;
+  avkCamera = function () { const r = oCam.apply(this, arguments); if (AVK.pano && AV.camera) AVK.pano.position.copy(AV.camera.position); return r; };
+}
+async function avkPanoAuto() {
+  if (localStorage.getItem('companion_av3dEnv') !== 'pano' || !AVK.on) return;
+  try { const r = await avGet('__pano'); if (r && r.blob) { avkPanoApply(r.blob); return; } } catch (e) {}
+  try { const b = await avkPanoMake(t => avHint(t)); if (AVK.on) avkPanoApply(b); } catch (e) { avHint('Rundumbild ging nicht: ' + e.message); avkLog('Rundumbild-Fehler: ' + e.message); }
+}
+{
+  // nach dem Aufbau einer Figur: Umgebung anwenden
+  const oS = avkShow; avkShow = async function () { const r = await oS.apply(this, arguments); avkPanoAuto(); return r; };
+  const oV = avkVrmShow; avkVrmShow = async function () { const r = await oV.apply(this, arguments); avkPanoAuto(); return r; };
+  const oU = avkUnload; avkUnload = function () { avkPanoRemove(); return oU.apply(this, arguments); };
+  const oR = avkHardReset; avkHardReset = function () { AVK.pano = null; return oR.apply(this, arguments); };
+  // Knopf: Umschauen mit dem Handy
+  const v = avView();
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'av3dGyro'; b.className = 'btn-secondary';
+  b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6); font-size:18px;';
+  b.textContent = '📱'; b.title = 'Umschauen: Handy drehen'; b.setAttribute('aria-label', b.title);
+  b.onclick = async () => { const on = await avkGyro(!AVK.gyro.on); b.style.background = on ? 'rgba(160,60,90,0.75)' : 'rgba(20,14,17,0.6)'; if (on) { AV.camMode = 0; AVK.lookYaw = AVK.lookPitch = 0; } avHint(on ? 'Dreh dich mit dem Handy - du schaust dich um' : 'Umschauen aus'); };
+  avkSideCol().appendChild(b);
+  const oClose = avClose; avClose = function () { avkGyro(false); b.style.background = 'rgba(20,14,17,0.6)'; return oClose.apply(this, arguments); };
+  // Einstellungen: Umgebung
+  const oSheet = avSheet;
+  avSheet = async function () {
+    await oSheet.apply(this, arguments);
+    const body = document.querySelector('#av3dSheet .sheet-body'); if (!body || !AVK.on) return;
+    const env = localStorage.getItem('companion_av3dEnv') || 'room';
+    const box = document.createElement('div');
+    box.innerHTML = `<h3 style="font-size:15px; margin:0 0 6px;">Umgebung</h3>
+      <label style="display:flex; gap:10px; align-items:center; font-size:13px;"><input type="radio" name="avkEnv" value="room" ${env === 'room' ? 'checked' : ''}> Schlafzimmer</label>
+      <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:4px;"><input type="radio" name="avkEnv" value="pano" ${env === 'pano' ? 'checked' : ''}> Rundumbild aus der Geschichte (KI)</label>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-secondary" id="avkPanoNew">🔄 Neues Rundumbild malen</button></div>
+      <p class="hint" style="margin-top:4px;">Der Ort wird aus dem Gespräch bestimmt. Umschauen: 📱 oben antippen und das Handy drehen, oder mit dem Finger ziehen.</p>
+      <hr style="border:0; border-top:1px solid var(--line); margin:16px 0;">`;
+    body.insertBefore(box, body.firstChild);
+    box.querySelectorAll('input[name=avkEnv]').forEach(i => i.onchange = () => { safeSet('companion_av3dEnv', i.value); if (i.value === 'pano') avkPanoAuto(); else avkPanoRemove(); });
+    box.querySelector('#avkPanoNew').onclick = async () => { const bt = box.querySelector('#avkPanoNew'); bt.disabled = true; safeSet('companion_av3dEnv', 'pano'); box.querySelector('input[value=pano]').checked = true; try { const bl = await avkPanoMake(t => { bt.textContent = t; }); avkPanoApply(bl); bt.textContent = '✓ Fertig'; } catch (e) { bt.textContent = '🔄 Neues Rundumbild malen'; alert('Rundumbild ging nicht: ' + e.message); } bt.disabled = false; };
+  };
+}
+
+// ---------- „Sie sieht dich": Kopf-Verfolgung über die Frontkamera ----------
+// Die Frontkamera erkennt dein Gesicht (MediaPipe, läuft komplett auf dem Handy,
+// es verlässt kein Bild das Gerät). Bewegst du den Kopf, verschiebt sich die
+// 3D-Ansicht wie ein Fenster - und sie hält Blickkontakt. Schaust du weg, merkt sie es.
+const HT = { on: false, ok: false, x: 0, y: 0, z: 1, raw: null, base: null, det: null, stream: null, video: null, timer: 0, lost: 0, n: 0 };
+const HT_MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21';
+const HT_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
+async function htStart(onMsg) {
+  if (HT.on) return true;
+  try {
+    onMsg && onMsg('Frontkamera wird gestartet …');
+    HT.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 24 } }, audio: false });
+    const v = HT.video = document.createElement('video'); v.muted = true; v.playsInline = true; v.srcObject = HT.stream; await v.play();
+    if (!HT.det) {
+      onMsg && onMsg('Gesichtserkennung wird geladen (einmalig, klein) …');
+      const mp = await import(HT_MP + '/vision_bundle.mjs');
+      const files = await mp.FilesetResolver.forVisionTasks(HT_MP + '/wasm');
+      const mk = d => mp.FaceDetector.createFromOptions(files, { baseOptions: { modelAssetPath: HT_MODEL, delegate: d }, runningMode: 'VIDEO', minDetectionConfidence: 0.5 });
+      try { HT.det = await mk('GPU'); } catch (e) { HT.det = await mk('CPU'); }
+    }
+    HT.on = true; HT.base = null; HT.n = 0; HT.lost = 0;
+    let last = -1;
+    const tick = () => {
+      if (!HT.on) return;
+      HT.timer = setTimeout(tick, 60);
+      const v = HT.video; if (!v || v.readyState < 2 || v.currentTime === last) return; last = v.currentTime;
+      let r = null; try { r = HT.det.detectForVideo(v, performance.now()); } catch (e) { return; }
+      const d = r && r.detections && r.detections[0];
+      if (!d || !d.boundingBox) { HT.lost += 0.06; if (HT.lost > 0.5) HT.ok = false; return; }
+      const b = d.boundingBox, vw = v.videoWidth || 320, vh = v.videoHeight || 240;
+      const cx = (b.originX + b.width / 2) / vw, cy = (b.originY + b.height / 2) / vh, sz = b.width / vw;
+      const raw = [-(cx - 0.5) * 2, (cy - 0.5) * 2, sz];
+      // Ausgangslage: die ersten Bilder sind „geradeaus"
+      if (!HT.base) { HT.n++; HT.acc = HT.acc && HT.n > 1 ? HT.acc.map((a, i) => a + raw[i]) : raw.slice(); if (HT.n >= 8) { HT.base = HT.acc.map(a => a / HT.n); } return; }
+      const tx = Math.max(-1.5, Math.min(1.5, (raw[0] - HT.base[0]) * 1.6)), ty = Math.max(-1.5, Math.min(1.5, (raw[1] - HT.base[1]) * 1.6)), tz = Math.max(0.6, Math.min(1.6, raw[2] / HT.base[2]));
+      HT.x += (tx - HT.x) * 0.35; HT.y += (ty - HT.y) * 0.35; HT.z += (tz - HT.z) * 0.25; HT.ok = true; HT.lost = 0;
+    };
+    tick();
+    return true;
+  } catch (e) {
+    htStop();
+    throw new Error(/Permission|NotAllowed/i.test(String(e && e.name || e)) ? 'Kamera nicht erlaubt' : 'Gesichtserkennung ging nicht (' + String(e && e.message || e).slice(0, 80) + ')');
+  }
+}
+function htStop() {
+  HT.on = false; HT.ok = false; clearTimeout(HT.timer); HT.x = HT.y = 0; HT.z = 1;
+  if (HT.stream) { HT.stream.getTracks().forEach(t => t.stop()); HT.stream = null; }
+  if (HT.video) { HT.video.srcObject = null; HT.video = null; }
+}
+{
+  // Kamera der 3D-Ansicht: Kopf-Verschiebung wie bei einem Fenster
+  const oCam = avkCamera;
+  avkCamera = function () {
+    const r = oCam.apply(this, arguments);
+    if (HT.on && HT.ok && AV.camera) {
+      const cam = AV.camera, T = AV.T;
+      const fwd = new T.Vector3(); cam.getWorldDirection(fwd);
+      const right = fwd.clone().cross(new T.Vector3(0, 1, 0)).normalize(), up = right.clone().cross(fwd).normalize();
+      const at = cam.position.clone().addScaledVector(fwd, 0.6);
+      const k = AV.camMode === 0 ? 0.09 : 0.22;
+      cam.position.addScaledVector(right, HT.x * k).addScaledVector(up, -HT.y * k * 0.7).addScaledVector(fwd, (HT.z - 1) * k * 0.8);
+      cam.lookAt(at);
+      if (AVK.pano) AVK.pano.position.copy(cam.position);
+    }
+    return r;
+  };
+  // Wegschauen bemerken
+  setInterval(() => {
+    if (!HT.on || !AV.open || !AVK.on) return;
+    if (!HT.ok) { HT.away = (HT.away || 0) + 1; if (HT.away === 5) { const f = getFigure(AVK.figId), v = f && latestVersion(f); avHint(`${v ? v.name.split(' ')[0] : 'Sie'} merkt, dass du wegschaust …`); if (AVK.rig && AVK.jig && AVK.jig.poke) {} } }
+    else { if ((HT.away || 0) >= 5) avHint('Da bist du wieder 🙂'); HT.away = 0; }
+  }, 1000);
+  // Knopf 👁 in der 3D-Ansicht
+  const v = avView();
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'av3dEye'; b.className = 'btn-secondary';
+  b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6); font-size:18px;';
+  b.textContent = '👁'; b.title = 'Sie sieht dich (Frontkamera, bleibt auf dem Handy)'; b.setAttribute('aria-label', b.title);
+  const paint = () => { b.style.background = HT.on ? 'rgba(160,60,90,0.75)' : 'rgba(20,14,17,0.6)'; };
+  b.onclick = async () => {
+    if (HT.on) { htStop(); paint(); avHint('Kopf-Verfolgung aus'); return; }
+    try { await htStart(t => avHint(t)); paint(); avHint('Halt das Handy wie sonst und beweg den Kopf - sie folgt dir mit dem Blick'); }
+    catch (e) { paint(); avHint(e.message); avkLog('Kopf-Verfolgung: ' + e.message); }
+  };
+  avkSideCol().appendChild(b);
+  const oClose = avClose; avClose = function () { htStop(); paint(); return oClose.apply(this, arguments); };
 }
 
 {
@@ -28801,21 +29023,136 @@ function dpFocus(depthCanvas) {
   for (let y = Math.round(h * 0.08); y < Math.round(h * 0.5); y++) for (let x = Math.round(w * 0.2); x < Math.round(w * 0.8); x++) vals.push(d[(y * w + x) * 4]);
   vals.sort((a, b) => a - b); return (vals[Math.floor(vals.length * 0.9)] || 200) / 255;
 }
-function dpGL(cv, img, depth) {
+// ---------- Ebenen: Vordergrund freistellen, Hintergrund dahinter auffüllen ----------
+// Bis 2.53 wurde ein einziges Bild verschoben. An Kanten (Körper vor Wand)
+// zog es dabei Streifen. Jetzt: Tiefen-Sprung finden, Vordergrund (sie) als
+// eigene Ebene mit weichem Rand, dahinter der Hintergrund, in dem die Lücke
+// aus der Umgebung aufgefüllt ist. Beide Ebenen bewegen sich mit ihrer eigenen
+// Tiefe - so entsteht keine verschmierte Kante mehr.
+function dpPushPull(vals, wt, w, h, ch) {
+  // vals: Float32Array(w*h*ch), wt: Float32Array(w*h) 0..1 - füllt Stellen mit wt=0 aus der Umgebung
+  const lv = [{ v: vals, m: wt, w, h }];
+  while (lv[lv.length - 1].w > 2 || lv[lv.length - 1].h > 2) {
+    const p = lv[lv.length - 1], W = Math.max(1, p.w >> 1), H = Math.max(1, p.h >> 1);
+    const v = new Float32Array(W * H * ch), m = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let sm = 0; const acc = new Array(ch).fill(0);
+      for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+        const sx = Math.min(p.w - 1, x * 2 + dx), sy = Math.min(p.h - 1, y * 2 + dy), si = sy * p.w + sx, ww = p.m[si];
+        sm += ww; for (let c = 0; c < ch; c++) acc[c] += p.v[si * ch + c] * ww;
+      }
+      const i = y * W + x; m[i] = Math.min(1, sm);
+      for (let c = 0; c < ch; c++) v[i * ch + c] = sm > 0 ? acc[c] / sm : 0;
+    }
+    lv.push({ v, m, w: W, h: H });
+  }
+  for (let L = lv.length - 2; L >= 0; L--) {
+    const p = lv[L], q = lv[L + 1];
+    for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++) {
+      const i = y * p.w + x, a = p.m[i]; if (a >= 1) continue;
+      // bilinear aus der gröberen Stufe
+      const fx = Math.min(q.w - 1, Math.max(0, (x + 0.5) / 2 - 0.5)), fy = Math.min(q.h - 1, Math.max(0, (y + 0.5) / 2 - 0.5));
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(q.w - 1, x0 + 1), y1 = Math.min(q.h - 1, y0 + 1), ax = fx - x0, ay = fy - y0;
+      for (let c = 0; c < ch; c++) {
+        const g = (xx, yy) => q.v[(yy * q.w + xx) * ch + c];
+        const up = (g(x0, y0) * (1 - ax) + g(x1, y0) * ax) * (1 - ay) + (g(x0, y1) * (1 - ax) + g(x1, y1) * ax) * ay;
+        p.v[i * ch + c] = p.v[i * ch + c] * a + up * (1 - a);
+      }
+      p.m[i] = 1;
+    }
+  }
+  return lv[0].v;
+}
+function dpMorph(m, w, h, r, dilate) {
+  // Quadratisches Erweitern (max) bzw. Schrumpfen (min), getrennt nach Achsen
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h), f = dilate ? Math.max : Math.min;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = m[y * w + x]; for (let k = -r; k <= r; k++) { const xx = Math.min(w - 1, Math.max(0, x + k)); v = f(v, m[y * w + xx]); } tmp[y * w + x] = v; }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = tmp[y * w + x]; for (let k = -r; k <= r; k++) { const yy = Math.min(h - 1, Math.max(0, y + k)); v = f(v, tmp[yy * w + x]); } out[y * w + x] = v; }
+  return out;
+}
+function dpBlur(m, w, h, r) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h), n = 2 * r + 1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let s = 0; for (let k = -r; k <= r; k++) s += m[y * w + Math.min(w - 1, Math.max(0, x + k))]; tmp[y * w + x] = s / n; }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let s = 0; for (let k = -r; k <= r; k++) s += tmp[Math.min(h - 1, Math.max(0, y + k)) * w + x]; out[y * w + x] = s / n; }
+  return out;
+}
+function dpLayers(ic, depthSrc) {
+  // Arbeitsgröße ~ 512 an der langen Seite
+  const k = Math.min(1, 512 / Math.max(depthSrc.width, depthSrc.height));
+  const w = Math.max(16, Math.round(depthSrc.width * k)), h = Math.max(16, Math.round(depthSrc.height * k));
+  const dc = document.createElement('canvas'); dc.width = w; dc.height = h; const dg = dc.getContext('2d', { willReadFrequently: true }); dg.drawImage(depthSrc, 0, 0, w, h);
+  const dd = dg.getImageData(0, 0, w, h).data, N = w * h, d = new Float32Array(N);
+  for (let i = 0; i < N; i++) d[i] = dd[i * 4] / 255;
+  // Schwelle nach Otsu: trennt nah (sie) von fern (Raum)
+  const hist = new Array(64).fill(0); for (let i = 0; i < N; i++) hist[Math.min(63, Math.floor(d[i] * 64))]++;
+  let sum = 0; for (let i = 0; i < 64; i++) sum += i * hist[i];
+  let sB = 0, wB = 0, best = 0, th = 32;
+  for (let t = 0; t < 64; t++) { wB += hist[t]; if (!wB) continue; const wF = N - wB; if (!wF) break; sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF; const v = wB * wF * (mB - mF) * (mB - mF); if (v > best) { best = v; th = t + 0.5; } }
+  const T = th / 64;
+  let mask = new Float32Array(N), fg = 0; for (let i = 0; i < N; i++) { if (d[i] > T) { mask[i] = 1; fg++; } }
+  // Kleine Inseln weg (öffnen), Löcher zu (schließen)
+  mask = dpMorph(dpMorph(mask, w, h, 2, false), w, h, 2, true);
+  mask = dpMorph(dpMorph(mask, w, h, 3, true), w, h, 3, false);
+  const frac = fg / N;
+  // Nur wenn es eine klare Stufe gibt; sonst eine Ebene wie bisher (aber mit glatter Tiefe)
+  const split = frac > 0.04 && frac < 0.9 && best / (N * N) > 0.0004;
+  if (!split) mask.fill(0);
+  // Tiefe je Ebene: aus ihrer eigenen Fläche nach außen fortsetzen
+  const bgW = new Float32Array(N), fgW = new Float32Array(N);
+  const grow = dpMorph(mask, w, h, 3, true), core = dpMorph(mask, w, h, 1, false);
+  for (let i = 0; i < N; i++) { bgW[i] = grow[i] > 0.5 ? 0 : 1; fgW[i] = core[i] > 0.5 ? 1 : 0; }
+  const bgD = split ? dpPushPull(Float32Array.from(d), Float32Array.from(bgW), w, h, 1) : Float32Array.from(d);
+  const fgD = split ? dpPushPull(Float32Array.from(d), Float32Array.from(fgW), w, h, 1) : Float32Array.from(d);
+  // Hintergrundfarbe: Lücke hinter ihr aus der Umgebung auffüllen
+  const sc = document.createElement('canvas'); sc.width = w; sc.height = h; const sg = sc.getContext('2d', { willReadFrequently: true }); sg.drawImage(ic, 0, 0, w, h);
+  const id = sg.getImageData(0, 0, w, h), col = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { col[i * 3] = id.data[i * 4]; col[i * 3 + 1] = id.data[i * 4 + 1]; col[i * 3 + 2] = id.data[i * 4 + 2]; }
+  // Glatte Tiefe, aber Kanten nicht über den Sprung hinweg verwischen
+  const sbg = dpBlur(bgD, w, h, 2), sfg = dpBlur(fgD, w, h, 1);
+  const alpha = dpBlur(mask, w, h, 1);
+  // Hilfstextur: R = Tiefe Vordergrund, G = Tiefe Hintergrund, B = Deckkraft Vordergrund
+  const aux = document.createElement('canvas'); aux.width = w; aux.height = h; const ag = aux.getContext('2d'); const ad = ag.createImageData(w, h);
+  for (let i = 0; i < N; i++) { ad.data[i * 4] = Math.round(sfg[i] * 255); ad.data[i * 4 + 1] = Math.round(sbg[i] * 255); ad.data[i * 4 + 2] = Math.round(alpha[i] * 255); ad.data[i * 4 + 3] = 255; }
+  ag.putImageData(ad, 0, 0);
+  // Hintergrund in voller Auflösung: Original, nur in der Lücke die Füllung
+  const bg = document.createElement('canvas'); bg.width = ic.width; bg.height = ic.height; const bgg = bg.getContext('2d');
+  if (split) {
+    const fill = dpPushPull(col, Float32Array.from(bgW), w, h, 3);
+    const fc = document.createElement('canvas'); fc.width = w; fc.height = h; const fcg = fc.getContext('2d'); const fd = fcg.createImageData(w, h);
+    for (let i = 0; i < N; i++) { fd.data[i * 4] = fill[i * 3]; fd.data[i * 4 + 1] = fill[i * 3 + 1]; fd.data[i * 4 + 2] = fill[i * 3 + 2]; fd.data[i * 4 + 3] = 255; }
+    fcg.putImageData(fd, 0, 0);
+    // Lückenmaske (etwas größer als sie, weich) als Alpha
+    const hole = dpBlur(grow, w, h, 2);
+    const mc = document.createElement('canvas'); mc.width = w; mc.height = h; const mcg = mc.getContext('2d'); const md = mcg.createImageData(w, h);
+    for (let i = 0; i < N; i++) { md.data[i * 4 + 3] = Math.round(Math.min(1, hole[i] * 1.4) * 255); }
+    mcg.putImageData(md, 0, 0);
+    bgg.drawImage(ic, 0, 0);
+    bgg.globalCompositeOperation = 'destination-out'; bgg.drawImage(mc, 0, 0, bg.width, bg.height);
+    bgg.globalCompositeOperation = 'destination-over'; bgg.filter = 'blur(' + Math.max(1, Math.round(bg.width / w)) + 'px)'; bgg.drawImage(fc, 0, 0, bg.width, bg.height);
+    bgg.filter = 'none'; bgg.globalCompositeOperation = 'source-over';
+  } else bgg.drawImage(ic, 0, 0);
+  return { aux, bg, split };
+}
+function dpGL(cv, img, bg, aux) {
   const gl = cv.getContext('webgl', { antialias: false, premultipliedAlpha: false }); if (!gl) throw new Error('kein WebGL');
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
   const pr = gl.createProgram();
   gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; uniform vec2 sc; void main(){ uv = vec2(p.x*0.5+0.5, 0.5-p.y*0.5); gl_Position = vec4(p*sc, 0.0, 1.0); }'));
-  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision highp float; varying vec2 uv; uniform sampler2D img, dep; uniform vec2 tilt; uniform float focus, amt, zoom;
-    void main(){ vec2 base = (uv - 0.5) / zoom + 0.5; vec2 q = base;
-      for (int i = 0; i < 6; i++) { float d = texture2D(dep, q).r; q = base + tilt * (d - focus) * amt; }
-      gl_FragColor = texture2D(img, clamp(q, 0.001, 0.999)); }`));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision highp float; varying vec2 uv; uniform sampler2D img, bgi, aux; uniform vec2 tilt; uniform float focus, amt, zoom;
+    void main(){ vec2 base = (uv - 0.5) / zoom + 0.5;
+      vec2 qb = base; for (int i = 0; i < 8; i++) { float d = texture2D(aux, qb).g; qb = base + tilt * (d - focus) * amt; }
+      vec2 qf = base; for (int i = 0; i < 8; i++) { float d = texture2D(aux, qf).r; qf = base + tilt * (d - focus) * amt; }
+      vec3 b = texture2D(bgi, clamp(qb, 0.001, 0.999)).rgb;
+      float a = texture2D(aux, clamp(qf, 0.001, 0.999)).b;
+      vec2 qfc = clamp(qf, 0.001, 0.999); a *= step(abs(qf.x - qfc.x) + abs(qf.y - qfc.y), 0.0);
+      vec3 f = texture2D(img, qfc).rgb;
+      gl_FragColor = vec4(mix(b, f, a), 1.0); }`));
   gl.linkProgram(pr); gl.useProgram(pr);
   const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const tex = (unit, src) => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); return t; };
-  tex(0, img); tex(1, depth);
-  gl.uniform1i(gl.getUniformLocation(pr, 'img'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'dep'), 1);
+  tex(0, img); tex(1, bg); tex(2, aux);
+  gl.uniform1i(gl.getUniformLocation(pr, 'img'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'bgi'), 1); gl.uniform1i(gl.getUniformLocation(pr, 'aux'), 2);
   const U = n => gl.getUniformLocation(pr, n);
   return { draw(tilt, focus, amt, zoom, sc) { gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('tilt'), tilt[0], tilt[1]); gl.uniform1f(U('focus'), focus); gl.uniform1f(U('amt'), amt); gl.uniform1f(U('zoom'), zoom); gl.uniform2f(U('sc'), sc[0], sc[1]); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } };
 }
@@ -28827,19 +29164,27 @@ async function dpOpen(url, title) {
     <div style="position:absolute; left:12px; right:12px; top:calc(env(safe-area-inset-top, 0px) + 10px); display:flex; gap:8px; align-items:center;">
       <button type="button" class="btn-secondary" id="dpClose" style="width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6);">‹</button>
       <div style="flex:1; font-size:14px; opacity:.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(title || '3D-Foto')}</div>
+      <button type="button" class="btn-secondary" id="dpEye" style="width:auto; height:44px; padding:0 12px; background:rgba(20,14,17,0.6); font-size:13px;">👁 Kopf</button>
       <button type="button" class="btn-secondary" id="dpGyro" style="width:auto; height:44px; padding:0 12px; background:rgba(20,14,17,0.6); font-size:13px;">📱 Kippen</button>
     </div>
     <div id="dpMsg" style="position:absolute; left:20px; right:20px; top:45%; text-align:center; font-size:15px; color:rgba(255,255,255,0.85);"></div>
-    <div style="position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 14px);"><input type="range" id="dpAmt" min="0" max="0.12" step="0.005" value="0.05" style="width:100%;" aria-label="Stärke"></div>`;
+    <div style="position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 14px);"><input type="range" id="dpAmt" min="0" max="0.10" step="0.005" value="0.035" style="width:100%;" aria-label="Stärke"></div>`;
   document.body.appendChild(v);
   const msg = t => { const m = v.querySelector('#dpMsg'); if (m) m.textContent = t || ''; };
   let open = true, gyro = null, drag = null, dragT = [0, 0], base = null;
-  const close = () => { open = false; cancelAnimationFrame(DP.raf); window.removeEventListener('deviceorientation', onOri); v.remove(); };
+  let myHT = false;
+  const close = () => { open = false; cancelAnimationFrame(DP.raf); window.removeEventListener('deviceorientation', onOri); if (myHT) htStop(); v.remove(); };
   v._close = close;
   v.querySelector('#dpClose').onclick = close;
   const onOri = e => { if (e.beta == null) return; if (!base) base = [e.beta, e.gamma]; gyro = [Math.max(-1, Math.min(1, (e.gamma - base[1]) / 22)), Math.max(-1, Math.min(1, (e.beta - base[0]) / 22))]; };
   const startGyro = async () => { try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return; } window.addEventListener('deviceorientation', onOri); base = null; } catch (e) {} };
   v.querySelector('#dpGyro').onclick = () => { startGyro(); avHintSafe('Handy langsam kippen'); };
+  const eb = v.querySelector('#dpEye');
+  eb.onclick = async () => {
+    if (typeof HT === 'undefined') return;
+    if (HT.on) { if (myHT) htStop(); myHT = false; eb.style.background = 'rgba(20,14,17,0.6)'; return; }
+    try { await htStart(t => avHintSafe(t)); myHT = true; eb.style.background = 'rgba(160,60,90,0.75)'; avHintSafe('Beweg den Kopf - sie schaut dir nach'); } catch (e) { avHintSafe(e.message); }
+  };
   startGyro();
   const cv = v.querySelector('#dpCv');
   cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; });
@@ -28858,10 +29203,13 @@ async function dpOpen(url, title) {
   // Bild in Texturgröße (max. 2048)
   const k = Math.min(1, 2048 / Math.max(img.width, img.height));
   const ic = document.createElement('canvas'); ic.width = Math.round(img.width * k); ic.height = Math.round(img.height * k); ic.getContext('2d').drawImage(img, 0, 0, ic.width, ic.height);
-  const dc = document.createElement('canvas'); dc.width = dres.canvas.width; dc.height = dres.canvas.height; const dg = dc.getContext('2d'); dg.filter = 'blur(2px)'; dg.drawImage(dres.canvas, 0, 0);
-  const focus = dpFocus(dc);
+  msg('Ebenen werden getrennt …'); await new Promise(r => setTimeout(r, 30));
+  let L; try { L = dpLayers(ic, dres.canvas); } catch (e) { L = null; }
+  if (!open) return;
+  const focus = dpFocus(dres.canvas);
   let R;
-  try { R = dpGL(cv, ic, dc); } catch (e) { msg('3D-Foto geht auf diesem Gerät nicht: ' + e.message); return; }
+  try { R = L ? dpGL(cv, ic, L.bg, L.aux) : (() => { const a = document.createElement('canvas'); a.width = dres.canvas.width; a.height = dres.canvas.height; const g = a.getContext('2d'); g.drawImage(dres.canvas, 0, 0); return dpGL(cv, ic, ic, a); })(); } catch (e) { msg('3D-Foto geht auf diesem Gerät nicht: ' + e.message); return; }
+  DP.last = L;
   msg('');
   const amtEl = v.querySelector('#dpAmt');
   let cur = [0, 0]; const t0 = performance.now();
@@ -28871,10 +29219,11 @@ async function dpOpen(url, title) {
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     const t = (performance.now() - t0) / 1000;
     // Ziel: Kippen > Ziehen > sanftes Pendeln
-    const want = gyro ? gyro : drag ? dragT : [0.55 * Math.sin(t * 0.7), 0.25 * Math.sin(t * 0.5 + 1)];
+    const head = (typeof HT !== 'undefined' && HT.on && HT.ok) ? [HT.x * 0.9, HT.y * 0.9] : null;
+    const want = drag ? dragT : head ? head : gyro ? gyro : [0.55 * Math.sin(t * 0.7), 0.25 * Math.sin(t * 0.5 + 1)];
     cur = [cur[0] + (want[0] - cur[0]) * 0.12, cur[1] + (want[1] - cur[1]) * 0.12];
     const ia = ic.width / ic.height, va = W / H; const sc = ia > va ? [1, va / ia] : [ia / va, 1];
-    R.draw([-cur[0], -cur[1]], focus, +amtEl.value, 1.05, sc);
+    const amt = +amtEl.value; R.draw([-cur[0], -cur[1]], focus, amt, 1.02 + amt * 0.9, sc);
   };
   loop();
 }
@@ -28910,6 +29259,93 @@ function avHintSafe(t) { try { const v = document.getElementById('dpView'); if (
     } catch (e) {}
     return r;
   };
+}
+
+
+// =====================================================================
+// ======================= 🧍 LIVE MIT 3D-FIGUR (TEST) =======================
+// =====================================================================
+// Testweise statt Bild und Verlauf: die 3D-Figur im Live-Gespräch. Sie spricht
+// (Mund und Untertitel), ihre Bewegung folgt dem Takt an Gerät 1. Die untere
+// Leiste (Eingabe, Anruf, Kurz davor, Stopp) bleibt darunter bedienbar.
+// Auswahl: Szene & Regeln → „Darstellung (Test)", oder ⋯ → „🧍 3D-Figur".
+function live3dWanted() { return localStorage.getItem('companion_liveView') === '3d'; }
+function live3dFit() {
+  const v = document.getElementById('av3dView'), bar = document.getElementById('bottomBar');
+  if (!v || !document.body.classList.contains('live3d')) return;
+  const r = bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect() : null; const top = r && r.height ? r.top : window.innerHeight;
+  v.style.bottom = Math.max(0, Math.round(window.innerHeight - top)) + 'px';
+  try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+}
+async function live3dOpen() {
+  if (typeof currentMode !== 'undefined' && currentMode !== 'live') return;
+  document.body.classList.add('live3d');
+  live3dFit();
+  if (!AV.open) await avOpen();
+  live3dFit();
+  avHint('Testansicht: 3D-Figur im Gespräch · ‹ zurück zum Verlauf');
+}
+{
+  const st = document.createElement('style');
+  st.textContent = `body.live3d #bottomBar { z-index: 2450; }
+    body.live3d #av3dView { height: auto !important; }
+    body.live3d #av3dCap { bottom: 12px !important; }`;
+  document.head.appendChild(st);
+  // Wie hoch der Renderer zeichnet, richtet sich nach dem Fenster - im Live-Modus
+  // nach der freien Fläche über der Leiste.
+  const oInit = avInit;
+  avInit = async function () {
+    const first = !AV.renderer;
+    const r = await oInit.apply(this, arguments);
+    if (first && AV.renderer) {
+      const fit = () => { const v = document.getElementById('av3dView'); if (!v || !AV.renderer) return; const w = v.clientWidth || window.innerWidth, h = v.clientHeight || window.innerHeight; AV.renderer.setSize(w, h, false); AV.camera.aspect = w / h; AV.camera.updateProjectionMatrix(); };
+      window.addEventListener('resize', () => setTimeout(fit, 0)); fit();
+    }
+    return r;
+  };
+  const bar = document.getElementById('bottomBar');
+  if (bar && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => live3dFit()).observe(bar);
+  window.addEventListener('resize', () => setTimeout(live3dFit, 50));
+  const oClose = avClose;
+  avClose = function () {
+    const r = oClose.apply(this, arguments);
+    if (document.body.classList.contains('live3d')) {
+      document.body.classList.remove('live3d');
+      const v = document.getElementById('av3dView'); if (v) v.style.bottom = '0px';
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }
+    return r;
+  };
+  // Auswahl in „Szene & Regeln"
+  const gs = document.getElementById('gameSelect');
+  if (gs) {
+    const box = document.createElement('div');
+    box.innerHTML = `<label for="liveView" style="margin-top:12px;">Darstellung <span style="font-size:11px; color:var(--text-dim, #999);">(Test)</span></label>
+      <select id="liveView">
+        <option value="">Bild und Verlauf (Standard)</option>
+        <option value="3d">🧍 3D-Figur - spricht und bewegt sich im Takt</option>
+      </select>
+      <p class="hint">Nur zum Ausprobieren. Die Figur braucht ein 3D-Modell (VRM) - einrichten über 🧍 in der Figurenkarte. Zurück zum Verlauf jederzeit mit ‹ oben links.</p>`;
+    const anchor = document.getElementById('gameOptChallenge') || gs;
+    anchor.parentNode.insertBefore(box, anchor);
+    const sel = box.querySelector('#liveView');
+    sel.value = live3dWanted() ? '3d' : '';
+    sel.onchange = () => { safeSet('companion_liveView', sel.value); if (sel.value === '3d' && inSession() && currentMode === 'live' && history.length) live3dOpen(); else if (!sel.value && document.body.classList.contains('live3d')) avClose(); };
+  }
+  // ⋯ im Gespräch
+  const more = document.getElementById('moreSheet');
+  if (more) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.id = 'live3dBtn';
+    b.textContent = '🧍 3D-Figur (Test)'; b.title = 'Die Figur in 3D statt Bild und Verlauf';
+    b.onclick = () => { if (document.body.classList.contains('live3d')) avClose(); else live3dOpen(); };
+    more.insertBefore(b, more.querySelector('#photoBtn'));
+  }
+  // Beim Start eines Live-Gesprächs automatisch, wenn ausgewählt
+  const go = () => { if (live3dWanted() && inSession() && currentMode === 'live') setTimeout(live3dOpen, 350); };
+  els.liveStartBtn.addEventListener('click', go);
+  const oEnter = enterLive;
+  enterLive = function () { const r = oEnter.apply(this, arguments); if (history.length) go(); return r; };
+  GAME_INFO.live.go = () => enterLive();
 }
 
 window.__appReady = true;
