@@ -3620,8 +3620,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.54';
+const APP_VERSION = '2.55';
 const CHANGELOG = [
+  { v: '2.55', date: '2026-10-21', items: [
+    '🧍 Live-Gespräch mit 3D-Figur: Das Bild zuckte ständig, weil sich die Größenanpassung immer wieder selbst auslöste. Behoben. Außerdem wechselt die Stellung durch das Gesprochene höchstens alle 20 Sekunden (vorher alle 5).',
+    '👗 Kleidung an/aus direkt in der 3D-Ansicht: rechts der Knopf 👗/👙, gilt je Modell. Die App prüft beim Laden, ob unter der Kleidung ein vollständiger Körper ist - fehlen dort Teile, bleibt die Figur von sich aus angezogen.',
+    '✋ Mit der Hand: Sie rückt so nah heran, dass ihr Arm den ganzen Hub erreicht. Vorher war der Arm bei vielen Figuren zu kurz - die Hand hing gestreckt an der Spitze und bewegte sich nicht mit.',
+    '🧍 Der rosa Zylinder (Gerät aus der einfachen Ansicht) blieb im Zimmer stehen und steckte z. B. in ihrem Körper. Er ist im Zimmer jetzt immer aus.',
+    '👄 Mit dem Mund: Ihre Hände liegen auf deinen Oberschenkeln statt vor ihrem Gesicht.',
+    '🐎 Reiten: Der Penis zeigt nicht mehr leicht nach vorn (kam vorn am Bauch heraus), und deine Hände greifen nicht mehr über Kreuz.',
+    '👆 Antippen: Nur noch die Brust wippt (über die Federknochen des Modells), nicht mehr die ganze Figur.',
+  ] },
   { v: '2.54', date: '2026-10-21', items: [
     '🧍 Test: 3D-Figur im Live-Gespräch. Unter Szene & Regeln → „Darstellung (Test)" auf „3D-Figur" stellen, oder im Gespräch ⋯ → „🧍 3D-Figur (Test)". Sie spricht (Mund und Untertitel) und bewegt sich im Takt von Gerät 1; Eingabe, Anruf, Kurz davor und Stopp bleiben unten bedienbar. ‹ oben links führt zurück zum Verlauf. Standard bleibt Bild und Verlauf.',
     '▶ Probelauf in der 3D-Ansicht: Die Figur wurde mit der Zeit immer schneller (nach ein, zwei Minuten raste sie). Jetzt bleibt das Tempo ruhig bei etwa 30-48 Takten pro Minute.',
@@ -26827,6 +26836,9 @@ async function avSheet() {
 
 
 
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -27806,6 +27818,11 @@ function mhManRig(THREE, B, opts) {
       H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wrist, pole);
       const w = bn('wrist.' + sd); mhAim(THREE, w, bn('finger3-1.' + sd).userData.head.clone().sub(w.userData.head), tgt);
     };
+    if (s.hands && s.hands.L && s.hands.R) {
+      // nie über Kreuz greifen: jede Hand zum Ziel auf ihrer Seite
+      const shL = bn('upperarm01.L').getWorldPosition(V()), shR = bn('upperarm01.R').getWorldPosition(V());
+      if ((shL.x - shR.x) * (s.hands.L.x - s.hands.R.x) < 0) s.hands = Object.assign({}, s.hands, { L: s.hands.R, R: s.hands.L });
+    }
     if (s.hands) { if (s.hands.L) handTo('L', s.hands.L); if (s.hands.R) handTo('R', s.hands.R); }
     B.root.updateMatrixWorld(true);
     const hands = Object.assign({}, s.hands || {});
@@ -28253,7 +28270,16 @@ function avkSetPose(pose) {
   const L = AVK.pen.userData.length;
   let base, axis;
   if (pose === 'blow') { axis = new T.Vector3(0, -0.04, -1).normalize(); base = kp.mouth.clone().addScaledVector(axis, -L * 0.85); }
-  else if (pose === 'ride') { axis = new T.Vector3(0, 1, 0.12).normalize(); base = new T.Vector3(kp.crotch.x, kp.crotch.y - 0.475 * L, kp.crotch.z); }
+  else if (pose === 'ride') { axis = new T.Vector3(0, 1, B.isVrm ? -0.04 : 0.12).normalize(); base = new T.Vector3(kp.crotch.x, kp.crotch.y - 0.475 * L, kp.crotch.z); }
+  else if (B.isVrm && kp.shR && kp.arm) {
+    // Hand: so nah, dass ihr Arm den ganzen Hub bequem erreicht (Anime-Figuren haben kurze Arme)
+    axis = new T.Vector3(0, 0.05, -1).normalize();
+    const bl = kp.nipL.clone(), y = bl.y - (AVK.me ? 0.08 : 0.03), sh = kp.shR;
+    const dx = sh.x, dy = sh.y - y, r = 0.84 * kp.arm;
+    const dz = Math.sqrt(Math.max(0.02 * 0.02, r * r - dx * dx - dy * dy));
+    const zReach = sh.z + dz + 0.22 * L, zMin = bl.z + 0.05 + 0.74 * L;
+    base = new T.Vector3(0, y, Math.max(zReach, zMin));
+  }
   else { const bl = B.isVrm ? kp.nipL.clone() : B.bones['breast.L'].getWorldPosition(new T.Vector3()); base = new T.Vector3(0, bl.y - (AVK.me ? 0.08 : 0.03), bl.z + (AVK.me ? 0.37 : 0.37)); axis = new T.Vector3(0, 0.05, -1).normalize(); }
   AVK.pen3 = { base, axis, L };
   AVK.base = base; AVK.chest = (B.isVrm ? kp.nipL.clone() : B.bones['breast.L'].getWorldPosition(new T.Vector3())).setX(0); AVK.head = kp.head.clone(); AVK.mouth = kp.mouth.clone();
@@ -28314,7 +28340,7 @@ function avkFromText(text) {
   const tx = String(text);
   if (AVK.poseMode === 'auto') {
     const hit = AVK_POSE_RX.find(([, rx]) => rx.test(tx));
-    if (hit && hit[0] !== AVK.pose && performance.now() - AVK.poseAt > 5000) avkSwitch(hit[0]);
+    if (hit && hit[0] !== AVK.pose && performance.now() - AVK.poseAt > 20000) avkSwitch(hit[0]);   // nicht bei jedem Satz umschalten (wirkte wie Zucken)
   }
   const h = AVK_HAND_RX.find(([, rx]) => rx.test(tx));
   if (h) { AVK.hand2 = h[0]; AVK.hand2Until = performance.now() + 12000; }
@@ -28365,7 +28391,37 @@ function avkCamera(t) {
 // VRM 0.x ist nach rotateVRM0 um 180° gedreht: dort X- und Z-Drehungen umkehren (k0).
 const AVK_CLOTH_RX = /CLOTH|Shoes|Accessory|Socks|Glove|Tops|Bottoms|Onepiece|Underwear|Inner|Bra|Pants|Skirt|Jacket|Coat|Dress|Shirt/i;
 function avkVrmNudeMap() { try { return JSON.parse(localStorage.getItem('companion_vrmNude') || '{}'); } catch (e) { return {}; } }
-function avkVrmNude(key, meta) { const m = avkVrmNudeMap(); if (meta && meta.sexual === false) return false; return m[key] === undefined ? true : !!m[key]; }
+function avkVrmNude(key, meta) { const m = avkVrmNudeMap(); if (meta && meta.sexual === false) return false; return m[key] === undefined ? AVK.intact !== false : !!m[key]; }
+// Ist unter der Kleidung ein ganzer Körper? Viele Modelle sparen die verdeckten
+// Stellen ein - ausgezogen fehlen dann Bauch, Hüfte oder Beine. Geprüft wird,
+// ob die Haut rund um Rumpf und Oberschenkel lückenlos ist.
+function avkVrmBodyIntact(vrm) {
+  try {
+    const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), B = n => vrm.humanoid.getNormalizedBoneNode(n);
+    vrm.humanoid.resetNormalizedPose(); vrm.update(0); vrm.scene.updateMatrixWorld(true);
+    const wp = n => B(n).getWorldPosition(V());
+    const hips = wp('hips'), chest = wp(B('upperChest') ? 'upperChest' : 'chest'), ul = wp('leftUpperLeg'), ur = wp('rightUpperLeg'), kl = wp('leftLowerLeg'), kr = wp('rightLowerLeg');
+    const y0 = Math.min(ul.y, ur.y) - 0.02, y1 = chest.y, NS = 6, NA = 16, bins = new Set();
+    const thigh = [{ c: ul.clone().lerp(kl, 0.5), n: 0 }, { c: ur.clone().lerp(kr, 0.5), n: 0 }];
+    const v = V(0, 0, 0);
+    vrm.scene.traverse(o => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+      const ms = [].concat(o.material);
+      if (ms.some(m => m && (/HAIR|FACE|EYE|Mouth|Brow/i.test(m.name || '') || (AVK_CLOTH_RX.test(m.name || '') && !/SKIN|BODY/i.test(m.name || ''))))) return;
+      const n = o.geometry.attributes.position.count, step = Math.max(1, Math.floor(n / 30000));
+      for (let i = 0; i < n; i += step) {
+        o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld);
+        thigh.forEach(t => { if (Math.abs(v.y - t.c.y) < 0.04 && Math.hypot(v.x - t.c.x, v.z - t.c.z) < 0.12) t.n++; });
+        if (v.y < y0 || v.y > y1) continue;
+        const dx = v.x - hips.x, dz = v.z - hips.z; if (Math.hypot(dx, dz) > 0.3) continue;
+        const sl = Math.min(NS - 1, Math.floor((v.y - y0) / (y1 - y0) * NS)), an = Math.floor(((Math.atan2(dz, dx) + Math.PI) / (2 * Math.PI)) * NA) % NA;
+        bins.add(sl * NA + an);
+      }
+    });
+    const cov = bins.size / (NS * NA);
+    return { intact: cov >= 0.85 && thigh.every(t => t.n >= 12), cov };
+  } catch (e) { return { intact: true, cov: -1 }; }
+}
 function avkVrmClothes(vrm, nude) {
   let n = 0;
   vrm.scene.traverse(o => { if (!o.isMesh) return; const ms = [].concat(o.material); const cloth = ms.length && ms.every(m => m && AVK_CLOTH_RX.test(m.name || '') && !/SKIN|FACE|HAIR|EYE/i.test(m.name || '')); if (cloth) { o.visible = !nude; n++; } });
@@ -28399,10 +28455,11 @@ function avkVrmCalib(vrm) {
   const nipL = bl ? bl.add(V(0, -0.005, 0.02 * s)) : cpos.clone().add(V(0.07 * s, -0.03 * s, 0.1 * s));
   const nipR = br ? br.add(V(0, -0.005, 0.02 * s)) : cpos.clone().add(V(-0.07 * s, -0.03 * s, 0.1 * s));
   const ul = wp('leftUpperLeg'), ur = wp('rightUpperLeg');
-  const crotch = ul.clone().add(ur).multiplyScalar(0.5).add(V(0, -0.075 * s, 0.03 * s));
+  const crotch = ul.clone().add(ur).multiplyScalar(0.5).add(V(0, -0.075 * s, 0.0));
   const loc = (n, p) => p.clone().applyMatrix4(B(n).matrixWorld.clone().invert());
+  const arm = B('rightLowerArm') && B('rightHand') ? wp('rightUpperArm').distanceTo(wp('rightLowerArm')) + wp('rightLowerArm').distanceTo(wp('rightHand')) : 0.45 * s;
   return {
-    s, chestN,
+    s, chestN, arm,
     mouth: loc('head', mouth), top: loc('head', head.clone().add(V(0, 0.16 * s, -0.02 * s))),
     nipL: loc(chestN, nipL), nipR: loc(chestN, nipR), crotch: loc('hips', crotch),
     hipL: loc('hips', hips.clone().add(V(0.13 * s, 0.0, 0))), hipR: loc('hips', hips.clone().add(V(-0.13 * s, 0.0, 0))),
@@ -28413,7 +28470,7 @@ function avkVrmRig(vrm, cal) {
   const k0 = (vrm.meta && vrm.meta.metaVersion === '0') ? -1 : 1, s0 = cal.s;
   const R = (n, x, y, z) => { const b = B(n); if (b) b.rotation.set(x * k0, y, z * k0); };
   const W = (n, l) => l.clone().applyMatrix4(B(n).matrixWorld);
-  const keyPoints = () => ({ mouth: W('head', cal.mouth), head: B('head').getWorldPosition(V()), headTop: W('head', cal.top), crotch: W('hips', cal.crotch), nipL: W(cal.chestN, cal.nipL), nipR: W(cal.chestN, cal.nipR), hipL: W('hips', cal.hipL), hipR: W('hips', cal.hipR) });
+  const keyPoints = () => ({ mouth: W('head', cal.mouth), head: B('head').getWorldPosition(V()), headTop: W('head', cal.top), crotch: W('hips', cal.crotch), nipL: W(cal.chestN, cal.nipL), nipR: W(cal.chestN, cal.nipR), hipL: W('hips', cal.hipL), hipR: W('hips', cal.hipR), shR: B('rightUpperArm').getWorldPosition(V()), arm: cal.arm });
   const names = []; vrm.humanoid.humanBones && Object.keys(vrm.humanoid.humanBones).forEach(n => names.push(n));
   const sceneQ = () => vrm.scene.getWorldQuaternion(new T.Quaternion());
   const aim = (bone, child, target) => { if (!bone || !child) return; bone.updateWorldMatrix(true, true); const bp = bone.getWorldPosition(V()), cp = child.getWorldPosition(V()); const dq = new T.Quaternion().setFromUnitVectors(cp.sub(bp).normalize(), target.clone().sub(bp).normalize()); const pq = bone.parent.getWorldQuaternion(new T.Quaternion()); bone.quaternion.premultiply(pq.clone().invert().multiply(dq).multiply(pq)); bone.updateWorldMatrix(false, true); };
@@ -28464,7 +28521,7 @@ function avkVrmRig(vrm, cal) {
     legs(pose);
     st.pv = st.pv === undefined ? p : st.pv; const vel = (p - st.pv) / Math.max(dt, 1e-3); st.pv = p; const vv = Math.max(-1, Math.min(1, vel * 0.3));
     const breath = Math.sin(t * Math.PI * 2 * ((s.bpm || 70) / 60) / 4.2);
-    st.pokeT = Math.max(0, st.pokeT - dt); const pk = st.pokeT > 0 ? 0.06 * Math.sin(st.pokeT * 55) * (st.pokeT / 0.35) : 0;
+    st.pokeT = Math.max(0, st.pokeT - dt); const pk = 0;   // Antippen bewegt nur noch die Brust-Federknochen (siehe poke)
     const chestN = cal.chestN;
     const setBlow = b => { R('spine', 0.15 + 0.5 * b, 0.03 * Math.sin(t * 0.43), 0.03 * Math.sin(t * 0.7)); R('chest', 0.05 + 0.25 * b + 0.03 * vv, 0, 0); if (B('upperChest')) R('upperChest', 0.03 + 0.1 * b + pk, 0, 0); R('neck', -0.2 * b, 0, 0); };
     if (pose === 'blow') setBlow(st.bb === undefined ? 0.5 : st.bb);
@@ -28489,7 +28546,7 @@ function avkVrmRig(vrm, cal) {
       vrm.scene.position.add(want.clone().sub(m)); vrm.scene.updateMatrixWorld(true);
       st.blowRoot.lerp(vrm.scene.position, Math.min(1, dt * 0.3));
     } else if (pose === 'ride') {
-      const depth = 0.25 + 0.62 * (1 - p);
+      const depth = 0.2 + 0.5 * (1 - p);
       const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
       vrm.scene.position.add(want.sub(keyPoints().crotch)); vrm.scene.updateMatrixWorld(true);
       if (!st.rideKnees || st.rideKey !== pen.base) { st.rideKey = pen.base; st.rideKnees = {}; ['left', 'right'].forEach(sd => { st.rideKnees[sd] = { k: B(sd + 'LowerLeg').getWorldPosition(V()), f: B(sd + 'Foot').getWorldPosition(V()) }; }); }
@@ -28506,7 +28563,6 @@ function avkVrmRig(vrm, cal) {
       rest(sd, thighPt(sd));
     };
     if (pose === 'hand' && s.grip) gripR(s.grip.point, s.grip.axis);
-    else if (pose === 'blow' && pen) gripR(pen.base.clone().addScaledVector(pen.axis, pen.L * (0.14 + 0.08 * p)), pen.axis);
     else restOn('right');
     const act = s.hand2;
     if (act === 'nipple' || act === 'stroke') rest('left', kp.nipL.clone().add(V(0.01, act === 'stroke' ? -0.04 - 0.03 * Math.sin(t) : 0, 0.02)));
@@ -28536,7 +28592,18 @@ function avkVrmRig(vrm, cal) {
     st.kp = kp;
     return st;
   }
-  frame.poke = () => { st.pokeT = 0.35; };
+  // Antippen: nur die Brust (VRoid: J_Sec_*_Bust-Federknochen) bekommt einen Schubs nach unten
+  const busts = []; try { vrm.springBoneManager.joints.forEach(j => { if (j && j.bone && /bust/i.test(j.bone.name || '')) busts.push(j); }); } catch (e) {}
+  frame.poke = (amt, side) => {
+    if (!busts.length) return false;
+    busts.forEach(j => {
+      if (!j._currentTail || !j._prevTail) return;
+      const sd = /_L_|Left|\.L/i.test(j.bone.name) ? 1 : -1; const k = side ? (sd === side ? 1 : 0.55) : 1;
+      j._prevTail.copy(j._currentTail).add(V(0, 0.022 * (amt || 1) * k, 0.006));
+    });
+    return true;
+  };
+  frame.hasBust = busts.length > 0;
   return frame;
 }
 async function avkVrmShow(figId) {
@@ -28545,11 +28612,13 @@ async function avkVrmShow(figId) {
   const rec = AV.key ? await avGet(AV.key).catch(() => null) : null;
   const meta = (rec && rec.meta) || {};
   if (AV.sleeve) AV.sleeve.visible = false;
+  const bi = avkVrmBodyIntact(vrm); AVK.intact = bi.intact; AVK.lic = meta.sexual === false;
+  avkLog(`Körper unter der Kleidung: ${bi.intact ? 'vollständig' : 'lückenhaft'} (${Math.round(bi.cov * 100)} %)`);
   avkVrmClothes(vrm, avkVrmNude(AV.key, meta));
   const cal = avkVrmCalib(vrm);
   AVK.B = { root: vrm.scene, isVrm: true, vrm, bones: {} }; AVK.vrmMode = true; AVK.figId = figId; AVK.spec = null;
   AVK.rig = avkVrmRig(vrm, cal);
-  AVK.jig = dt => { vrm.update(dt); }; AVK.jig.poke = () => AVK.rig.poke();
+  AVK.jig = dt => { vrm.update(dt); }; AVK.jig.poke = (a, sd) => AVK.rig.poke(a, sd);
   AVK.hair = null;
   AVK.pen = MH.mhPenis(T, avkPenisSpec()); AV.scene.add(AVK.pen);
   let K = null; try { K = await avkKit(); } catch (e) {}
@@ -28582,6 +28651,7 @@ async function avkVrmShow(figId) {
   const oFrame = avFrame;
   avFrame = function () {
     if (!AVK.on || !AVK.B) return oFrame.apply(this, arguments);
+    if (AV.sleeve && AVK.vrmMode) AV.sleeve.visible = false;   // alter Zylinder aus der einfachen Ansicht
     const dt = Math.min(0.05, AV.clock.getDelta()), t = AV.clock.elapsedTime;
     const cfg = avCfg();
     let p = AV.probe ? avProbeP(t, dt) : avPosAt(performance.now() - cfg.delay);
@@ -28957,6 +29027,27 @@ function htStop() {
 }
 
 {
+  // 👗 Kleidung an/aus - direkt in der 3D-Ansicht, gilt je Modell
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'av3dCloth'; b.className = 'btn-secondary';
+  b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6); font-size:18px; display:none;';
+  const paint = () => {
+    const on = !!(AVK.on && AVK.vrmMode && AV.vrm && !AVK.lic);
+    b.style.display = on ? '' : 'none'; if (!on) return;
+    const nude = avkVrmNude(AV.key, {});
+    b.textContent = nude ? '👙' : '👗'; b.title = nude ? 'Ausgezogen - antippen zum Anziehen' : 'Angezogen - antippen zum Ausziehen'; b.setAttribute('aria-label', b.title);
+  };
+  b.onclick = () => {
+    if (!AV.vrm || !AV.key) return;
+    const nude = !avkVrmNude(AV.key, {});
+    const m = avkVrmNudeMap(); m[AV.key] = nude; safeSet('companion_vrmNude', JSON.stringify(m));
+    const n = avkVrmClothes(AV.vrm, nude); paint();
+    avHint(nude ? (AVK.intact === false ? 'Ausgezogen - Achtung: bei diesem Modell fehlen unter der Kleidung Körperteile' : 'Ausgezogen') : (n ? 'Angezogen' : 'Dieses Modell hat keine abnehmbare Kleidung'));
+  };
+  avkSideCol().appendChild(b);
+  setInterval(paint, 700);
+}
+
+{
   const one = document.getElementById('ptOne');
   if (one) one.onclick = () => { try { pvStop(); pv.cur = -1; } catch (e) {} openPitches(true, 1); };
 }
@@ -29274,8 +29365,18 @@ function live3dFit() {
   const v = document.getElementById('av3dView'), bar = document.getElementById('bottomBar');
   if (!v || !document.body.classList.contains('live3d')) return;
   const r = bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect() : null; const top = r && r.height ? r.top : window.innerHeight;
-  v.style.bottom = Math.max(0, Math.round(window.innerHeight - top)) + 'px';
-  try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+  const nb = Math.max(0, Math.round(window.innerHeight - top)) + 'px';
+  if (v.style.bottom === nb) return;   // nichts geändert - nicht neu aufbauen (sonst zuckt das Bild)
+  v.style.bottom = nb;
+  avFitRenderer();
+}
+// Zeichenfläche an die tatsächliche Größe der Ansicht anpassen - nur wenn sie sich ändert
+function avFitRenderer() {
+  const v = document.getElementById('av3dView'); if (!v || !AV.renderer || !AV.camera) return;
+  const w = v.clientWidth || window.innerWidth, h = v.clientHeight || window.innerHeight;
+  const sz = AV.renderer.getSize(new AV.T.Vector2());
+  if (Math.abs(sz.x - w) < 1 && Math.abs(sz.y - h) < 1) return;
+  AV.renderer.setSize(w, h, false); AV.camera.aspect = w / h; AV.camera.updateProjectionMatrix();
 }
 async function live3dOpen() {
   if (typeof currentMode !== 'undefined' && currentMode !== 'live') return;
@@ -29297,22 +29398,21 @@ async function live3dOpen() {
   avInit = async function () {
     const first = !AV.renderer;
     const r = await oInit.apply(this, arguments);
-    if (first && AV.renderer) {
-      const fit = () => { const v = document.getElementById('av3dView'); if (!v || !AV.renderer) return; const w = v.clientWidth || window.innerWidth, h = v.clientHeight || window.innerHeight; AV.renderer.setSize(w, h, false); AV.camera.aspect = w / h; AV.camera.updateProjectionMatrix(); };
-      window.addEventListener('resize', () => setTimeout(fit, 0)); fit();
-    }
+    if (first && AV.renderer) { window.addEventListener('resize', avFitRenderer); avFitRenderer(); }
     return r;
   };
   const bar = document.getElementById('bottomBar');
-  if (bar && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => live3dFit()).observe(bar);
-  window.addEventListener('resize', () => setTimeout(live3dFit, 50));
+  // Die Leiste ändert ihre Höhe (z. B. „denkt nach …"): nur dann nachziehen, höchstens einmal pro Bild
+  let fitQ = 0; const q = () => { if (!fitQ) fitQ = requestAnimationFrame(() => { fitQ = 0; live3dFit(); }); };
+  if (bar && typeof ResizeObserver !== 'undefined') new ResizeObserver(q).observe(bar);
+  window.addEventListener('resize', q);
   const oClose = avClose;
   avClose = function () {
     const r = oClose.apply(this, arguments);
     if (document.body.classList.contains('live3d')) {
       document.body.classList.remove('live3d');
       const v = document.getElementById('av3dView'); if (v) v.style.bottom = '0px';
-      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+      avFitRenderer();
     }
     return r;
   };
