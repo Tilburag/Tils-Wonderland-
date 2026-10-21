@@ -3620,8 +3620,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.56';
+const APP_VERSION = '2.57';
 const CHANGELOG = [
+  { v: '2.57', date: '2026-10-21', items: [
+    '🧍 3D-Figuren wirken lebendiger: Freie Hände bleiben nicht mehr stehen, sondern wandern alle paar Sekunden in einem kleinen Bogen woanders hin - auf deinen Oberschenkel, deinen Bauch oder deine Brust, ihre Hüfte, ihren Oberschenkel, an ihre Brust, ins Haar - und streicheln dort leicht. Hände, die auf ihr selbst liegen, werden aus ihrem Körper herausgehalten und kommen nicht vors Gesicht.',
+    '🙂 Kopf: bewegt sich ständig ein wenig, legt sich ab und zu schräg, schaut zwischendurch hin, was sie gerade tut, und nickt beim Reden. Beim Reiten federt der Kopf der Bewegung nach.',
+    '💃 Körper: Bei der Hand geht der Oberkörper mit dem Arm mit und das Gewicht verlagert sich langsam; beim Reiten kreist das Becken leicht.',
+    '👄 Mund zur Stimme: Bei ElevenLabs hört die 3D-Ansicht beim Abspielen mit - der Mund öffnet sich mit der Lautstärke und formt grob a, e, i, o, u. Bei der Android-Stimme folgt er den Vokalen im Text. Beim Reden gestikuliert sie mit der freien Hand, ganz selten zwinkert sie. Bei Erregung werden die Augen halb geschlossen.',
+  ] },
   { v: '2.56', date: '2026-10-21', items: [
     '🖼 3D-Modelle mit Bild: In der Modell-Liste (⚙ in der 3D-Ansicht) hat jedes Modell jetzt ein Vorschaubild - das im VRM eingebaute, sonst nimmt die App beim ersten Anzeigen selbst ein Porträt auf. Bild antippen oder 🖼 = eigenes Bild wählen, 📸 = neues Foto aus der 3D-Ansicht (beim gerade gezeigten Modell), ✏ = umbenennen.',
     '🧹 In der Modell-Liste tauchten auch die gespeicherten Tiefenkarten der 3D-Fotos und das Rundumbild als „Modelle" auf. Die sind jetzt raus.',
@@ -7251,7 +7257,7 @@ function routeAudio(el, kind, role, text) {
   if (!ctx || ctx.state !== 'running') return;   // lieber normal als stumm
   try {
     setRoom(amb.key || 'room');
-    const src = ctx.createMediaElementSource(el);
+    const src = ctx.createMediaElementSource(el); el.__avSrc = src;   // die 3D-Ansicht hört für den Mund mit
     const pan = ctx.createStereoPanner();
     const dry = ctx.createGain();
     const send = ctx.createGain();
@@ -26843,6 +26849,8 @@ async function avSheet() {
 
 
 
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -28320,7 +28328,7 @@ function avkPlace(p, dt) {
     if (me.B.eyes) me.B.eyes.visible = AV.camMode !== 0;
     if (me.hair) { const hv = AV.camMode !== 0; if (me.hair.cap) me.hair.cap.visible = hv; (me.hair.shells || []).forEach(x => { x.visible = hv; }); }
   }
-  const st = AVK.rig(dt, { p, cam: AV.camera.position.clone(), grip: show ? { point: gp, axis: P3.axis } : null, pen: show ? P3 : null, pose: show ? AVK.pose : 'hand', balls, hand2, bpm, arousal: aro, talking, him });
+  const st = AVK.rig(dt, { p, cam: AV.camera.position.clone(), grip: show ? { point: gp, axis: P3.axis } : null, pen: show ? P3 : null, pose: show ? AVK.pose : 'hand', balls, hand2, bpm, arousal: aro, talking, him, lip: talking ? AV.lip : null });
   if (st && st.kp) AVK.herKp = st.kp;
   if (AVK.refresh && st && st.kp) { AVK.refresh--; AVK.chest = st.kp.nipL.clone().add(st.kp.nipR).multiplyScalar(0.5); AVK.head = st.kp.head.clone(); }
   if (AVK.jig) AVK.jig(dt);
@@ -28506,13 +28514,13 @@ function avkVrmRig(vrm, cal) {
     st.wristOff = wrist.clone().sub(point);
   }
   // freie Hand auf einen Punkt legen (Ellbogen nach außen/unten), Finger locker
-  function rest(sd, target) {
+  function rest(sd, target, curl) {
     const sg = sd === 'left' ? 1 : -1, sh = B(sd + 'UpperArm').getWorldPosition(V());
     const wrist = target.clone().add(V(0, 0.025 * s0, 0)).addScaledVector(target.clone().sub(sh).setY(0).normalize(), -0.06 * s0);
     limb(sd + 'UpperArm', sd + 'LowerArm', sd + 'Hand', wrist, sh.clone().add(V(sg * 0.5, -0.5, -0.2)));
     const h = B(sd + 'Hand'); if (h) h.quaternion.identity();
     R(sd + 'Hand', 0, 0, -sg * 0.35);
-    fist(sd, [0.2, 0.25, 0.15]);
+    const c = curl === undefined ? 0.2 : curl; fist(sd, [c, c * 1.25, c * 0.75]);
   }
   function legs(pose) {
     if (pose === 'ride') { R('leftUpperLeg', -1.15, 0, 0.62); R('rightUpperLeg', -1.15, 0, -0.62); R('leftLowerLeg', 2.45, 0, 0); R('rightLowerLeg', 2.45, 0, 0); R('leftFoot', -0.6, 0, 0); R('rightFoot', -0.6, 0, 0); }
@@ -28529,8 +28537,20 @@ function avkVrmRig(vrm, cal) {
     const chestN = cal.chestN;
     const setBlow = b => { R('spine', 0.15 + 0.5 * b, 0.03 * Math.sin(t * 0.43), 0.03 * Math.sin(t * 0.7)); R('chest', 0.05 + 0.25 * b + 0.03 * vv, 0, 0); if (B('upperChest')) R('upperChest', 0.03 + 0.1 * b + pk, 0, 0); R('neck', -0.2 * b, 0, 0); };
     if (pose === 'blow') setBlow(st.bb === undefined ? 0.5 : st.bb);
-    else if (pose === 'ride') { const tilt = 0.22 * (p - 0.5); R('hips', tilt, 0, 0.02 * Math.sin(t * 0.9)); R('spine', -0.06 - tilt * 0.85, 0.03 * Math.sin(t * 0.5), 0.02 * Math.sin(t * 0.9)); R('chest', 0.03 + 0.015 * breath * (1 + ar) + pk, 0, 0); }
-    else { R('spine', (him ? 0.14 : 0.2) + 0.05 * (p - 0.5), 0.04 * Math.sin(t * 0.5), 0.015 * Math.sin(t * 0.7)); R('chest', 0.06 + 0.02 * breath * (1 + ar) + pk, 0, 0); }
+    else if (pose === 'ride') {
+      // Reiten: Becken kippt mit dem Hub und kreist leicht, Oberkörper gleicht aus und federt nach
+      st.rph = (st.rph || 0) + dt * (1.1 + Math.abs(vv) * 2);
+      const tilt = 0.22 * (p - 0.5);
+      R('hips', tilt, 0.05 * Math.sin(st.rph), 0.035 * Math.cos(st.rph) + 0.02 * Math.sin(t * 0.9));
+      R('spine', -0.06 - tilt * 0.85 + 0.04 * Math.sin(t * 0.13), 0.03 * Math.sin(t * 0.5) - 0.04 * Math.sin(st.rph), 0.02 * Math.sin(t * 0.9) - 0.025 * Math.cos(st.rph));
+      R('chest', 0.03 + 0.015 * breath * (1 + ar) + pk - 0.04 * vv, 0, 0);
+    }
+    else {
+      // Hand: Oberkörper geht mit dem Arm mit, Gewicht verlagert sich langsam
+      R('hips', 0.02 * Math.sin(t * 0.21), 0.035 * Math.sin(t * 0.17 + 1), 0.025 * Math.sin(t * 0.23));
+      R('spine', (him ? 0.14 : 0.2) + 0.05 * (p - 0.5), 0.04 * Math.sin(t * 0.5) - 0.06 * (p - 0.5), 0.015 * Math.sin(t * 0.7) + 0.02 * vv);
+      R('chest', 0.06 + 0.02 * breath * (1 + ar) + pk, -0.03 * (p - 0.5), 0);
+    }
     vrm.scene.updateMatrixWorld(true);
     // Platzierung
     if (s.measure || !pen || pose === 'hand') {
@@ -28558,40 +28578,130 @@ function avkVrmRig(vrm, cal) {
       vrm.scene.updateMatrixWorld(true);
     }
     const kp = keyPoints();
-    // Hände
+    // ---------- Hände: wandern auf natürliche Weise zwischen Haltepunkten ----------
+    // Jede freie Hand hält ein paar Sekunden an einer Stelle (auf deinem Oberschenkel,
+    // ihrer Hüfte, im Haar, an ihrer Brust, auf deiner Brust …), streichelt dort
+    // leicht und wechselt dann in einem kleinen Bogen zur nächsten. Ziele auf ihrem
+    // eigenen Rumpf werden aus dem Körper herausgeschoben, damit nichts durchragt.
+    const hipsP = B('hips').getWorldPosition(V()), topP = (B('neck') || B(cal.chestN)).getWorldPosition(V());
+    const chestP = B(cal.chestN).getWorldPosition(V());
+    const nipMid = kp.nipL.clone().add(kp.nipR).multiplyScalar(0.5);
+    const fwd = nipMid.clone().sub(chestP).setY(0); if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, 1); fwd.normalize();
+    const leftW = kp.nipL.clone().sub(kp.nipR).setY(0).normalize();   // ihre linke Seite
+    const up = V(0, 1, 0);
+    const pushOut = (pt, r) => {   // aus ihrem Rumpf (Kapsel Hüfte–Hals) herausschieben
+      const ab = topP.clone().sub(hipsP), k = Math.max(0, Math.min(1, pt.clone().sub(hipsP).dot(ab) / ab.lengthSq()));
+      const c = hipsP.clone().addScaledVector(ab, k), d = pt.clone().sub(c); const L = d.length(), R = (r || 0.115) * s0;
+      if (L < R) { if (L < 1e-4) d.copy(fwd); d.normalize(); pt.copy(c.addScaledVector(d, R)); }
+      return pt;
+    };
+    const sgOf = sd => sd === 'left' ? 1 : -1;
     const thighPt = sd => { const a = B(sd + 'UpperLeg').getWorldPosition(V()), k = B(sd + 'LowerLeg').getWorldPosition(V()); return a.lerp(k, 0.55).add(V(0, 0.07 * s0, 0)); };
-    const restOn = sd => {
-      const sg = sd === 'left' ? 1 : -1;
-      if (him && pose === 'ride') return rest(sd, him.belly.clone().lerp(him.chest, 0.35).add(V(sg * 0.09, 0.105, 0)));
-      if (him && pose === 'blow') { const th = (sd === 'left') === (him.thighL.x > him.thighR.x) ? him.thighL : him.thighR; return rest(sd, th.clone().add(V(0, 0.02, -0.075))); }
-      rest(sd, thighPt(sd));
+    const himThigh = sd => { if (!him) return null; const want = (sd === 'left') === (him.thighL.x * leftW.x + him.thighL.z * leftW.z > him.thighR.x * leftW.x + him.thighR.z * leftW.z) ? him.thighL : him.thighR; return want.clone().add(V(0, 0.02, 0)).addScaledVector(fwd, -0.075); };
+    // Ziel je Art: Punkt (Welt), Fingerkrümmung, Streichel-Weite
+    const TGT = {
+      ownThigh: sd => ({ p: thighPt(sd), curl: 0.2, rub: 0.02 }),
+      hip: sd => ({ p: (sd === 'left' ? kp.hipL : kp.hipR).clone().addScaledVector(leftW, sgOf(sd) * 0.035 * s0).add(V(0, 0.02 * s0, 0)), curl: 0.3, rub: 0.01, own: true }),
+      breast: sd => ({ p: (sd === 'left' ? kp.nipL : kp.nipR).clone().addScaledVector(fwd, 0.045 * s0).add(V(0, 0.01 * s0, 0)), curl: 0.55, rub: 0.012, own: true }),
+      hair: sd => ({ p: kp.head.clone().addScaledVector(leftW, sgOf(sd) * 0.17 * s0).add(V(0, 0.03 * s0, 0)).addScaledVector(fwd, -0.05 * s0), curl: 0.45, rub: 0.02, own: true, hair: true }),
+      gesture: sd => ({ p: chestP.clone().addScaledVector(fwd, 0.24 * s0).addScaledVector(leftW, sgOf(sd) * 0.13 * s0).add(V(0, -0.1 * s0, 0)), curl: 0.08, rub: 0.035, gest: true }),
+      himThigh: sd => { const p = himThigh(sd); return p ? { p, curl: 0.25, rub: 0.03 } : null; },
+      himBelly: sd => him ? ({ p: him.belly.clone().addScaledVector(leftW, sgOf(sd) * 0.06).add(V(0, pose === 'ride' ? 0.1 : 0.02, 0)).addScaledVector(fwd, pose === 'ride' ? 0 : -0.09), curl: 0.2, rub: 0.035 }) : null,
+      himChest: sd => him ? ({ p: him.belly.clone().lerp(him.chest, 0.55).addScaledVector(leftW, sgOf(sd) * 0.09).add(V(0, 0.105, 0)), curl: 0.2, rub: 0.04 }) : null,
+      himKnee: sd => { if (!him || !him.kneeL) return null; const k = (sd === 'left') === (him.kneeL.x * leftW.x + him.kneeL.z * leftW.z > him.kneeR.x * leftW.x + him.kneeR.z * leftW.z) ? him.kneeL : him.kneeR; return { p: k.clone().add(V(0, 0.07, 0)), curl: 0.3, rub: 0.01 }; },
+    };
+    const MENU = {
+      hand: [['ownThigh', 3], ['hip', 1.2], ['breast', 1], ['hair', 1], ['himThigh', 1.5], ['gesture', 0]],
+      blow: [['himThigh', 4], ['himBelly', 1.2], ['hair', 0.8], ['ownThigh', 0.8]],
+      ride: [['himChest', 3], ['ownThigh', 1.6], ['breast', 1.4], ['hair', 0.8], ['himKnee', 0.8], ['gesture', 0]],
+    };
+    st.hands = st.hands || {};
+    const choose = (sd, avoid) => {
+      const menu = (MENU[pose] || MENU.hand).map(([k, w]) => [k, k === 'gesture' ? (s.talking ? 2.5 : 0) : w]).filter(([k, w]) => w > 0 && k !== avoid && TGT[k](sd));
+      let r = Math.random() * menu.reduce((a, [, w]) => a + w, 0);
+      for (const [k, w] of menu) { r -= w; if (r <= 0) return k; }
+      return menu.length ? menu[0][0] : 'ownThigh';
+    };
+    const freeHand = sd => {
+      let H = st.hands[sd];
+      if (!H || H.pose !== pose) { const k = choose(sd); H = st.hands[sd] = { pose, kind: k, from: null, k: 1, until: t + 3 + Math.random() * 4, ph: Math.random() * 6 }; }
+      if (t > H.until) {
+        // die andere Hand nicht an dieselbe Stelle - und Gesten nur kurz
+        const other = st.hands[sd === 'left' ? 'right' : 'left'];
+        const next = choose(sd, H.kind === 'gesture' ? 'gesture' : (Math.random() < 0.6 ? H.kind : null));
+        if (next !== H.kind && !(other && other.kind === next && /breast|hair/.test(next))) { H.from = H.last ? H.last.clone() : null; H.kind = next; H.k = 0; }
+        H.until = t + (H.kind === 'gesture' ? 1.6 + Math.random() * 1.4 : 3.5 + Math.random() * 6);
+      }
+      let g = TGT[H.kind](sd) || TGT.ownThigh(sd);
+      const p = g.p.clone();
+      // leichtes Streicheln / Gestikulieren an der Stelle
+      const ph = t * (g.gest ? 2.1 : 0.9) + H.ph;
+      p.addScaledVector(leftW, Math.sin(ph) * g.rub * s0).add(V(0, Math.sin(ph * 0.7 + 1) * g.rub * 0.4 * s0, 0));
+      if (g.gest) p.addScaledVector(fwd, Math.sin(ph * 1.3) * 0.02 * s0);
+      if (g.own || g.gest) pushOut(p, g.gest ? 0.16 : 0.115);
+      // nie vors Gesicht: Kugel um den Kopf freihalten
+      const keepHead = q => { const d = q.clone().sub(kp.head), R = 0.17 * s0; if (d.length() < R) { if (d.lengthSq() < 1e-6) d.copy(leftW); d.normalize(); q.copy(kp.head).addScaledVector(d, R); } const fd = q.clone().sub(kp.head).dot(fwd); if (fd > 0.02 * s0 && q.y > kp.head.y - 0.14 * s0) q.y = kp.head.y - 0.14 * s0; return q; };
+      keepHead(p);
+      if (H.k < 1 && H.from) {
+        H.k = Math.min(1, H.k + dt / 0.9); const e = H.k * H.k * (3 - 2 * H.k);
+        const q = H.from.clone().lerp(p, e).add(V(0, Math.sin(Math.PI * e) * 0.07 * s0, 0)).addScaledVector(fwd, Math.sin(Math.PI * e) * 0.04 * s0);
+        pushOut(q, 0.13); keepHead(q); p.copy(q);
+      }
+      H.last = p.clone();
+      rest(sd, p, g.curl);
     };
     if (pose === 'hand' && s.grip) gripR(s.grip.point, s.grip.axis);
-    else restOn('right');
+    else freeHand('right');
     const act = s.hand2;
-    if (act === 'nipple' || act === 'stroke') rest('left', kp.nipL.clone().add(V(0.01, act === 'stroke' ? -0.04 - 0.03 * Math.sin(t) : 0, 0.02)));
-    else if (act === 'balls' && s.balls) rest('left', s.balls.clone().add(V(0, -0.02, 0)));
-    else restOn('left');
+    if (act === 'nipple' || act === 'stroke') rest('left', pushOut(kp.nipL.clone().addScaledVector(fwd, 0.035 * s0).add(V(0, act === 'stroke' ? -0.04 - 0.03 * Math.sin(t) : 0, 0)), 0.115), 0.5);
+    else if (act === 'balls' && s.balls) rest('left', s.balls.clone().add(V(0, -0.02, 0)), 0.5);
+    else freeHand('left');
     vrm.scene.updateMatrixWorld(true);
-    // Kopf und Blick
-    if (t > st.glanceAt) { st.glance = Math.random() < 0.3 ? V((Math.random() - 0.5) * 0.4, -0.18 - Math.random() * 0.17, 0) : null; st.glanceAt = t + (st.glance ? 0.8 + Math.random() * 0.7 : 4 + Math.random() * 6); }
-    const want = s.cam.clone(); if (st.glance) want.add(st.glance);
-    st.look = st.look ? st.look.lerp(want, Math.min(1, dt * 6)) : want.clone();
+    // ---------- Kopf und Blick: lebendig statt starr ----------
+    const nz = (a, b, c, o) => Math.sin(t * a + o) * 0.5 + Math.sin(t * b + o * 1.7 + 1.3) * 0.3 + Math.sin(t * c + o * 2.3 + 2.1) * 0.2;
+    if (t > st.glanceAt) {
+      const r = Math.random(); st.glance = null; st.glanceAction = false;
+      if (r < 0.22) st.glance = V((Math.random() - 0.5) * 0.4, -0.18 - Math.random() * 0.17, 0);          // kurz zur Seite / nach unten
+      else if (r < 0.42 && pose !== 'blow') st.glanceAction = true;                                         // hinsehen, was sie gerade tut
+      st.glanceAt = t + (st.glance || st.glanceAction ? 0.9 + Math.random() * 1.2 : 3 + Math.random() * 6);
+    }
+    let want = s.cam.clone(); if (st.glance) want.add(st.glance);
+    if (st.glanceAction) want = (pose === 'hand' && s.grip ? s.grip.point.clone() : pose === 'ride' && him ? him.belly.clone() : want);
+    st.look = st.look ? st.look.lerp(want, Math.min(1, dt * 5)) : want.clone();
+    // Kopf schräg legen ab und zu
+    if (!st.tiltAt || t > st.tiltAt) { st.tiltTo = Math.random() < 0.5 ? (Math.random() < 0.5 ? -1 : 1) * (0.08 + Math.random() * 0.1) : 0; st.tiltAt = t + 3 + Math.random() * 7; }
+    st.tilt = (st.tilt || 0) + (st.tiltTo - (st.tilt || 0)) * Math.min(1, dt * 1.6);
+    const lip = s.lip || null, lv = lip ? lip.level : (s.talking ? 0.5 : 0);
+    st.lvS = (st.lvS || 0) + (lv - (st.lvS || 0)) * Math.min(1, dt * 8);
     if (pose !== 'blow') {
       const hp = B('head').getWorldPosition(V()); const dv = st.look.clone().sub(hp);
       const yaw = Math.atan2(dv.x, dv.z), pitch = Math.atan2(dv.y, Math.hypot(dv.x, dv.z));
-      R('neck', -(pitch * 0.35) - 0.03, yaw * 0.35, 0.03 * Math.sin(t * 0.33)); R('head', -(pitch * 0.35) - 0.03, yaw * 0.35, 0.05 * Math.sin(t * 0.33));
+      const nod = s.talking ? 0.05 * Math.sin(t * 4.3) * (0.3 + st.lvS) + 0.03 * st.lvS : 0;
+      st.vvLag = (st.vvLag || 0) + (vv - (st.vvLag || 0)) * Math.min(1, dt * 3);
+      const bob = pose === 'ride' ? -0.07 * st.vvLag : 0;
+      const ny = 0.07 * nz(0.31, 0.53, 0.87, 0), np = 0.045 * nz(0.41, 0.67, 1.1, 2), nr = 0.04 * nz(0.23, 0.37, 0.71, 4);
+      R('neck', -(pitch * 0.35) - 0.03 + np * 0.5 + bob, yaw * 0.35 + ny * 0.5, (nr + st.tilt) * 0.5);
+      R('head', -(pitch * 0.35) - 0.03 + np * 0.5 + nod + bob * 0.5, yaw * 0.35 + ny * 0.5, (nr + st.tilt) * 0.6);
     }
     if (AV.look) AV.look.position.copy(st.look);
-    // Mimik
+    // ---------- Mimik: Blinzeln, Mund zur Stimme, Zwinkern, Erregung ----------
     const em = vrm.expressionManager;
     if (em) {
       if (st.blinkT < 0 && t > st.blinkAt) st.blinkT = 0;
       let bl = 0; if (st.blinkT >= 0) { st.blinkT += dt; bl = st.blinkT < 0.08 ? st.blinkT / 0.08 : st.blinkT < 0.18 ? 1 - (st.blinkT - 0.08) / 0.1 : 0; if (st.blinkT >= 0.18) { st.blinkT = -1; st.blinkAt = t + 2 + Math.random() * 4; } }
+      // Zwinkern: selten, beim Reden
+      if (!st.winkAt) st.winkAt = t + 30 + Math.random() * 40;
+      let wink = 0; if (s.talking && t > st.winkAt) { st.winkT = (st.winkT || 0) + dt; wink = st.winkT < 0.12 ? st.winkT / 0.12 : st.winkT < 0.45 ? 1 : Math.max(0, 1 - (st.winkT - 0.45) / 0.12); if (st.winkT > 0.6) { st.winkT = 0; st.winkAt = t + 35 + Math.random() * 50; } }
       const set = (n, x) => { try { em.setValue(n, Math.max(0, Math.min(1, x))); } catch (e) {} };
-      const talk = s.talking && pose !== 'blow' ? 0.12 + 0.5 * Math.abs(Math.sin(t * 13.1) * Math.sin(t * 7.7 + 1)) : 0;
-      set('blink', bl); set('aa', pose === 'blow' ? 0.75 : talk + (pose === 'ride' ? 0.15 * ar : 0)); set('oh', pose === 'blow' ? 0.35 : 0.05 + 0.12 * ar);
-      set('relaxed', 0.25 + 0.45 * ar); set('happy', pose === 'blow' ? 0 : s.talking ? 0.12 : 0.2 * (1 - ar));
+      const lids = 0.22 * ar;   // bei Erregung halb geschlossene Augen
+      set('blink', Math.max(bl, lids)); if (wink) set('blinkLeft', wink); else set('blinkLeft', 0);
+      if (pose === 'blow') { set('aa', 0.75); set('oh', 0.35); set('ih', 0); set('ee', 0); set('ou', 0); }
+      else if (s.talking) {
+        const sh = lip && lip.shape ? lip.shape : { aa: 0.6, oh: 0.2, ih: 0.1, ee: 0.1, ou: 0.1 };
+        const o = Math.min(1, st.lvS * 1.6);
+        set('aa', o * sh.aa); set('oh', o * sh.oh); set('ih', o * sh.ih); set('ee', o * sh.ee); set('ou', o * sh.ou);
+      } else { set('aa', pose === 'ride' ? 0.12 * ar + 0.1 * ar * Math.max(0, vv) : 0.03 * ar); set('oh', 0.04 + 0.12 * ar); set('ih', 0); set('ee', 0); set('ou', 0); }
+      set('relaxed', 0.25 + 0.45 * ar); set('happy', pose === 'blow' ? 0 : s.talking ? 0.15 + 0.1 * Math.sin(t * 0.7) : 0.2 * (1 - ar) + 0.08 * Math.max(0, nz(0.2, 0.33, 0.5, 7)));
     }
     st.kp = kp;
     return st;
@@ -28661,6 +28771,7 @@ async function avkVrmShow(figId) {
     let p = AV.probe ? avProbeP(t, dt) : avPosAt(performance.now() - cfg.delay);
     if (cfg.invert) p = 1 - p;
     avkCamera(t);
+    avLipFrame(dt);
     avkPlace(p, dt);
     if (AVK.room) AVK.room.flames.forEach(([fl, pl], i) => { const f = 0.85 + 0.15 * Math.sin(t * 11 + i * 2) * Math.sin(t * 7.3 + i) + 0.05 * Math.random(); if (pl) pl.intensity = 0.5 * f; fl.scale.set(1, 2 * f, 1); });
     AV.renderer.render(AV.scene, AV.camera);
@@ -29049,6 +29160,57 @@ function htStop() {
   };
   avkSideCol().appendChild(b);
   setInterval(paint, 700);
+}
+
+// ---------- Mund zur Stimme ----------
+// ElevenLabs-Stimme: die App hört beim Abspielen mit (Lautstärke und grob die
+// Klangfarbe - dunkel = o/u, hell = i/e, dazwischen a). Android-Stimme: der Mund
+// folgt den Vokalen im Text, so schnell, wie gesprochen wird.
+function avLipAttach(el) {
+  try {
+    if (!AV.open || !el) return;
+    const ctx = typeof ensureAudioCtx === 'function' ? ensureAudioCtx() : null; if (!ctx || ctx.state !== 'running') return;
+    let src = el.__avSrc;
+    if (!src) { src = ctx.createMediaElementSource(el); src.connect(ctx.destination); el.__avSrc = src; }
+    const an = ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.35; src.connect(an);
+    AV.lipAn = an; AV.lipBuf = new Float32Array(an.fftSize); AV.lipF = new Uint8Array(an.frequencyBinCount); AV.lipRate = ctx.sampleRate;
+    const off = () => { try { src.disconnect(an); } catch (e) {} if (AV.lipAn === an) AV.lipAn = null; };
+    el.addEventListener('ended', off); el.addEventListener('error', off);
+  } catch (e) {}
+}
+function avLipFrame(dt) {
+  const L = AV.lip || (AV.lip = { level: 0, shape: { aa: 0.6, oh: 0.2, ih: 0.1, ee: 0.1, ou: 0.1 } });
+  let level = 0, shape = null;
+  if (AV.lipAn && AV.speaker) {
+    const an = AV.lipAn; an.getFloatTimeDomainData(AV.lipBuf); let sum = 0; for (let i = 0; i < AV.lipBuf.length; i++) sum += AV.lipBuf[i] * AV.lipBuf[i];
+    level = Math.min(1, Math.sqrt(sum / AV.lipBuf.length) * 6);
+    an.getByteFrequencyData(AV.lipF); const hz = AV.lipRate / an.fftSize, band = (a, b) => { let s = 0, n = 0; for (let i = Math.floor(a / hz); i < Math.min(AV.lipF.length, b / hz); i++) { s += AV.lipF[i]; n++; } return n ? s / n : 0; };
+    const lo = band(250, 900), mid = band(900, 1800), hi = band(1800, 3500), tot = lo + mid + hi + 1;
+    const l = lo / tot, h = hi / tot;
+    shape = { aa: Math.max(0.15, 1 - Math.abs(l - 0.45) * 2.5 - h), oh: Math.max(0, (l - 0.5) * 2), ou: Math.max(0, (l - 0.6) * 2.2), ih: Math.max(0, (h - 0.28) * 2.5), ee: Math.max(0, (h - 0.22) * 2) };
+  } else if (AV.speaker && AV.caption && someoneSpeaking()) {
+    const txt = String(AV.caption).toLowerCase(), i = Math.floor((performance.now() - (AV.speakT0 || performance.now())) / 1000 * 14);
+    const ch = txt[Math.min(txt.length - 1, Math.max(0, i))] || ' ';
+    const V = { a: 'aa', ä: 'ee', e: 'ee', i: 'ih', o: 'oh', ö: 'oh', u: 'ou', ü: 'ou', y: 'ih' };
+    if (V[ch]) { shape = { aa: 0, oh: 0, ou: 0, ih: 0, ee: 0 }; shape[V[ch]] = 1; level = 0.75; }
+    else if (/[a-zß]/.test(ch)) { shape = L.shape; level = /[mbp]/.test(ch) ? 0.02 : 0.3; }
+    else { shape = L.shape; level = 0.05; }
+  }
+  const k = Math.min(1, dt * 18);
+  L.level += (level - L.level) * k;
+  if (shape) Object.keys(L.shape).forEach(n => { L.shape[n] += ((shape[n] || 0) - L.shape[n]) * k; });
+}
+{
+  const oP = prepareSpeech;
+  prepareSpeech = function () {
+    const r = oP.apply(this, arguments);
+    if (r && typeof r.play === 'function') { const op = r.play; r.play = function () { AV.speakT0 = performance.now(); return op.apply(this, arguments); }; }
+    return r;
+  };
+  if (typeof routeAudio === 'function') {
+    const oR = routeAudio;
+    routeAudio = function (el, kind) { const r = oR.apply(this, arguments); if (kind === 'voice') avLipAttach(el); return r; };
+  }
 }
 
 {
