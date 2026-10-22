@@ -3620,8 +3620,40 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.68';
+const APP_VERSION = '2.76';
 const CHANGELOG = [
+  { v: '2.76', date: '2026-10-22', items: [
+    'Neue Stellung 🛏️: sie liegt auf dem Rücken (Kissen unter Po und Schultern), du kniest zwischen ihren Beinen - Beine wechseln zwischen aufgestellt, um dich geschlungen und hochgestreckt',
+    'Neue Stellung 🫂: du trägst sie im Stehen - deine Hände unter ihrem Po, ihre Beine um deine Hüfte, Arme um deinen Hals',
+    'Beide Stellungen werden auch aus dem Gespräch erkannt; „bläst" (mit ä) wird jetzt ebenfalls erkannt',
+    'Ihre Hände: Handfläche dreht beim Wechsel weich mit (kein Umklappen des Ellbogens mehr); erreicht sie dich nicht, wechselt die Hand sanft statt zu springen',
+  ] },
+  { v: '2.75', date: '2026-10-22', items: [
+    'Generieren → Anime: nach einem neuen Porträt wählt die App automatisch das passendste deiner importierten Modelle und färbt es nach dem Bild um (Haare, Augen, Haut, Elfenohren, Kleidung) – Lizenz wird beachtet',
+    'Mehrere VRM-Dateien auf einmal importieren',
+    'Ihre Hände liegen jetzt auf deiner echten Haut (Oberschenkel, Bauch, Brust) statt an geschätzten Punkten; mit Nachregelung gegen Schweben',
+    'Kommt eine Hand nicht hin, legt sie sie eine Weile woanders ab statt in der Luft zu hängen',
+  ] },
+  { v: '2.74', date: '2026-10-22', items: [
+    'Titten im Knien: du stehst breiter, eure Oberschenkel gehen nicht mehr ineinander'
+  ] },
+  { v: '2.73', date: '2026-10-22', items: [
+    'Eigene Haut-Texturen für VRoid-Modelle (✏️ → Farben): PNG-Ebenen für Körper oder Gesicht drüberlegen (mit Deckkraft) und eine Normal-Map für mehr Körperform - bleiben auf dem Gerät'
+  ] },
+  { v: '2.72', date: '2026-10-22', items: [
+    'Netzstrümpfe und Spitze passen: das Muster wird jetzt um Bein, Arm und Körper herum abgewickelt - überall gleich große Maschen statt verzerrter Flecken, ohne Naht-Streifen'
+  ] },
+  { v: '2.71', date: '2026-10-22', items: [
+    'Kleidung folgt dem Gespräch: zieht sie sich aus (oder nur BH, Höschen, Strümpfe), wiegt sie die Hüfte, die Hände führen die Kleidung und die Stücke verschwinden nacheinander; „zieht sich wieder an" bringt sie zurück - auch mit selbst entworfener Kleidung, wird gemerkt'
+  ] },
+  { v: '2.70', date: '2026-10-22', items: [
+    'Kleidung entwerfen (VRM-Figuren, ✏️ → Kleidung): BH, Top, Body, Slip, Hotpants, Rock, Strümpfe, Handschuhe, Halsband - je Stück Farbe, Muster (Uni, Spitze, Netz, Streifen, Satin) und Durchsichtigkeit; liegt eng an und bewegt sich mit; fertige Sets zum Antippen',
+    '🪄 Anime aus Bild: wählt unter deinen VRM-Modellen die passendste Frisur und übernimmt Haar-, Augen- und Hautfarbe, Figur, Elfenohren und die Kleidung aus ihrem Bild (⚙ oder im Editor)'
+  ] },
+  { v: '2.69', date: '2026-10-22', items: [
+    'Deine Hände: Finger überkreuzen sich nicht mehr (Spreizrichtung korrigiert, nur leicht gespreizt); das Handgelenk knickt nicht mehr ab - der Ellbogen stellt sich passend, sonst hebt sich der Handballen',
+    'VRM-Figuren (Anime): Elfenohren - automatisch bei Elfen, im Editor unter „Körper" als Regler „Elfenohren"'
+  ] },
   { v: '2.68', date: '2026-10-22', items: [
     'Deine Finger knicken nicht mehr ab: sie beugen sich nur in ihrer natürlichen Richtung, leicht gespreizt, und folgen der Rundung von Po und Hüfte; die Hand wölbt sich (Hohlhand) und neigt sich passend',
     'Deine Hand am Kopf liegt hinten/seitlich statt oben drauf; aus deinen Augen nimmst du sie öfter weg und sie verdeckt nie ihr Gesicht',
@@ -27036,6 +27068,59 @@ async function avSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -28043,14 +28128,16 @@ function mhManRig(THREE, B, opts) {
     } else if (s.kneel) {
       // kniet hinter ihr (von hinten), leicht über sie gebeugt, schaut auf ihren Rücken
       B.root.quaternion.copy(qq(0, Math.PI, 0));
-      bn('spine05').rotation.set(0.1 + 0.05 * st.vv, 0, 0.02 * nzz(0.19, 0.27, 3)); bn('spine04').rotation.set(0.05, 0, 0); bn('spine03').rotation.set(0.06 + bAmp * breath, 0, 0);
+      const ms = s.pose === 'mission' ? 1 : 0;   // zwischen ihren Beinen: weiter über sie gebeugt
+      bn('spine05').rotation.set(0.1 + 0.07 * ms + 0.05 * st.vv, 0, 0.02 * nzz(0.19, 0.27, 3)); bn('spine04').rotation.set(0.05 + 0.06 * ms, 0, 0); bn('spine03').rotation.set(0.06 + 0.05 * ms + bAmp * breath, 0, 0);
       bn('neck01').rotation.set(0.45 + 0.05 * st.vv, 0.03 * nzz(0.15, 0.23, 1), 0); bn('neck02').rotation.set(0.4 + 0.03 * st.vv, 0, 0);
     } else {
       // aufrecht vor ihr, schaut zu ihr (Richtung -Z), leicht zurückgelehnt
       B.root.quaternion.copy(qq(0, Math.PI, 0));
       // stehend: Gewicht wandert langsam von Bein zu Bein, Oberkörper atmet und federt beim Hub etwas mit
-      bn('spine05').rotation.set(-0.06 + 0.03 * st.vv, 0.02 * nzz(0.13, 0.21, 0), 0.025 * nzz(0.11, 0.19, 2)); bn('spine03').rotation.set(0.04 + bAmp * breath, 0, 0); bn('spine02').rotation.set(0.5 * bAmp * breath, 0, 0);
-      bn('neck01').rotation.set(0.35 + 0.035 * st.vv, 0.03 * nzz(0.17, 0.27, 4), 0.01 * nzz(0.2, 0.3, 5)); bn('neck02').rotation.set(0.3 + 0.02 * st.vv, 0, 0);
+      const cy = s.pose === 'carry' ? 1 : 0;   // trägt sie: lehnt sich gegen ihr Gewicht zurück
+      bn('spine05').rotation.set(-0.06 - 0.2 * cy + 0.03 * st.vv, 0.02 * nzz(0.13, 0.21, 0), 0.025 * nzz(0.11, 0.19, 2)); bn('spine03').rotation.set(0.04 + bAmp * breath, 0, 0); bn('spine02').rotation.set(0.5 * bAmp * breath, 0, 0);
+      bn('neck01').rotation.set(0.35 - 0.2 * cy + 0.035 * st.vv, 0.03 * nzz(0.17, 0.27, 4), 0.01 * nzz(0.2, 0.3, 5)); bn('neck02').rotation.set(0.3 - 0.15 * cy + 0.02 * st.vv, 0, 0);
     }
     B.root.updateMatrixWorld(true);
     // Becken an die Wurzel
@@ -28065,15 +28152,19 @@ function mhManRig(THREE, B, opts) {
         // Knie unter der Hüfte auf der Matratze, Unterschenkel liegen nach hinten
         const sh = bn('foot.' + sd).userData.rest.length() || 0.42;
         // Knie eng (innen zwischen ihren Knien), Fuß gestreckt: Spann liegt auf, Zehen zeigen nach hinten
-        const foot = V(hip.x - sg * 0.02, fl + 0.05, hip.z + sh * 0.92);
-        H.limb('upperleg01.' + sd, 'lowerleg01.' + sd, 'foot.' + sd, foot, hip.clone().add(V(sg * 0.02, -0.5, -1.2)));
+        // zwischen ihren Beinen (sie liegt): Knie weit, Becken tiefer - fast auf den Fersen
+        const ms = s.pose === 'mission' ? 1 : 0, out = Math.sign(hip.x - s.base.x) || sg;
+        const foot = V(hip.x - sg * 0.02 * (1 - ms) + out * 0.1 * ms, fl + 0.05, hip.z + sh * (0.92 - 0.2 * ms));
+        H.limb('upperleg01.' + sd, 'lowerleg01.' + sd, 'foot.' + sd, foot, hip.clone().add(V(sg * 0.02 * (1 - ms) + out * 0.8 * ms, -0.5, -1.2)));
         const fb = bn('foot.' + sd); B.root.updateMatrixWorld(true);
         const kn = bn('lowerleg01.' + sd).getWorldPosition(V()), fp = fb.getWorldPosition(V());
         const dir = fp.clone().sub(kn).setY(0).normalize(), tgt = fp.clone().addScaledVector(dir, 0.14); tgt.y = Math.min(fp.y - 0.03, fl + 0.015);
         const toe = bn('toe3-1.' + sd) || bn('toe1-1.' + sd);
         if (toe) mhAim(THREE, fb, toe.userData.head.clone().sub(fb.userData.head), tgt);
       } else {
-        const foot = V(hip.x - sg * 0.04, fl + 0.09, hip.z + 0.06);
+        // Titten im Knien: breiter stehen, Füße etwas zurück - deine Knie bleiben außen neben ihren Oberschenkeln
+        const wide = s.pose === 'tits' ? 1 : 0;
+        const foot = V(hip.x - sg * (0.04 + 0.11 * wide), fl + 0.09, hip.z + 0.06 + 0.1 * wide);
         H.limb('upperleg01.' + sd, 'lowerleg01.' + sd, 'foot.' + sd, foot, hip.clone().add(V(0, -0.4, -1)));
         const fb = bn('foot.' + sd); fb.updateWorldMatrix(true, false);
         const pq = fb.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
@@ -28127,7 +28218,7 @@ function mhManRig(THREE, B, opts) {
     // Kopf unsichtbar (Kamera sitzt darin)
     // Kamera sitzt im Kopf: einseitige Flächen werden von innen nicht gezeichnet, der Kopf stört also nicht
     if (s.hideHead) { hd.scale.setScalar(0.001); B.root.updateMatrixWorld(true); }
-    return { eye: eye.addScaledVector(fwd, -0.02), fwd, chest: bn('spine02').getWorldPosition(V()), belly: bn('spine04').getWorldPosition(V()), thighL: bn('upperleg02.L').getWorldPosition(V()), thighR: bn('upperleg02.R').getWorldPosition(V()), kneeL: bn('lowerleg01.L').getWorldPosition(V()), kneeR: bn('lowerleg01.R').getWorldPosition(V()) };
+    return { eye: eye.addScaledVector(fwd, -0.02), fwd, neck: bn('neck01').getWorldPosition(V()), chest: bn('spine02').getWorldPosition(V()), belly: bn('spine04').getWorldPosition(V()), thighL: bn('upperleg02.L').getWorldPosition(V()), thighR: bn('upperleg02.R').getWorldPosition(V()), kneeL: bn('lowerleg01.L').getWorldPosition(V()), kneeR: bn('lowerleg01.R').getWorldPosition(V()) };
   }
   // ---------- Kontakt: Hand liegt flach auf ihrer Haut, Finger folgen der Rundung ----------
   // surf(p) liefert den nächsten Hautpunkt {p, n} (n zeigt aus ihr heraus).
@@ -28142,7 +28233,9 @@ function mhManRig(THREE, B, opts) {
     const kI0 = bn('finger2-1.' + sd).userData.head, kL0 = bn('finger5-1.' + sd).userData.head;
     const flex = V(1, 0, 0).cross(fd);
     const n = kI0.clone().sub(kL0).cross(fl); if (n.dot(flex) < 0) n.negate(); n.sub(fl.clone().multiplyScalar(n.dot(fl))).normalize();
-    return (palmI[sd] = { u, fl, n });
+    // Spreizrichtung: Zeigefinger weg vom kleinen Finger (sonst überkreuzen sie sich)
+    const spreadSign = Math.sign(n.clone().cross(fl).dot(kI0.clone().sub(kL0))) || 1;
+    return (palmI[sd] = { u, fl, n, spreadSign });
   };
   const segTip = b => { const c = b.children.find(x => x.isBone && x.userData && x.userData.head); const loc = c ? c.userData.head.clone().sub(b.userData.head) : b.userData.tail.clone().sub(b.userData.head); return { loc, w: loc.clone().applyMatrix4(b.matrixWorld) }; };
   frame.contact = (tg, surf, lie) => {
@@ -28202,9 +28295,30 @@ function mhManRig(THREE, B, opts) {
         if (worst < 0.002) break;
         wristP.add(push.normalize().multiplyScalar(worst));
       }
-      // Finger: nur in ihrer natürlichen Beugerichtung krümmen (kein seitliches Abknicken, kein Überstrecken),
-      // gerade so weit, dass jedes Glied auf der Haut aufliegt; leicht gespreizt wie eine echte, entspannte Hand
-      if (frame.grid && sd === 'R') { const wpA = w.getWorldPosition(V()); frame.chk = { pred: wpA.clone().add(kI.clone().applyQuaternion(qw)).toArray().map(x => +x.toFixed(3)), act: bn('finger2-1.' + sd).getWorldPosition(V()).toArray().map(x => +x.toFixed(3)), wq: w.getWorldQuaternion(new THREE.Quaternion()).toArray().map(x => +x.toFixed(3)), qw: qw.toArray().map(x => +x.toFixed(3)) }; }
+      // Handgelenk nicht unnatürlich abknicken: zuerst den Ellbogen so stellen, dass der Unterarm zur Hand passt,
+      // reicht das nicht, hebt sich der Handballen (Hand kippt über die Knöchel), bis höchstens ~50° bleiben
+      {
+        const lim = 0.87, axSW = wristP.clone().sub(sh).normalize();
+        const bendFor = qx => { const el2 = bn('lowerarm01.' + sd).getWorldPosition(V()), wp2 = w.getWorldPosition(V()); return wp2.clone().sub(el2).normalize().angleTo(P.fl.clone().applyQuaternion(qx)); };
+        const solve = (pl, qx, wpX) => { H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wpX, pl); const pq = w.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); w.quaternion.copy(pq.multiply(qx)); B.root.updateMatrixWorld(true); };
+        let bestPole = pole, bestB = bendFor(qw);
+        for (const a of [-1.2, -0.6, 0.6, 1.2]) { const pl = sh.clone().add(pole.clone().sub(sh).applyAxisAngle(axSW, a)); solve(pl, qw, wristP); const b = bendFor(qw); if (b < bestB - 0.02) { bestB = b; bestPole = pl; } }
+        solve(bestPole, qw, wristP);
+        if (bestB > lim) {
+          const K0 = wristP.clone().add(P.u.clone().applyQuaternion(qw)), sideA = P.fl.clone().applyQuaternion(qw).cross(nS).normalize();
+          let done = false;
+          for (const sgn of [1, -1]) {
+            if (done) break;
+            for (let phi = 0.1; phi <= 0.8; phi += 0.1) {
+              const qx = new THREE.Quaternion().setFromAxisAngle(sideA, sgn * phi).multiply(qw), wp = K0.clone().sub(P.u.clone().applyQuaternion(qx));
+              if (wp.clone().sub(wristP).dot(nS) < 0) break;   // nur anheben, nie in sie hinein
+              solve(bestPole, qx, wp);
+              if (bendFor(qx) <= lim || phi > 0.75) { qw.copy(qx); wristP.copy(wp); done = true; break; }
+            }
+          }
+          solve(bestPole, qw, wristP);
+        }
+      }
       // Hohlhand: Mittelhandknochen von Zeige-, Ring- und Kleinfinger wölben sich, bis ihre Knöchel aufliegen (runde Stellen)
       [['metacarpal1.' + sd, 'finger2-1.' + sd], ['metacarpal3.' + sd, 'finger4-1.' + sd], ['metacarpal4.' + sd, 'finger5-1.' + sd]].forEach(([mn, kn]) => {
         const mc = bn(mn), kb = bn(kn); if (!mc || !kb) return;
@@ -28219,7 +28333,7 @@ function mhManRig(THREE, B, opts) {
       for (let fi = 2; fi <= 5; fi++) {
         const b1 = bn(`finger${fi}-1.${sd}`), b2 = bn(`finger${fi}-2.${sd}`), b3 = bn(`finger${fi}-3.${sd}`); if (!b1 || !b2 || !b3) continue;
         // Spreizen um die Handflächen-Normale (bleibt in der Handebene), Beugen um die Querachse
-        const spread = -sg * (fi - 3.3) * 0.06, X = V(1, 0, 0), ang = {};
+        const spread = -(fi - 3.3) * 0.025 * P.spreadSign, X = V(1, 0, 0), ang = {};
         const setF = (b, a, spr) => { ang[b.name] = a; b.quaternion.setFromAxisAngle(P.n, spr || 0).multiply(new THREE.Quaternion().setFromAxisAngle(X, a)); };
         setF(b1, 0.06, spread); setF(b2, 0.06); setF(b3, 0.06); b1.updateWorldMatrix(true, true);
         const A = b1.getWorldPosition(V()), tipW = segTip(b3).w, Lf = tipW.distanceTo(A);
@@ -28562,7 +28676,8 @@ function avkPlaceRoom() {
   const lyingP = AVK.pose === 'ride' || AVK.pose === 'blowLie' || AVK.pose === 'titsLie';
   if (r.bed.userData.headboard) r.bed.userData.headboard.visible = !lyingP;   // Kopfteil würde im Liegen die Sicht verdecken
   if (lyingP) { r.bed.position.set(0, Math.min(b.y - 0.13, 0.03), b.z - 0.05); r.bed.rotation.y = Math.PI; }
-  else if (AVK.pose === 'doggy') { r.bed.position.set(0, 0, b.z + 0.62 - 1.07); r.bed.rotation.y = 0; }
+  else if (AVK.pose === 'doggy' || AVK.pose === 'mission') { r.bed.position.set(0, 0, b.z + 0.62 - 1.07); r.bed.rotation.y = 0; }
+  else if (AVK.pose === 'carry') { r.bed.position.set(-1.45, 0, b.z - 0.7); r.bed.rotation.y = 0; }
   else if (AVK.pose === 'tits') { r.bed.position.set(0, b.y + 0.34 - 0.46 > 0 ? 0 : 0, b.z - 1.95); r.bed.rotation.y = 0; }
   else { r.bed.position.set(0, 0, b.z - 0.1 - 1.12); r.bed.rotation.y = 0; }
   avkHisBody();
@@ -28684,7 +28799,7 @@ async function avkShow(figId) {
 // Stellung festlegen: Penis-Lage aus ihrer Haltung messen
 function avkSetPose(pose) {
   const T = AV.T, B = AVK.B; if (!B) return;
-  if (!B.isVrm && /tits|doggy|Lie/.test(pose)) pose = 'hand';   // neue Stellungen nur mit VRM-Figuren
+  if (!B.isVrm && /tits|doggy|Lie|mission|carry/.test(pose)) pose = 'hand';   // neue Stellungen nur mit VRM-Figuren
   AVK.pose = pose; AVK.poseAt = performance.now();
   const kp = AVK.rig(0.016, { p: 0.5, cam: AV.camera.position.clone(), pose, measure: true });
   const L = AVK.pen.userData.length;
@@ -28706,6 +28821,16 @@ function avkSetPose(pose) {
     const H = (kp.thighLen || 0.42) * 0.97 - (kp.crotchDrop || 0.07) + 0.05 * (kp.s || 1);
     base = new T.Vector3(0, H, 0.3).addScaledVector(axis, -L * 0.05);
   }
+  else if (pose === 'mission' && B.isVrm) {
+    // sie liegt auf dem Rücken (Kissen unter dem Po), du kniest zwischen ihren Beinen
+    axis = new T.Vector3(0, -0.2, -1).normalize();
+    base = new T.Vector3(0, 0.25 * (kp.s || 1) + 0.02, 0.3);
+  }
+  else if (pose === 'carry' && B.isVrm) {
+    // du stehst und trägst sie: Hände unter ihrem Po, ihre Beine um deine Hüfte
+    axis = new T.Vector3(0, 0.5, -1).normalize();
+    base = new T.Vector3(0, -0.34 + avkHisCrotchH() * 0.9, 0.3);
+  }
   else if (B.isVrm && kp.shR && kp.arm) {
     // Hand: so nah, dass ihr Arm den ganzen Hub bequem erreicht (Anime-Figuren haben kurze Arme)
     axis = new T.Vector3(0, 0.05, -1).normalize();
@@ -28725,6 +28850,11 @@ function avkSetPose(pose) {
   // Kamera-Bezug nach dem ersten Bild neu (Brust/Kopf sitzen nach dem Platzieren anders)
   AVK.refresh = 3;
   if (AVK.room) avkPlaceRoom();
+}
+// Schritthöhe im Stehen (für das Tragen): aus seinem Modell, sonst ein Durchschnittswert
+function avkHisCrotchH() {
+  const me = AVK.me; if (!me || !me.B || !me.B.bones) return 0.86;
+  try { const H = me.B.bones, P = me.B.P; let lo = Infinity; for (let i = 1; i < P.length; i += 3) lo = Math.min(lo, P[i]); const hy = (H['upperleg01.L'].userData.head.y + H['upperleg01.R'].userData.head.y) / 2 + 0.035; const h = hy - lo; return h > 0.5 && h < 1.2 ? h : 0.86; } catch (e) { return 0.86; }
 }
 function avkPlace(p, dt) {
   const T = AV.T, B = AVK.B;
@@ -28751,7 +28881,7 @@ function avkPlace(p, dt) {
     try { hands = hk ? avkHisHands(hk, dt) : null; } catch (e) { hands = null; }
     if (!hands && hk && AVK.pose === 'ride') hands = { L: hk.hipL, R: hk.hipR };
     else if (!hands && hk && AVK.pose === 'blow' && hk.fwd) hands = { R: hk.headTop.clone().addScaledVector(hk.fwd, -0.08 * (hk.s || 1)) };
-    const bedY = AVK.room ? AVK.room.bed.position.y : 0, kneel = AVK.pose === 'doggy';
+    const bedY = AVK.room ? AVK.room.bed.position.y : 0, kneel = AVK.pose === 'doggy' || AVK.pose === 'mission';
     const floor = kneel ? bedY : bedY - 0.34;
     const vvH = AVK.pPrev === undefined ? 0 : Math.max(-1, Math.min(1, (p - AVK.pPrev) / Math.max(dt, 1e-3) * 0.3)); AVK.pPrev = p;
     him = me.rig(dt, { pose: AVK.pose, base: P3.base, hands, floor, kneel, bpm, arousal: aro, vv: vvH });
@@ -28760,9 +28890,11 @@ function avkPlace(p, dt) {
     if (me.B.eyes) me.B.eyes.visible = AV.camMode !== 0;
     if (me.hair) { const hv = AV.camMode !== 0; if (me.hair.cap) me.hair.cap.visible = hv; (me.hair.shells || []).forEach(x => { x.visible = hv; }); }
   }
-  const st = AVK.rig(dt, { p, cam: AV.camera.position.clone(), grip: show ? { point: gp, axis: gAx } : null, pen: show ? P3 : null, pose: show ? AVK.pose : 'hand', balls, hand2, bpm, arousal: aro, talking, him, lip: talking ? AV.lip : null, bedY: AVK.room ? AVK.room.bed.position.y : 0 });
+  try { avkStripStep(dt); } catch (e) { AVK.strip = null; }
+  const st = AVK.rig(dt, { strip: AVK.strip ? { t: AVK.strip.t, mode: AVK.strip.mode, dur: AVK.strip.dur } : null, p, cam: AV.camera.position.clone(), grip: show ? { point: gp, axis: gAx } : null, pen: show ? P3 : null, pose: show ? AVK.pose : 'hand', balls, hand2, bpm, arousal: aro, talking, him, lip: talking ? AV.lip : null, bedY: AVK.room ? AVK.room.bed.position.y : 0 });
   if (st && st.kp) AVK.herKp = st.kp;
   avkKneelPad(st && AVK.pose === 'tits' && show ? st.titPad : null);
+  try { avkHipPillow(st && AVK.pose === 'mission' && show && st.kp ? st.kp : null); } catch (e) {}
   if (AVK.refresh && st && st.kp) { AVK.refresh--; AVK.chest = st.kp.nipL.clone().add(st.kp.nipR).multiplyScalar(0.5); AVK.head = st.kp.head.clone(); }
   AVK.herSt = st;
   try { avkCollide(); } catch (e) {}
@@ -28777,12 +28909,14 @@ function avkPlace(p, dt) {
 }
 // Handlung -> Stellung und zweite Hand (aus dem, was gerade gesagt/erzählt wird)
 const AVK_POSE_RX = [
-  ['blowLie', /((du liegst|auf dem rücken|leg dich hin|legst dich|im liegen|zwischen deine(n)? beine)[^.!?]{0,80}(blas\w*|lutsch\w*|mund|zunge|lippen|leckt)|(blas\w*|lutsch\w*|leckt)[^.!?]{0,60}(während du liegst|im liegen|zwischen deinen beinen))/i],
+  ['blowLie', /((du liegst|auf dem rücken|leg dich hin|legst dich|im liegen|zwischen deine(n)? beine)[^.!?]{0,80}(blas\w*|bläs\w*|lutsch\w*|mund|zunge|lippen|leckt)|(blas\w*|bläs\w*|lutsch\w*|leckt)[^.!?]{0,60}(während du liegst|im liegen|zwischen deinen beinen))/i],
   ['titsLie', /((du liegst|auf dem rücken|im liegen|zwischen deine(n)? beine)[^.!?]{0,80}(brüste|titten|busen))/i],
   ['doggy', /\b(doggy|von hinten|auf allen vieren|vierfüßler\w*|hündchen\w*|streckt (dir )?(ihren|den) (po|hintern|arsch) entgegen|nimm mich von hinten|nimmst mich von hinten|nimmt (sie|dich) von hinten)/i],
+  ['carry', /\b(hebst (sie|mich) hoch|hebt (sie|dich|mich) hoch|trägst (sie|mich)|im stehen|auf (deinen|den) arm(en)?|(schlingt|schlinge|legt) (sie )?(ihre|die|meine) beine um (dich|deine hüfte|deine taille)|beine um deine (hüfte|taille)|gegen die wand)/i],
+  ['mission', /\b(missionar\w*|(liegt|legt sich|lege mich|liege) (auf den|auf dem) rücken|spreizt (ihre|die|meine) beine|zwischen (ihre|meine) (beine|schenkel)|du (liegst|kniest) (auf|über) (ihr|mir)|über ihr|auf ihr liegst|kniest (dich )?zwischen)/i],
   ['tits', /\b(titten\w*fick|tittenfick|zwischen (ihre|ihren|meine|meinen|deine|deinen|die) (brüste|titten)|zwischen den brüsten|mit (ihren|meinen) (brüsten|titten) (um|reib|massier|verwöhn)|busen\w* (um|reib))/i],
   ['ride', /\b(reit\w*|setzt sich auf (dich|ihn|deinen)|auf dir|auf dich drauf|lässt sich (auf|in) |in (sich|mich) (hinein|rein)|cowgirl|auf deinem schoß|nimmt dich in sich|sinkt auf dich)/i],
-  ['blow', /\b(blas\w*|lutsch\w*|in den mund|in ihren mund|in meinen mund|mit (den|ihren|meinen) lippen|leckt (an )?(dir|dich|deinem|deine|ihn|die spitze|die eichel)|zunge (um|an|über) (die eichel|die spitze|deinen|dich)|saugt|schluck\w*|deepthroat|tief in (ihren|den) hals)/i],
+  ['blow', /\b(blas\w*|bläs\w*|lutsch\w*|in den mund|in ihren mund|in meinen mund|mit (den|ihren|meinen) lippen|leckt (an )?(dir|dich|deinem|deine|ihn|die spitze|die eichel)|zunge (um|an|über) (die eichel|die spitze|deinen|dich)|saugt|schluck\w*|deepthroat|tief in (ihren|den) hals)/i],
   ['hand', /\b(wichs\w*|mit der hand|in die hand|in ihre hand|in seine hand|ihre hand (um|an)|umfasst (dich|ihn|deinen)|massiert (dich|ihn|deinen schwanz)|streichelt (dich|ihn|deinen schwanz)|reibt (dich|ihn|deinen))/i],
 ];
 const AVK_HAND_RX = [
@@ -28798,8 +28932,10 @@ function avkFromText(text) {
   const tx = String(text);
   if (AVK.poseMode === 'auto') {
     const hit = AVK_POSE_RX.find(([, rx]) => rx.test(tx));
-    if (hit && hit[0] !== AVK.pose && performance.now() - AVK.poseAt > 20000 && (AVK.vrmMode || !/tits|doggy|Lie/.test(hit[0]))) avkSwitch(hit[0]);   // nicht bei jedem Satz umschalten (wirkte wie Zucken)
+    if (hit && hit[0] !== AVK.pose && performance.now() - AVK.poseAt > 20000 && (AVK.vrmMode || !/tits|doggy|Lie|mission|carry/.test(hit[0]))) avkSwitch(hit[0]);   // nicht bei jedem Satz umschalten (wirkte wie Zucken)
   }
+  // Kleidung nach dem Gespräch: ausziehen / anziehen (mit kleiner Bewegung)
+  try { const sx = avkStripFromText(tx); if (sx) avkStripStart(sx.mode, sx.parts); } catch (e) {}
   const h = AVK_HAND_RX.find(([, rx]) => rx.test(tx));
   if (h) { AVK.hand2 = h[0]; AVK.hand2Until = performance.now() + (h[0] === 'oil' ? 32000 : /slap|whip/.test(h[0]) ? 16000 : 12000); }
 }
@@ -28810,12 +28946,12 @@ function avkSwitch(pose) {
     avkSetPose(pose);
     for (let i = 0; i < 40; i++) avkPlace(0.5, 1 / 30);
     AVK.blend = { snap, t: 0, dur: 1.5, live: null };
-    avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten' }[pose]);
+    avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[pose]);
     return;
   }
   const c = document.getElementById('av3dCanvas');
   if (c) { c.style.transition = 'opacity .25s'; c.style.opacity = '0'; }
-  setTimeout(() => { avkSetPose(pose); if (AVK.hair && AVK.hair.reset) AVK.hair.reset(); if (AVK.B && AVK.B.isVrm) { for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); try { AVK.B.vrm.springBoneManager.reset(); } catch (e) {} } for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); if (c) c.style.opacity = '1'; avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten' }[pose]); }, 260);
+  setTimeout(() => { avkSetPose(pose); if (AVK.hair && AVK.hair.reset) AVK.hair.reset(); if (AVK.B && AVK.B.isVrm) { for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); try { AVK.B.vrm.springBoneManager.reset(); } catch (e) {} } for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); if (c) c.style.opacity = '1'; avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[pose]); }, 260);
 }
 function avkCamera(t) {
   const T = AV.T, cam = AV.camera, b = AVK.base, ch = AVK.chest || b, hd = AVK.head || b;
@@ -28824,11 +28960,12 @@ function avkCamera(t) {
   const eye = AVK.me && AVK.me.kp && AVK.me.kp.eye;
   if (AV.camMode === 0 && eye) {
     pos = eye.clone();
-    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blowLie' ? b.clone().add(new T.Vector3(0, 0.16, -0.1)) : pose === 'titsLie' ? b.clone().add(new T.Vector3(0, 0.24, -0.12)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : pose === 'tits' ? b.clone().add(new T.Vector3(0, 0.08, -0.22)) : pose === 'doggy' ? b.clone().add(new T.Vector3(0, -0.06, -0.38)) : b.clone().lerp(hd, 0.72);
+    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blowLie' ? b.clone().add(new T.Vector3(0, 0.16, -0.1)) : pose === 'titsLie' ? b.clone().add(new T.Vector3(0, 0.24, -0.12)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : pose === 'tits' ? b.clone().add(new T.Vector3(0, 0.08, -0.22)) : pose === 'doggy' ? b.clone().add(new T.Vector3(0, -0.06, -0.38)) : pose === 'mission' ? b.clone().add(new T.Vector3(0, -0.08, -0.42)) : pose === 'carry' ? hd.clone().add(new T.Vector3(0, -0.04, 0)) : b.clone().lerp(hd, 0.72);
   } else if (AV.camMode === 2 && AVK.me) {
     const c = ch.clone().lerp(b, 0.5); c.y = (Math.max(hd.y, b.y) + Math.min(ch.y, b.y)) / 2 - 0.05; c.x = 0;
     pos = c.clone().add(new T.Vector3(1.75, 0.25, pose === 'ride' || /Lie/.test(pose) ? 0.35 : 0.1)); at = c;
   } else if (AV.camMode === 1 && AVK.me && (pose === 'blowLie' || pose === 'titsLie')) { pos = hd.clone().add(new T.Vector3(-0.42, pose === 'blowLie' ? 0.2 : 0.06, 0.55)); at = hd.clone().add(new T.Vector3(0, pose === 'blowLie' ? -0.08 : -0.1, 0)); }
+  else if (AV.camMode === 1 && AVK.me && pose === 'mission') { pos = hd.clone().add(new T.Vector3(0.32, 0.5, 0.3)); at = hd.clone().add(new T.Vector3(0, -0.02, 0.12)); }
   else if (AV.camMode === 1 && AVK.me && pose === 'doggy') { const fw = (AVK.herKp && AVK.herKp.fwd) || new T.Vector3(0, 0, -1); pos = hd.clone().addScaledVector(fw, 0.55).add(new T.Vector3(0.18, -0.12, 0)); at = hd.clone().add(new T.Vector3(0, -0.06, 0)); }
   else if (AV.camMode === 1 && AVK.me && pose !== 'ride') { pos = hd.clone().add(new T.Vector3(0.48, 0.12, 0.3)); at = hd.clone().add(new T.Vector3(0, 0.0, 0.05)); }
   else if (AV.camMode === 0) {
@@ -29219,12 +29356,14 @@ function avkVrmRig(vrm, cal) {
     else { const fq = f.getWorldQuaternion(new T.Quaternion()); const cur = V(0, 0, k0).applyQuaternion(fq); const dq = new T.Quaternion().setFromUnitVectors(cur.normalize(), tgt.sub(fp).normalize()); const pq = f.parent.getWorldQuaternion(new T.Quaternion()); f.quaternion.premultiply(pq.clone().invert().multiply(dq).multiply(pq)); f.updateWorldMatrix(false, true); }
   };
   function legs(pose) {
-    if (pose === 'tits') { R('leftUpperLeg', -0.08, 0, 0.1); R('rightUpperLeg', -0.08, 0, -0.1); R('leftLowerLeg', 1.52, 0, 0); R('rightLowerLeg', 1.52, 0, 0); R('leftFoot', -0.75, 0, 0); R('rightFoot', -0.75, 0, 0); return; }
+    if (pose === 'tits') { R('leftUpperLeg', -0.08, 0, 0.24); R('rightUpperLeg', -0.08, 0, -0.24); R('leftLowerLeg', 1.52, 0, 0); R('rightLowerLeg', 1.52, 0, 0); R('leftFoot', -0.75, 0, 0); R('rightFoot', -0.75, 0, 0); return; }
     if (pose === 'blowLie' || pose === 'titsLie') {
       // auf dem Bauch zwischen deinen Beinen, Unterschenkel spielerisch in der Luft
       const kick = 0.25 * Math.sin(st.t * 0.9), kick2 = 0.25 * Math.sin(st.t * 0.9 + 2.2);
       R('leftUpperLeg', 0.04, 0, 0.1); R('rightUpperLeg', 0.04, 0, -0.1); R('leftLowerLeg', 0.95 + kick, 0, 0); R('rightLowerLeg', 0.75 + kick2, 0, 0); R('leftFoot', 0.3, 0, 0); R('rightFoot', 0.3, 0, 0); return;
     }
+    if (pose === 'mission') { R('leftUpperLeg', -1.2, 0, 0.5); R('rightUpperLeg', -1.2, 0, -0.5); R('leftLowerLeg', 1.4, 0, 0); R('rightLowerLeg', 1.4, 0, 0); return; }
+    if (pose === 'carry') { R('leftUpperLeg', -1.45, 0, 0.55); R('rightUpperLeg', -1.45, 0, -0.55); R('leftLowerLeg', 1.6, 0, 0); R('rightLowerLeg', 1.6, 0, 0); R('leftFoot', -0.5, 0, 0); R('rightFoot', -0.5, 0, 0); return; }
     if (pose === 'doggy') { R('leftUpperLeg', -1.3, 0, 0.1); R('rightUpperLeg', -1.3, 0, -0.1); R('leftLowerLeg', 1.6, 0, 0); R('rightLowerLeg', 1.6, 0, 0); return; }
     if (pose === 'ride') { R('leftUpperLeg', -1.15, 0, 0.62); R('rightUpperLeg', -1.15, 0, -0.62); R('leftLowerLeg', 2.45, 0, 0); R('rightLowerLeg', 2.45, 0, 0); R('leftFoot', -0.6, 0, 0); R('rightFoot', -0.6, 0, 0); }
     else { const u = pose === 'blow' ? -0.45 : -0.3; R('leftUpperLeg', u, 0, 0.06); R('rightUpperLeg', u, 0, -0.06); R('leftLowerLeg', pose === 'blow' ? 2.1 : 1.85, 0, 0); R('rightLowerLeg', pose === 'blow' ? 2.1 : 1.85, 0, 0); R('leftFoot', -0.4, 0, 0); R('rightFoot', -0.4, 0, 0); }
@@ -29274,7 +29413,25 @@ function avkVrmRig(vrm, cal) {
       R('chest', -0.08 - 0.22 * b + 0.012 * breath * (1 + ar), 0, 0);
       if (B('upperChest')) R('upperChest', -0.05 * b + 0.01 * breath, 0, 0);
     };
-    if (pose === 'blowLie' || pose === 'titsLie') lieBend(st.lb === undefined ? 0.5 : st.lb);
+    // auf dem Rücken: Becken auf dem Kissen (b kippt es), Oberkörper liegt, wiegt mit dem Stoß
+    if (pose === 'mission' && t > (st.misAt || 0)) { st.mstyle = pick([['open', 1.3], ['wrap', 1 + 0.4 * P.soft], ['up', 0.8 + 0.4 * P.play]].filter(([k]) => k !== st.mstyle)); st.misAt = t + 14 + Math.random() * 14; }
+    const wOpen = blendTo('wOpen', pose === 'mission' && st.mstyle === 'open', 0.6), wWrap = blendTo('wWrap', pose === 'mission' && st.mstyle === 'wrap', 0.6), wUp = blendTo('wUp', pose === 'mission' && st.mstyle === 'up', 0.6);
+    const backBend = b => {
+      R('hips', -1.57 + b, 0.025 * Math.sin(t * 0.3 * sw + ph0), 0.03 * Math.sin(t * 0.23 * sw));
+      R('spine', 0.06 + 0.05 * (st.rip || 0) + 0.03 * (st.pLag === undefined ? 0 : p - st.pLag) - 0.1 * (st.archW || 0), 0.02 * Math.sin(t * 0.41), 0.015 * Math.sin(t * 0.6));
+      R('chest', 0.05 + 0.012 * breath * (1 + ar) + 0.06 * (st.rip || 0) - 0.08 * (st.archW || 0), 0, 0);
+      if (B('upperChest')) R('upperChest', 0.04 + 0.01 * breath, 0, 0);
+    };
+    if (pose === 'mission') backBend(st.mb === undefined ? -0.3 : st.mb);
+    else if (pose === 'carry') {
+      // getragen: Becken zu dir gekippt, Oberkörper leicht zurück, federt mit jedem Stoß
+      st.cph = (st.cph || 0) + dt * (1.0 + Math.min(2.5, st.spd * 1.6));
+      R('hips', -0.12 + 0.16 * (p - 0.5), 0.03 * Math.sin(st.cph * 0.5), 0.025 * Math.sin(st.cph));
+      R('spine', -0.1 - 0.1 * (p - 0.5) + 0.03 * Math.sin(t * 0.17 + ph0), 0.02 * Math.sin(t * 0.4), 0.015 * Math.sin(t * 0.6));
+      R('chest', -0.06 + 0.015 * breath * (1 + ar) - 0.04 * vv, 0, 0);
+      if (B('upperChest')) R('upperChest', (0.012 + 0.02 * ar) * breath, 0, 0);
+    }
+    else if (pose === 'blowLie' || pose === 'titsLie') lieBend(st.lb === undefined ? 0.5 : st.lb);
     else if (pose === 'doggy') {
       // auf allen vieren: Oberkörper nach vorn, Hohlkreuz, Po hoch; wiegt mit dem Hub
       st.dph = (st.dph || 0) + dt * (0.9 + Math.min(2, st.spd * 1.4));
@@ -29309,7 +29466,7 @@ function avkVrmRig(vrm, cal) {
     }
     // ---------- Schwung: der Oberkörper folgt der Hüfte verzögert, jeder Stoß läuft als gedämpfte Welle nach oben ----------
     if (!s.measure) {
-      const g = { ride: 1, doggy: 1, tits: 0.6, titsLie: 0.35, hand: 0.35 }[pose] || 0;
+      const g = { ride: 1, doggy: 1, mission: 0.8, carry: 1, tits: 0.6, titsLie: 0.35, hand: 0.35 }[pose] || 0;
       const acc = (vv - (st.vvPrev === undefined ? vv : st.vvPrev)) / Math.max(dt, 1e-3); st.vvPrev = vv;
       st.accS = Math.max(-14, Math.min(14, acc));
       // Landen: unten geben die Oberschenkel kurz nach (Becken sinkt 1-2 cm tiefer und federt zurück)
@@ -29331,7 +29488,7 @@ function avkVrmRig(vrm, cal) {
         if (B('upperChest')) Radd('upperChest', g * 0.03 * st.rip, 0, 0);
       }
     }
-    if (!s.measure && pose !== 'blow' && pose !== 'blowLie' && pose !== 'titsLie') smooth(['hips', 'spine', 'chest', 'upperChest'].concat(s.grip && pose === 'hand' ? ['rightShoulder'] : []), 9, dt);
+    if (!s.measure && pose !== 'blow' && pose !== 'blowLie' && pose !== 'titsLie' && pose !== 'mission') smooth(['hips', 'spine', 'chest', 'upperChest'].concat(s.grip && pose === 'hand' ? ['rightShoulder'] : []), 9, dt);
     vrm.scene.updateMatrixWorld(true);
     // ---------- Platzierung ----------
     if (s.measure || !pen || pose === 'hand') {
@@ -29408,6 +29565,48 @@ function avkVrmRig(vrm, cal) {
       });
       vrm.scene.updateMatrixWorld(true);
       st.dogFw = fwD; st.dogLw = lwD;
+    } else if (pose === 'mission') {
+      // Becken am Penis, Schultern auf dem Bett: die Kippung b wird so gesucht, dass der Nacken aufliegt
+      const depth = 0.2 + 0.5 * (1 - p);
+      const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
+      const bedY = s.bedY === undefined ? 0 : s.bedY, Ht = bedY + 0.14 * s0;   // Nacken liegt auf einem flachen Kissen
+      const at = b => { backBend(b); vrm.scene.updateMatrixWorld(true); vrm.scene.position.add(want.clone().sub(keyPoints().crotch)); vrm.scene.updateMatrixWorld(true); return (B('neck') || B(cal.chestN)).getWorldPosition(V()).y; };
+      let b = st.mb === undefined ? -0.3 : st.mb;
+      for (let it = 0; it < 3; it++) { const y0 = at(b), y1 = at(b + 0.05), dy = (y1 - y0) / 0.05; if (Math.abs(dy) > 1e-4) b = Math.max(-0.9, Math.min(0.5, b + (Ht - y0) / dy * 0.9)); }
+      st.mb = b; at(b);
+      const hp = B('hips').getWorldPosition(V()), nk = (B('neck') || B(cal.chestN)).getWorldPosition(V());
+      const D = hp.clone().sub(nk).setY(0).normalize(), kq = keyPoints(), lwM = kq.nipL.clone().sub(kq.nipR).setY(0).normalize(), UP = V(0, 1, 0);
+      const wS = Math.max(1e-3, wOpen + wWrap + wUp);
+      ['left', 'right'].forEach(sd => {
+        const sg = sd === 'left' ? 1 : -1, hip = B(sd + 'UpperLeg').getWorldPosition(V());
+        // Füße aufgestellt (neben deinen Knien), um dich geschlungen (gekreuzt hinter deinem Po) oder hoch in der Luft
+        const fO = hip.clone().addScaledVector(D, 0.4 * s0).addScaledVector(lwM, sg * 0.38 * s0); fO.y = bedY + 0.05 * s0;
+        const pO = hip.clone().addScaledVector(D, 0.35).addScaledVector(lwM, sg * 0.35).addScaledVector(UP, 0.8);
+        const fW = pen.base.clone().addScaledVector(D, 0.22 * s0).addScaledVector(lwM, -sg * 0.05 * s0).addScaledVector(UP, 0.1 * s0);
+        const pW = hip.clone().addScaledVector(lwM, sg * 0.7).addScaledVector(UP, 0.5).addScaledVector(D, 0.2);
+        const fU = hip.clone().addScaledVector(D, 0.3 * s0).addScaledVector(UP, 0.6 * s0).addScaledVector(lwM, sg * 0.44 * s0);
+        const pU = hip.clone().addScaledVector(UP, 1).addScaledVector(D, -0.4).addScaledVector(lwM, sg * 0.2);
+        const f = fO.multiplyScalar(wOpen).addScaledVector(fW, wWrap).addScaledVector(fU, wUp).divideScalar(wS);
+        const pl = pO.multiplyScalar(wOpen).addScaledVector(pW, wWrap).addScaledVector(pU, wUp).divideScalar(wS);
+        f.addScaledVector(D, 0.025 * s0 * (st.rip || 0) / 0.14).add(V(0, 0.01 * s0 * Math.sin(t * 1.1 + sg), 0));
+        limb(sd + 'UpperLeg', sd + 'LowerLeg', sd + 'Foot', f, pl);
+        R(sd + 'Foot', -0.1 * wOpen / wS - 0.75 * (wWrap + wUp) / wS, 0, 0);
+      });
+      vrm.scene.updateMatrixWorld(true);
+      st.misD = D;
+    } else if (pose === 'carry') {
+      const depth = 0.2 + 0.5 * (1 - p);
+      const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
+      vrm.scene.position.add(want.sub(keyPoints().crotch)); vrm.scene.position.y += (st.land || 0) * s0; vrm.scene.updateMatrixWorld(true);
+      const kq = keyPoints(), fwC = kq.nipL.clone().add(kq.nipR).multiplyScalar(0.5).sub(B('hips').getWorldPosition(V())).setY(0).normalize(), lwC = kq.nipL.clone().sub(kq.nipR).setY(0).normalize();
+      // Beine um deine Hüfte, Füße hinter deinem Rücken gekreuzt
+      const back = him && him.belly ? him.belly.clone().addScaledVector(fwC, 0.17).add(V(0, -0.12, 0)) : pen.base.clone().addScaledVector(fwC, 0.2).add(V(0, 0.08, 0));
+      ['left', 'right'].forEach(sd => {
+        const sg = sd === 'left' ? 1 : -1, hip = B(sd + 'UpperLeg').getWorldPosition(V());
+        const f = back.clone().addScaledVector(lwC, -sg * 0.05 * s0).add(V(0, 0.015 * s0 * Math.sin(t * 0.9 + sg), 0));
+        limb(sd + 'UpperLeg', sd + 'LowerLeg', sd + 'Foot', f, hip.clone().addScaledVector(lwC, sg * 0.6).addScaledVector(fwC, 0.4).add(V(0, -0.1, 0)));
+      });
+      vrm.scene.updateMatrixWorld(true);
     } else if (pose === 'ride') {
       const depth = 0.2 + 0.5 * (1 - p);
       const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
@@ -29431,7 +29630,7 @@ function avkVrmRig(vrm, cal) {
     // ---------- Bezug: vorn, links, Rumpf ----------
     const hipsP = kp.hips, topP = (B('neck') || B(cal.chestN)).getWorldPosition(V()), chestP = kp.chestP;
     const nipMid = kp.nipL.clone().add(kp.nipR).multiplyScalar(0.5);
-    const fwd = (pose === 'doggy' && st.dogFw) ? st.dogFw.clone() : /Lie/.test(pose) ? topP.clone().sub(hipsP).setY(0) : nipMid.clone().sub(chestP).setY(0); if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, 1); fwd.normalize();
+    const fwd = (pose === 'doggy' && st.dogFw) ? st.dogFw.clone() : (pose === 'mission' && st.misD) ? st.misD.clone() : /Lie/.test(pose) ? topP.clone().sub(hipsP).setY(0) : nipMid.clone().sub(chestP).setY(0); if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, 1); fwd.normalize();
     const leftW = kp.nipL.clone().sub(kp.nipR).setY(0).normalize();
     st.fwd = fwd; st.leftW = leftW; kp.fwd = fwd; kp.leftW = leftW;
     kp.waistL = hipsP.clone().lerp(chestP, 0.45).addScaledVector(leftW, 0.1 * s0); kp.waistR = hipsP.clone().lerp(chestP, 0.45).addScaledVector(leftW, -0.1 * s0);
@@ -29451,7 +29650,7 @@ function avkVrmRig(vrm, cal) {
       });
       return pt;
     };
-    const keepHead = q => { const d = q.clone().sub(kp.head), Rr = 0.17 * s0; if (d.length() < Rr) { if (d.lengthSq() < 1e-6) d.copy(leftW); d.normalize(); q.copy(kp.head).addScaledVector(d, Rr); } const fd = q.clone().sub(kp.head).dot(fwd); if (fd > 0.02 * s0 && q.y > kp.head.y - 0.14 * s0) q.y = kp.head.y - 0.14 * s0; return q; };
+    const keepHead = q => { if (pose === 'mission') return q; const d = q.clone().sub(kp.head), Rr = 0.17 * s0; if (d.length() < Rr) { if (d.lengthSq() < 1e-6) d.copy(leftW); d.normalize(); q.copy(kp.head).addScaledVector(d, Rr); } const fd = q.clone().sub(kp.head).dot(fwd); if (fd > 0.02 * s0 && q.y > kp.head.y - 0.14 * s0) q.y = kp.head.y - 0.14 * s0; return q; };
     const sgOf = sd => sd === 'left' ? 1 : -1;
     const thighPt = sd => { const a = B(sd + 'UpperLeg').getWorldPosition(V()), k = B(sd + 'LowerLeg').getWorldPosition(V()); return a.lerp(k, 0.55).add(V(0, 0.07 * s0, 0)); };
     const sideOf = (a, b, sd) => ((sd === 'left') === (a.clone().dot(leftW) > b.clone().dot(leftW))) ? a : b;
@@ -29460,26 +29659,34 @@ function avkVrmRig(vrm, cal) {
       ownThigh: sd => ({ p: thighPt(sd), curl: 0.2, rub: 0.02, palm: V(0, -1, 0), ownThigh: true }),
       hip: sd => ({ p: (sd === 'left' ? kp.hipL : kp.hipR).clone().addScaledVector(leftW, sgOf(sd) * 0.035 * s0).add(V(0, 0.02 * s0, 0)), curl: 0.3, rub: 0.01, own: true, palm: leftW.clone().multiplyScalar(-sgOf(sd)).add(V(0, -0.4, 0)) }),
       waist: sd => ({ p: (sd === 'left' ? kp.waistL : kp.waistR).clone().addScaledVector(leftW, sgOf(sd) * 0.03 * s0), curl: 0.25, rub: 0.015, own: true, palm: leftW.clone().multiplyScalar(-sgOf(sd)) }),
-      breast: sd => ({ p: (sd === 'left' ? kp.nipL : kp.nipR).clone().addScaledVector(fwd, 0.045 * s0).add(V(0, 0.01 * s0, 0)), curl: 0.55, rub: 0.012, own: true, palm: fwd.clone().negate().add(V(0, 0.2, 0)) }),
+      breast: sd => pose === 'mission' ? ({ p: (sd === 'left' ? kp.nipL : kp.nipR).clone().add(V(0, 0.04 * s0, 0)), curl: 0.55, rub: 0.012, own: true, palm: V(0, -1, 0) }) : ({ p: (sd === 'left' ? kp.nipL : kp.nipR).clone().addScaledVector(fwd, 0.045 * s0).add(V(0, 0.01 * s0, 0)), curl: 0.55, rub: 0.012, own: true, palm: fwd.clone().negate().add(V(0, 0.2, 0)) }),
       gesture: sd => ({ p: chestP.clone().addScaledVector(fwd, 0.24 * s0).addScaledVector(leftW, sgOf(sd) * 0.13 * s0).add(V(0, -0.1 * s0, 0)), curl: 0.08, rub: 0.035, gest: true, palm: V(0, 0.7, 0).addScaledVector(fwd, 0.3).addScaledVector(leftW, -sgOf(sd) * 0.4) }),
       himThigh: sd => { const q = himThigh(sd); return q ? { p: q, curl: 0.25, rub: 0.03, palm: (pose === 'ride' || /Lie/.test(pose)) ? V(0, -1, 0) : fwd.clone().add(V(0, -0.3, 0)) } : null; },
       himBelly: sd => him ? ({ p: him.belly.clone().addScaledVector(leftW, sgOf(sd) * 0.06).add(V(0, pose === 'ride' ? 0.1 : 0.02, 0)).addScaledVector(fwd, pose === 'ride' ? 0 : -0.09), curl: 0.2, rub: 0.035, palm: pose === 'ride' ? V(0, -1, 0) : fwd.clone() }) : null,
       himChest: sd => him ? ({ p: him.belly.clone().lerp(him.chest, 0.85 + 0.25 * wFwd).addScaledVector(leftW, sgOf(sd) * 0.09).add(V(0, 0.105, 0)), curl: 0.2, rub: 0.04, palm: V(0, -1, 0) }) : null,
-      himKnee: sd => (him && him.kneeL) ? { p: sideOf(him.kneeL, him.kneeR, sd).clone().add(V(0, 0.07, 0)), curl: 0.3, rub: 0.01, palm: V(0, -1, 0) } : null,
+      himKnee: sd => (him && him.kneeL) ? { p: sideOf(him.thighL, him.thighR, sd).clone().lerp(sideOf(him.kneeL, him.kneeR, sd), 0.35).add(V(0, 0.07, 0)), curl: 0.3, rub: 0.01, palm: V(0, -1, 0) } : null,
       crotch: sd => ({ p: kp.crotch.clone().addScaledVector(fwd, 0.06 * s0).add(V(0, 0.035 * s0, 0)).addScaledVector(leftW, sgOf(sd) * 0.015 * s0), curl: 0.35, rub: 0, circle: 0.018, own: true, palm: fwd.clone().negate().add(V(0, -0.6, 0)) }),
       kiss: sd => ({ p: kp.mouth.clone().addScaledVector(fwd, (0.05 + 0.12 * Math.max(0, (t - (st.evt ? st.evt.t0 : t)) - 0.9)) * s0).addScaledVector(leftW, sgOf(sd) * 0.015 * s0), curl: 0.3, rub: 0, palm: fwd.clone().negate(), kiss: true }),
+      sheet: sd => { const q = kp.hips.clone().addScaledVector(leftW, sgOf(sd) * 0.27 * s0).addScaledVector(fwd, -0.06 * s0); q.y = (s.bedY || 0) + 0.025 * s0; return { p: q, curl: 0.75, rub: 0.006, palm: V(0, -1, 0) }; },
+      overhead: sd => { const q = kp.head.clone().addScaledVector(fwd, -0.13 * s0).addScaledVector(leftW, sgOf(sd) * 0.15 * s0); q.y = (s.bedY || 0) + 0.04 * s0; return { p: q, curl: 0.45, rub: 0.004, palm: V(0, 1, 0) }; },
+      himNeck: sd => him && him.neck ? { p: him.neck.clone().addScaledVector(fwd, 0.07).addScaledVector(leftW, sgOf(sd) * 0.06), curl: 0.45, rub: 0.012, palm: fwd.clone().negate(), noHead: true } : null,
+      himShoulder: sd => him && him.neck ? { p: him.neck.clone().add(V(0, -0.06, 0)).addScaledVector(leftW, sgOf(sd) * 0.15).addScaledVector(fwd, 0.02), curl: 0.3, rub: 0.012, palm: V(0, -1, 0).addScaledVector(fwd, 0.5), noHead: true } : null,
       balls: sd => s.balls ? { p: s.balls.clone().add(V(0, -0.025, 0)).addScaledVector(fwd, -0.01), curl: 0.55, rub: 0.012, palm: V(0, 1, 0).addScaledVector(fwd, 0.4) } : null,
     };
+    // ihre Hände auf dir: Ziel auf deine echte Haut legen, Handfläche zur Haut (statt in der Luft oder in dir)
+    ['himThigh', 'himBelly', 'himChest', 'himKnee'].forEach(k => { const f0 = TGT[k]; if (!f0) return; TGT[k] = sd => { if (st.himBlock && st.himBlock[sd] > t) return TGT.ownThigh(sd); const t0 = f0(sd); if (!t0 || typeof avkSurfQueryHim !== 'function') return t0; try { const q = avkSurfQueryHim(t0.p); if (q && q.p.distanceTo(t0.p) < 0.15 * s0) { st.himCorr = st.himCorr || {}; const c = st.himCorr[sd] || 0; t0.p = q.p.clone().addScaledVector(q.n, 0.004 * s0 - c); t0.palm = q.n.clone().negate(); t0.himN = q.n.clone(); st.himTgt = st.himTgt || {}; st.himTgt[sd] = t; } } catch (e) {} return t0; }; });
     const pw = k => (P.pref[k] || 1);
     const MENU = {
       hand: [['ownThigh', 2.6 * pw('ownThigh')], ['hip', 1.1 * pw('hip')], ['waist', 0.6], ['breast', 1 * pw('breast')], ['himThigh', 1.4 * pw('himThigh')], ['crotch', 0.9 * ar], ['gesture', 0]],
       blow: [['himThigh', 4 * pw('himThigh')], ['himBelly', 1.2 * pw('himBelly')], ['ownThigh', 0.7]],
       ride: st.rstyle === 'forward' ? [['himChest', 6]] : st.rstyle === 'back' ? [['himKnee', 3 * pw('himKnee')], ['ownThigh', 1]] :
         [['himChest', 2 * pw('himChest')], ['ownThigh', 1.6 * pw('ownThigh')], ['breast', 1.4 * pw('breast')], ['waist', 0.7], ['crotch', 1.4 * ar], ['gesture', 0]],
+      mission: [['sheet', 2.2], ['overhead', 1.3 + 0.5 * P.soft], ['breast', 1.1 * pw('breast')], ['crotch', 1.2 * ar], ['gesture', 0]],
+      carry: [['himNeck', 3], ['himShoulder', 2]],
     };
     st.hands = st.hands || {};
     const choose = (sd, avoid) => {
-      const menu = (MENU[pose] || MENU.hand).map(([k, w]) => [k, k === 'gesture' ? (s.talking ? 2.2 * P.gest : 0) : w]).filter(([k, w]) => w > 0 && k !== avoid && TGT[k](sd));
+      const menu = (MENU[pose] || MENU.hand).map(([k, w]) => [k, k === 'gesture' ? (s.talking ? 2.2 * P.gest : 0) : w]).filter(([k, w]) => w > 0 && k !== avoid && !(st.himBlock && st.himBlock[sd] > t && /^him/.test(k)) && TGT[k](sd));
       return menu.length ? pick(menu) : 'ownThigh';
     };
     // Eine Hand an ein Ziel führen - mit weichem Bogen beim Wechsel
@@ -29490,26 +29697,31 @@ function avkVrmRig(vrm, cal) {
       else { q.addScaledVector(leftW, Math.sin(ph) * g.rub * s0).add(V(0, Math.sin(ph * 0.7 + 1) * g.rub * 0.4 * s0, 0)); }
       if (g.gest) { q.addScaledVector(fwd, Math.sin(ph * 1.3) * 0.02 * s0).add(V(0, st.lvS * 0.04 * s0 * Math.sin(t * 6.1), 0)); }
       if (g.own || g.gest || g.ownThigh) pushOut(q, g.gest ? 0.16 : 0.115);
-      if (!g.kiss) keepHead(q);
+      if (!g.kiss && !g.noHead) keepHead(q);
       if (H.k < 1 && H.from) {
-        if (!H.dur) H.dur = Math.max(0.55, Math.min(1.5, (0.5 + H.from.distanceTo(q) / (0.5 * s0)) / (0.7 + 0.3 * E)));
+        if (!H.dur) H.dur = Math.max(0.55, Math.min(1.5, (0.5 + H.from.distanceTo(q) / (0.5 * s0)) / (0.7 + 0.3 * E))) * (pose === 'mission' ? 1.5 : 1);
         H.k = Math.min(1, H.k + dt / H.dur); const e = ease5(H.k), arc = Math.sin(Math.PI * e);
-        const r = H.from.clone().lerp(q, e).add(V(0, arc * 0.07 * s0, 0)).addScaledVector(fwd, arc * 0.04 * s0);
-        pushOut(r, 0.13 + 0.06 * arc); if (!g.kiss) keepHead(r); q.copy(r);
+        const r = H.from.clone().lerp(q, e).add(V(0, arc * 0.07 * s0, 0)).addScaledVector(fwd, arc * 0.04 * s0); if (pose === 'mission') r.addScaledVector(leftW, sgOf(sd) * arc * 0.34 * s0);   // liegend: Bogen nach außen, Ellbogen kippt nicht durch
+        pushOut(r, 0.13 + 0.06 * arc); if (!g.kiss && !g.noHead) keepHead(r); q.copy(r);
       }
       H.last = q.clone();
-      rest(sd, q, g.curl, g.palm);
+      // Handfläche beim Wechsel weich mitdrehen (sonst springt das Handgelenk und der Ellbogen klappt um)
+      let palm = g.palm ? g.palm.clone().normalize() : g.palm;
+      if (palm && H.from && H.palm0For !== H.from) { H.palm0 = H.lastPalm ? H.lastPalm.clone() : null; H.palm0For = H.from; }
+      if (palm && H.k < 1 && H.palm0) { const e = ease5(H.k); palm = H.palm0.clone().lerp(palm, e); if (palm.lengthSq() < 1e-4) palm = g.palm.clone(); palm.normalize(); }
+      if (palm) H.lastPalm = palm.clone();
+      rest(sd, q, g.curl, palm);
     };
     const handState = (sd, kind) => { let H = st.hands[sd]; if (!H || H.pose !== pose) { H = st.hands[sd] = { pose, kind: kind || choose(sd), from: null, k: 1, until: t + 2 + Math.random() * 4, ph: Math.random() * 6 }; } return H; };
     const moveTo = (H, kind) => { if (H.kind !== kind) { H.from = H.last ? H.last.clone() : null; H.kind = kind; H.k = 0; H.dur = 0; } };
     // kleine Einlagen: Luftkuss (verspielte Figuren öfter), nur wenn sie gerade nicht redet
     if (!st.evtAt) st.evtAt = t + 20 + Math.random() * 25;
-    if (!st.evt && t > st.evtAt && !s.talking && pose !== 'blow' && pose !== 'doggy' && pose !== 'tits' && !/Lie/.test(pose) && !s.hand2) { st.evt = { k: 'kiss', t0: t, sd: pose === 'hand' && s.grip ? 'left' : (Math.random() < 0.5 ? 'left' : 'right') }; }
+    if (!st.evt && t > st.evtAt && !s.talking && pose !== 'blow' && pose !== 'doggy' && pose !== 'tits' && pose !== 'carry' && pose !== 'mission' && !/Lie/.test(pose) && !s.hand2) { st.evt = { k: 'kiss', t0: t, sd: pose === 'hand' && s.grip ? 'left' : (Math.random() < 0.5 ? 'left' : 'right') }; }
     if (st.evt && t - st.evt.t0 > 2.6) { st.evt = null; st.evtAt = t + (30 + Math.random() * 40) / (0.6 + P.play); }
     const freeHand = sd => {
       const H = handState(sd);
       if (st.evt && st.evt.k === 'kiss' && st.evt.sd === sd) { moveTo(H, 'kiss'); H.until = t + 0.4; guide(sd, TGT.kiss(sd), H); return; }
-      if (t > H.until || !TGT[H.kind] || (pose === 'ride' && !MENU.ride.some(([k]) => k === H.kind) && H.kind !== 'gesture')) {
+      if (t > H.until || !TGT[H.kind] || ((pose === 'ride' || pose === 'carry') && !MENU[pose].some(([k]) => k === H.kind) && H.kind !== 'gesture')) {
         const other = st.hands[sd === 'left' ? 'right' : 'left'];
         let next = choose(sd, H.kind === 'gesture' ? 'gesture' : (Math.random() < 0.6 ? H.kind : null));
         if (other && other.kind === next && /breast|balls/.test(next)) next = H.kind;
@@ -29650,7 +29862,7 @@ function avkVrmRig(vrm, cal) {
     // ---------- Jubel: wenn du „Gekommen" drückst, reißt sie die freie(n) Hand/Hände hoch ----------
     if (st.react && st.react.k === 'come' && !s.measure) {
       const rt = t - st.react.t;
-      if (rt < 3.6 && !/doggy|blow|tits/.test(pose)) {
+      if (rt < 3.6 && !/doggy|blow|tits|carry/.test(pose)) {
         const env = Math.min(1, rt / 0.35) * Math.min(1, Math.max(0, (3.6 - rt) / 0.6));
         const sides = pose === 'hand' && s.grip ? ['left'] : ['left', 'right'];
         sides.forEach((sd, i) => {
@@ -29662,6 +29874,32 @@ function avkVrmRig(vrm, cal) {
         });
       }
     }
+    // ---------- Nachführen: liegt ihre Hand auf dir zu hoch/zu tief, Ziel im nächsten Bild entsprechend versetzen ----------
+    if (!s.measure && st.himTgt && typeof avkSurfQueryHim === 'function') ['left', 'right'].forEach(sd => {
+      if (st.himTgt[sd] !== t) { if (st.himCorr) st.himCorr[sd] = (st.himCorr[sd] || 0) * 0.9; return; }
+      const hp = B(sd + 'Hand').getWorldPosition(V()).lerp((B(sd + 'MiddleProximal') || B(sd + 'Hand')).getWorldPosition(V()), 0.6), q = avkSurfQueryHim(hp); if (!q) return;
+      const d = hp.clone().sub(q.p).dot(q.n) - 0.013 * s0; st.himCorr[sd] = Math.max(-0.03 * s0, Math.min(0.12 * s0, (st.himCorr[sd] || 0) + d * 0.35));
+      // nicht erreichbar (Arm zu kurz): Hand eine Weile woanders hinlegen statt in der Luft zu hängen
+      st.himFar = st.himFar || {}; st.himFar[sd] = d > 0.035 * s0 ? (st.himFar[sd] || 0) + dt : 0;
+      if (st.himFar[sd] > 0.8) { st.himBlock = st.himBlock || {}; st.himBlock[sd] = t + 12; st.himFar[sd] = 0; st.himCorr[sd] = 0; const Hh = st.hands[sd]; if (Hh && /^him/.test(Hh.kind)) { Hh.from = Hh.last ? Hh.last.clone() : null; Hh.kind = 'ownThigh'; Hh.k = 0; Hh.dur = 0; Hh.until = t + 4 + Math.random() * 4; } }
+    });
+    // ---------- Ausziehen/Anziehen: Hände führen die Kleidung, Hüfte wiegt sich dabei ----------
+    if (s.strip && !s.measure && !/doggy|blow|mission|carry/.test(pose)) {
+      const u = s.strip.t, D = s.strip.dur || 5, env = Math.min(1, u / 0.4) * Math.min(1, Math.max(0, (D - u) / 0.6));
+      const sides = pose === 'hand' && s.grip ? ['left'] : ['left', 'right'];
+      sides.forEach((sd, i) => {
+        const sg = sgOf(sd), sh = B(sd + 'UpperArm').getWorldPosition(V()), cur = B(sd + 'Hand').getWorldPosition(V());
+        let tg;
+        if (u < D * 0.4) { const k = u / (D * 0.4); const chest = kp.chestP.clone().addScaledVector(fwd, 0.1 * s0).addScaledVector(leftW, sg * 0.07 * s0); const over = sh.clone().add(V(0, 0.28 * s0, 0)).addScaledVector(leftW, -sg * 0.05 * s0).addScaledVector(fwd, 0.04 * s0); tg = chest.lerp(over, Math.sin(k * Math.PI * 0.5) ** 2); }
+        else if (u < D * 0.78) { const k = (u - D * 0.4) / (D * 0.38); const hip = (sd === 'left' ? kp.hipL : kp.hipR).clone().addScaledVector(leftW, sg * 0.03 * s0); const th = (sd === 'left' ? kp.thighL : kp.thighR).clone().addScaledVector(leftW, sg * 0.05 * s0).addScaledVector(fwd, 0.03 * s0); tg = hip.lerp(th, k); }
+        else tg = (sd === 'left' ? kp.thighL : kp.thighR).clone().addScaledVector(leftW, sg * 0.05 * s0).add(V(0, 0.06 * s0, 0));
+        rest(sd, cur.lerp(pushOut(tg, 0.1), env), 0.55, fwd.clone().negate());
+      });
+      const sw2 = env * (s.strip.mode === 'off' ? 1 : 0.6);
+      Radd('hips', 0, 0.09 * sw2 * Math.sin(u * 3.2), 0.05 * sw2 * Math.sin(u * 6.4));
+      Radd('spine', 0, -0.06 * sw2 * Math.sin(u * 3.2 + 0.4), -0.03 * sw2 * Math.sin(u * 6.4 + 0.3));
+      st.stripLook = true;
+    } else st.stripLook = false;
     // ---------- Kopf und Blick ----------
     if (t > st.glanceAt) {
       const r = Math.random(); st.glance = null; st.glanceAction = false;
@@ -29680,6 +29918,7 @@ function avkVrmRig(vrm, cal) {
     if (st.oil && st.oilLook && Math.sin(t * 0.7) > -0.4) want = st.oilLook.clone();
     if (st.react && t - st.react.t < (/edge|come/.test(st.react.k) ? 4 : 1.6) && /user|come|edge/.test(st.react.k)) want = s.cam.clone();
     if (st.evt && st.evt.k === 'kiss') want = s.cam.clone();
+    if (st.stripLook) want = s.cam.clone();
     if (pose === 'doggy') {
       const hp0 = B('head').getWorldPosition(V()), fw0 = st.dogFw || fwd;
       const ahead = hp0.clone().addScaledVector(fw0, 1).add(V(0, -0.15 + 0.25 * wArch, 0));
@@ -29687,6 +29926,7 @@ function avkVrmRig(vrm, cal) {
       want = back ? s.cam.clone() : ahead;
     }
     if ((pose === 'tits' || pose === 'titsLie') && !st.glance && Math.sin(t * 0.17 + ph0) > -0.5) want = s.cam.clone();
+    if ((pose === 'mission' || pose === 'carry') && !st.glance && !st.glanceAction && Math.sin(t * 0.19 + ph0) > -0.6) want = s.cam.clone();
     if (pose === 'blowLie') want = s.cam.clone();   // Blickkontakt beim Blasen
     st.look = st.look ? st.look.lerp(want, Math.min(1, dt * 4.5)) : want.clone();
     if (!st.tiltAt || t > st.tiltAt) { st.tiltTo = Math.random() < 0.55 ? (Math.random() < 0.7 ? P.tiltSide : -P.tiltSide) * (P.tiltAmt + Math.random() * 0.08) : 0; st.tiltAt = t + 3 + Math.random() * 7; }
@@ -29707,7 +29947,7 @@ function avkVrmRig(vrm, cal) {
       if (st.react && st.react.k === 'user' && t - st.react.t < 1.2) nod += 0.09 * Math.sin((t - st.react.t) * 9) * (1 - (t - st.react.t) / 1.2);
       if (st.react && st.react.k === 'edge' && t - st.react.t < 2) nod += 0.1 * Math.sin((t - st.react.t) * 11) * (1 - (t - st.react.t) / 2);   // „ja, ja"
       if (st.react && st.react.k === 'come') { const rt = t - st.react.t; st.comeBob = rt < 1.4 ? -0.2 * Math.sin(Math.PI * rt / 1.4) : 0; if (rt < 1.4) {} else if (rt < 3.6) nod += 0.08 * Math.sin((rt - 1.4) * 9) * (1 - (rt - 1.4) / 2.2); }
-      let bob = (pose === 'ride' ? -0.07 * st.vvLag : 0) - 0.16 * (st.archW || 0) + 0.04 * (st.rip || 0) * (pose === 'doggy' || pose === 'ride' ? 1 : 0.4);
+      let bob = (pose === 'ride' || pose === 'carry' ? -0.07 * st.vvLag : 0) - 0.16 * (st.archW || 0) + 0.04 * (st.rip || 0) * (/doggy|ride|mission|carry/.test(pose) ? 1 : 0.4);
       if (st.react && st.react.k === 'come') bob += st.comeBob || 0;
       // kurz vor dem Höhepunkt: Kopf in den Nacken (Reiten), Augen öfter zu
       if (ar > 0.8) { const k = (ar - 0.8) / 0.2; st.climaxPh = (st.climaxPh || 0) + dt * 0.35; const w = Math.max(0, Math.sin(st.climaxPh)) * k; bob -= (pose === 'ride' ? 0.22 : 0.08) * w; st.eyesShut = w; } else st.eyesShut = 0;
@@ -29745,7 +29985,7 @@ function avkVrmRig(vrm, cal) {
         X.happy = P.smile * 0.8 + 0.1 * Math.sin(t * 0.7);
       } else {
         // Lust: Mund leicht offen, beim Reiten im Takt
-        X.aa = pose === 'ride' || pose === 'doggy' ? 0.1 * ar + 0.14 * ar * Math.max(0, pose === 'doggy' ? -vv : vv) + (pose === 'doggy' ? 0.06 : 0) : pose === 'tits' ? 0.12 + 0.05 * ar : 0.04 * ar;
+        X.aa = /^(ride|doggy|mission|carry)$/.test(pose) ? 0.1 * ar + 0.14 * ar * Math.max(0, pose === 'doggy' ? -vv : vv) + (pose === 'doggy' ? 0.06 : 0) : pose === 'tits' ? 0.12 + 0.05 * ar : 0.04 * ar;
         X.oh = 0.03 + 0.14 * ar + (pose === 'ride' ? 0.1 * ar * Math.max(0, -vv) : 0) + 0.08 * Math.min(1, st.spd) * (0.4 + ar);
         X.happy = (P.smile * (1 - ar)) + 0.07 * Math.max(0, nz(t, 0.2, 0.33, 0.5, 7));
       }
@@ -29775,8 +30015,8 @@ function avkVrmRig(vrm, cal) {
       if (!st.bustInit) { st.bustInit = true; busts.forEach(j => { const sd = /_L_|Left|\.L/i.test(j.bone.name) ? 1 : -1; if (j.settings) { j.settings.stiffness *= sd > 0 ? 0.76 : 1.22; j.settings.dragForce = Math.max(0.05, j.settings.dragForce * (sd > 0 ? 0.85 : 1.12)); } }); }
       const H = st.accH || (st.accH = []); H.push([t, st.accS || 0]); while (H.length > 2 && H[0][0] < t - 0.2) H.shift();
       const late = (H.find(h => h[0] >= t - 0.11) || H[0])[1];
-      const dir = pose === 'doggy' ? (st.dogFw || fwd).clone() : pose === 'tits' || pose === 'titsLie' ? V(0, 1, 0) : V(0, 1, 0);
-      const g = { ride: 1, doggy: 0.9, tits: 0.6, titsLie: 0.5, hand: 0.25, blow: 0.2, blowLie: 0.35 }[pose] || 0.3;
+      const dir = pose === 'doggy' || pose === 'mission' ? (st.dogFw && pose === 'doggy' ? st.dogFw : fwd).clone() : pose === 'tits' || pose === 'titsLie' ? V(0, 1, 0) : V(0, 1, 0);
+      const g = { ride: 1, doggy: 0.9, mission: 0.9, carry: 1, tits: 0.6, titsLie: 0.5, hand: 0.25, blow: 0.2, blowLie: 0.35 }[pose] || 0.3;
       const mag = 0.0008 * s0 * g * (0.7 + 0.6 * ar), lw = leftW || V(1, 0, 0);
       busts.forEach(j => {
         if (!j._prevTail || !j._currentTail) return;
@@ -29955,9 +30195,9 @@ async function avkVrmShow(figId) {
   const v = avView();
   const b = document.createElement('button'); b.type = 'button'; b.id = 'av3dPose'; b.className = 'btn-secondary';
   b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6); font-size:12px;';
-  const LBL = { auto: 'Auto', hand: '✋', blow: '👄', ride: '🐎', tits: '🍈', doggy: '🐕', blowLie: '💋', titsLie: '🍒' };
-  const paint = () => { if (!LBL[AVK.poseMode]) AVK.poseMode = 'auto'; b.textContent = LBL[AVK.poseMode]; b.title = { auto: 'Stellung folgt der Handlung', hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst und schaut dich an', titsLie: 'Du liegst - zwischen ihren Brüsten' }[AVK.poseMode]; b.setAttribute('aria-label', b.title); };
-  b.onclick = () => { const order = AVK.vrmMode ? ['auto', 'hand', 'blow', 'ride', 'tits', 'doggy', 'blowLie', 'titsLie'] : ['auto', 'hand', 'blow', 'ride']; AVK.poseMode = order[(order.indexOf(AVK.poseMode) + 1) % order.length]; safeSet('companion_av3dPose', AVK.poseMode); paint(); avHint(b.title); if (AVK.on && AVK.poseMode !== 'auto' && AVK.poseMode !== AVK.pose) avkSwitch(AVK.poseMode); };
+  const LBL = { auto: 'Auto', hand: '✋', blow: '👄', ride: '🐎', tits: '🍈', doggy: '🐕', blowLie: '💋', titsLie: '🍒', mission: '🛏️', carry: '🫂' };
+  const paint = () => { if (!LBL[AVK.poseMode]) AVK.poseMode = 'auto'; b.textContent = LBL[AVK.poseMode]; b.title = { auto: 'Stellung folgt der Handlung', hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst und schaut dich an', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[AVK.poseMode]; b.setAttribute('aria-label', b.title); };
+  b.onclick = () => { const order = AVK.vrmMode ? ['auto', 'hand', 'blow', 'ride', 'tits', 'doggy', 'blowLie', 'titsLie', 'mission', 'carry'] : ['auto', 'hand', 'blow', 'ride']; AVK.poseMode = order[(order.indexOf(AVK.poseMode) + 1) % order.length]; safeSet('companion_av3dPose', AVK.poseMode); paint(); avHint(b.title); if (AVK.on && AVK.poseMode !== 'auto' && AVK.poseMode !== AVK.pose) avkSwitch(AVK.poseMode); };
   AVK.poseMode = localStorage.getItem('companion_av3dPose') || 'auto'; paint();
   const cam = v.querySelector('#av3dCam'); cam.parentNode.insertBefore(b, cam);
 }
@@ -30538,6 +30778,8 @@ function avkHisHands(hk, dt) {
     blowLie: { head: () => hk.headTop.clone().addScaledVector(fwd, -0.07 * s), hair: sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.08 * s).addScaledVector(fwd, -0.05 * s).add(V(0, 0.05 * s, 0)), shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), own },
     titsLie: { shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), head: () => hk.headTop.clone(), hair: sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.1 * s).add(V(0, 0.05 * s, 0)) },
     doggy: { hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().add(V(0, 0.06 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone().add(V(0, 0.05 * s, 0)), butt: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(fwd, -0.07 * s).add(V(0, 0.04 * s, 0)), back: sd => hk.hips.clone().lerp(hk.chestP, 0.45).addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.06 * s).add(V(0, 0.09 * s, 0)) },
+    mission: { thigh: sd => (sd === 'L' ? hk.thighL : hk.thighR).clone().add(V(0, 0.05 * s, 0)), hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.04 * s).add(V(0, 0.03 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone().add(V(0, 0.05 * s, 0)), breast: sd => (sd === 'L' ? hk.nipL : hk.nipR).clone().add(V(0, 0.04 * s, 0)) },
+    carry: { butt: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(fwd, -0.075 * s).add(V(0, -0.06 * s, 0)), thigh: sd => (sd === 'L' ? hk.thighL : hk.thighR).clone().add(V(0, -0.05 * s, 0)) },
   }[pose];
   if (!opts) return null;
   const W = {
@@ -30548,6 +30790,8 @@ function avkHisHands(hk, dt) {
     blowLie: AV.camMode === 0 ? { L: [['own', 2], ['shoulder', 1]], R: [['own', 2], ['hair', 1.2], ['shoulder', 1]] } : { L: [['shoulder', 1], ['hair', 1], ['own', 1.5]], R: [['head', 2], ['hair', 1.5], ['own', 2]] },
     titsLie: { L: [['shoulder', 2], ['hair', 0.6]], R: [['shoulder', 2], ['head', 1]] },
     doggy: { L: [['hip', 4], ['waist', 1.5], ['butt', 1.2], ['back', 0.6]], R: [['hip', 4], ['waist', 1.5], ['butt', 1.2], ['back', 0.6]] },
+    mission: { L: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]], R: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]] },
+    carry: { L: [['butt', 1]], R: [['butt', 1]] },
   }[pose];   // aus deinen Augen keine Arme quer durchs Bild
   const S = AVK.hisH && AVK.hisH.pose === pose ? AVK.hisH : (AVK.hisH = { pose });
   const out = {};
@@ -30725,7 +30969,7 @@ function avkOilStep(dt) {
 // Ohne eigene Einstellungen wird alles automatisch aus ihrem Phantombild abgeleitet.
 const LOOK_DEF = { height: 1, head: 1, bust: 1, waist: 1, hips: 1, butt: 1, thigh: 1, calf: 1, arm: 1, shoulder: 1,
   tone: 0.2, toneAmt: 0, skinWarm: 0, hairHue: 30, hairSat: 0.5, hairLight: 0, hairAmt: 0, eyeHue: 210, eyeSat: 0.6, eyeAmt: 0,
-  cloth: {}, energy: 0, gaze: 0, play: 0, smile: 0, auto: true };
+  cloth: {}, energy: 0, gaze: 0, play: 0, smile: 0, elf: 0, outfit: [], auto: true };
 function avkLookAll() { try { return JSON.parse(localStorage.getItem('companion_vrmLook') || '{}'); } catch (e) { return {}; } }
 function avkLookKey(figId, key) { return (figId || '_') + '|' + (key || ''); }
 function avkLookGet(figId, key) {
@@ -30736,9 +30980,12 @@ function avkLookGet(figId, key) {
 function avkLookSet(figId, key, look) { const a = avkLookAll(); a[avkLookKey(figId, key)] = look; safeSet('companion_vrmLook', JSON.stringify(a)); }
 // Phantombild → Werte
 function avkLookFromPhantom(figId) {
+  const f = getFigure(figId), v = f && latestVersion(f);
+  return avkLookFromPhantomPh((v && v.phantom) || {}, v);
+}
+function avkLookFromPhantomPh(ph, v) {
   const out = {};
   try {
-    const f = getFigure(figId), v = f && latestVersion(f), ph = (v && v.phantom) || {};
     const has = (k, rx) => rx.test(String(ph[k] || ''));
     if (ph.height) out.height = has('height', /very tall/) ? 1.07 : has('height', /^tall/) ? 1.04 : has('height', /petite/) ? 0.95 : 1;
     const B = ph.body || '';
@@ -30761,6 +31008,8 @@ function avkLookFromPhantom(figId) {
     const SK = String(ph.skin || '');
     const sk = [[/pale/, 0.02, -0.1], [/fair/, 0.2, 0], [/olive/, 0.42, 0.2], [/tanned/, 0.58, 0.2], [/brown/, 0.8, 0.1], [/dark/, 0.97, 0]].find(([rx]) => rx.test(SK));
     if (sk && !/fair/.test(SK)) Object.assign(out, { tone: sk[1], skinWarm: sk[2], toneAmt: 0.9 });
+    const spec = [ph.ears, ph.species, v && v.appearance, v && v.description].filter(Boolean).join(' ').toLowerCase();
+    if (/pointed ears|elf ears|\b(?!elfenbein)(elf|elfe|elfin|elfen|elven|elvish|elbin|elbe|elben)\w*|spitze ohren|spitzohr/.test(spec)) out.elf = 1;
   } catch (e) {}
   const cl = (k, a, b) => { if (out[k] !== undefined) out[k] = Math.max(a, Math.min(b, out[k])); };
   cl('bust', 0.7, 1.5); cl('hips', 0.9, 1.2); cl('butt', 0.9, 1.22); cl('thigh', 0.88, 1.2); cl('waist', 0.85, 1.1);
@@ -30769,7 +31018,7 @@ function avkLookFromPhantom(figId) {
 // ---------- Körperform über Knochen ----------
 function avkLookBones(vrm, L) {
   const raw = n => vrm.humanoid.getRawBoneNode(n);
-  const U = vrm.scene.userData; (U.lookTouched || []).forEach(b => { if (b.userData.lookS0) b.scale.copy(b.userData.lookS0); });
+  const U = vrm.scene.userData; U.bodyRest = null; (U.lookTouched || []).forEach(b => { if (b.userData.lookS0) b.scale.copy(b.userData.lookS0); });
   const touched = U.lookTouched = [];
   const mul = (b, sx, sy, sz) => { if (!b) return; if (!b.userData.lookS0) b.userData.lookS0 = b.scale.clone(); if (!touched.includes(b)) touched.push(b); b.scale.x *= sx; b.scale.y *= sy; b.scale.z *= sz; };
   // örtlich: Knochen skalieren, direkte Kind-Knochen gegen-skalieren
@@ -30843,7 +31092,13 @@ function avkLookColors(vrm, L) {
         key = `s${mul.map(x => x.toFixed(3)).join('_')}`;
         fn = (r, g, b) => [Math.min(1, r * mul[0]), Math.min(1, g * mul[1]), Math.min(1, b * mul[2])];
       }
-      const want = fn && O.map ? avkRecolorTex(O.map, key, fn) : O.map;
+      // eigene Haut-Ebenen (VRoid-Texturen: Körper bzw. Gesicht) zuerst einmischen, dann umfärben
+      const tgt = /_Face_|Face_00/i.test(m.name || '') ? 'face' : 'body';
+      const baseMap = K === 'skin' && O.map ? avkLayeredMap(O.map, (L.layers || []).filter(x => x.on !== false && (x.target || 'body') === tgt)) : O.map;
+      if (baseMap !== O.map) key = 'L' + baseMap.uuid.slice(0, 8) + key;
+      const want = fn && baseMap ? avkRecolorTex(baseMap, key, fn) : baseMap;
+      // Normal-Map für die Körperform (nur Körperhaut)
+      if (K === 'skin' && tgt === 'body' && 'normalMap' in m) { const nm = L.normal && L.normal.on !== false ? avkLayerTex(L.normal.id, true) : null; if (m.normalMap !== nm) { m.normalMap = nm; m.needsUpdate = true; } if (nm && m.normalScale) m.normalScale.set(L.normal.k || 1, L.normal.k || 1); }
       if (m.map !== want) { m.map = want; if (m.uniforms && m.uniforms.map) m.uniforms.map.value = want; m.needsUpdate = true; }
       // Schattenfarbe mitziehen
       if (O.shade && m.shadeColorFactor) {
@@ -30894,6 +31149,70 @@ function avkApplyLook(vrm, L, parts) {
   if (!parts || parts.bones) avkLookBones(vrm, L);
   if (!parts || parts.colors) avkLookColors(vrm, L);
   if (!parts || parts.cloth) avkLookCloth(vrm, L);
+  if (!parts || parts.bones || parts.elf) { try { avkElfEarsVrm(vrm, L.elf || 0); } catch (e) { avkLog('Elfenohren: ' + e.message); } }
+  if (!parts || parts.outfit) { try { avkOutfitApply(vrm, L.outfit || []); } catch (e) { avkLog('Kleidung: ' + e.message); } }
+}
+// ---------- Elfenohren für VRM-Figuren: eigene, spitz zulaufende Ohren am Kopf (Hautmaterial des Gesichts) ----------
+function avkElfEarsVrm(vrm, amt) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), U = vrm.scene.userData;
+  (U.elfEars || []).forEach(m => { if (m.parent) m.parent.remove(m); m.geometry.dispose(); });
+  U.elfEars = [];
+  if (!(amt > 0.02)) return;
+  const head = vrm.humanoid.getRawBoneNode('head'); if (!head) return;
+  // in Ruhehaltung vermessen
+  const pose = vrm.humanoid.getNormalizedPose ? vrm.humanoid.getNormalizedPose() : null;
+  vrm.humanoid.resetNormalizedPose(); vrm.update(0); vrm.scene.updateMatrixWorld(true);
+  const hp = head.getWorldPosition(V()), eL = vrm.humanoid.getRawBoneNode('leftEye'), eR = vrm.humanoid.getRawBoneNode('rightEye');
+  const pts = []; let skinMat = null;
+  vrm.scene.traverse(o => {
+    if (!o.isSkinnedMesh) return; const m0 = [].concat(o.material)[0] || {}; const nm = m0.name || '';
+    if (/HAIR|EYE|Iris|Brow|Lash|Highlight|Mouth|Teeth|Tongue|CLOTH|Outline/i.test(nm)) return;
+    const hi = o.skeleton.bones.indexOf(head); if (hi < 0) return;
+    const g = o.geometry, P = g.attributes.position, si = g.attributes.skinIndex, sw = g.attributes.skinWeight; if (!si) return;
+    if (!skinMat && /FACE|Face|SKIN|Skin/.test(nm)) skinMat = m0;
+    for (let i = 0; i < P.count; i += 2) { let bw = 0, bi = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } } if (bi !== hi || bw < 0.6) continue; const p = V().fromBufferAttribute(P, i); o.applyBoneTransform(i, p); p.applyMatrix4(o.matrixWorld); p.uv = g.attributes.uv && m0 === skinMat ? [g.attributes.uv.getX(i), g.attributes.uv.getY(i)] : null; pts.push(p); }
+  });
+  if (pts.length < 20) { if (pose) vrm.humanoid.setNormalizedPose(pose); return; }
+  const eye = eL && eR ? eL.getWorldPosition(V()).add(eR.getWorldPosition(V())).multiplyScalar(0.5) : hp.clone().add(V(0, 0.06, 0.05));
+  let fwd = eye.clone().sub(hp).setY(0); if (fwd.lengthSq() < 1e-8) fwd = V(0, 0, 1); fwd.normalize();
+  const side0 = V(0, 1, 0).cross(fwd).normalize();   // zeigt zu einer Seite
+  // Kopfbreite in Augenhöhe
+  let hw = 0, zc = 0, n = 0, top = -1e9;
+  pts.forEach(p => { top = Math.max(top, p.y); if (Math.abs(p.y - eye.y) < 0.03) { const d = p.clone().sub(hp); hw = Math.max(hw, Math.abs(d.dot(side0))); zc += d.dot(fwd); n++; } });
+  zc = n ? zc / n : 0;
+  const s = Math.max(0.6, (top - hp.y) / 0.2);   // Kopfgröße
+  const mat = (skinMat || new T.MeshStandardMaterial({ color: 0xf0d2c0 })).clone(); mat.side = T.DoubleSide;
+  const L = (0.04 + 0.05 * amt) * s, W = 0.022 * s;
+  [1, -1].forEach(sg => {
+    const out = side0.clone().multiplyScalar(sg), up = V(0, 1, 0);
+    const base = hp.clone().addScaledVector(out, hw * 0.9).add(V(0, eye.y - hp.y - 0.012 * s, 0)).addScaledVector(fwd, zc - 0.012 * s);
+    const D = out.clone().multiplyScalar(0.72).add(up.clone().multiplyScalar(0.62)).addScaledVector(fwd, -0.28).normalize();
+    let N = out.clone().multiplyScalar(0.55).addScaledVector(fwd, 0.85); N.sub(D.clone().multiplyScalar(N.dot(D))).normalize();
+    const S = D.clone().cross(N).normalize();
+    const NU = 12, NV = 8, pos = [], idx = [];
+    for (let face = 0; face < 2; face++) for (let i = 0; i <= NU; i++) for (let j = 0; j <= NV; j++) {
+      const u = i / NU, v = j / NV * 2 - 1;
+      const w = W * Math.pow(1 - u, 0.85) * (0.75 + 0.9 * u * (1 - u));
+      const bend = -0.18 * u * u * L;   // Spitze biegt leicht nach hinten
+      const cup = 0.35 * w * (1 - v * v), th = 0.0035 * s * (1 - u) * (1 - v * v);
+      const p = base.clone().addScaledVector(D, L * u).addScaledVector(fwd, bend).addScaledVector(S, w * v).addScaledVector(N, face ? -cup * 0.6 - th : -cup * 0.6 + 0.0005);
+      pos.push(p.x, p.y, p.z);
+    }
+    const row = NV + 1, off = (NU + 1) * row;
+    for (let face = 0; face < 2; face++) for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) {
+      const a = face * off + i * row + j, b = a + row, c = a + 1, d = b + 1;
+      if (face) idx.push(a, b, c, c, b, d); else idx.push(a, c, b, c, d, b);
+    }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+    // UV: mittlere Hautstelle der Gesichtstextur (einfarbig wirkend)
+    let uv0 = [0.5, 0.5], bd = 1e9; pts.forEach(p => { if (!p.uv) return; const d = p.distanceTo(base); if (d < bd) { bd = d; uv0 = p.uv; } });
+    const uvs = []; for (let k = 0; k < pos.length / 3; k++) uvs.push(uv0[0], uv0[1]); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
+    g.computeVertexNormals();
+    g.applyMatrix4(head.matrixWorld.clone().invert());
+    const m = new T.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; m.name = 'ElfEar';
+    head.add(m); U.elfEars.push(m);
+  });
+  if (pose) vrm.humanoid.setNormalizedPose(pose); vrm.update(0);
 }
 {
   // Laden: Aussehen anwenden, bevor vermessen wird
@@ -31011,6 +31330,7 @@ function avkEdOpen() {
   ed.style.cssText = 'position:absolute; left:0; right:0; bottom:0; height:50%; z-index:5; background:rgba(16,10,13,0.94); border-top-left-radius:20px; border-top-right-radius:20px; display:flex; flex-direction:column; color:#fff; touch-action:pan-y;';
   ed.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:10px 14px 6px;">
       <b style="flex:1; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">✏️ ${esc(name)} formen</b>
+      <button type="button" class="btn-secondary" data-ed="anime" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Anime aus ihrem Bild ableiten">🪄</button>
       <button type="button" class="btn-secondary" data-ed="phantom" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Aus ihrem Phantombild">🧩</button>
       <button type="button" class="btn-secondary" data-ed="random" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Zufällig">🎲</button>
       <button type="button" class="btn-secondary" data-ed="reset" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Zurück zum Modell">↺</button>
@@ -31036,6 +31356,7 @@ function avkEdOpen() {
     if (parts.cloth) { avkVrmClothes(AV.vrm, avkVrmNude(AV.key, {})); }
     if (parts.colors) { clearTimeout(tmrC); tmrC = setTimeout(() => avkApplyLook(AV.vrm, AVKE.L, { colors: true }), 180); }
     if (parts.soul) AVKE.P = null;
+    if (parts.elf) { clearTimeout(AVKE.tmrE); AVKE.tmrE = setTimeout(() => avkApplyLook(AV.vrm, AVKE.L, { elf: true }), 150); }
     clearTimeout(tmrS); tmrS = setTimeout(() => avkLookSet(AVKE.figId, AVKE.key, AVKE.L), 400);
   };
   const slider = (k, label, min, max, step, fmt, part) => {
@@ -31057,6 +31378,7 @@ function avkEdOpen() {
     if (AVKE.tab === 'body') {
       body.appendChild(slider('height', 'Größe', 0.9, 1.12, 0.005, pct, 'bones'));
       body.appendChild(slider('head', 'Kopf (kleiner wirkt erwachsener)', 0.82, 1.08, 0.005, pct, 'bones'));
+      body.appendChild(slider('elf', 'Elfenohren', 0, 1, 0.05, x => Math.round(x * 100) + ' %', 'elf'));
       body.appendChild(slider('bust', AV.vrm.scene.userData.lookHasBust === false ? 'Brust (Modell ohne Brustknochen - nur leicht)' : 'Brust', 0.65, 1.7, 0.01, pct, 'bones'));
       body.appendChild(slider('shoulder', 'Schultern', 0.88, 1.15, 0.005, pct, 'bones'));
       body.appendChild(slider('waist', 'Taille', 0.82, 1.18, 0.005, pct, 'bones'));
@@ -31082,6 +31404,31 @@ function avkEdOpen() {
       body.appendChild(swatches([['blau', '#3d7bd6', { eyeHue: 212, eyeSat: 0.65, eyeAmt: 0.85 }], ['graublau', '#7f97ad', { eyeHue: 205, eyeSat: 0.3, eyeAmt: 0.85 }], ['grün', '#3e9a55', { eyeHue: 125, eyeSat: 0.55, eyeAmt: 0.85 }], ['haselnuss', '#9a7a3a', { eyeHue: 40, eyeSat: 0.5, eyeAmt: 0.85 }], ['braun', '#6b4428', { eyeHue: 25, eyeSat: 0.6, eyeAmt: 0.85 }], ['violett', '#8b4fc4', { eyeHue: 278, eyeSat: 0.6, eyeAmt: 0.85 }], ['rot', '#c0283c', { eyeHue: 352, eyeSat: 0.7, eyeAmt: 0.85 }], ['Original', 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)', { eyeAmt: 0 }]], () => changed({ colors: true })));
       body.appendChild(slider('eyeAmt', 'Stärke (0 = Original)', 0, 1, 0.01, x => Math.round(x * 100) + ' %', 'colors'));
       body.appendChild(hint('Umgefärbt wird die Textur des Modells - Schattierung und Zeichnung bleiben erhalten.'));
+      // ---------- eigene Texturen (VRoid-Modelle) ----------
+      body.appendChild(head('Eigene Haut-Texturen'));
+      body.appendChild(hint('Für VRoid-Modelle: PNG-Ebenen (z. B. Körper- oder Gesichtstexturen, Details) werden über die Haut gelegt; eine Normal-Map gibt der Haut mehr Form. Die Bilder bleiben nur auf diesem Gerät.'));
+      AVKE.L.layers = AVKE.L.layers || [];
+      const reapply = () => { AVKE.L.auto = false; AVKE.dirty = true; avkLayersLoad(AVKE.L).then(() => { avkApplyLook(AV.vrm, AVKE.L, { colors: true }); avkLookSet(AVKE.figId, AVKE.key, AVKE.L); }); };
+      const addRow = document.createElement('div'); addRow.className = 'btn-row'; addRow.style.cssText = 'margin-top:8px; flex-wrap:wrap; gap:6px;';
+      addRow.innerHTML = `<button type="button" class="btn-secondary" data-l="body" style="width:auto; padding:6px 10px; font-size:12.5px;">＋ Körper-Ebene</button><button type="button" class="btn-secondary" data-l="face" style="width:auto; padding:6px 10px; font-size:12.5px;">＋ Gesichts-Ebene</button><button type="button" class="btn-secondary" data-l="normal" style="width:auto; padding:6px 10px; font-size:12.5px;">＋ Normal-Map</button>`;
+      addRow.querySelectorAll('button').forEach(bt => bt.onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp'; inp.multiple = bt.dataset.l !== 'normal'; inp.onchange = async () => { for (const f of inp.files || []) { try { const id = await avkLayerAdd(f); if (bt.dataset.l === 'normal') AVKE.L.normal = { id, k: 1, name: f.name }; else AVKE.L.layers.push({ id, name: f.name, target: bt.dataset.l, op: 1 }); } catch (e) { alert('Bild ging nicht: ' + e.message); } } reapply(); render(); }; inp.click(); });
+      body.appendChild(addRow);
+      AVKE.L.layers.forEach((x, i) => {
+        const row = document.createElement('div'); row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-top:8px; font-size:12.5px; flex-wrap:wrap;';
+        row.innerHTML = `<label style="display:flex; gap:6px; align-items:center; flex:1 1 140px; min-width:0;"><input type="checkbox" ${x.on !== false ? 'checked' : ''}><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${x.target === 'face' ? '🙂' : '🧍'} ${esc(x.name || 'Ebene')}</span></label><input type="range" min="0.1" max="1" step="0.05" value="${x.op === undefined ? 1 : x.op}" style="flex:1 1 90px;"><button type="button" class="btn-secondary" style="width:auto; padding:4px 8px;">✕</button>`;
+        row.querySelector('input[type=checkbox]').onchange = e => { x.on = e.target.checked; reapply(); };
+        row.querySelector('input[type=range]').onchange = e => { x.op = +e.target.value; reapply(); };
+        row.querySelector('button').onclick = () => { AVKE.L.layers.splice(i, 1); reapply(); render(); };
+        body.appendChild(row);
+      });
+      if (AVKE.L.normal) {
+        const row = document.createElement('div'); row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-top:8px; font-size:12.5px;';
+        row.innerHTML = `<label style="display:flex; gap:6px; align-items:center; flex:1;"><input type="checkbox" ${AVKE.L.normal.on !== false ? 'checked' : ''}> Normal-Map: ${esc(AVKE.L.normal.name || '')}</label><input type="range" min="0.2" max="2" step="0.1" value="${AVKE.L.normal.k || 1}" style="flex:1;"><button type="button" class="btn-secondary" style="width:auto; padding:4px 8px;">✕</button>`;
+        row.querySelector('input[type=checkbox]').onchange = e => { AVKE.L.normal.on = e.target.checked; reapply(); };
+        row.querySelector('input[type=range]').onchange = e => { AVKE.L.normal.k = +e.target.value; reapply(); };
+        row.querySelector('button').onclick = () => { AVKE.L.normal = null; reapply(); render(); };
+        body.appendChild(row);
+      }
     } else if (AVKE.tab === 'cloth') {
       const list = avkClothList(AV.vrm), lic = AVK.lic;
       if (!list.size) body.appendChild(hint('Dieses Modell hat keine abnehmbare Kleidung (sie ist in die Haut gemalt).'));
@@ -31103,6 +31450,27 @@ function avkEdOpen() {
         if (lic) body.appendChild(hint('Die Lizenz dieses Modells erlaubt keine sexuelle Darstellung - es bleibt angezogen.'));
         if (AVK.intact === false) body.appendChild(hint('Achtung: Unter der Kleidung fehlen bei diesem Modell Teile des Körpers.'));
       }
+      // ---------- eigene Kleidung entwerfen ----------
+      body.appendChild(head('Eigene Kleidung entwerfen'));
+      body.appendChild(hint('Liegt eng am Körper und bewegt sich mit. Farbe, Muster und Durchsichtigkeit je Stück.'));
+      AVKE.L.outfit = AVKE.L.outfit || [];
+      const ofChanged = () => { AVKE.L.auto = false; AVKE.dirty = true; clearTimeout(AVKE.tmrO); AVKE.tmrO = setTimeout(() => { avkApplyLook(AV.vrm, AVKE.L, { outfit: true }); avkLookSet(AVKE.figId, AVKE.key, AVKE.L); }, 200); };
+      const presets = document.createElement('div'); presets.className = 'btn-row'; presets.style.cssText = 'margin-top:8px; flex-wrap:wrap; gap:6px;';
+      const PRE = { 'Spitze schwarz': [['bra', '#141414', 'lace'], ['panties', '#141414', 'lace'], ['stockings', '#121212', 'net']], 'Weiß unschuldig': [['bra', '#f4f1ee', 'lace'], ['panties', '#f4f1ee', 'lace'], ['stockings', '#f4f1ee', 'plain', 0.6]], 'Rot Satin': [['bodysuit', '#8a0f22', 'satin'], ['choker', '#8a0f22']], 'Bluse & Rock': [['top', '#f2f2f2', 'plain'], ['skirt', '#2a2f4a', 'plain'], ['stockings', '#151515', 'plain', 0.75]], 'Elfe': [['top', '#2f5a34', 'satin'], ['skirt', '#3a6b3f', 'satin', 1, 0.34], ['gloves', '#c9a54a', 'satin']], 'Nichts': [] };
+      Object.keys(PRE).forEach(k => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; padding:6px 10px; font-size:12.5px;'; b.textContent = k; b.onclick = () => { AVKE.L.outfit = PRE[k].map(([t, c, p, o, len]) => ({ t, c, p: p || 'plain', o: o === undefined ? 1 : o, len })); ofChanged(); render(); }; presets.appendChild(b); });
+      body.appendChild(presets);
+      AVK_GARMENTS.forEach(([t, label]) => {
+        const cur = AVKE.L.outfit.find(x => x.t === t);
+        const row = document.createElement('div'); row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-top:8px; font-size:13px; flex-wrap:wrap;';
+        row.innerHTML = `<label style="display:flex; gap:8px; align-items:center; min-width:120px;"><input type="checkbox" ${cur ? 'checked' : ''}> ${label}</label>
+          <input type="color" value="${cur ? cur.c : '#1a1a1a'}" style="width:38px; height:28px; padding:0; border:0; background:none;">
+          <select style="width:auto; padding:4px; font-size:12.5px;">${AVK_PATTERNS.map(([k, l]) => `<option value="${k}" ${cur && cur.p === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <input type="range" min="0.3" max="1" step="0.05" value="${cur && cur.o !== undefined ? cur.o : 1}" title="Deckkraft" style="flex:1; min-width:70px;">`;
+        const [cb, col, sel, op] = [row.querySelector('input[type=checkbox]'), row.querySelector('input[type=color]'), row.querySelector('select'), row.querySelector('input[type=range]')];
+        const upd = () => { AVKE.L.outfit = AVKE.L.outfit.filter(x => x.t !== t); if (cb.checked) AVKE.L.outfit.push({ t, c: col.value, p: sel.value, o: +op.value, len: t === 'skirt' ? (cur && cur.len) || 0.28 : undefined }); ofChanged(); };
+        cb.onchange = upd; col.oninput = () => { if (!cb.checked) cb.checked = true; upd(); }; sel.onchange = () => { if (!cb.checked) cb.checked = true; upd(); }; op.oninput = () => { if (cb.checked) upd(); };
+        body.appendChild(row);
+      });
     } else if (AVKE.tab === 'me') {
       const spec = avkMeSpec(), pp = spec.params, ps = avkPenisSpec();
       if (!AVK.me && !AVKE.meBusy) { AVKE.meBusy = true; avkEdMeRebuild().finally(() => { AVKE.meBusy = false; }); }
@@ -31137,6 +31505,11 @@ function avkEdOpen() {
   render();
   ed.querySelector('[data-ed=done]').onclick = () => avkEdClose(true);
   ed.querySelector('[data-ed=reset]').onclick = () => { const cl = AVKE.L.cloth; AVKE.L = Object.assign({}, LOOK_DEF, { auto: false, cloth: cl }); AVK.look = AVKE.L; changed({ bones: true, colors: true, soul: true }); render(); };
+  ed.querySelector('[data-ed=anime]').onclick = async () => {
+    const b = ed.querySelector('[data-ed=anime]'); b.disabled = true; b.textContent = '…';
+    try { const fig = AVKE.figId; await avkEdClose(true); await avkAnimeFromImage(fig, t => avHint(t)); } catch (e) { alert('Anime aus Bild ging nicht: ' + e.message); }
+    b.disabled = false; b.textContent = '🪄';
+  };
   ed.querySelector('[data-ed=phantom]').onclick = () => { const cl = AVKE.L.cloth; AVKE.L = Object.assign({}, LOOK_DEF, avkLookFromPhantom(AVKE.figId), { cloth: cl }); AVK.look = AVKE.L; changed({ bones: true, colors: true, soul: true }); render(); avHint('Aus ihrem Phantombild übernommen'); };
   ed.querySelector('[data-ed=random]').onclick = () => {
     const r = (a, b) => a + Math.random() * (b - a);
@@ -31245,6 +31618,29 @@ function avkEdPenRebuild() {
 }
 
 // ---------- Kniekissen (Titten im Knien vor dir): ihre Knie liegen weich statt in der Luft ----------
+// Kissen unter ihrem Po (sie liegt auf dem Rücken): hebt das Becken auf deine Höhe
+function avkHipPillow(kp) {
+  const T = AV.T, r = AVK.room;
+  if (!kp || AVKE.on || !r) { if (AVK.pillow) AVK.pillow.visible = false; if (AVK.pillow2) AVK.pillow2.visible = false; return; }
+  const bedY = r.bed.position.y, s = kp.s || 1, top = kp.hips.y - 0.085 * s, h = top - bedY;
+  if (h < 0.035) { if (AVK.pillow) AVK.pillow.visible = false; if (AVK.pillow2) AVK.pillow2.visible = false; return; }
+  if (!AVK.pillow) {
+    const g = new T.SphereGeometry(0.5, 40, 20); const P = g.attributes.position;
+    // weiches Kissen: flache Oberseite, runde Kanten, leichte Delle in der Mitte
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i); const sq = v => Math.sign(v) * Math.pow(Math.abs(v * 2), 0.35) / 2; P.setXYZ(i, sq(x), y > 0 ? 0.5 * Math.pow(y * 2, 0.5) - 0.06 * Math.exp(-(x * x + z * z) * 10) : sq(y), sq(z)); }
+    g.translate(0, 0.5, 0); g.computeVertexNormals();
+    const linen = r.bed.children.find(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+    const mat = linen && linen.material ? linen.material.clone() : new T.MeshStandardMaterial({ color: 0xe8ddd4, roughness: 0.9 });
+    if (mat.vertexColors) { mat.vertexColors = false; mat.needsUpdate = true; }
+    AVK.pillow = new T.Mesh(g, mat); AVK.pillow.castShadow = AVK.pillow.receiveShadow = true; AV.scene.add(AVK.pillow);
+  }
+  const c = kp.hips.clone(); const P0 = AVK.pillow, ry = kp.leftW ? -Math.atan2(kp.leftW.z, kp.leftW.x) : 0;
+  P0.visible = true; P0.position.set(c.x, bedY - 0.01, c.z); P0.scale.set(0.5 * s, h + 0.01, 0.36 * s); P0.rotation.y = ry;
+  // flaches Kissen unter Schultern und Kopf
+  if (!AVK.pillow2) { AVK.pillow2 = new T.Mesh(P0.geometry, P0.material); AVK.pillow2.castShadow = AVK.pillow2.receiveShadow = true; AV.scene.add(AVK.pillow2); }
+  const nk = kp.head.clone().lerp(kp.chestP, 0.28), h2 = Math.max(0.03, Math.min(kp.head.y - 0.075 * s, kp.chestP.y - 0.07 * s) - bedY);
+  AVK.pillow2.visible = true; AVK.pillow2.position.set(nk.x, bedY - 0.01, nk.z); AVK.pillow2.scale.set(0.62 * s, h2 + 0.01, 0.48 * s); AVK.pillow2.rotation.y = ry;
+}
 function avkKneelPad(pad) {
   const T = AV.T;
   if (!pad || AVKE.on || !AVK.room) { if (AVK.pad) AVK.pad.visible = false; return; }
@@ -31403,7 +31799,8 @@ function avkMoodApply() {
     await oSheet.apply(this, arguments);
     const body = document.querySelector('#av3dSheet .sheet-body'); if (!body || !AVK.on) return;
     const cur = avkMood(), box = document.createElement('div');
-    box.innerHTML = `<h3 style="font-size:15px; margin:0 0 6px;">Licht & Stimmung</h3>` + Object.entries(AVK_MOODS).map(([k, m]) => `<label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:4px;"><input type="radio" name="avkMood" value="${k}" ${cur === k ? 'checked' : ''}> ${m.name}</label>`).join('') +
+    box.innerHTML = `<h3 style="font-size:15px; margin:0 0 6px;">Anime-Figur</h3><div class="btn-row"><button type="button" class="btn-secondary" id="avkAnimeBtn">🪄 Anime aus ihrem Bild ableiten</button></div><label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:8px;"><input type="checkbox" id="avkAutoAnimeOn" ${localStorage.getItem('companion_av3dAutoAnime') !== 'false' ? 'checked' : ''}> Bei neuem Porträt automatisch</label><p class="hint" style="margin-top:4px;">Wählt unter deinen VRM-Modellen die passendste Frisur, übernimmt Haar-, Augen- und Hautfarbe, Figur, Elfenohren und die Kleidung aus dem Bild. Danach mit ✏️ fein einstellen.</p><hr style="border:0; border-top:1px solid var(--line); margin:14px 0;">
+      <h3 style="font-size:15px; margin:0 0 6px;">Licht & Stimmung</h3>` + Object.entries(AVK_MOODS).map(([k, m]) => `<label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:4px;"><input type="radio" name="avkMood" value="${k}" ${cur === k ? 'checked' : ''}> ${m.name}</label>`).join('') +
       `<label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:10px;"><input type="checkbox" id="avkDof" ${localStorage.getItem('companion_av3dDof') === 'true' ? 'checked' : ''}> Tiefenunschärfe in der Nahansicht (braucht etwas mehr Leistung)</label>
        <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkContactOn" ${localStorage.getItem('companion_av3dContact') !== 'false' ? 'checked' : ''}> Deine Hände liegen genau auf ihrer Haut (braucht etwas Rechenleistung)</label>
        <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkCapOn" ${localStorage.getItem('companion_av3dCap') === 'true' ? 'checked' : ''}> Gesprochenen Text im Bild einblenden</label>
@@ -31412,6 +31809,8 @@ function avkMoodApply() {
     body.insertBefore(box, body.firstChild);
     box.querySelectorAll('input[name=avkMood]').forEach(i => i.onchange = () => { safeSet('companion_av3dMood', i.value); avkMoodApply(); });
     box.querySelector('#avkDof').onchange = e => { safeSet('companion_av3dDof', e.target.checked ? 'true' : 'false'); };
+    box.querySelector('#avkAnimeBtn').onclick = async () => { const bt = box.querySelector('#avkAnimeBtn'); bt.disabled = true; try { const fig = AV.figId || AVK.figId; closeSheet('av3dSheet'); const r = await avkAnimeFromImage(fig, t => avHint(t)); avHint('Modell: ' + r.model); } catch (e) { alert('Anime aus Bild ging nicht: ' + e.message); } bt.disabled = false; };
+    box.querySelector('#avkAutoAnimeOn').onchange = e => safeSet('companion_av3dAutoAnime', e.target.checked ? 'true' : 'false');
     box.querySelector('#avkContactOn').onchange = e => { safeSet('companion_av3dContact', e.target.checked ? 'true' : 'false'); };
     box.querySelector('#avkCapOn').onchange = e => { safeSet('companion_av3dCap', e.target.checked ? 'true' : 'false'); try { avCaption(); } catch (x) {} };
     box.querySelector('#avkBlendOn').onchange = e => { safeSet('companion_av3dBlend', e.target.checked ? 'true' : 'false'); };
@@ -31469,19 +31868,30 @@ function avkDofResize() { const D = AVK.dof; if (!D || !D.comp) return; const r 
 function avkSurfInit() {
   const vrm = AV.vrm; if (!vrm) return null;
   if (AVK.surf && AVK.surf.vrm === vrm) return AVK.surf;
-  const T = AV.T, S = { vrm, list: [], frame: -1, pos: null, nrm: null, stamp: null };
   const meshes = [];
-  vrm.scene.traverse(o => { if (!o.isSkinnedMesh || !o.geometry || !o.geometry.attributes.position) return; const nm = (([].concat(o.material)[0] || {}).name) || ''; if (/EYE|Iris|Teeth|Tongue|Mouth|Lash|Brow|Highlight|FaceEye|HAIR/i.test(nm)) return; meshes.push(o); });
+  vrm.scene.traverse(o => { if (!o.isSkinnedMesh || !o.geometry || !o.geometry.attributes.position) return; const nm = (([].concat(o.material)[0] || {}).name) || ''; if (/EYE|Iris|Teeth|Tongue|Mouth|Lash|Brow|Highlight|FaceEye|HAIR|avkGarment/i.test(nm)) return; meshes.push(o); });
+  AVK.surf = avkSurfBuild(meshes); AVK.surf.vrm = vrm; return AVK.surf;
+}
+// Oberfläche aus beliebigen gehäuteten Netzen (sie oder dein Körper)
+function avkSurfBuild(meshes) {
+  const T = AV.T, S = { list: [], frame: -1, pos: null, nrm: null, stamp: null };
   const total = meshes.reduce((s, o) => s + o.geometry.attributes.position.count, 0), stride = Math.max(1, Math.ceil(total / 9000));
   meshes.forEach(o => {
     const g = o.geometry, P = g.attributes.position, N = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight; if (!si || !sw) return;
     for (let i = 0; i < P.count; i += stride) { let bi = 0, bw = -1; const ix = [], wt = []; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > 0.001) { ix.push(si.getComponent(i, k)); wt.push(w); } if (w > bw) { bw = w; bi = si.getComponent(i, k); } } S.list.push({ o, i, bone: o.skeleton.bones[bi], hasN: !!N, ix, wt, lp: [P.getX(i), P.getY(i), P.getZ(i)], ln: N ? [N.getX(i), N.getY(i), N.getZ(i)] : null }); }
   });
   S.pos = new Float32Array(S.list.length * 3); S.nrm = new Float32Array(S.list.length * 3); S.stamp = new Int32Array(S.list.length).fill(-1);
-  AVK.surf = S; AVK.surfFrame = 0; return S;
+  return S;
 }
-function avkSurfQuery(p) {
-  const S = avkSurfInit(); if (!S || !S.list.length) return null;
+function avkSurfQuery(p) { return avkSurfQ(avkSurfInit(), p); }
+// dein Körper als Oberfläche (für ihre Hände auf dir)
+function avkSurfQueryHim(p) {
+  const me = AVK.me; if (!me || !me.B || !me.B.mesh) return null;
+  if (!AVK.surfHim || AVK.surfHim.B !== me.B) { AVK.surfHim = avkSurfBuild([me.B.mesh]); AVK.surfHim.B = me.B; }
+  return avkSurfQ(AVK.surfHim, p);
+}
+function avkSurfQ(S, p) {
+  if (!S || !S.list.length) return null;
   const T = AV.T, fr = AVK.surfTick || 0;
   if (!S.groups) { S.groups = new Map(); S.list.forEach((s, j) => { let g = S.groups.get(s.bone); if (!g) S.groups.set(s.bone, g = { bone: s.bone, idx: [], bp: new T.Vector3(), st: -1, r2: 0 }); g.idx.push(j); }); S.G = [...S.groups.values()]; }
   const v = S.v || (S.v = new T.Vector3()), v2 = S.v2 || (S.v2 = new T.Vector3()), nv = S.nv || (S.nv = new T.Vector3());
@@ -31532,6 +31942,450 @@ function avkSurfQuery(p) {
 {
   const oC = avCaption;
   avCaption = function () { if (localStorage.getItem('companion_av3dCap') !== 'true') { const c = document.getElementById('av3dCap'); if (c) { c.style.opacity = '0'; c.style.display = 'none'; } return; } const c = document.getElementById('av3dCap'); if (c) c.style.display = ''; return oC.apply(this, arguments); };
+}
+
+// =================== Kleidung entwerfen (VRM): hautenge Stücke aus der Körperhaut + Rock ===================
+// Jedes Stück ist eine dünne Schicht über einem Hautbereich (gleiches Skelett, bewegt sich exakt mit).
+const AVK_GARMENTS = [
+  ['bra', 'BH'], ['top', 'Top / Bandeau'], ['bodysuit', 'Body'], ['panties', 'Slip'], ['shorts', 'Hotpants'],
+  ['skirt', 'Rock'], ['stockings', 'Strümpfe'], ['gloves', 'Handschuhe'], ['choker', 'Halsband'],
+];
+const AVK_PATTERNS = [['plain', 'Uni'], ['lace', 'Spitze'], ['net', 'Netz'], ['stripes', 'Streifen'], ['satin', 'Satin']];
+function avkPatternTex(kind) {
+  AVK.patTex = AVK.patTex || {}; if (AVK.patTex[kind]) return AVK.patTex[kind];
+  const T = AV.T, c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.clearRect(0, 0, 128, 128); g.fillStyle = '#fff'; g.strokeStyle = '#fff';
+  if (kind === 'net') { g.lineWidth = 3.2; for (let i = -128; i < 256; i += 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 128, 128); g.stroke(); g.beginPath(); g.moveTo(i + 128, 0); g.lineTo(i, 128); g.stroke(); } }
+  else if (kind === 'lace') {
+    g.fillRect(0, 0, 128, 128); g.globalCompositeOperation = 'destination-out';
+    for (let y = 0; y <= 128; y += 32) for (let x = ((y / 32) % 2) * 16; x <= 128; x += 32) { for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; g.beginPath(); g.ellipse(x + Math.cos(a) * 8, y + Math.sin(a) * 8, 5, 2.6, a, 0, Math.PI * 2); g.fill(); } g.beginPath(); g.arc(x + 16, y + 16, 3, 0, Math.PI * 2); g.fill(); }
+    g.globalCompositeOperation = 'source-over';
+  } else g.fillRect(0, 0, 128, 128);
+  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.userData.rep = kind === 'net' ? 48 : 75;
+  AVK.patTex[kind] = t; return t;
+}
+function avkStripeTex(hex) {
+  const T = AV.T, c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const col = new T.Color(hex), lt = col.clone().lerp(new T.Color('#ffffff'), 0.75);
+  for (let i = 0; i < 8; i++) { g.fillStyle = (i % 2 ? col : lt).getStyle(); g.fillRect(0, i * 8, 64, 8); }
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.userData.repV = 40; return t;
+}
+// Ruhehaltung vermessen: Weltpunkte aller Körper-Vertices + Orientierung
+function avkBodyRest(vrm) {
+  const U = vrm.scene.userData; if (U.bodyRest) return U.bodyRest;
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), N = n => vrm.humanoid.getNormalizedBoneNode(n);
+  const pose = vrm.humanoid.getNormalizedPose ? vrm.humanoid.getNormalizedPose() : null;
+  vrm.humanoid.resetNormalizedPose(); vrm.update(0); vrm.scene.updateMatrixWorld(true);
+  const w = n => N(n) ? N(n).getWorldPosition(V()) : null;
+  const L = { hips: w('hips'), spine: w('spine'), chest: w('chest'), upper: w('upperChest') || w('chest'), neck: w('neck'), head: w('head'),
+    hipL: w('leftUpperLeg'), hipR: w('rightUpperLeg'), kneeL: w('leftLowerLeg'), footL: w('leftFoot'), shL: w('leftUpperArm'), shR: w('rightUpperArm'), elL: w('leftLowerArm'), handL: w('leftHand') };
+  const eL = w('leftEye'), eR = w('rightEye'); let fwd = eL && eR ? eL.clone().add(eR).multiplyScalar(0.5).sub(L.head).setY(0) : V(0, 0, 1); if (fwd.lengthSq() < 1e-8) fwd = V(0, 0, 1); fwd.normalize();
+  const side = V(0, 1, 0).cross(fwd).normalize(), s = (L.head.y - L.hips.y) / 0.62;
+  const meshes = [];
+  vrm.scene.traverse(o => {
+    if (!o.isSkinnedMesh || !o.geometry.attributes.skinIndex) return;
+    const mats = [].concat(o.material), m0 = mats[0] || {};
+    if (!/SKIN|BODY|Body/i.test(m0.name || '') || /FACE|Face_/i.test(m0.name || '')) return;
+    const P = o.geometry.attributes.position, wp = new Float32Array(P.count * 3), v = V();
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); o.applyBoneTransform(i, v); v.applyMatrix4(o.matrixWorld); wp[i * 3] = v.x; wp[i * 3 + 1] = v.y; wp[i * 3 + 2] = v.z; }
+    meshes.push({ o, wp });
+  });
+  if (pose) vrm.humanoid.setNormalizedPose(pose); vrm.update(0);
+  return (U.bodyRest = { L, fwd, side, s, meshes });
+}
+// Bereich je Kleidungsstück als stetiges Feld (> 0 = bedeckt): Kanten werden daran sauber abgeschnitten
+function avkGarmentField(kind, R) {
+  const { L, s } = R, H = L.hips.y, ub = L.chest.y - 0.035 * s, bt = L.upper.y + 0.075 * s, crotch = Math.min(L.hipL.y, L.hipR.y) - 0.07 * s;
+  const shoulderY = L.shL.y, hw = Math.abs(L.hipL.clone().sub(L.hipR).dot(R.side)) * 0.5 + 0.06 * s;
+  const legCut = x => crotch + 0.11 * s * Math.min(1, Math.pow(Math.abs(x) / hw, 2));
+  const isArm = b => /arm|hand|shoulder|thumb|index|middle|ring|little/i.test(b), isLeg = b => /upperleg|lowerleg|foot|toes/i.test(b);
+  const shW = Math.abs(L.shL.clone().sub(L.shR).dot(R.side)) * 0.5;
+  const armLen = L.shL.distanceTo(L.elL);
+  const cupTop = x => bt - 0.012 * s - 0.02 * s * Math.max(0, 1 - Math.abs(x) / (0.035 * s));   // Herzausschnitt in der Mitte
+  switch (kind) {
+    case 'bra': return (x, y, f, b) => { if (isArm(b)) return -1; const band = Math.min(y - ub, ub + 0.028 * s - y); const cups = Math.min(y - ub, cupTop(x) - y, f + 0.004 * s); const strap = Math.min(0.0065 * s - Math.abs(Math.abs(x) - 0.052 * s), y - (cupTop(x) - 0.01 * s), shoulderY + 0.035 * s - y); return Math.max(band, cups, strap); };
+    case 'top': return (x, y, f, b) => isArm(b) ? -1 : Math.min(y - (ub - 0.025 * s), bt + 0.004 * s - y);
+    case 'bodysuit': return (x, y, f, b) => { if (isArm(b)) return -1; const neck = bt + 0.012 * s - 0.02 * s * Math.max(0, 1 - Math.abs(x) / (0.05 * s)) * (f > 0 ? 1 : 0); return Math.min(neck - y, y - legCut(x)); };
+    case 'panties': return (x, y, f, b) => isArm(b) ? -1 : Math.min(H + 0.025 * s - y, y - legCut(x));
+    case 'shorts': return (x, y, f, b) => isArm(b) ? -1 : Math.min(H + 0.05 * s - y, y - (crotch - 0.085 * s));
+    case 'stockings': return (x, y, f, b) => isLeg(b) ? (L.kneeL.y + (L.hipL.y - L.kneeL.y) * 0.6) - y : -1;
+    case 'gloves': return (x, y, f, b) => { if (!isArm(b) || /shoulder/i.test(b)) return -1; return Math.abs(x) - (shW + armLen * 0.75); };
+    case 'choker': return (x, y, f, b) => /neck|head|upperchest/i.test(b) ? Math.min(y - (L.neck.y + 0.002 * s), L.neck.y + 0.03 * s - y) : -1;
+  }
+  return () => -1;
+}
+function avkOutfitApply(vrm, outfit) {
+  const T = AV.T, U = vrm.scene.userData;
+  (U.outfitMeshes || []).forEach(m => { if (m.parent) m.parent.remove(m); m.geometry.dispose(); });
+  U.outfitMeshes = [];
+  if (!outfit || !outfit.length) return;
+  const R = avkBodyRest(vrm), V = (x, y, z) => new T.Vector3(x, y, z);
+  outfit.forEach((g, gi) => {
+    if (!g || !g.t || g.on === false) return;
+    if (g.t === 'skirt') { const m = avkSkirt(vrm, R, g); if (m) U.outfitMeshes.push(m); return; }
+    const field = avkGarmentField(g.t, R), off = (g.t === 'stockings' || g.t === 'gloves' ? 0.0026 : g.t === 'bra' || g.t === 'panties' ? 0.0028 : 0.0034) * R.s + gi * 0.0004;
+    R.meshes.forEach(({ o, wp }) => {
+      const geo = o.geometry, P = geo.attributes.position, Nn = geo.attributes.normal, idx = geo.index ? geo.index.array : null; if (!idx || !Nn) return;
+      const si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, bones = o.skeleton.bones, UVa = geo.attributes.uv;
+      const val = new Float32Array(P.count), d = V();
+      for (let i = 0; i < P.count; i++) {
+        let bw = 0, bi = 0; for (let k = 0; k < 4; k++) { const ww = sw.getComponent(i, k); if (ww > bw) { bw = ww; bi = si.getComponent(i, k); } }
+        d.set(wp[i * 3], wp[i * 3 + 1], wp[i * 3 + 2]).sub(R.L.hips);
+        val[i] = field(d.dot(R.side), wp[i * 3 + 1], d.dot(R.fwd), avkHumanName(vrm, bones[bi]) || '');
+      }
+      const pos = [], nor = [], uv = [], ski = [], skw = [], ind = [], cache = new Map(), wpos = [];
+      const base = i => { const nx = Nn.getX(i), ny = Nn.getY(i), nz = Nn.getZ(i); const sk = {}; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > 0) sk[si.getComponent(i, k)] = (sk[si.getComponent(i, k)] || 0) + w; } return { p: [P.getX(i), P.getY(i), P.getZ(i)], n: [nx, ny, nz], uv: UVa ? [UVa.getX(i), UVa.getY(i)] : [0, 0], sk, w: [wp[i * 3], wp[i * 3 + 1], wp[i * 3 + 2]] }; };
+      const emit = vtx => { const k = pos.length / 3; const n = vtx.n, l = Math.hypot(n[0], n[1], n[2]) || 1; pos.push(vtx.p[0] + n[0] / l * off, vtx.p[1] + n[1] / l * off, vtx.p[2] + n[2] / l * off); nor.push(n[0] / l, n[1] / l, n[2] / l); uv.push(vtx.uv[0], vtx.uv[1]); wpos.push(vtx.w[0], vtx.w[1], vtx.w[2]); const e = Object.entries(vtx.sk).sort((x, y) => y[1] - x[1]).slice(0, 4); const sum = e.reduce((a, [, w]) => a + w, 0) || 1; for (let k = 0; k < 4; k++) { ski.push(e[k] ? +e[k][0] : 0); skw.push(e[k] ? e[k][1] / sum : 0); } return k; };
+      const vOf = i => { if (cache.has(i)) return cache.get(i); const k = emit(base(i)); cache.set(i, k); return k; };
+      const mix = (i, j) => { const t = val[i] / (val[i] - val[j]); const A = base(i), Bv = base(j); const sk = {}; Object.entries(A.sk).forEach(([b, w]) => { sk[b] = (sk[b] || 0) + w * (1 - t); }); Object.entries(Bv.sk).forEach(([b, w]) => { sk[b] = (sk[b] || 0) + w * t; }); return emit({ p: A.p.map((x, q) => x + (Bv.p[q] - x) * t), n: A.n.map((x, q) => x + (Bv.n[q] - x) * t), uv: A.uv.map((x, q) => x + (Bv.uv[q] - x) * t), sk, w: A.w.map((x, q) => x + (Bv.w[q] - x) * t) }); };
+      const edgeKey = (i, j) => i < j ? i + '_' + j : j + '_' + i, ecache = new Map();
+      const cut = (i, j) => { const k = edgeKey(i, j); if (ecache.has(k)) return ecache.get(k); const r = mix(i, j); ecache.set(k, r); return r; };
+      for (let t = 0; t < idx.length; t += 3) {
+        const tri = [idx[t], idx[t + 1], idx[t + 2]], ins = tri.map(i => val[i] > 0), n = ins.filter(Boolean).length;
+        if (n === 0) continue;
+        if (n === 3) { ind.push(vOf(tri[0]), vOf(tri[1]), vOf(tri[2])); continue; }
+        // Dreieck an der Kante abschneiden (Reihenfolge bleibt erhalten)
+        const poly = [];
+        for (let q = 0; q < 3; q++) { const a = tri[q], b = tri[(q + 1) % 3]; if (val[a] > 0) poly.push(vOf(a)); if ((val[a] > 0) !== (val[b] > 0)) poly.push(cut(a, b)); }
+        for (let q = 1; q + 1 < poly.length; q++) ind.push(poly[0], poly[q], poly[q + 1]);
+      }
+      if (!ind.length) return;
+      const g2 = new T.BufferGeometry();
+      g2.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g2.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g2.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+      g2.setAttribute('skinIndex', new T.Uint16BufferAttribute(ski, 4)); g2.setAttribute('skinWeight', new T.Float32BufferAttribute(skw, 4)); g2.setIndex(ind);
+      const gm = avkGarmentMat(o, g);
+      // Muster in echter Größe: UVs um Bein/Arm bzw. den Rumpf herum abgewickelt (gleich große Maschen überall)
+      if (gm.map && (gm.map.userData.rep || gm.map.userData.repV)) avkGarmentUV(g2, wpos, g, R);
+      const mesh = new T.SkinnedMesh(g2, gm); mesh.name = 'avkGen' + gi; mesh.userData.garment = g.t; mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true;
+      o.parent.add(mesh); mesh.bind(o.skeleton, o.bindMatrix); mesh.position.copy(o.position); mesh.quaternion.copy(o.quaternion); mesh.scale.copy(o.scale);
+      U.outfitMeshes.push(mesh);
+    });
+  });
+}
+function avkHumanName(vrm, bone) {
+  const U = vrm.scene.userData;
+  if (!U.humanNames) { U.humanNames = new Map(); try { const hb = vrm.humanoid.humanBones || vrm.humanoid.rawHumanBones; Object.entries(hb).forEach(([k, v]) => { if (v && v.node) U.humanNames.set(v.node, k); }); } catch (e) {} }
+  // nicht-menschliche Knochen (z. B. Brust-Federn): Name des nächsten menschlichen Elternknochens
+  let b = bone; while (b && !U.humanNames.has(b)) b = b.parent;
+  return b ? U.humanNames.get(b) : '';
+}
+function avkGarmentMat(src, g) {
+  const T = AV.T, base = [].concat(src.material)[0];
+  let m;
+  try { m = base.clone(); } catch (e) { m = new T.MeshStandardMaterial(); }
+  m.userData = {};   // Merker der Haut (Öl, Umfärben) nicht mitnehmen - sonst rechnet der Glanz mit kaputten Werten
+  m.name = 'avkGarment';
+  const col = new T.Color(g.c || '#202020');
+  m.map = g.p === 'stripes' ? avkStripeTex(g.c || '#202020') : null;
+  if (m.isMToonMaterial) {
+    m.color.copy(g.p === 'stripes' ? new T.Color('#ffffff') : col); if (m.shadeColorFactor) m.shadeColorFactor.copy(col.clone().multiplyScalar(0.55));
+    if ('shadeMultiplyTexture' in m) m.shadeMultiplyTexture = null; if ('matcapTexture' in m) { m.matcapTexture = null; }
+    if (m.matcapFactor) m.matcapFactor.setRGB(g.p === 'satin' ? 0.45 : 0, g.p === 'satin' ? 0.45 : 0, g.p === 'satin' ? 0.45 : 0);
+    if (g.p === 'satin' && AVK.oilCap) m.matcapTexture = avkOilMatcap();
+    if ('rimMultiplyTexture' in m) m.rimMultiplyTexture = null; if ('emissiveMap' in m) m.emissiveMap = null; if (m.emissive) m.emissive.setRGB(0, 0, 0);
+  } else { m.color = col; m.roughness = g.p === 'satin' ? 0.25 : 0.6; }
+  const pat = g.p === 'lace' || g.p === 'net' ? avkPatternTex(g.p) : null;
+  if (pat) { m.map = pat; m.alphaTest = 0.5; m.side = T.DoubleSide; } else m.alphaTest = 0;
+  const op = g.o === undefined ? 1 : g.o;
+  m.transparent = op < 0.99; m.opacity = op; m.depthWrite = op >= 0.99;
+  if (!pat) m.side = T.FrontSide; m.needsUpdate = true;
+  return m;
+}
+// Rock: Kegel von der Taille, an Hüfte und Oberschenkeln aufgehängt (schwingt mit den Beinen)
+function avkSkirt(vrm, R, g) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), { L, s, fwd, side } = R;
+  const body = R.meshes[0]; if (!body) return null;
+  const o = body.o, bones = o.skeleton.bones;
+  const raw = n => vrm.humanoid.getRawBoneNode(n), bi = n => bones.indexOf(raw(n));
+  const iH = bi('hips'), iL = bi('leftUpperLeg'), iR = bi('rightUpperLeg'); if (iH < 0) return null;
+  const top = L.hips.y + 0.06 * s, len = (g.len || 0.28) * s;
+  // Hüftumfang in Rockhöhe messen
+  let rMax = 0.11 * s; body.wp && (() => { let m = 0; for (let i = 0; i < body.wp.length; i += 3) { const y = body.wp[i + 1]; if (y < top - 0.12 * s || y > top) continue; const d = V(body.wp[i] - L.hips.x, 0, body.wp[i + 2] - L.hips.z).length(); if (d < 0.25 * s) m = Math.max(m, d); } if (m > 0) rMax = m; })();
+  const NA = 40, NY = 10, pos = [], ski = [], skw = [], ind = [], uv = [];
+  const c0 = V(L.hips.x, 0, L.hips.z);
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NA; i++) {
+    const u = i / NA, v = j / NY, a = u * Math.PI * 2;
+    const r = (rMax + 0.008 * s) * (1 + v * (g.flare === undefined ? 0.24 : g.flare)) + 0.011 * s * Math.sin(a * 11) * Math.pow(v, 1.3);
+    const dir = side.clone().multiplyScalar(Math.cos(a)).addScaledVector(fwd, Math.sin(a));
+    const p = c0.clone().addScaledVector(dir, r); p.y = top - len * v;
+    pos.push(p.x, p.y, p.z); uv.push(u * 4, v);
+    // Gewichte: oben Hüfte, nach unten zunehmend das Bein auf dieser Seite (vorn/seitlich), hinten bleibt Hüfte
+    const sideAmt = Math.cos(a), legW = Math.min(0.92, v * 1.15) * (0.4 + 0.6 * Math.max(0, Math.sin(a) * 0.5 + 0.5));
+    const leg = sideAmt >= 0 ? iL : iR;
+    ski.push(iH, leg >= 0 ? leg : iH, 0, 0); skw.push(1 - (leg >= 0 ? legW : 0), leg >= 0 ? legW : 0, 0, 0);
+  }
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NA; i++) { const a = j * (NA + 1) + i, b = a + NA + 1; ind.push(a, b, a + 1, a + 1, b, b + 1); }
+  // in den Bind-Raum des Körpers: je Vertex die Skinning-Matrix (Ruhehaltung) umkehren
+  const pose = vrm.humanoid.getNormalizedPose ? vrm.humanoid.getNormalizedPose() : null;
+  vrm.humanoid.resetNormalizedPose(); vrm.update(0); vrm.scene.updateMatrixWorld(true);
+  const BM = k => new T.Matrix4().multiplyMatrices(o.matrixWorld, o.bindMatrixInverse).multiply(bones[k].matrixWorld).multiply(o.skeleton.boneInverses[k]).multiply(o.bindMatrix);
+  const cache = {};
+  for (let k = 0, vi = 0; k < pos.length; k += 3, vi++) {
+    const M = new T.Matrix4().set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    for (let q = 0; q < 2; q++) { const w = skw[vi * 4 + q], bk = ski[vi * 4 + q]; if (!w) continue; const Mk = cache[bk] || (cache[bk] = BM(bk)); for (let e = 0; e < 16; e++) M.elements[e] += Mk.elements[e] * w; }
+    const p = V(pos[k], pos[k + 1], pos[k + 2]).applyMatrix4(M.invert()); pos[k] = p.x; pos[k + 1] = p.y; pos[k + 2] = p.z;
+  }
+  if (pose) vrm.humanoid.setNormalizedPose(pose); vrm.update(0);
+  const g2 = new T.BufferGeometry(); g2.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g2.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  g2.setAttribute('skinIndex', new T.Uint16BufferAttribute(ski, 4)); g2.setAttribute('skinWeight', new T.Float32BufferAttribute(skw, 4)); g2.setIndex(ind); g2.computeVertexNormals();
+  const mat = avkGarmentMat(o, g); mat.side = T.DoubleSide;
+  const mesh = new T.SkinnedMesh(g2, mat); mesh.name = 'avkGenR'; mesh.userData.garment = 'skirt'; mesh.frustumCulled = false; mesh.castShadow = true;
+  o.parent.add(mesh); mesh.bind(o.skeleton, o.bindMatrix); mesh.position.copy(o.position); mesh.quaternion.copy(o.quaternion); mesh.scale.copy(o.scale);
+  return mesh;
+}
+
+// =================== Anime aus dem Originalbild ableiten ===================
+// Das Bild der Figur und die Vorschaubilder deiner VRM-Modelle gehen an das Bild-Modell: es wählt das Modell mit
+// der passendsten Frisur und liest Haar-, Augen-, Hautfarbe, Figur, Elfenohren und die Kleidung auf dem Bild aus.
+function avkHexRgb(hex) { const n = parseInt(String(hex).replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+function avkHexToHsl(hex) { const [r, g, b] = avkHexRgb(hex); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; } return { h, s, l }; }
+async function avkAnimeFromImage(figId, onMsg, opts) {
+  opts = opts || {};
+  const say = t => { try { onMsg && onMsg(t); } catch (e) {} };
+  const f = getFigure(figId), v = f && latestVersion(f); if (!v) throw new Error('Figur nicht gefunden');
+  const url = v.imageKey ? await loadFullImage(v.imageKey).catch(() => null) : (v.image || null);
+  if (!url) throw new Error('Diese Figur hat noch kein Bild');
+  const recs = [];
+  for (const m of await avList()) { if (m.key === '__kit') continue; const r = await avGet(m.key).catch(() => null); if (r && r.blob) recs.push({ key: m.key, name: r.name || m.name || 'Modell', thumb: r.thumb || '', sexual: (r.meta || {}).sexual }); }
+  if (!recs.length) throw new Error('Lade zuerst mindestens ein VRM-Modell (⚙ → 3D-Modelle)');
+  // Modelle ohne Vorschaubild: eingebautes Bild aus der VRM-Datei holen
+  for (const r of recs) { if (r.thumb) continue; try { const rec = await avGet(r.key); const t = await avThumbFromBuf(await rec.blob.arrayBuffer()); if (t) { r.thumb = t; await avSetRec(r.key, { thumb: t, thumbTried: true }); } } catch (e) {} }
+  const cands = recs.filter(r => r.thumb).slice(0, 10);
+  say('Ich schaue mir ihr Bild an …');
+  const imgs = [await asDataUrl(url, 768)];
+  for (const c of cands) imgs.push(await asDataUrl(c.thumb, 256));
+  const G = AVK_GARMENTS.map(g => g[0]).join('|'), Pt = AVK_PATTERNS.map(p => p[0]).join('|');
+  const sys = `Du bekommst ${imgs.length} Bilder. Bild 1 zeigt eine erwachsene Person, nach der eine Anime-Figur (VRM) gestaltet wird.${cands.length ? ` Bilder 2 bis ${imgs.length} sind Vorschaubilder vorhandener Anime-Modelle (Nr. 1 bis ${cands.length}): ${cands.map((c, i) => `Nr. ${i + 1} ${c.sexual === false ? '(bleibt immer angezogen)' : '(frei)'}`).join(', ')}. Bei ähnlicher Frisur bevorzuge ein „(frei)"-Modell.` : ''}
+Lies aus Bild 1 ab und antworte NUR als JSON-Objekt:
+{"hairColor":"#rrggbb","eyeColor":"#rrggbb","skin":"pale|fair|olive|tan|brown|dark","elf":true|false,"bust":"small|medium|large|very large","body":"slim|athletic|curvy|voluptuous","hips":"narrow|medium|wide","outfit":[{"t":"${G}","c":"#rrggbb","p":"${Pt}","o":0.3-1}],${cands.length ? '"model":Nummer des Modells mit der ähnlichsten Frisur (Länge, Form, Pony, Zöpfe),' : ''}"reason":"kurz"}
+Regeln: Farben als Hex so, wie sie wirken (Haare: Mittelton, nicht Glanzlichter). "elf": true nur bei spitzen Ohren. "outfit": nur Kleidungsstücke, die im Bild zu sehen sind, sonst []; ein Kleid = "bodysuit" + "skirt"; Unterwäsche aus Spitze = "lace", Netzstrümpfe = "net", glänzend = "satin"; "o" < 1 nur bei durchsichtigem Stoff.`;
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier die Bilder.', images: imgs }], 0.2, taskBudget('vision', 700), { task: 'vision' });
+  const j = parseJsonLoose(raw) || {};
+  if (!j.hairColor && !j.eyeColor) throw new Error('Das Bild-Modell hat nicht geantwortet (Einstellungen → Modelle je Aufgabe → „Bilder verstehen")');
+  // Modell wählen
+  let pick = cands[(+j.model || 1) - 1] || cands[0] || recs[0];
+  const curKey = avMap()[figId]; if (!j.model && curKey) pick = recs.find(r => r.key === curKey) || pick;
+  // Aussehen
+  const L = Object.assign({}, LOOK_DEF, { auto: false, cloth: {} });
+  if (/^#[0-9a-f]{6}$/i.test(j.hairColor || '')) {
+    // nächstgelegene benannte Haarfarbe -> bewährte Einstellung (direkte Werte färbten zu kräftig)
+    const want = avkHexRgb(j.hairColor); let best = null, bd = 1e9;
+    Object.entries(AVK_HAIR).forEach(([name, hex]) => { const c = avkHexRgb(hex), d = (c[0] - want[0]) ** 2 + (c[1] - want[1]) ** 2 + (c[2] - want[2]) ** 2; if (d < bd) { bd = d; best = name; } });
+    const tmp = avkLookFromPhantomPh({ hairColor: best });
+    if (tmp.hairAmt) Object.assign(L, { hairHue: tmp.hairHue, hairSat: tmp.hairSat, hairLight: tmp.hairLight, hairAmt: tmp.hairAmt });
+  }
+  if (/^#[0-9a-f]{6}$/i.test(j.eyeColor || '')) { const h = avkHexToHsl(j.eyeColor); Object.assign(L, { eyeHue: Math.round(h.h * 360), eyeSat: Math.max(0.2, Math.min(0.85, h.s)), eyeAmt: 0.85 }); }
+  const sk = { pale: [0.02, -0.1], olive: [0.42, 0.2], tan: [0.58, 0.2], brown: [0.8, 0.1], dark: [0.97, 0] }[j.skin];
+  if (sk) Object.assign(L, { tone: sk[0], skinWarm: sk[1], toneAmt: 0.9 });
+  L.bust = { small: 0.85, medium: 1, large: 1.28, 'very large': 1.45 }[j.bust] || 1;
+  if (j.body === 'slim') Object.assign(L, { waist: 0.92, thigh: 0.93, hips: 0.96, arm: 0.94 });
+  else if (j.body === 'athletic') Object.assign(L, { waist: 0.95, shoulder: 1.04, thigh: 1.03 });
+  else if (j.body === 'curvy') Object.assign(L, { waist: 0.92, hips: 1.1, thigh: 1.08, butt: 1.08 });
+  else if (j.body === 'voluptuous') Object.assign(L, { waist: 0.88, hips: 1.15, thigh: 1.1, butt: 1.12 });
+  if (j.hips === 'wide') L.hips = (L.hips || 1) * 1.06; else if (j.hips === 'narrow') L.hips = (L.hips || 1) * 0.95;
+  L.elf = j.elf ? 1 : 0;
+  const okT = new Set(AVK_GARMENTS.map(g => g[0])), okP = new Set(AVK_PATTERNS.map(p => p[0]));
+  L.outfit = (Array.isArray(j.outfit) ? j.outfit : []).filter(g => g && okT.has(g.t)).slice(0, 6).map(g => ({ t: g.t, c: /^#[0-9a-f]{6}$/i.test(g.c || '') ? g.c : '#222222', p: okP.has(g.p) ? g.p : 'plain', o: Math.max(0.3, Math.min(1, +g.o || 1)), len: g.t === 'skirt' ? 0.3 : undefined }));
+  // anwenden: Modell zuordnen, eigene Kleidung des Modells aus (sofern erlaubt), Aussehen speichern, anzeigen
+  avSetMap(figId, pick.key);
+  if (pick.sexual !== false) { const nm = avkVrmNudeMap(); nm[pick.key] = true; safeSet('companion_vrmNude', JSON.stringify(nm)); }
+  L.fromImage = v.imageKey || (v.image || '').slice(-40);
+  avkLookSet(figId, pick.key, L);
+  if (opts.show !== false && AV.open) { say('Anime-Figur wird gebaut …'); AV.key = null; await avShowFigure(figId); }
+  try { logEvent('msg', { role: 'system', text: `3D: Anime aus Bild für ${v.name}: Modell „${pick.name}"${j.reason ? ' - ' + j.reason : ''}` }); } catch (e) {}
+  say('Fertig - mit ✏️ kannst du alles weiter anpassen');
+  return { model: pick.name, look: L, reason: j.reason || '' };
+}
+
+// =================== Kleidung nach dem Gespräch: ausziehen und wieder anziehen ===================
+const AVK_STRIP_OFF = /\b(zieht|zog|streift|streifte|schlüpft|schlüpfte|lässt|ließ|knöpft|knöpfte|öffnet|öffnete|hakt|hakte|reißt|riss)\b[^.!?]{0,60}\b(aus|ab|herunter|runter|hinunter|fallen|auf|von sich)\b|\b(nackt|splitterfasernackt|entkleidet sich|zieht sich aus|ausgezogen|oben ohne|ohne bh|ohne höschen|ohne slip)\b/i;
+const AVK_STRIP_ON = /\b(zieht|zog|streift|streifte|schlüpft|schlüpfte)\b[^.!?]{0,60}\b(an|über|wieder an|hinein|rein)\b|\b(zieht sich (wieder )?an|angezogen|bekleidet sich)\b/i;
+const AVK_STRIP_PART = [['top', /\b(bh|oberteil|top|bluse|shirt|hemd|korsett|korsage|büstenhalter|träger)\b/i], ['bottom', /\b(höschen|slip|string|tanga|unterhose|rock|hose|shorts|hotpants|panty|panties)\b/i], ['legs', /\b(strümpf\w*|strumpf\w*|socken|schuhe|stiefel|strapse)\b/i], ['all', /\b(kleid|alles|komplett|ganz|nackt|kleidung|klamotten|sachen)\b/i]];
+function avkStripFromText(tx) {
+  if (!AVK.on || !AVK.vrmMode || !AV.vrm) return null;
+  const off = AVK_STRIP_OFF.test(tx), on = !off && AVK_STRIP_ON.test(tx);
+  if (!off && !on) return null;
+  // nur wenn von Kleidung die Rede ist (sonst z. B. „zieht dich aus" = deine Kleidung, „lässt los")
+  if (!/\b(sich|ihr|ihre|ihren|ihrem|den|das|die)\b/i.test(tx) && !/nackt|oben ohne/i.test(tx)) return null;
+  if (/\b(dich|dir|deine|deinen|dein)\b[^.!?]{0,25}\b(aus|an)\b/i.test(tx) && !/\bsich\b/i.test(tx)) return null;
+  const parts = AVK_STRIP_PART.filter(([, rx]) => rx.test(tx)).map(([k]) => k);
+  // ohne Kleidungswort nur bei eindeutigen Wendungen (sonst z. B. „zieht dich an sich")
+  if (!parts.length && !(off ? /nackt|zieht sich aus|entkleidet sich|ausgezogen|oben ohne/i : /zieht sich (wieder )?an|angezogen|bekleidet sich/i).test(tx)) return null;
+  return { mode: off ? 'off' : 'on', parts: parts.length && !parts.includes('all') ? parts : ['top', 'bottom', 'legs'] };
+}
+// Kleidungsstücke der Figur nach Bereich (Modell-eigene und selbst entworfene)
+function avkStripPieces(vrm) {
+  const out = [], part = n => /bra|top|shirt|jacket|coat|onepiece|dress|kleid|tops|choker|glove/i.test(n) ? 'top' : /under|pant|skirt|bottom|short|slip/i.test(n) ? 'bottom' : /sock|shoe|boot|stocking|leg/i.test(n) ? 'legs' : 'other';
+  try { avkClothList(vrm).forEach((meshes, n) => { if (/accessor|ear|tail|horn|hat|ribbon/i.test(n)) return; const p = /onepiece|dress|kleid/i.test(n) ? 'dress' : part(n); out.push({ name: n, meshes, part: p, gen: false }); }); } catch (e) {}
+  (vrm.scene.userData.outfitMeshes || []).forEach(m => { const g = m.userData.garment || ''; const p = /bra|top|bodysuit|choker|gloves/.test(g) ? (g === 'bodysuit' ? 'dress' : 'top') : /panties|shorts|skirt/.test(g) ? 'bottom' : 'legs'; out.push({ name: g, meshes: [m], part: p, gen: true }); });
+  return out;
+}
+function avkStripStart(mode, parts) {
+  const vrm = AV.vrm; if (!vrm || AVK.strip || AVKE.on) return;
+  if (mode === 'off' && AVK.lic) { avHint('Die Lizenz dieses Modells erlaubt kein Ausziehen'); return; }
+  const want = new Set(parts || ['top', 'bottom', 'legs']); if (want.has('top') || want.has('bottom')) want.add('dress');
+  const order = { dress: 0, top: 0, bottom: 1, legs: 2, other: 3 };
+  let pcs = avkStripPieces(vrm).filter(p => want.has(p.part));
+  pcs = pcs.filter(p => mode === 'off' ? p.meshes.some(m => m.visible) : p.meshes.some(m => !m.visible));
+  // Anziehen: auch Stücke, die gerade über „ausgezogen" versteckt sind
+  if (mode === 'on' && !pcs.length) { const nm = avkVrmNudeMap(); if (nm[AV.key]) { nm[AV.key] = false; safeSet('companion_vrmNude', JSON.stringify(nm)); } pcs = avkStripPieces(vrm).filter(p => want.has(p.part) && p.meshes.some(m => !m.visible)); }
+  if (!pcs.length) return;
+  // Anziehen: hat sie selbst entworfene Kleidung, kommt nur diese wieder an (nicht doppelt mit der Modell-Kleidung)
+  if (mode === 'on' && pcs.some(p => p.gen)) pcs = pcs.filter(p => p.gen);
+  pcs.sort((x, y) => mode === 'off' ? order[x.part] - order[y.part] : order[y.part] - order[x.part]);
+  const D = 5.2, slots = pcs.length;
+  pcs.forEach((p, i) => { p.at = 0.9 + (D - 2.2) * (slots > 1 ? i / (slots - 1) : 0.5); p.done = false; p.meshes.forEach(m => { if (!m.userData.stripMat) { m.material = [].concat(m.material).map(x => x.clone()); if (m.material.length === 1) m.material = m.material[0]; m.userData.stripMat = true; } [].concat(m.material).forEach(mm => { mm.userData.op0 = mm.userData.op0 === undefined ? (mm.opacity === undefined ? 1 : mm.opacity) : mm.userData.op0; }); if (mode === 'on') { m.visible = true; [].concat(m.material).forEach(mm => { mm.transparent = true; mm.opacity = 0; mm.needsUpdate = true; }); } }); });
+  AVK.strip = { mode, pcs, t: 0, dur: D };
+  try { if (AVK.react) AVK.react(mode === 'off' ? 'user' : 'user'); } catch (e) {}
+}
+function avkStripStep(dt) {
+  const S = AVK.strip; if (!S) return;
+  S.t += dt;
+  S.pcs.forEach(p => {
+    const k = Math.max(0, Math.min(1, (S.t - p.at) / 0.8)), op = S.mode === 'off' ? 1 - k : k;
+    p.meshes.forEach(m => [].concat(m.material).forEach(mm => { const o0 = mm.userData.op0 === undefined ? 1 : mm.userData.op0; if (k > 0 && k < 1) { mm.transparent = true; mm.depthWrite = false; mm.opacity = o0 * op; } }));
+    if (k >= 1 && !p.done) {
+      p.done = true;
+      p.meshes.forEach(m => { m.visible = S.mode === 'on'; [].concat(m.material).forEach(mm => { const o0 = mm.userData.op0 === undefined ? 1 : mm.userData.op0; mm.opacity = o0; mm.transparent = o0 < 0.99; mm.depthWrite = o0 >= 0.99; mm.needsUpdate = true; }); });
+      // merken: Modell-Kleidung über die Ausgezogen-Einstellung bzw. das Stück, eigene Kleidung über „an/aus" im Aussehen
+      try {
+        if (!p.gen) { const L = AVK.look || {}; L.cloth = L.cloth || {}; if (S.mode === 'off') L.cloth[p.name] = false; else delete L.cloth[p.name]; }
+        else { const L = AVK.look; if (L && L.outfit) L.outfit.forEach(g => { if (g.t === p.name) g.on = S.mode === 'on'; }); }
+        if (AVK.look && AV.key) avkLookSet(AV.figId || AVK.figId, AV.key, Object.assign({}, AVK.look, { auto: false }));
+      } catch (e) {}
+    }
+  });
+  if (S.t > S.dur) {
+    AVK.strip = null;
+    if (S.mode === 'off' && avkStripPieces(AV.vrm).every(p => !p.meshes.some(m => m.visible))) { const nm = avkVrmNudeMap(); nm[AV.key] = true; safeSet('companion_vrmNude', JSON.stringify(nm)); }
+  }
+}
+
+// Zylinder-Abwicklung um die passende Körperachse: u = Umfangsweg, v = Länge (in Musterkacheln)
+function avkGarmentUV(geo, wpos, g, R) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), L = R.L, s = R.s;
+  const cell = g.p === 'net' ? 0.011 * s : g.p === 'lace' ? 0.045 * s : g.p === 'stripes' ? 0.08 * s : 0.05 * s;   // Größe einer Kachel
+  const tile = g.p === 'net' ? 8 : 1;   // Netz-Kachel enthält 8 Maschen
+  const ua = geo.attributes.uv, n = ua.count, per = new Float32Array(n);
+  const axes = [];
+  const leg = sg => { const hip = sg > 0 ? L.hipL : L.hipR; const knee = sg > 0 ? L.kneeL : L.kneeL.clone().setX(2 * L.hips.x - L.kneeL.x); const foot = sg > 0 ? L.footL : L.footL.clone().setX(2 * L.hips.x - L.footL.x); return { a: hip, b: foot }; };
+  if (/stockings/.test(g.t)) { axes.push(leg(1), leg(-1)); }
+  else if (/gloves/.test(g.t)) { const sh = L.shL, hd = L.handL; axes.push({ a: sh, b: hd }, { a: L.shR, b: hd.clone().add(L.shR.clone().sub(sh)) }); }
+  else axes.push({ a: L.neck, b: L.hips.clone().add(V(0, -0.15 * s, 0)) });
+  const fwd = R.fwd;
+  for (let i = 0; i < n; i++) {
+    const p = V(wpos[i * 3], wpos[i * 3 + 1], wpos[i * 3 + 2]);
+    // nächste Achse
+    let best = null, bd = 1e9;
+    axes.forEach(ax => { const d = ax.b.clone().sub(ax.a), k = Math.max(0, Math.min(1, p.clone().sub(ax.a).dot(d) / d.lengthSq())); const c = ax.a.clone().addScaledVector(d, k); const dist = c.distanceTo(p); if (dist < bd) { bd = dist; best = { ax, d, k, c }; } });
+    const dir = best.d.clone().normalize(), rad = p.clone().sub(best.c); rad.sub(dir.clone().multiplyScalar(rad.dot(dir)));
+    const e1 = fwd.clone().sub(dir.clone().multiplyScalar(fwd.dot(dir))).normalize(), e2 = dir.clone().cross(e1);
+    const ang = Math.atan2(rad.dot(e2), rad.dot(e1)), r = Math.max(0.01 * s, rad.length());
+    const u = ang * r / (cell * tile), v = best.k * best.d.length() / (cell * tile);
+    ua.setXY(i, u, v); per[i] = 2 * Math.PI * r / (cell * tile);
+  }
+  // Naht hinten: Dreiecke, die über die Naht laufen, bekommen eigene Vertices mit verschobenem u (kein Schmierstreifen)
+  const idx = geo.index.array, names = Object.keys(geo.attributes), arrs = {}, add = [];
+  names.forEach(k => { arrs[k] = Array.from(geo.attributes[k].array); });
+  let next = n;
+  const dup = (i, du) => { names.forEach(k => { const at = geo.attributes[k], sz = at.itemSize; for (let c = 0; c < sz; c++) arrs[k].push(arrs[k][i * sz + c]); }); arrs.uv[next * 2] += du; return next++; };
+  const newIdx = Array.from(idx);
+  for (let t = 0; t < newIdx.length; t += 3) {
+    const tri = [newIdx[t], newIdx[t + 1], newIdx[t + 2]], us = tri.map(i => arrs.uv[i * 2]), P0 = per[tri[0]] || 1;
+    if (Math.max(...us) - Math.min(...us) > P0 * 0.5) tri.forEach((i, q) => { if (us[q] < 0) newIdx[t + q] = dup(i, per[i]); });
+  }
+  if (next > n) {
+    names.forEach(k => { const at = geo.attributes[k]; const A = at.array.constructor; geo.setAttribute(k, new T.BufferAttribute(new A(arrs[k]), at.itemSize, at.normalized)); });
+    geo.setIndex(newIdx);
+  }
+  geo.attributes.uv.needsUpdate = true;
+}
+
+// =================== Eigene Texturen: Haut-Ebenen und Normal-Map (für VRoid-Modelle) ===================
+// Die Bilder liegen in der Modell-Datenbank (IndexedDB) unter „__layer_<id>"; geladen werden sie einmal als Bild.
+AVK.layerImg = AVK.layerImg || {};
+async function avkLayersLoad(L) {
+  const ids = (L.layers || []).map(x => x.id).concat(L.normal ? [L.normal.id] : []);
+  let loaded = false;
+  for (const id of ids) {
+    if (AVK.layerImg[id]) continue;
+    try { const r = await avGet('__layer_' + id); if (r && r.blob) { AVK.layerImg[id] = await createImageBitmap(r.blob); loaded = true; } } catch (e) {}
+  }
+  return loaded;
+}
+const AVK_LAYERED = new Map();
+function avkLayeredMap(base, layers) {
+  const use = layers.filter(x => AVK.layerImg[x.id]);
+  if (!use.length || !base || !base.image) return base;
+  const sig = base.uuid + '|' + use.map(x => x.id + ':' + (x.op === undefined ? 1 : x.op).toFixed(2)).join(',');
+  if (AVK_LAYERED.has(sig)) return AVK_LAYERED.get(sig);
+  const img = base.image, w = img.width || 2048, h = img.height || 2048;
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, w, h);
+  use.forEach(x => { g.globalAlpha = x.op === undefined ? 1 : x.op; g.drawImage(AVK.layerImg[x.id], 0, 0, w, h); });
+  g.globalAlpha = 1;
+  const t = new AV.T.CanvasTexture(c); t.flipY = base.flipY; t.colorSpace = base.colorSpace; t.wrapS = base.wrapS; t.wrapT = base.wrapT; t.anisotropy = base.anisotropy || 4; t.needsUpdate = true;
+  AVK_LAYERED.set(sig, t); return t;
+}
+const AVK_LAYERTEX = {};
+function avkLayerTex(id, normal) {
+  if (!AVK.layerImg[id]) return null;
+  if (AVK_LAYERTEX[id]) return AVK_LAYERTEX[id];
+  const t = new AV.T.Texture(AVK.layerImg[id]); t.flipY = false; t.colorSpace = normal ? AV.T.NoColorSpace : AV.T.SRGBColorSpace; t.needsUpdate = true;
+  return (AVK_LAYERTEX[id] = t);
+}
+async function avkLayerAdd(file, kind) {
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  await avPut('__layer_' + id, { blob: file, name: file.name || 'Ebene', layer: true });
+  AVK.layerImg[id] = await createImageBitmap(file);
+  return id;
+}
+{
+  // beim Anwenden: fehlende Ebenen nachladen und dann die Farben noch einmal setzen
+  const oA = avkApplyLook;
+  avkApplyLook = function (vrm, L, parts) {
+    const r = oA.apply(this, arguments);
+    if (L && ((L.layers && L.layers.length) || L.normal) && (!parts || parts.colors)) avkLayersLoad(L).then(ch => { if (ch && AV.vrm === vrm) oA.call(this, vrm, L, { colors: true }); }).catch(() => {});
+    return r;
+  };
+  // Modellliste: Ebenen-Einträge der Datenbank nicht als Modelle zeigen
+  const oL = avList;
+  avList = async function () { const l = await oL.apply(this, arguments); return l.filter(x => !String(x.key).startsWith('__layer_')); };
+}
+
+// =================== Neues Porträt -> passende Anime-Figur automatisch ===================
+// Nach „Generieren" (oder Aussehen aus dem Bild): aus deinen VRM-Modellen das passendste wählen und an die Person anpassen.
+async function avkAutoAnime(figId) {
+  try {
+    if (!figId || localStorage.getItem('companion_av3dAutoAnime') === 'false') return;
+    const f = getFigure(figId), v = f && latestVersion(f); if (!v || v.isUser || v.isNarrator || !(v.imageKey || v.image)) return;
+    if (v.gender && v.gender !== 'weiblich') return;
+    const models = (await avList()).filter(m => m.key !== '__kit'); if (!models.length) return;
+    // schon für genau dieses Bild gemacht? Dann nicht noch einmal
+    const key = avMap()[figId]; const cur = key ? avkLookAll()[avkLookKey(figId, key)] : null;
+    const tag = v.imageKey || (v.image || '').slice(-40); if (cur && cur.fromImage === tag) return;
+    const r = await avkAnimeFromImage(figId, null, { show: false });
+    try { logEvent('msg', { role: 'system', text: `3D: ${v.name} hat jetzt eine passende Anime-Figur (${r.model})` }); } catch (e) {}
+  } catch (e) { try { logEvent('msg', { role: 'system', text: '3D: Anime-Figur nicht abgeleitet - ' + e.message }); } catch (x) {} }
+}
+{
+  if (typeof generateCharacterImage === 'function') { const o = generateCharacterImage; generateCharacterImage = async function (c) { const r = await o.apply(this, arguments); try { if (c && c.figureId) setTimeout(() => avkAutoAnime(c.figureId), 1500); } catch (e) {} return r; }; }
+  if (typeof deriveFigureFromPortrait === 'function') { const o = deriveFigureFromPortrait; deriveFigureFromPortrait = async function (figure) { const r = await o.apply(this, arguments); try { if (figure && figure.id) setTimeout(() => avkAutoAnime(figure.id), 1500); } catch (e) {} return r; }; }
+}
+
+// Mehrere VRM-Modelle auf einmal hinzufügen
+{
+  avPickFile = function (done) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.vrm,model/gltf-binary,application/octet-stream'; inp.multiple = true;
+    inp.onchange = async () => {
+      const fs = [...(inp.files || [])]; if (!fs.length) return; let last = null, n = 0;
+      for (const f of fs) { avHint(`Wird gespeichert … (${++n}/${fs.length})`); try { last = await avImport(f) || last; } catch (e) { alert(`${f.name}: konnte nicht gespeichert werden - ${e.message}`); } }
+      if (last && done) done(last);
+      if (fs.length > 1) avHint(`${fs.length} Modelle gespeichert`);
+    };
+    inp.click();
+  };
 }
 
 {
