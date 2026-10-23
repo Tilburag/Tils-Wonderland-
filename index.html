@@ -678,9 +678,10 @@
     border: 1px solid var(--line);
     border-left: 3px solid var(--accent);
     border-radius: 12px;
-    padding: 11px 14px;
-    font-size: 13.5px;
-    line-height: 1.45;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    opacity: 0.92;
     color: var(--text);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     opacity: 0;
@@ -2812,6 +2813,10 @@ function refreshLimitMarkers() {
 }
 [els.d1MinPos, els.d1MaxPos, els.d2MinPos, els.d2MaxPos].forEach(el => el.addEventListener('input', refreshLimitMarkers));
 setTimeout(refreshLimitMarkers, 0); // after layout so clientHeight is correct
+// Die Spur ist beim Start oft unsichtbar (Höhe 0) - dann lagen beide Striche ganz unten.
+// Neu zeichnen, sobald sie eine Größe bekommt, und ab und zu (Grenzen können auch anderswo geändert werden).
+try { const ro = new ResizeObserver(() => refreshLimitMarkers()); [els.motionTrackFill, els.motionTrackFill2].forEach(f => { if (f && f.parentElement) ro.observe(f.parentElement); }); } catch (e) {}
+setInterval(() => { try { refreshLimitMarkers(); } catch (e) {} }, 2000);
 els.modelAnthropic.value = localStorage.getItem('companion_model_anthropic') || 'claude-sonnet-4-6';
 els.apiKeyOpenai.value = localStorage.getItem('companion_apiKey_openai') || '';
 els.modelOpenai.value = localStorage.getItem('companion_model_openai') || 'gpt-4o';
@@ -3587,7 +3592,8 @@ async function fetchWithRetry(url, options, attempts) {
     // Bilder werden nicht mehr bei jeder neuen Antwort mit abgebrochen - sie
     // kamen sonst im laufenden Gespräch nie an. Dafür eine kürzere Frist.
     const isImage = /api\.venice\.ai\/api\/v1\/image\//.test(String(url));
-    if (!isImage) inFlight.add(control);
+    const isBg = options && typeof options.body === 'string' && options.body.includes('Du führst das Gedächtnis von Figuren');   // Gedächtnis läuft weiter, wenn du schreibst
+    if (!isImage && !isBg) inFlight.add(control);
     const limit = (options && options.timeoutMs) || (isImage ? 90000 : REQUEST_TIMEOUT_MS);
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; control.abort(); }, limit);
@@ -3620,8 +3626,100 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '2.76';
+const APP_VERSION = '3.00';
 const CHANGELOG = [
+  { v: '3.00', date: '2026-10-23', items: [
+    'Doppeltes Sprechen: die App liest Wiederholungen nicht mehr vor - dieselbe Zeile zweimal in einer Antwort (auch als Erzählung und Rede), derselbe Satz direkt hintereinander, oder eine Zeile wörtlich aus der vorigen Antwort. Bewegungsmarker der weggelassenen Zeile bleiben erhalten. Im Protokoll steht dann „doppelte Stelle(n) nicht vorgelesen".',
+  ] },
+  { v: '2.99', date: '2026-10-23', items: [
+    'Gedächtnis: das Nachtragen beim Start nimmt nur noch Reste aus einer früheren Sitzung (es trug sonst die laufende Sitzung ein zweites Mal ein)',
+  ] },
+  { v: '2.98', date: '2026-10-23', items: [
+    'Meldungen im Gespräch: kleiner, kürzer sichtbar, höchstens zwei gleichzeitig und keine doppelten - sie verdecken das Bild nicht mehr',
+  ] },
+  { v: '2.97', date: '2026-10-23', items: [
+    'Verbinden-Knopf in den Einstellungen: sucht die App gerade im Hintergrund nach dem Gerät, steht dort jetzt „jetzt verbinden (sucht …)" und ein Tipp verbindet sofort - vorher stand „trennen" darauf, obwohl nichts verbunden war',
+  ] },
+  { v: '2.96', date: '2026-10-23', items: [
+    'Mila (Fragezeichen oben): Fragen zur Sitzung („Ist dir was aufgefallen?", „Wie lief der Chat?") bekommen das Protokoll automatisch mit - vorher nur über „Protokoll auswerten", sonst sagte sie, sie habe keine Daten. Nach einem Neustart der App nimmt sie die zuletzt gesicherte Sitzung. Ohne Haken „Gesprächstext mitschicken" sieht sie Ablauf, Besetzung, Bewegung, Puls und Fehler, aber nicht den Wortlaut.',
+  ] },
+  { v: '2.95', date: '2026-10-23', items: [
+    'Gerät 1/2: höchstens ~4 Befehle im Netz unterwegs (vorher bis zu ~200) - bei schwachem WLAN hinkt das Gerät nicht mehr hinterher; nach einem Abbruch wird der Befehlsabstand bei stabiler Verbindung wieder enger',
+    'Verbinden über die Schnelleinstellungen (Statuszeile oben) verbindet jetzt zuverlässig - vorher wurde dabei manchmal ein laufender Wiederverbindungsversuch abgebrochen statt verbunden',
+    'Grenz-Striche an der Hubanzeige im Gespräch stimmen wieder (wurden gezeichnet, als die Anzeige noch unsichtbar war, und lagen dann ganz unten)',
+  ] },
+  { v: '2.94', date: '2026-10-23', items: [
+    'Gerät: höchstens ~4 Befehle im Netz unterwegs (vorher bis zu ~200) - bei schwachem WLAN hinkt das Gerät der Anzeige nicht mehr sekundenlang hinterher',
+    'Gerät: nach einem Verbindungsabbruch wird der Befehlsabstand bei stabiler Verbindung langsam wieder enger (vorher blieb er bis zum Neuladen breit = ruckeliger)',
+  ] },
+  { v: '2.93', date: '2026-10-23', items: [
+    'Gedächtnis auch in Zufallsbegegnung, Fotoshooting, Speed-Dating und den anderen Spielen: bevor ein Spiel den Verlauf wechselt, merken sich die Figuren, was war. Zählung stimmt jetzt auch in langen Gesprächen (der Verlauf wird intern gekürzt)',
+  ] },
+  { v: '2.92', date: '2026-10-23', items: [
+    'Gedächtnis jetzt automatisch: die Figuren merken sich das Gespräch alle paar Antworten, beim Verlassen der App und bei „Neues Gespräch" - vorher nur über den Knopf „Erinnern", sonst wusste z. B. Mia beim nächsten Mal nichts von der Sitzung. Was beim Schließen nicht mehr fertig wurde, wird beim nächsten Start nachgetragen. Das Merken wird nicht mehr abgebrochen, wenn du währenddessen schreibst.',
+    'Dein Daumen liegt neben dem Zeigefinger auf ihrer Haut statt hochzustehen',
+  ] },
+  { v: '2.91', date: '2026-10-23', items: [
+    'Von hinten: deine Hände liegen öfter seitlich auf ihren Hüften statt auf dem Po; nie beide Hände übereinander auf ihrem Rücken',
+  ] },
+  { v: '2.90', date: '2026-10-23', items: [
+    'Anime-Kontur an deinem Körper wird in der Nähe dünner (keine dicken schwarzen Ränder an deinen Händen in der Ich-Sicht)',
+    'Fingerglieder drehen sich nur noch in Beugerichtung aus ihrer Haut (kein seitliches Auffächern)',
+  ] },
+  { v: '2.89', date: '2026-10-23', items: [
+    'Gesichts-Kamera beim Reiten näher an ihrem Gesicht',
+  ] },
+  { v: '2.88', date: '2026-10-23', items: [
+    'Peitsche: der Griff liegt jetzt quer in ihrer Faust (statt am Handgelenk), Daumen liegt an',
+    'Jubel bei „Gekommen": offene Hände statt Fäuste mit abstehendem Zeigefinger',
+  ] },
+  { v: '2.87', date: '2026-10-23', items: [
+    'Leistung: Haut-Abfragen für ihre Hände nutzen das schnelle Raster; das Halten des Hand-Kontakts greift erst unter ~28 Bildern/s (darüber wirkte deine Hand minimal rutschig)',
+  ] },
+  { v: '2.86', date: '2026-10-23', items: [
+    'Schneller bei knapper Bildrate: der Hand-Kontakt rechnet dann nur jedes zweite Bild neu und hält dazwischen die letzte Lage',
+  ] },
+  { v: '2.85', date: '2026-10-23', items: [
+    'Schneller: der Hand-Kontakt rechnet etwa doppelt so schnell (Haut-Abfragen über ein Raster, weniger Zwischenschritte) - flüssiger auf dem Handy',
+  ] },
+  { v: '2.84', date: '2026-10-23', items: [
+    'Sie liegt - du kniest: ihre Arme schwingen ruhiger (Ellbogen zeigt ins Bett und klappt beim Umgreifen nicht mehr um; seltener und langsamer umgreifen)',
+  ] },
+  { v: '2.83', date: '2026-10-23', items: [
+    'Deine Hand zum Kopf bzw. vom Kopf weg: bewegt sich frei außen herum und legt sich erst am Ziel an - kein Weg mehr durch ihr Gesicht oder ihren Hals',
+  ] },
+  { v: '2.82', date: '2026-10-23', items: [
+    'Von hinten: deine Hand auf ihrem Rücken liegt weiter oben (flacher) - Finger tauchen nicht mehr ins Hohlkreuz',
+    'Freie Hand: steckt sie in ihr und ist die Stelle nicht erreichbar, legst du sie an deine Hüfte statt durch sie hindurch zu greifen',
+  ] },
+  { v: '2.81', date: '2026-10-23', items: [
+    'Deine Finger: einzelne Glieder, die noch in ihrer Haut steckten, drehen sich jetzt sanft heraus - beim Reiten im Test keine eintauchenden Fingerspitzen mehr',
+  ] },
+  { v: '2.80', date: '2026-10-23', items: [
+    'Durchswipen: kein Untertitel mehr über dem Bild - die Figur stellt sich nur noch mit Stimme vor',
+    'Ihre Arme: Ellbogen klappt beim Umsetzen der Hand nicht mehr um; ruhigere Hände auf ihrer eigenen Haut (ihre Hand legte sich teils auf sich selbst)',
+  ] },
+  { v: '2.79', date: '2026-10-23', items: [
+    'Dein Körper ist jetzt standardmäßig im Anime-Stil (Toon-Licht, Kontur, flache Haare) - abschaltbar unter ⚙',
+    'Deine Hände: Finger locker zusammen statt gespreizt; beim Umsetzen hebt sich die Hand kurz an; keine Krallen-Finger mehr (Handballen hebt sich weniger)',
+    'Fingerspitzen stecken deutlich seltener in ihr (Messung: von bis zu 15 % der Bilder auf 0-6 %)',
+  ] },
+  { v: '2.78', date: '2026-10-23', items: [
+    'Neu unter ⚙: „Mich im Anime-Stil zeichnen" - dein Körper mit Toon-Licht und Kontur, passt zu den VRM-Figuren',
+    'Deine Hände legen sich bei angezogenen Figuren auf den Stoff statt darunter',
+    'Ihre Hände liegen auf ihrer eigenen Haut (Oberschenkel, Hüfte, Brust) statt darüber zu schweben',
+    'Hand am Kopf: hinten-oben im Haar statt an Schläfe und Auge',
+    'Tragen: ihr Kopf weicht deinem aus (keine Köpfe ineinander, Ich-Sicht wieder frei)',
+  ] },
+  { v: '2.77', date: '2026-10-23', items: [
+    'Stellungen: Auswahlmenü statt Durchklicken; Wechsel mit kurzem Abblenden statt verdrehtem Überblenden; sie steht nach einem Wechsel nicht mehr falsch herum',
+    'Deine Hände: stecken nicht mehr in ihr (Finger folgen der Rundung, unerreichbare Stellen werden gemieden, Arme gehen außen herum), greifen nie über Kreuz, liegen auf Schulter und Kopf statt vorm Gesicht',
+    'Ich-Sicht und VR: dein eigener Kopf (Augen, Mund) ist ausgeblendet',
+    'Ihre Haare stoßen an deinem Körper an statt hindurchzugehen',
+    'Tragen: ihre Beine bleiben um deine Hüfte; bessere Kameras für Liegen und Tragen',
+    '3D-Modelle: eine Liste mit Bildern - Bild antippen nimmt das Modell, Bild/Name direkt dort ändern',
+    'Anime aus Bild: Fehler „At most 1 image" behoben (Porträt und Modelle gehen als ein Bild)',
+  ] },
   { v: '2.76', date: '2026-10-22', items: [
     'Neue Stellung 🛏️: sie liegt auf dem Rücken (Kissen unter Po und Schultern), du kniest zwischen ihren Beinen - Beine wechseln zwischen aufgestellt, um dich geschlungen und hochgestreckt',
     'Neue Stellung 🫂: du trägst sie im Stehen - deine Hände unter ihrem Po, ihre Beine um deine Hüfte, Arme um deinen Hals',
@@ -4760,9 +4858,10 @@ function showToast(text, isWarning) {
     setTimeout(() => node.remove(), 220);
   };
   node.onclick = dismiss;
-  setTimeout(dismiss, Math.min(9000, 3200 + text.length * 35));
-  // Mehr als drei auf einmal verdecken die Bedienung.
-  while (els.toastHost.children.length > 3) els.toastHost.firstChild.remove();
+  setTimeout(dismiss, isWarning ? Math.min(6000, 3000 + text.length * 25) : Math.min(3500, 2000 + text.length * 15));
+  // Höchstens zwei auf einmal (drei verdeckten im Gespräch das halbe Bild); gleiche Meldung nicht doppelt
+  [...els.toastHost.children].forEach(c => { if (c !== node && c.textContent === text) c.remove(); });
+  while (els.toastHost.children.length > 2) els.toastHost.firstChild.remove();
 }
 
 function addMsg(role, text) {
@@ -4806,7 +4905,7 @@ function addMsg(role, text) {
 // without any prompt at all. So hosting this file is the working setup -
 // verified against the device, not assumed.
 const WS_PATH = '/ws';
-const WS_MAX_BUFFER = 4096; // don't pile up commands the socket hasn't flushed yet
+const WS_MAX_BUFFER = 96; // höchstens ~4 Zeilen unterwegs - 4096 Byte waren ~200 Befehle Rückstau, das Gerät hinkte dann sekundenlang hinterher
 
 // The ESP32's websocket server has a small internal message queue and simply
 // drops the client when it overflows. The browser can't see that queue at all
@@ -4940,6 +5039,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       // Ein überholter Socket darf den Zustand nicht mehr anfassen.
       if (state.socket !== ws) { try { ws.close(); } catch (e) {} return; }
       state.sent = null; // Lage des Geräts ist nach dem Verbinden unbekannt
+      state.openAt = Date.now();
       setConnStatus(true);
       state.reconnectDelay = WS_RECONNECT_MIN_MS;
       if (announce) addMsg('system', label + ' verbunden (' + url + ').');
@@ -4998,21 +5098,20 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     addMsg('system', label + ' getrennt.');
   }
 
+  // Verbunden: trennen. Sucht die App gerade im Hintergrund (Gerät schläft, WLAN weg): sofort neu verbinden statt
+  // „trennen" - vorher stand dann „trennen" auf dem Knopf, obwohl nichts verbunden war.
   connectBtn.onclick = () => {
-    if (state.wantConnected) {
-      disconnect();
-    } else {
-      state.wantConnected = true;
-      connect(true);
-    }
+    if (isOpen()) disconnect();
+    else connectNow();
   };
 
   function setConnStatus(connected) {
     bleStatusEl.textContent = label + ': ' + (connected ? 'verbunden' : 'getrennt');
     bleStatusEl.className = 'pill ' + (connected ? 'on' : 'off');
-    connectBtn.textContent = state.wantConnected
-      ? label + ' trennen'
+    connectBtn.textContent = connected ? label + ' trennen'
+      : state.wantConnected ? label + ' jetzt verbinden (sucht …)'
       : 'Mit ' + label + ' verbinden';
+    if (!connected && state.wantConnected) bleStatusEl.textContent = label + ': sucht …';
   }
   setConnStatus(false);
 
@@ -5041,6 +5140,8 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Lebenszeichen und sofortiges Wiederverbinden, wenn das Handy aufwacht.
   setInterval(() => {
     if (!isOpen() || !state.socket) return;
+    // nach einem Abbruch verbreiterter Befehlsabstand: bei stabiler Verbindung langsam wieder zurück (vorher blieb er für immer breit)
+    if (state.sendGapMs > WS_SEND_GAP_START_MS && Date.now() - (state.openAt || 0) > 60000 && Date.now() - (state.gapEasedAt || 0) > 30000) { state.sendGapMs = Math.max(WS_SEND_GAP_START_MS, state.sendGapMs - 20); state.gapEasedAt = Date.now(); }
     if (Date.now() - (state.lastSendAt || 0) < WS_KEEPALIVE_MS) return;
     try { state.socket.send('D0\n'); state.lastSendAt = Date.now(); } catch (e) {}
   }, 2000);
@@ -5434,7 +5535,21 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Nach dem Hinhalten oder einer Änderung auf der Steuerfläche die letzte
   // eigentliche Bewegung erneut anwenden (jetzt ohne Deckel bzw. mit neuem Wunsch).
   function reapply() { if (state.lastRawReq) setMotion(state.lastRawReq); }
-  return { setMotion, runSequence, reapply, isConnected: isOpen, getState: () => state.motion.requested };
+  // Verbinden von außen (Schnelleinstellungen): immer „jetzt verbinden" - nie versehentlich trennen.
+  // Vorher schaltete der Knopf nur um: lief im Hintergrund noch ein Wiederverbindungsversuch,
+  // bedeutete „Verbinden" in Wahrheit „Trennen".
+  function connectNow() {
+    if (isOpen()) return;
+    state.wantConnected = true;
+    clearTimeout(state.reconnectTimer);
+    state.reconnectDelay = WS_RECONNECT_MIN_MS;
+    // hängender Aufbau (Handy war im Ruhezustand): verwerfen und neu
+    if (state.socket && state.socket.readyState !== WebSocket.OPEN) { const old = state.socket; state.socket = null; try { old.onclose = null; old.close(); } catch (e) {} }
+    state.connecting = false;
+    setConnStatus(false);
+    connect(true);
+  }
+  return { setMotion, runSequence, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
 const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, els.motionTrackFill, 'Gerät 1', 'd1');
@@ -14790,6 +14905,34 @@ function matchSpeakerName(raw, names) {
   return hits.length === 1 ? hits[0] : null;   // bei Mehrdeutigkeit lieber nichts raten
 }
 
+// Doppeltes aus der Antwort entfernen, bevor es gesprochen wird: manche Modelle wiederholen eine Zeile
+// (gleicher Satz einmal als Erzählung, einmal als Rede; oder dieselbe Zeile zweimal) oder einen Satz
+// direkt hintereinander. Bewegungsmarker der entfernten Zeile wandern in die vorige.
+function dedupeLines(lines, current) {
+  const norm = t => String(t || '').replace(/[\uE000-\uF76F]/g, '').replace(/\[[^\]]*\]/g, '').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const out = []; let dropped = 0;
+  // auch: Zeile wörtlich schon in der vorigen Antwort (Modell wiederholt sich über die Runden)
+  const asst = history.filter(m => m.role === 'assistant' && m.content !== current);
+  const prevA = asst[asst.length - 1];
+  const prevSet = new Set(String(prevA ? prevA.content : '').split(/\n+/).map(l => norm(l.replace(/<<[^>]*>>/g, '').replace(/^[^:*\n]{1,24}:/, ''))).filter(x => x.length >= 20));
+  for (const ln of lines || []) {
+    if (ln && prevSet.has(norm(ln.text)) && (lines || []).length > 1) { dropped++; continue; }
+    // Satz direkt doppelt in derselben Zeile („Komm her. Komm her." bleibt bei sehr kurzen Sätzen erlaubt)
+    if (ln && typeof ln.text === 'string') {
+      const sents = ln.text.match(/[^.!?…]+[.!?…]+["“”»«)*]*\s*|[^.!?…]+$/g);
+      if (sents && sents.length > 1) {
+        const keep = []; sents.forEach(s => { const n = norm(s), prev = keep.length ? norm(keep[keep.length - 1]) : ''; if (n && n === prev && n.split(' ').length >= 4) dropped++; else keep.push(s); });
+        ln.text = keep.join('').trim();
+      }
+    }
+    const n = norm(ln && ln.text);
+    const dup = n.length >= 14 && out.slice(-4).find(o => { const m = norm(o.text); return m === n || (m.length >= n.length && m.includes(n)); });
+    if (dup) { dropped++; if (Array.isArray(ln.cues) && ln.cues.length) { dup.cues = (dup.cues || []).concat(ln.cues.map(c => Object.assign({}, c, { at: String(dup.text).length }))); if (!dup.motion) dup.motion = ln.motion; } continue; }
+    out.push(ln);
+  }
+  if (dropped) logEvent('msg', { role: 'system', text: `Antwort: ${dropped} doppelte Stelle(n) nicht vorgelesen.` });
+  return out;
+}
 function parseEnsembleText(text) {
   const names = characters.map(c => c.name).filter(Boolean);
   const out = [];
@@ -15026,23 +15169,27 @@ function memoryText(v) {
   return String(v || '').trim();
 }
 
-async function rememberConversation() {
+async function rememberConversation(opts) {
+  opts = opts || {};
+  const quiet = !!opts.quiet, src = opts.snapshot || history;
   const figures = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId);
-  if (!figures.length) { addMsg('system', 'Niemand in der Besetzung, der sich erinnern könnte.'); return; }
-  const transcript = history.slice(-24)
+  if (!figures.length) { if (!quiet) addMsg('system', 'Niemand in der Besetzung, der sich erinnern könnte.'); return; }
+  const transcript = opts.transcript || src.slice(-24)
     .map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim())
     .filter(Boolean).join('\n');
-  if (history.length < 2 || !transcript) { addMsg('system', 'Noch nichts, woran man sich erinnern könnte.'); return; }
+  if ((!opts.transcript && src.length < 2) || !transcript) { if (!quiet) addMsg('system', 'Noch nichts, woran man sich erinnern könnte.'); return; }
+  memAuto.busy = true; memAuto.failed = false;
 
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   els.rememberBtn.disabled = true;
   els.rememberBtn.textContent = 'Erinnere...';
   try {
-    const raw = await callProvider(
+    const rawP = callProvider(
       provider, buildRememberPrompt(figures, transcript),
       [{ role: 'user', content: 'Gib das aktualisierte Gedächtnis als JSON zurück.' }],
       0.3, taskBudget('draft', 2500), { task: 'draft' }
     );
+    const raw = await rawP;
     const data = extractJson(raw);
     if (!data || typeof data !== 'object') throw new Error('Die Antwort war nicht verwertbar.');
 
@@ -15063,16 +15210,57 @@ async function rememberConversation() {
     // "Erinnern" komplett im Protokoll.
     const profileLines = profile ? profile.split(/\n/).filter(l => l.trim()).length : 0;
     logEvent('msg', { role: 'system', text: `Gedächtnis aktualisiert: Profil ${profileLines} Punkte; Figuren: ${Object.keys(byName).join(', ') || 'keine'}.` });
-    addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
+    if (!quiet) addMsg('system', (updated.length ? `Erinnert: ${updated.join(', ')}.` : 'Keine Figur hat etwas Neues behalten.')
       + (profile ? (meNow ? ` Das Wissen über dich als ${meNow.name} ist aktualisiert.` : ' Das gemeinsame Wissen über dich ist aktualisiert.') : ''));
+    // gemerkt: offener Rest ist erledigt
+    try { localStorage.removeItem('companion_memPending'); } catch (e) {}
   } catch (err) {
     // Unterbricht meine neue Nachricht das Erinnern, ist das kein Fehler.
-    if (!err.aborted) addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
+    memAuto.failed = true; if (!err.aborted && !quiet) addMsg('system', 'Erinnern fehlgeschlagen: ' + err.message);
   } finally {
+    memAuto.busy = false;
     els.rememberBtn.disabled = false;
     els.rememberBtn.textContent = 'Erinnern';
   }
 }
+// ---------- Gedächtnis automatisch ----------
+// Früher nur auf Knopfdruck - wer die App nach einer Sitzung einfach schloss,
+// dessen Figuren wussten beim nächsten Mal nichts davon. Jetzt: alle paar
+// Antworten still mitschreiben, beim Verlassen der App und bei „Neues Gespräch".
+// Was beim Schließen nicht mehr fertig wurde, holt der nächste Start nach.
+const memAuto = { n: 0, done: 0, busy: false, loadedAt: Date.now() };   // n: Antworten insgesamt (der Verlauf selbst wird gekürzt), done: davon gemerkt
+function memPendingSave() {
+  try {
+    if (memAuto.n - memAuto.done < 1) return;
+    const tr = history.slice(-24).map(m => String(m.content || '').replace(/<<[^>]*>>/g, '').trim()).filter(Boolean).join('\n');
+    if (!tr) return;
+    const cast = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId).map(c => c.figureId);
+    if (cast.length) safeSet('companion_memPending', JSON.stringify({ t: Date.now(), cast, tr }));
+  } catch (e) {}
+}
+function memAutoCheck(force) {
+  if (localStorage.getItem('companion_autoRemember') === 'false' || memAuto.busy) return;
+  const open = memAuto.n - memAuto.done;
+  memPendingSave();
+  if (open >= (force ? 1 : 6)) { const n0 = memAuto.n; rememberConversation({ quiet: true, snapshot: history.slice() }).then(() => { if (!memAuto.failed) memAuto.done = Math.max(memAuto.done, n0); }).catch(() => {}); }
+}
+// vor jedem Wechsel des Verlaufs (Spiele, Zufallsbegegnung, neues Gespräch): Offenes sofort merken - mit der Besetzung von jetzt
+function memFlush() {
+  try {
+    if (localStorage.getItem('companion_autoRemember') === 'false') return;
+    if (memAuto.n - memAuto.done >= 1 && history.length >= 2) { memAuto.done = memAuto.n; rememberConversation({ quiet: true, snapshot: history.slice() }).catch(() => {}); }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') memAutoCheck(true); });
+window.addEventListener('pagehide', () => memPendingSave());
+setTimeout(() => {
+  try {
+    const P = JSON.parse(localStorage.getItem('companion_memPending') || 'null'); if (!P || !P.tr || Date.now() - P.t > 7 * 864e5 || P.t >= memAuto.loadedAt) return;   // nur Reste aus einer früheren Sitzung
+    const now = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId).map(c => c.figureId);
+    if (!P.cast.every(id => now.includes(id))) return;   // andere Besetzung - nicht falsch zuordnen
+    rememberConversation({ quiet: true, transcript: P.tr }).then(() => logEvent('msg', { role: 'system', text: 'Gedächtnis: letzte Sitzung nachgetragen.' })).catch(() => {});
+  } catch (e) {}
+}, 8000);
 
 // Figuren, die in den Beschreibungen der Mitspielenden vorkommen, aber nicht
 // in der Besetzung sind (Katja in Élodies Beschreibung …). Ohne Hinweis ließ
@@ -15652,6 +15840,7 @@ async function askEnsemble(userText, options) {
       replyText = tidy.text;
     }
     history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
+    memAuto.n++; try { setTimeout(() => memAutoCheck(false), 1500); } catch (e) {}
     sceneStep += 1;
     try { maybeSendPromisedPhoto(replyText); } catch (e) {}
     safeSet(lastSeenKey(), String(Date.now()));
@@ -15666,7 +15855,7 @@ async function askEnsemble(userText, options) {
     }
     try { updateAmbience(); } catch (e) {}
 
-    const lines = enforceTurn(parseEnsembleText(replyText));
+    const lines = dedupeLines(enforceTurn(parseEnsembleText(replyText)), replyText);
     lines.forEach(pc => {
       if (isTagOnly(pc.text)) return;
       addEnsembleMsg(pc.role, stripAudioTags(cleanDisplayText(pc.text)));
@@ -18050,7 +18239,7 @@ function openRoulette() {
   if (!all.length) { alert('Keine Figuren zum Begegnen.'); return; }
   try { interruptPlayback(); } catch (e) {}
   autoPlaying = false; try { setAutoStatus(false); } catch (e) {}
-  rl.backup = { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate };
+  memFlush(); rl.backup = { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate };
   // Wen du länger nicht gesehen hast, kommt eher dran
   const st = rlStats();
   rl.list = all.map(f => ({ f, k: Math.random() * 3 - ((st[f.id] && st[f.id].visits) || 0) * 0.4 })).sort((a, b) => b.k - a.k).map(x => x.f);
@@ -18199,6 +18388,7 @@ async function rlNextFigure() {
   characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f), rl.fig2 ? characterFromVersion(rl.fig2) : null].filter(Boolean);
   rl.hrPeak = 0; rl.hrStart = 0;
   try { if (hr.connected && hr.bpm) { rl.hrStart = hrMean(Date.now() - 20000, Date.now()) || hr.bpm; rl.hrPeak = rl.hrStart; } } catch (e) {}
+  memFlush();
   history = [];
   sceneStep = INTRO_STEPS + 1;   // kein Kennenlern-Stillstand - sie darf sofort
   readyGate = 'ready';
@@ -18375,6 +18565,7 @@ function closeRoulette(toLive) {
   rl.fig = null;
   const b = rl.backup; rl.backup = null;
   if (b) {
+    memFlush();
     characters = b.characters; history = b.history; sceneStep = b.sceneStep; readyGate = b.readyGate;
     if (b.scene === null) localStorage.removeItem('companion_sceneDesc'); else safeSet('companion_sceneDesc', b.scene);
     try { saveCharacters(); } catch (e) {}
@@ -18426,11 +18617,12 @@ function stageView(id, buttons) {
   try { startMicSense(); } catch (e) {}
   return st;
 }
-function stageBackup() { convId++; return { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate }; }
+function stageBackup() { memFlush(); convId++; return { characters: characters.slice(), history: history.slice(), scene: localStorage.getItem('companion_sceneDesc'), sceneStep, readyGate }; }
 function stageRestore(b) {
   if (!b) return;
   try { interruptPlayback(); } catch (e) {}
   try { device1.setMotion({ texture: 'stop' }); device2.setMotion({ texture: 'stop' }); } catch (e) {}
+  memFlush();
   characters = b.characters; history = b.history; sceneStep = b.sceneStep; readyGate = b.readyGate;
   if (b.scene === null) localStorage.removeItem('companion_sceneDesc'); else safeSet('companion_sceneDesc', b.scene);
   try { saveCharacters(); } catch (e) {}
@@ -18716,6 +18908,7 @@ async function openPhotoshoot(figure) {
   ps.names = names.length > 1 ? names.slice(0, -1).join(', ') + ' und ' + names[names.length - 1] : names[0];
   ps.multi = figs.length > 1;
   characters = [me ? characterFromVersion(me) : null, ...figs.map(x => characterFromVersion(x))].filter(Boolean);
+  memFlush();
   history = []; sceneStep = INTRO_STEPS + 1; readyGate = 'ready';
   ps.opening = true;
   const places = await portfolioPlaces(f).catch(() => []).finally(() => { ps.opening = false; });
@@ -18931,6 +19124,7 @@ async function sdNext() {
   const f = spd.list[spd.i], v = latestVersion(f), my = spd.token, me = meFigure();
   spd.results[spd.i] = { f, hr: [], heart: false };
   characters = [me ? characterFromVersion(me) : null, characterFromVersion(f)].filter(Boolean);
+  memFlush();
   history = []; sceneStep = INTRO_STEPS + 1; readyGate = 'ready';
   spd.start = Date.now(); spd.lastUser = 0;
   const st = spd.st;
@@ -18986,6 +19180,7 @@ Format: „Name: Text", je eine Zeile.`, [{ role: 'user', content: 'Los.' }], 0.
   st.q('.sd-go').onclick = () => {
     const me = meFigure();
     spd.active = false; clearInterval(spd.timer); st.v.remove();
+    memFlush();
     characters = [me ? characterFromVersion(me) : null, characterFromVersion(win.f)].filter(Boolean); history = [];
     stageToLive([win.f], `Nach dem Speed-Dating: Til hat ${wv.name} gewählt. Die beiden verlassen die Bar zusammen - der Abend gehört jetzt ihnen.`);
     spd.backup = null;
@@ -19474,6 +19669,8 @@ document.querySelectorAll('.drawer-item[data-mode]').forEach(item => {
 // durch resetSession.
 let convId = 0;
 function resetSession(reason) {
+  // vor dem Leeren: was noch nicht im Gedächtnis ist, jetzt merken
+  memFlush();
   convId++;
   try { if (game.running) endGame(reason || 'neu'); } catch (e) {}
   try { interruptPlayback(); } catch (e) {}
@@ -21028,9 +21225,9 @@ function openStatusSheet() {
   const fill = () => {
     body.innerHTML = '';
     const g1 = devOn(device1), g2 = devOn(device2);
-    body.appendChild(row('⚙', 'Gerät 1', els.bleStatus.textContent.replace(/^Gerät 1:\s*/, '') + (g1 ? ' · ' + els.motionStatus.textContent.replace(/^Gerät 1:\s*/, '') : ''), g1, g1 ? 'Trennen' : 'Verbinden', () => els.connectBtn.click()));
+    body.appendChild(row('⚙', 'Gerät 1', els.bleStatus.textContent.replace(/^Gerät 1:\s*/, '') + (g1 ? ' · ' + els.motionStatus.textContent.replace(/^Gerät 1:\s*/, '') : ''), g1, g1 ? 'Trennen' : 'Verbinden', () => (devOn(device1) ? device1.disconnect() : device1.connectNow())));
     const has2 = !!((document.getElementById('d2Ip') || {}).value || g2);
-    body.appendChild(row('⚙', 'Gerät 2', has2 ? els.bleStatus2.textContent.replace(/^Gerät 2:\s*/, '') : 'nicht eingerichtet', g2, has2 ? (g2 ? 'Trennen' : 'Verbinden') : 'Einrichten', has2 ? () => els.connectBtn2.click() : () => { closeSheet('statusSheet'); showSettings('conn'); }));
+    body.appendChild(row('⚙', 'Gerät 2', has2 ? els.bleStatus2.textContent.replace(/^Gerät 2:\s*/, '') : 'nicht eingerichtet', g2, has2 ? (g2 ? 'Trennen' : 'Verbinden') : 'Einrichten', has2 ? () => (devOn(device2) ? device2.disconnect() : device2.connectNow()) : () => { closeSheet('statusSheet'); showSettings('conn'); }));
     const hc = hr.connected;
     body.appendChild(row('❤', 'Pulsgurt', hc ? `${hr.bpm || '–'} · Ruhe ${hrRest() || '?'} · lernt mit` : 'nicht verbunden - ohne Gurt wird nichts gelernt', hc, hc ? 'Trennen' : 'Verbinden', () => connectHeart()));
     const ear = !!micSense.analyser;
@@ -21625,6 +21822,7 @@ async function openArcade(figure) {
   const me = meFigure();
   ar.backup = stageBackup();
   characters = [me ? characterFromVersion(me) : null, characterFromVersion(figure)].filter(Boolean);
+  memFlush();
   history = []; readyGate = 'ready'; sceneStep = INTRO_STEPS + 1;
   Object.assign(ar, {
     active: true, paused: false, over: false, fig: figure, name: fv.name, me: me ? latestVersion(me).name.split(' ')[0] : '',
@@ -22115,6 +22313,7 @@ async function g3Open(G) {
   const me = meFigure();
   g3.backup = stageBackup();
   characters = [me ? characterFromVersion(me) : null].concat((G.figs || []).map(f => characterFromVersion(f))).filter(Boolean);
+  memFlush();
   history = []; readyGate = 'ready'; sceneStep = INTRO_STEPS + 1;
   Object.assign(g3, { active: true, paused: false, over: false, G, t: 0, last: performance.now(), parts: [], floats: [], rings: [], shake: 0, flash: 0, flashCol: '255,40,90',
     edgeUntil: 0, burstUntil: 0, burstTimer: null, lastLine: -99, me: me ? g3First(latestVersion(me).name) : '', meFig: me, canvas: v.querySelector('#g3Canvas') });
@@ -24581,6 +24780,14 @@ function helpProtocol() {
   if (s.length > 14000) { const head = s.slice(0, 2500); s = head + '\n(… gekürzt …)\n' + s.slice(-11000); }
   return s;
 }
+// Protokoll für Fragen: die laufende Sitzung - ist sie (nach einem Neustart der App) noch leer, die zuletzt gesicherte
+async function helpProtocolAny() {
+  try { if (typeof wbMeaningful === 'function' && !wbMeaningful()) { const all = await wbAllSessions(); const last = all.find(s => s.id !== sessionStart && s.protocol); if (last) {
+    let s = last.protocol.split('\n').filter(l => HELP.withText || !/^\[[^\]]+\] TEXT (?!system)/.test(l)).map(l => (!HELP.withText && /^\s*Beschreibung:/.test(l)) ? '  Beschreibung: (ausgeblendet)' : l).join('\n');
+    if (s.length > 14000) s = s.slice(0, 2500) + '\n(… gekürzt …)\n' + s.slice(-11000);
+    return [s, `der letzten gesicherten Sitzung (${new Date(last.start).toLocaleString('de-DE')}, mit ${(last.cast || []).join(', ') || '?'})`]; } } } catch (e) {}
+  return [helpProtocol(), 'der aktuellen Sitzung'];
+}
 function helpSystem() {
   return `Du bist Mila, die Hilfe-Begleiterin in Tils privater App „Notizen" (eine Begleiter-App für Erwachsene mit KI-Figuren, Stimmen, Bildern und Gerätesteuerung). Du bist herzlich, ein bisschen verspielt, aber vor allem hilfreich und präzise. Du sprichst Deutsch und duzt Til.
 
@@ -24628,7 +24835,16 @@ function helpView() {
   chips.forEach(([t, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.style.cssText = 'width:auto; flex:0 0 auto; padding:7px 12px; font-size:13px; white-space:nowrap;'; b.textContent = t; b.onclick = fn; host.appendChild(b); });
   v.querySelector('#helpClose').onclick = () => helpClose();
   v.querySelector('#helpClear').onclick = () => { if (!HELP.msgs.length || confirm('Verlauf mit Mila leeren?')) { HELP.msgs = []; helpSave(); helpRender(); } };
-  const send = () => { const i = v.querySelector('#helpInput'); const t = i.value.trim(); if (!t) return; i.value = ''; helpAsk(t); };
+  const send = () => {
+    const i = v.querySelector('#helpInput'); const t = i.value.trim(); if (!t) return; i.value = '';
+    // Fragen zur Sitzung („ist dir was aufgefallen?", „wie lief der Chat?") bekommen das Protokoll automatisch mit -
+    // vorher nur über „Protokoll auswerten", sonst antwortete Mila, sie habe keine Daten.
+    if (/sitzung|session|protokoll|aufgefallen|chat|gespräch|gesprochen|eben|gerade|vorhin|letzte|lief|gelaufen|fehler|hakt|problem|gerät|puls|figur|charakter/i.test(t)) {
+      helpProtocolAny().then(([prot, which]) => helpAsk(t, { long: true, payload: `${t}\n\n(Protokoll ${which} zum Nachschauen${HELP.withText ? '' : ' - Gesprächstext ist ausgeblendet, weil der Haken „Gesprächstext mitschicken" nicht gesetzt ist; du siehst trotzdem Ablauf, Besetzung, Meldungen, Bewegung, Puls und Fehler. Sag das kurz dazu, wenn es um Inhalte des Gesprächs geht'}:)\n${prot}` }));
+      return;
+    }
+    helpAsk(t);
+  };
   v.querySelector('#helpSend').onclick = send;
   v.querySelector('#helpInput').onkeydown = e => { if (e.key === 'Enter') send(); };
   v.querySelector('#helpWithText').onchange = e => { HELP.withText = e.target.checked; };
@@ -26129,7 +26345,8 @@ async function swvPlay(f, card, manual) {
   const v = latestVersion(f); if (!v) return;
   const stored = loadIntroMap()[f.id];
   const cap = card.querySelector('.swv-cap'), btn = card.querySelector('.swv-btn');
-  const show = text => { if (cap && text) { cap.innerHTML = `<div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold, #d9ad62);">${esc(v.name.split(' ')[0])}</div><div style="font-family:var(--font-display); font-style:italic; font-size:17px; line-height:1.4; margin-top:2px;">${esc(stripAudioTags(text))}</div>`; cap.style.opacity = '1'; } };
+  const show = text => { if (localStorage.getItem('companion_swCap') !== 'true') return;   // Untertitel überdeckte das Bild - nur noch Stimme
+    if (cap && text) { cap.innerHTML = `<div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold, #d9ad62);">${esc(v.name.split(' ')[0])}</div><div style="font-family:var(--font-display); font-style:italic; font-size:17px; line-height:1.4; margin-top:2px;">${esc(stripAudioTags(text))}</div>`; cap.style.opacity = '1'; } };
   const done = () => { if (my !== swv.token) return; card.classList.remove('swv-live'); if (btn) btn.textContent = '🔊'; setTimeout(() => { if (my === swv.token && cap) cap.style.opacity = '0'; }, 1800); };
   if (!stored) {
     if (!manual) return;
@@ -26863,14 +27080,19 @@ async function avSheet() {
   const mine = map[AV.figId];
   body.innerHTML = `
     <p class="hint" style="margin-top:0;">${fv ? `Für <b>${esc(fv.name)}</b>: ${mine ? 'eigenes Modell' : def ? 'Standardmodell' : 'noch keins'}.` : ''} Eigene Figuren baust du kostenlos in <b>VRoid Studio</b> (PC, Mac, iPad) und exportierst sie als VRM. Die Modelle bleiben nur auf diesem Gerät und sind nicht in der Sicherung.</p>
-    <div style="display:flex; flex-direction:column; gap:8px;">${list.length ? list.map(m => `<div style="border:1px solid var(--line); border-radius:14px; padding:10px 12px;">
-        <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;"><b style="font-size:14px;">${esc(m.name)}</b><span style="font-size:11.5px; color:var(--text-dim); white-space:nowrap;">${(m.size / 1048576).toFixed(1)} MB${m.key === def ? ' · Standard' : ''}</span></div>
-        <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">${m.meta.author ? esc(m.meta.author) + ' · ' : ''}${m.meta.sexual === true ? 'Lizenz erlaubt erotische Darstellung' : m.meta.sexual === false ? '⚠ Lizenz erlaubt keine erotische Darstellung' : 'Lizenz unbekannt'}</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
-          ${fv ? `<button type="button" class="btn-secondary" data-act="use" data-k="${esc(m.key)}" style="width:auto; padding:7px 11px; font-size:13px;" ${mine === m.key ? 'disabled' : ''}>${mine === m.key ? '✓ ' + esc(fv.name.split(' ')[0]) : 'Für ' + esc(fv.name.split(' ')[0])}</button>` : ''}
-          <button type="button" class="btn-secondary" data-act="def" data-k="${esc(m.key)}" style="width:auto; padding:7px 11px; font-size:13px;" ${m.key === def ? 'disabled' : ''}>Als Standard</button>
-          <button type="button" class="btn-secondary" data-act="del" data-k="${esc(m.key)}" style="width:auto; padding:7px 11px; font-size:13px;">🗑</button>
-        </div></div>`).join('') : '<p class="hint">Noch keine Modelle gespeichert.</p>'}</div>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px;">${list.length ? list.map(m => `<div style="border:${mine === m.key ? '2px solid var(--accent)' : '1px solid var(--line)'}; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-width:0;">
+        <button type="button" data-act="use" data-k="${esc(m.key)}" title="${fv ? 'Für ' + esc(fv.name.split(' ')[0]) + ' nehmen' : ''}" style="position:relative; display:block; width:100%; aspect-ratio:1; border:0; padding:0; background:rgba(255,255,255,0.06); cursor:pointer; font-size:44px; color:inherit;">${m.thumb ? `<img src="${m.thumb}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">` : '🧍'}${mine === m.key ? `<span style="position:absolute; left:6px; top:6px; background:var(--accent); color:#fff; font-size:11.5px; padding:2px 7px; border-radius:9px;">✓ ${esc(fv ? fv.name.split(' ')[0] : '')}</span>` : ''}${m.key === def ? '<span style="position:absolute; right:6px; top:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:11px; padding:2px 6px; border-radius:9px;">Standard</span>' : ''}</button>
+        <div style="padding:8px 9px; display:flex; flex-direction:column; gap:3px; min-width:0;">
+          <b style="font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</b>
+          <span style="font-size:11px; color:var(--text-dim);">${(m.size / 1048576).toFixed(1)} MB · ${m.meta.sexual === true ? 'erotisch erlaubt' : m.meta.sexual === false ? '⚠ bleibt angezogen' : 'Lizenz unklar'}</span>
+          <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
+            <button type="button" class="btn-secondary" data-act="def" data-k="${esc(m.key)}" title="Als Standard" style="width:auto; padding:5px 8px; font-size:12px;" ${m.key === def ? 'disabled' : ''}>⭐</button>
+            <button type="button" class="btn-secondary" data-act="ren" data-k="${esc(m.key)}" title="Umbenennen" style="width:auto; padding:5px 8px; font-size:12px;">✏</button>
+            <button type="button" class="btn-secondary" data-act="pic" data-k="${esc(m.key)}" title="Eigenes Bild" style="width:auto; padding:5px 8px; font-size:12px;">🖼</button>
+            ${AV.key === m.key && AV.vrm ? `<button type="button" class="btn-secondary" data-act="snap" data-k="${esc(m.key)}" title="Foto aus der 3D-Ansicht" style="width:auto; padding:5px 8px; font-size:12px;">📸</button>` : ''}
+            <button type="button" class="btn-secondary" data-act="del" data-k="${esc(m.key)}" title="Löschen" style="width:auto; padding:5px 8px; font-size:12px;">🗑</button>
+          </div></div></div>`).join('') : '<p class="hint" style="grid-column:1 / -1;">Noch keine Modelle gespeichert.</p>'}</div>
+    <p class="hint" style="margin-top:6px;">Bild antippen = für ${fv ? esc(fv.name.split(' ')[0]) : 'die Figur'} nehmen.</p>
     <div class="btn-row" style="margin-top:10px;"><button type="button" class="btn-secondary" id="avsFile">📂 VRM-Datei laden</button></div>
     ${mine ? `<button type="button" class="btn-secondary" id="avsUnset" style="margin-top:8px;">${esc(fv.name.split(' ')[0])}: wieder Standardmodell nehmen</button>` : ''}
     <h3 style="font-size:15px; margin:18px 0 6px;">Gleichlauf mit dem Gerät</h3>
@@ -26884,7 +27106,10 @@ async function avSheet() {
   body.querySelectorAll('button[data-act]').forEach(b => {
     b.onclick = async () => {
       const k = b.dataset.k;
-      if (b.dataset.act === 'use') { avSetMap(AV.figId, k); AV.key = null; await avShowFigure(AV.figId); }
+      if (b.dataset.act === 'use') { if (!fv) return; avSetMap(AV.figId, k); AV.key = null; closeSheet('av3dSheet'); await avShowFigure(AV.figId); return; }
+      if (b.dataset.act === 'ren') { const r0 = await avGet(k); const n = prompt('Name für dieses Modell:', (r0 && r0.name) || ''); if (n === null || !n.trim()) return; await avSetRec(k, { name: n.trim().slice(0, 60) }); }
+      if (b.dataset.act === 'pic') { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f2 = inp.files && inp.files[0]; if (!f2) return; try { await avSetRec(k, { thumb: await avSmallImg(f2, 160), thumbTried: true }); re(); } catch (e) { alert('Bild ging nicht: ' + e.message); } }; inp.click(); return; }
+      if (b.dataset.act === 'snap') { const t = avSnapThumb(); if (t) await avSetRec(k, { thumb: t, thumbTried: true }); }
       if (b.dataset.act === 'def') { safeSet('companion_av3dDefault', k); if (!avMap()[AV.figId]) { AV.key = null; await avShowFigure(AV.figId); } }
       if (b.dataset.act === 'del') {
         if (!confirm('Dieses Modell löschen?')) return;
@@ -26903,6 +27128,8 @@ async function avSheet() {
   body.querySelector('#avsInvert').onchange = e => avSetCfg('invert', e.target.checked);
   body.querySelector('#avsSleeve').onchange = e => avSetCfg('sleeve', e.target.checked);
   openSheet('av3dSheet');
+  // fehlende Vorschaubilder einmalig aus der VRM-Datei holen und die Liste dann neu zeichnen
+  (async () => { let ch = false; for (const m of list) { if (m.thumb) continue; try { const r = await avGet(m.key); if (!r || !r.blob || r.thumbTried) continue; const t = await avThumbFromBuf(await r.blob.arrayBuffer()); await avSetRec(m.key, { thumb: t || '', thumbTried: true }); if (t) { const bt = document.querySelector(`#av3dSheet button[data-act="use"][data-k="${CSS.escape(m.key)}"]`); if (bt) { const im = document.createElement('img'); im.src = t; im.alt = ''; im.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;'; bt.firstChild && bt.firstChild.nodeType === 3 ? bt.replaceChild(im, bt.firstChild) : bt.prepend(im); } } } catch (e) {} } })();
 }
 // Das frühere Testmodell wirkt zu jung für diese Szene - entfernen
 (async () => { try { if (await avGet('test')) { await avDel('test'); const m = avMap(); Object.keys(m).forEach(id => { if (m[id] === 'test') delete m[id]; }); safeSet('companion_av3dMap', JSON.stringify(m)); if (avDefault() === 'test') localStorage.removeItem('companion_av3dDefault'); } } catch (e) {} })();
@@ -26934,6 +27161,107 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28210,7 +28538,7 @@ function mhManRig(THREE, B, opts) {
     // Finger locker
     // Griff: je schneller es geht, desto fester greifen die Finger zu
     st.grip = (st.grip || 0) + (Math.min(1, Math.abs(st.vv) * 2.2 + 0.25 * ar) - (st.grip || 0)) * Math.min(1, dt * 3);
-    for (const sd of ['L', 'R']) { const on = !!(s.hands && s.hands[sd]); for (let f = 2; f <= 5; f++) for (let k = 1; k <= 3; k++) { const b = bn(`finger${f}-${k}.${sd}`); if (b) b.rotation.set((on ? 0.36 + 0.22 * st.grip : 0.22) + f * 0.03 + 0.04 * Math.sin(t * 0.7 + f + (sd === 'L' ? 1 : 0)), 0, 0); } }
+    for (const sd of ['L', 'R']) { const on = !!(s.hands && s.hands[sd]); for (let f = 2; f <= 5; f++) for (let k = 1; k <= 3; k++) { const b = bn(`finger${f}-${k}.${sd}`); if (b) b.rotation.set((on ? 0.36 + 0.22 * st.grip : 0.22) + f * 0.03 + 0.04 * Math.sin(t * 0.7 + f + (sd === 'L' ? 1 : 0)), k === 1 ? (sd === 'L' ? -1 : 1) * 0.22 * (f - 3.5) : 0, 0); } }   // Finger locker zusammen statt gespreizt
     B.root.updateMatrixWorld(true);
     const hd = bn('head');
     const eye = eyeLocal.clone().applyQuaternion(hd.getWorldQuaternion(new THREE.Quaternion())).add(hd.getWorldPosition(V()));
@@ -28238,9 +28566,15 @@ function mhManRig(THREE, B, opts) {
     return (palmI[sd] = { u, fl, n, spreadSign });
   };
   const segTip = b => { const c = b.children.find(x => x.isBone && x.userData && x.userData.head); const loc = c ? c.userData.head.clone().sub(b.userData.head) : b.userData.tail.clone().sub(b.userData.head); return { loc, w: loc.clone().applyMatrix4(b.matrixWorld) }; };
-  frame.contact = (tg, surf, lie) => {
+  // bei knapper Rechenzeit: Ergebnis des letzten Bildes wiederverwenden (Hand bleibt, wie sie lag)
+  frame.contactReuse = tg => { if (!frame.lastQ) return; ['L', 'R'].forEach(sd => { if (!tg || !tg[sd] || !frame.lastQ[sd]) return; frame.lastQ[sd].forEach(([n, q]) => { const b = bn(n); if (b && q) b.quaternion.copy(q); }); }); B.root.updateMatrixWorld(true); };
+  frame.contact = (tg, surf0, lie) => {
     const out = {};
     ['L', 'R'].forEach(sd => {
+      // Abstand über der Haut (z. B. Haare auf dem Kopf): Fläche um lift nach außen versetzt
+      const lift = (tg && tg.lift && tg.lift[sd]) || 0, sph = tg && tg.sphere && tg.sphere[sd];
+      const surf = sph ? (p => { const d = p.clone().sub(sph.c); if (d.lengthSq() < 1e-8) d.set(0, 1, 0); d.normalize(); return { p: sph.c.clone().addScaledVector(d, sph.r), n: d }; })
+        : lift ? (p => { const q = surf0(p); return q && Object.assign({}, q, { p: q.p.clone().addScaledVector(q.n, lift) }); }) : surf0;
       const T = tg && tg[sd]; if (!T) { cw[sd] = Math.max(0, (cw[sd] || 0) - (tg.dt || 0.03) * 4); if (!cw[sd]) Object.keys(cq).forEach(k => { if (k.includes('.' + sd + '|')) delete cq[k]; }); return; }
       let q = surf(T); if (!q || q.p.distanceTo(T) > 0.12) { cw[sd] = Math.max(0, (cw[sd] || 0) - (tg.dt || 0.03) * 4); return; }
       cw[sd] = Math.min(1, (cw[sd] || 0) + (tg.dt || 0.03) * 3.5);
@@ -28255,6 +28589,19 @@ function mhManRig(THREE, B, opts) {
       const nS = q.n.clone().normalize();
       // Fingerrichtung: Verlängerung des Arms, in die Hautebene gelegt
       let f = q.p.clone().sub(sh); f.sub(nS.clone().multiplyScalar(f.dot(nS))); if (f.lengthSq() < 1e-6) f = V(0, -1, 0).sub(nS.clone().multiplyScalar(-nS.y)); f.normalize();
+      // Finger nicht gegen eine ansteigende Rundung richten (sonst stecken die Spitzen in ihr): Richtung auf der Haut drehen,
+      // bis die Haut vor den Fingern nicht steigt - mit Vorliebe für die bisherige Richtung (kein Hin- und Herspringen)
+      {
+        const prevA = (frame.fyaw || {})[sd] || 0; let bestA = 0, bestC = 1e9;
+        for (const ang of [0, -0.3, 0.3, -0.6, 0.6, -0.9, 0.9, -1.2, 1.2]) {
+          const fa = f.clone().applyAxisAngle(nS, ang), qa = surf(q.p.clone().addScaledVector(fa, 0.07)), qb2 = surf(q.p.clone().addScaledVector(fa, 0.13)); if (!qa || !qb2) continue;
+          const rise = Math.max(qa.p.clone().sub(q.p).dot(nS), qb2.p.clone().sub(q.p).dot(nS) * 0.8);
+          const c = Math.max(0, rise - 0.004) * 45 + Math.abs(ang) * 0.35 + Math.abs(ang - prevA) * 0.25;
+          if (c < bestC) { bestC = c; bestA = ang; }
+        }
+        const A0 = prevA + (bestA - prevA) * Math.min(1, (tg.dt || 0.03) * 6);
+        (frame.fyaw = frame.fyaw || {})[sd] = A0; f.applyAxisAngle(nS, A0).normalize();
+      }
       const pin = nS.clone().negate();
       const Ml = new THREE.Matrix4().makeBasis(P.fl, P.n, P.fl.clone().cross(P.n).normalize());
       const Mw = new THREE.Matrix4().makeBasis(f, pin, f.clone().cross(pin).normalize());
@@ -28282,12 +28629,13 @@ function mhManRig(THREE, B, opts) {
       const qw = mk(cr[sd].r, cr[sd].p);
       const center = P.u.clone().multiplyScalar(0.55).applyQuaternion(qw);
       const wristP = q.p.clone().sub(center).addScaledVector(nS, 0.013);
-      const pole = lie ? sh.clone().add(V(-sg * 0.6, -0.6, 0)) : sh.clone().add(V(-sg * 0.6, -0.3, 0.6)).addScaledVector(nS, 0.3);
+      const outW = V(-sg, 0, 0).applyQuaternion(B.root.quaternion).setY(0).normalize();   // nach außen (seine Seite)
+      const pole = lie ? sh.clone().addScaledVector(outW, 0.8).add(V(0, -0.05, 0)) : sh.clone().add(V(-sg * 0.6, -0.3, 0.6)).addScaledVector(nS, 0.3);
       const w = bn('wrist.' + sd);
       for (let it = 0; it < 3; it++) {
         H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wristP, pole);
         const pq = w.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
-        w.quaternion.copy(pq.multiply(qw)); B.root.updateMatrixWorld(true);
+        w.quaternion.copy(pq.multiply(qw)); bn('upperarm01.' + sd).updateWorldMatrix(false, true);
         // Handballen, Mitte und Knöchel prüfen: steckt etwas in ihr (z. B. an einer Falte), Hand herausschieben
         const wp = w.getWorldPosition(V()), pts = [0.12, 0.55, 1.0].map(k => wp.clone().add(P.u.clone().multiplyScalar(k).applyQuaternion(qw)).addScaledVector(nS, -0.013));
         const push = V(0, 0, 0); let worst = 0;
@@ -28300,20 +28648,23 @@ function mhManRig(THREE, B, opts) {
       {
         const lim = 0.87, axSW = wristP.clone().sub(sh).normalize();
         const bendFor = qx => { const el2 = bn('lowerarm01.' + sd).getWorldPosition(V()), wp2 = w.getWorldPosition(V()); return wp2.clone().sub(el2).normalize().angleTo(P.fl.clone().applyQuaternion(qx)); };
-        const solve = (pl, qx, wpX) => { H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wpX, pl); const pq = w.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); w.quaternion.copy(pq.multiply(qx)); B.root.updateMatrixWorld(true); };
-        let bestPole = pole, bestB = bendFor(qw);
-        for (const a of [-1.2, -0.6, 0.6, 1.2]) { const pl = sh.clone().add(pole.clone().sub(sh).applyAxisAngle(axSW, a)); solve(pl, qw, wristP); const b = bendFor(qw); if (b < bestB - 0.02) { bestB = b; bestPole = pl; } }
+        const solve = (pl, qx, wpX) => { H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wpX, pl); const pq = w.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); w.quaternion.copy(pq.multiply(qx)); bn('upperarm01.' + sd).updateWorldMatrix(false, true); };
+        // Unterarm/Ellbogen dürfen nicht durch sie gehen (z. B. beim Reiten an ihrem Oberschenkel vorbei)
+        const armIn = () => { const el2 = bn('lowerarm01.' + sd).getWorldPosition(V()), wp2 = w.getWorldPosition(V()); let s2 = 0; [el2, el2.clone().lerp(wp2, 0.5), el2.clone().lerp(wp2, 0.8)].forEach(pt => { const qq = surf0(pt); if (qq && qq.p.distanceTo(pt) < 0.15) s2 += Math.max(0, 0.01 - pt.clone().sub(qq.p).dot(qq.n)); }); return s2; };
+        solve(pole, qw, wristP);
+        let bestPole = pole, bestB = bendFor(qw), bestC = bestB + armIn() * 40;
+        for (const a of [-1.2, -0.6, 0.6, 1.2, -1.8, 1.8]) { const pl = sh.clone().add(pole.clone().sub(sh).applyAxisAngle(axSW, a)); solve(pl, qw, wristP); const b = bendFor(qw); if (b >= bestC - 0.02) continue; const c = b + armIn() * 40; if (c < bestC - 0.02) { bestC = c; bestB = b; bestPole = pl; } }
         solve(bestPole, qw, wristP);
         if (bestB > lim) {
           const K0 = wristP.clone().add(P.u.clone().applyQuaternion(qw)), sideA = P.fl.clone().applyQuaternion(qw).cross(nS).normalize();
           let done = false;
           for (const sgn of [1, -1]) {
             if (done) break;
-            for (let phi = 0.1; phi <= 0.8; phi += 0.1) {
+            for (let phi = 0.1; phi <= 0.4; phi += 0.1) {   // höchstens ~23° Handballen anheben, sonst tauchen die Finger in sie ein (Kralle)
               const qx = new THREE.Quaternion().setFromAxisAngle(sideA, sgn * phi).multiply(qw), wp = K0.clone().sub(P.u.clone().applyQuaternion(qx));
               if (wp.clone().sub(wristP).dot(nS) < 0) break;   // nur anheben, nie in sie hinein
               solve(bestPole, qx, wp);
-              if (bendFor(qx) <= lim || phi > 0.75) { qw.copy(qx); wristP.copy(wp); done = true; break; }
+              if (bendFor(qx) <= lim || phi > 0.35) { qw.copy(qx); wristP.copy(wp); done = true; break; }
             }
           }
           solve(bestPole, qw, wristP);
@@ -28324,8 +28675,8 @@ function mhManRig(THREE, B, opts) {
         const mc = bn(mn), kb = bn(kn); if (!mc || !kb) return;
         const dAt = a => { mc.quaternion.setFromAxisAngle(P.fl, a); mc.updateWorldMatrix(false, true); const pt = kb.getWorldPosition(V()), qq = surf(pt); return qq ? pt.sub(qq.p).dot(qq.n) - 0.011 : 0; };
         let bestA = 0, bestE = 1e9;
-        for (let a = -0.6; a <= 0.61; a += 0.1) { const e = dAt(a), err = e < 0 ? -e * 3 : e; if (err < bestE) { bestE = err; bestA = a; } }
-        for (const da of [-0.05, 0.05, -0.025, 0.025]) { const e = dAt(bestA + da), err = e < 0 ? -e * 3 : e; if (err < bestE) { bestE = err; bestA += da; } }
+        for (let a = -0.6; a <= 0.61; a += 0.2) { const e = dAt(a), err = e < 0 ? -e * 3 : e; if (err < bestE) { bestE = err; bestA = a; } }
+        for (const da of [-0.1, 0.1, -0.05, 0.05]) { const e = dAt(bestA + da), err = e < 0 ? -e * 3 : e; if (err < bestE) { bestE = err; bestA += da; } }
         mc.quaternion.setFromAxisAngle(P.fl, bestA); mc.updateWorldMatrix(false, true);
       });
       // Finger folgen der Krümmung der Haut: Neigung der Hautnormale vom Knöchel bis vor die Fingerspitze,
@@ -28344,7 +28695,23 @@ function mhManRig(THREE, B, opts) {
         const a1 = Math.max(-0.42, Math.min(0.85, 0.06 + 0.42 * th)), a2 = Math.max(0.03, Math.min(0.95, 0.06 + 0.34 * th)), a3 = Math.max(0.03, Math.min(0.8, 0.05 + 0.24 * th));
         setF(b1, a1, spread); setF(b2, a2); setF(b3, a3); b1.updateWorldMatrix(false, true);
         [[b1, -0.5, spread], [b2, -0.28, 0], [b3, -0.25, 0]].forEach(([b, lo, spr]) => {
-          for (let it = 0; it < 12; it++) { b.updateWorldMatrix(false, true); const tw = segTip(b).w, qq = surf(tw); const dd = qq ? tw.clone().sub(qq.p).dot(qq.n) : 9; if (fi === 2 && sd === 'R') (frame.dbg = frame.dbg || []).push([b.name, it, +ang[b.name].toFixed(2), +(dd * 1000).toFixed(1)]); if (!qq || dd >= 0.007 || ang[b.name] <= lo) break; setF(b, Math.max(lo, ang[b.name] - 0.07), spr); }
+          for (let it = 0; it < 12; it++) { b.updateWorldMatrix(false, true); const tw = segTip(b).w, qq = surf(tw); const dd = qq ? tw.clone().sub(qq.p).dot(qq.n) : 9; if (fi === 2 && sd === (frame.dbgSd || 'R')) (frame.dbg = frame.dbg || []).push([b.name, it, +ang[b.name].toFixed(2), +(dd * 1000).toFixed(1)]); if (!qq || dd >= 0.007 || ang[b.name] <= lo) break; setF(b, Math.max(lo, ang[b.name] - 0.07), spr); }
+          b.updateWorldMatrix(false, true);
+        });
+        // steckt eine Spitze trotzdem noch in ihr (Hand seitlich gekippt, Beugen hilft dann nicht): Glied direkt aus der Haut herausdrehen
+        [b1, b2, b3].forEach(b => {
+          let tot = 0;
+          for (let it = 0; it < 5 && tot < 0.42; it++) {
+            b.updateWorldMatrix(false, true);
+            const J = b.getWorldPosition(V()), tw = segTip(b).w, qq = surf(tw); if (!qq) break;
+            const dd = tw.clone().sub(qq.p).dot(qq.n); if (dd >= -0.002 || -dd < 0.7 * tw.distanceTo(qq.p)) break;
+            const dir = tw.clone().sub(J), L0 = dir.length(); if (L0 < 1e-4) break;
+            // nur um die Beugeachse des Glieds drehen (sonst fächern die Finger seitlich auf)
+            const ang = Math.min(0.42 - tot, (0.002 - dd) / L0); tot += ang;
+            const q0 = b.quaternion.clone();
+            const tryA = s2 => { b.quaternion.copy(q0).multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), s2 * ang)); b.updateWorldMatrix(false, true); const t2 = segTip(b).w, q2 = surf(t2); return q2 ? t2.clone().sub(q2.p).dot(q2.n) : -9; };
+            const dp = tryA(1), dm = tryA(-1); if (Math.max(dp, dm) <= dd) { b.quaternion.copy(q0); break; } tryA(dp >= dm ? 1 : -1);
+          }
           b.updateWorldMatrix(false, true);
         });
       }
@@ -28352,7 +28719,12 @@ function mhManRig(THREE, B, opts) {
       for (let k = 1; k <= 3; k++) {
         const b = bn(`finger1-${k}.${sd}`); if (!b) continue;
         b.updateWorldMatrix(true, false);
-        const st0 = segTip(b), q2 = surf(st0.w); if (!q2) continue;
+        const st0 = segTip(b);
+        // Ziel: neben dem Zeigefinger auf der Haut, in Fingerrichtung - nicht der nächste Hautpunkt (der lag oft hinter dem Daumen, dann stand er hoch)
+        const wq = bn('wrist.' + sd).getWorldPosition(V()), k2 = bn('finger2-1.' + sd).getWorldPosition(V()), k5 = bn('finger5-1.' + sd).getWorldPosition(V());
+        const fdir = k2.clone().lerp(k5, 0.5).sub(wq).normalize(), side = k2.clone().sub(k5).normalize();
+        const guess = st0.w.clone().lerp(wq.clone().addScaledVector(fdir, 0.05 + 0.025 * k).addScaledVector(side, 0.035), 0.6);
+        const q2 = surf(guess); if (!q2) continue;
         const want = q2.p.clone().addScaledVector(q2.n, 0.011), J = b.getWorldPosition(V());
         if (want.distanceTo(J) > 1e-4) mhAim(THREE, b, st0.loc, J.clone().add(want.sub(J).normalize().multiplyScalar(st0.loc.length())));
         b.updateWorldMatrix(false, true);
@@ -28360,11 +28732,21 @@ function mhManRig(THREE, B, opts) {
       B.root.updateMatrixWorld(true);
       // zeitlich glätten: Finger zittern nicht, wenn der nächste Hautpunkt springt
       const aA = 1 - Math.exp(-(tg.dt || 0.03) * 32), aFi = 1 - Math.exp(-(tg.dt || 0.03) * 24);
+      const raw = names.map(n => bn(n) ? bn(n).quaternion.clone() : null);
       names.forEach(n => { const b = bn(n); if (!b) return; const k = n + '|c'; if (cq[k]) { cq[k].slerp(b.quaternion, /finger/.test(n) ? aFi : aA); b.quaternion.copy(cq[k]); } else cq[k] = b.quaternion.clone(); });
       B.root.updateMatrixWorld(true);
+      // bewegt sie sich schnell (Stoß), darf die Glättung die Hand nicht in sie hineinziehen: dann ungeglättet
+      {
+        const chk = []; const wq = w.getWorldQuaternion(new THREE.Quaternion()), wp = w.getWorldPosition(V());
+        [0.12, 0.55, 1.0].forEach(k => chk.push(wp.clone().add(P.u.clone().multiplyScalar(k).applyQuaternion(wq))));
+        for (let fi = 1; fi <= 5; fi++) { const b3 = bn(`finger${fi}-3.${sd}`); if (b3) chk.push(segTip(b3).w); }
+        let inside = false; for (const pt of chk) { const qq = surf(pt); if (qq && pt.clone().sub(qq.p).dot(qq.n) < -0.006) { inside = true; break; } }
+        if (inside) { names.forEach((n, i) => { const b = bn(n); if (b && raw[i]) { b.quaternion.copy(raw[i]); cq[n + '|c'] = raw[i].clone(); } }); B.root.updateMatrixWorld(true); }
+      }
       // weich ein- und ausblenden (kein Schnappen, wenn die Hand die Haut erreicht oder verlässt)
       const wgt = cw[sd] * cw[sd] * (3 - 2 * cw[sd]);
       if (wgt < 0.999) names.forEach((n, i) => { const b = bn(n); if (b && saved[i]) b.quaternion.copy(saved[i].slerp(b.quaternion, wgt)); });
+      frame.lastQ = frame.lastQ || {}; frame.lastQ[sd] = names.map(n => [n, bn(n) ? bn(n).quaternion.clone() : null]);
       out[sd] = q.p;
     });
     B.root.updateMatrixWorld(true);
@@ -28675,11 +29057,11 @@ function avkPlaceRoom() {
   const b = AVK.pen3.base;
   const lyingP = AVK.pose === 'ride' || AVK.pose === 'blowLie' || AVK.pose === 'titsLie';
   if (r.bed.userData.headboard) r.bed.userData.headboard.visible = !lyingP;   // Kopfteil würde im Liegen die Sicht verdecken
-  if (lyingP) { r.bed.position.set(0, Math.min(b.y - 0.13, 0.03), b.z - 0.05); r.bed.rotation.y = Math.PI; }
-  else if (AVK.pose === 'doggy' || AVK.pose === 'mission') { r.bed.position.set(0, 0, b.z + 0.62 - 1.07); r.bed.rotation.y = 0; }
-  else if (AVK.pose === 'carry') { r.bed.position.set(-1.45, 0, b.z - 0.7); r.bed.rotation.y = 0; }
-  else if (AVK.pose === 'tits') { r.bed.position.set(0, b.y + 0.34 - 0.46 > 0 ? 0 : 0, b.z - 1.95); r.bed.rotation.y = 0; }
-  else { r.bed.position.set(0, 0, b.z - 0.1 - 1.12); r.bed.rotation.y = 0; }
+  if (lyingP) { r.bed.position.set(0, Math.min(b.y - 0.13, 0.03), b.z - 0.05); r.bed.rotation.set(0, Math.PI, 0); }
+  else if (AVK.pose === 'doggy' || AVK.pose === 'mission') { r.bed.position.set(0, 0, b.z + 0.62 - 1.07); r.bed.rotation.set(0, 0, 0); }
+  else if (AVK.pose === 'carry') { r.bed.position.set(-1.45, 0, b.z - 0.7); r.bed.rotation.set(0, 0, 0); }
+  else if (AVK.pose === 'tits') { r.bed.position.set(0, b.y + 0.34 - 0.46 > 0 ? 0 : 0, b.z - 1.95); r.bed.rotation.set(0, 0, 0); }
+  else { r.bed.position.set(0, 0, b.z - 0.1 - 1.12); r.bed.rotation.set(0, 0, 0); }
   avkHisBody();
   // Schatten-Kamera auf sie richten
   const c = AVK.chest || b; r.key.target.position.set(0, c.y - 0.25, c.z); r.key.position.set(c.x - 1.3, c.y + 1.8, c.z + 1.6);
@@ -28851,6 +29233,59 @@ function avkSetPose(pose) {
   AVK.refresh = 3;
   if (AVK.room) avkPlaceRoom();
 }
+// Ihre Haare (Federknochen) stoßen an deinem Körper an statt durch ihn hindurchzugehen:
+// Kapseln an deinen Knochen, als Kollisionsgruppe an jeden Federknochen gehängt
+function avkHairColliders() {
+  const vrm = AV.vrm, me = AVK.me, Vm = AV.V; if (!vrm || !vrm.springBoneManager || !Vm || !Vm.VRMSpringBoneCollider) return;
+  const T = AV.T; let C = AVK.hairCol;
+  if (!C || C.vrm !== vrm) {
+    const grp = new T.Group(); grp.name = 'avkHimColliders'; vrm.scene.add(grp);
+    const defs = [['spine05', 'spine03', 0.13], ['spine03', 'neck01', 0.13], ['neck01', 'head', 0.06], ['head', null, 0.11], ['upperleg01.L', 'lowerleg01.L', 0.08], ['upperleg01.R', 'lowerleg01.R', 0.08], ['lowerleg01.L', 'foot.L', 0.055], ['lowerleg01.R', 'foot.R', 0.055], ['upperarm01.L', 'lowerarm01.L', 0.05], ['upperarm01.R', 'lowerarm01.R', 0.05], ['lowerarm01.L', 'wrist.L', 0.042], ['lowerarm01.R', 'wrist.R', 0.042]];
+    const cols = defs.map(([a, b, r]) => { const sh = b ? new Vm.VRMSpringBoneColliderShapeCapsule({ radius: r, offset: new T.Vector3(), tail: new T.Vector3() }) : new Vm.VRMSpringBoneColliderShapeSphere({ radius: r, offset: new T.Vector3() }); const c = new Vm.VRMSpringBoneCollider(sh); c.position.set(0, -1000, 0); grp.add(c); return { c, a, b, sh }; });
+    const group = { colliders: cols.map(x => x.c), name: 'him' };
+    vrm.springBoneManager.joints.forEach(j => { if (Array.isArray(j.colliderGroups)) j.colliderGroups = j.colliderGroups.concat([group]); });
+    vrm.springBoneManager._isSortedJointsDirty = true;
+    C = AVK.hairCol = { vrm, grp, cols };
+  }
+  const H = me && me.B && me.B.bones, on = !!(H && me.B.root.visible !== false && AVK.vrmMode && !AVKE.on);
+  C.grp.updateWorldMatrix(true, false);
+  const wp = n => H[n].getWorldPosition(new T.Vector3());
+  C.cols.forEach(x => {
+    if (!on || !H[x.a] || (x.b && !H[x.b])) { x.c.position.set(0, -1000, 0); x.c.updateWorldMatrix(false, false); return; }
+    const a = C.grp.worldToLocal(wp(x.a)); x.c.position.copy(a);
+    if (x.b) x.sh.tail.copy(C.grp.worldToLocal(wp(x.b)).sub(a));
+    x.c.updateWorldMatrix(false, false);
+  });
+}
+// Dein Körper im Anime-Stil: flache Licht-Stufen (Toon) und dunkle Kontur wie bei den VRM-Figuren
+function avkMeToon() {
+  const me = AVK.me, T = AV.T; if (!me || !me.B || !me.B.mesh) return;
+  const want = localStorage.getItem('companion_av3dMeToon') !== 'false' && AVK.vrmMode, m = me.B.mesh, U = m.userData;
+  if (!!U.toonOn === want) return;
+  if (!AVK.toonGrad) { const d = new Uint8Array([90, 170, 255]); const g = new T.DataTexture(d, 3, 1, T.RedFormat); g.minFilter = g.magFilter = T.NearestFilter; g.needsUpdate = true; AVK.toonGrad = g; }
+  if (want) {
+    U.matStd = m.material;
+    const mk = o => { const t = new T.MeshToonMaterial({ color: o.color ? o.color.clone().multiplyScalar(1.08) : 0xffffff, map: o.map || null, gradientMap: AVK.toonGrad }); t.name = (o.name || '') + '_toon'; return t; };
+    m.material = Array.isArray(U.matStd) ? U.matStd.map(mk) : mk(U.matStd);
+    // Kontur: Rückseiten leicht aufgebläht und dunkel (gleiches Skelett, bewegt sich mit)
+    if (!U.outline) {
+      const om = new T.MeshBasicMaterial({ color: 0x1a0f0c, side: T.BackSide });
+      om.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', 'transformed += normalize(objectNormal) * 0.0024 * clamp(length(cameraPosition - (modelMatrix * vec4(transformed, 1.0)).xyz), 0.2, 2.0);\n#include <project_vertex>'); };
+      const o = new T.SkinnedMesh(m.geometry, om); o.bind(m.skeleton, m.bindMatrix); o.frustumCulled = false; o.name = 'avkMeOutline'; o.castShadow = false;
+      m.parent.add(o); o.position.copy(m.position); o.quaternion.copy(m.quaternion); o.scale.copy(m.scale); U.outline = o;
+    }
+    U.outline.visible = true;
+    // Haare: flach eingefärbt (Toon) statt glänzend
+    const hs = me.hair ? [me.hair.cap].concat(me.hair.shells || []).filter(Boolean) : [];
+    hs.forEach(h => { if (!h.material || h.userData.matStd) return; h.userData.matStd = h.material; const o2 = h.material; const t2 = new T.MeshToonMaterial({ color: o2.color ? o2.color.clone() : 0x553322, map: o2.map || null, alphaMap: o2.alphaMap || null, transparent: !!o2.transparent, alphaTest: o2.alphaTest || 0, side: o2.side, depthWrite: o2.depthWrite, gradientMap: AVK.toonGrad }); h.material = t2; });
+  } else {
+    if (U.matStd) m.material = U.matStd;
+    if (U.outline) U.outline.visible = false;
+    const hs = me.hair ? [me.hair.cap].concat(me.hair.shells || []).filter(Boolean) : [];
+    hs.forEach(h => { if (h.userData.matStd) { h.material = h.userData.matStd; delete h.userData.matStd; } });
+  }
+  U.toonOn = want;
+}
 // Schritthöhe im Stehen (für das Tragen): aus seinem Modell, sonst ein Durchschnittswert
 function avkHisCrotchH() {
   const me = AVK.me; if (!me || !me.B || !me.B.bones) return 0.86;
@@ -28858,7 +29293,7 @@ function avkHisCrotchH() {
 }
 function avkPlace(p, dt) {
   const T = AV.T, B = AVK.B;
-  AVK.surfTick = (AVK.surfTick || 0) + 1;
+  AVK.surfTick = (AVK.surfTick || 0) + 1; AVK.surfSlow = true;   // frühe Abfragen (vor ihrer neuen Haltung) einzeln, das Raster erst für den Hand-Kontakt
   if (!AVK.pen3) avkSetPose(AVK.pose);
   const P3 = AVK.pen3, show = avCfg().sleeve;
   AVK.pen.visible = show;
@@ -28879,12 +29314,35 @@ function avkPlace(p, dt) {
     const me = AVK.me, hk = AVK.herKp;
     let hands = null;
     try { hands = hk ? avkHisHands(hk, dt) : null; } catch (e) { hands = null; }
+    // nie über Kreuz greifen: jede Hand zum Ziel auf ihrer Seite (gilt auch für den Haut-Kontakt danach)
+    if (hands && hands.L && hands.R && me.B && me.B.bones['upperarm01.L']) {
+      const shL = me.B.bones['upperarm01.L'].getWorldPosition(new T.Vector3()), shR = me.B.bones['upperarm01.R'].getWorldPosition(new T.Vector3());
+      if (hands.L.clone().sub(hands.R).dot(shL.sub(shR)) < 0) { const lf = hands.lift || {}, sp = hands.sphere || {}; const nc = hands.noContact || {}; hands = Object.assign({}, hands, { L: hands.R, R: hands.L, lift: { L: lf.R, R: lf.L }, sphere: { L: sp.R, R: sp.L }, noContact: { L: nc.R, R: nc.L } }); }
+    }
     if (!hands && hk && AVK.pose === 'ride') hands = { L: hk.hipL, R: hk.hipR };
     else if (!hands && hk && AVK.pose === 'blow' && hk.fwd) hands = { R: hk.headTop.clone().addScaledVector(hk.fwd, -0.08 * (hk.s || 1)) };
+    // freie Hand steckt in ihr (sie ist zu nah): Hand ein paar Sekunden auf sie legen statt durch sie hindurch
+    try {
+      const now = performance.now() / 1000, hb = AV.vrm && AV.vrm.humanoid.getNormalizedBoneNode('hips'), HB = me.B.bones; AVK.ownRest = AVK.ownRest || {};
+      if (hb && B.isVrm && !AVK.blend) ['L', 'R'].forEach(sd => {
+        if (hands && hands[sd]) { AVK.ownRest[sd] = null; return; }
+        const R = AVK.ownRest[sd];
+        if (R && now < R.until) { hands = Object.assign({}, hands || {}); hands[sd] = R.self ? R.self.clone() : hb.localToWorld(R.loc.clone()); if (R.self) { hands.noContact = Object.assign({}, hands.noContact || {}); hands.noContact[sd] = true; } return; }
+        const f3 = HB['finger3-3.' + sd], tip = f3.userData.tail.clone().sub(f3.userData.head).applyMatrix4(f3.matrixWorld), qt = avkSurfQuery(tip);
+        const pc = HB['wrist.' + sd].getWorldPosition(new T.Vector3()).lerp(HB['finger3-1.' + sd].getWorldPosition(new T.Vector3()), 0.6), q = avkSurfQuery(pc);
+        const tipIn = qt && qt.p.distanceTo(tip) < 0.2 && -tip.clone().sub(qt.p).dot(qt.n) > 0.7 * qt.p.distanceTo(tip) && qt.p.distanceTo(tip) > 0.005;
+        if (q && q.p.distanceTo(pc) < 0.2 && (pc.clone().sub(q.p).dot(q.n) < 0.004 || tipIn)) {
+          // liegt die Stelle ihm zugewandt, Hand auf sie legen - sonst (Arm müsste durch sie hindurch) Hand an die eigene Hüfte, außen an ihr vorbei
+          const shp = HB['upperarm01.' + sd].getWorldPosition(new T.Vector3());
+          if (shp.clone().sub(q.p).dot(q.n) > 0.02) AVK.ownRest[sd] = { loc: hb.worldToLocal(q.p.clone().addScaledVector(q.n, 0.012)), until: now + 5 + Math.random() * 3 };
+          else { const mk = me.kp || {}, th = (sd === 'L' ? mk.thighL : mk.thighR) || shp.clone().add(new T.Vector3(0, -0.45, 0)); const hc = (AVK.herKp && AVK.herKp.hips) || th; const out = th.clone().sub(hc).setY(0); if (out.lengthSq() < 1e-6) out.set(1, 0, 0); out.normalize(); AVK.ownRest[sd] = { self: th.clone().addScaledVector(out, 0.16).add(new T.Vector3(0, 0.06, 0)), until: now + 4 + Math.random() * 3 }; }
+        }
+      });
+    } catch (e) {}
     const bedY = AVK.room ? AVK.room.bed.position.y : 0, kneel = AVK.pose === 'doggy' || AVK.pose === 'mission';
     const floor = kneel ? bedY : bedY - 0.34;
     const vvH = AVK.pPrev === undefined ? 0 : Math.max(-1, Math.min(1, (p - AVK.pPrev) / Math.max(dt, 1e-3) * 0.3)); AVK.pPrev = p;
-    him = me.rig(dt, { pose: AVK.pose, base: P3.base, hands, floor, kneel, bpm, arousal: aro, vv: vvH });
+    him = me.rig(dt, { pose: AVK.pose, base: P3.base, hands, floor, kneel, bpm, arousal: aro, vv: vvH, hideHead: AV.camMode === 0 && !AVKE.on });
     AVK.hisTargets = hands;
     me.kp = him;
     if (me.B.eyes) me.B.eyes.visible = AV.camMode !== 0;
@@ -28899,11 +29357,32 @@ function avkPlace(p, dt) {
   AVK.herSt = st;
   try { avkCollide(); } catch (e) {}
   try { avkBlendApply(dt); } catch (e) { AVK.blend = null; }
+  try { avkHairColliders(); } catch (e) {}
+  try { if (AVK.me && AVK.me.B && AVK.me.B.mesh && !!AVK.me.B.mesh.userData.toonOn !== (localStorage.getItem('companion_av3dMeToon') !== 'false' && !!AVK.vrmMode)) avkMeToon(); } catch (e) {}
   if (AVK.jig) AVK.jig(dt);
   B.root.updateMatrixWorld(true);
   // deine Hände: flach auf ihrer echten Haut (Oberfläche aus ihrem Modell), Finger folgen der Rundung
   if (AVK.me && AVK.me.rig.contact && B.isVrm && !AVK.blend && localStorage.getItem('companion_av3dContact') !== 'false') {
-    try { const tg = Object.assign({ dt }, AVK.hisTargets || {}); AVK.me.rig.contact(tg, avkSurfQuery, /ride|Lie/.test(AVK.pose)); } catch (e) { console.warn(e); }
+    AVK.surfTick++; AVK.surfSlow = false;   // ihre Haut neu abtasten: sie hat sich in diesem Bild bewegt (frühere Abfragen sahen noch die alte Haltung)
+    try {
+      const tg = Object.assign({ dt }, AVK.hisTargets || {}); if (tg.noContact) Object.keys(tg.noContact).forEach(sd => { if (tg.noContact[sd]) delete tg[sd]; });
+      // Bildrate knapp (unter ~28 Bilder/s): Kontakt nur jedes zweite Bild neu rechnen, dazwischen das letzte Ergebnis halten
+      AVK.dtAvg = (AVK.dtAvg || dt) + (dt - (AVK.dtAvg || dt)) * 0.05; AVK.cPar = !AVK.cPar;
+      if (AVK.dtAvg > 1 / 28 && AVK.cPar && AVK.me.rig.contactReuse && !AVK.blend && !window.__noReuse) AVK.me.rig.contactReuse(tg);
+      else AVK.me.rig.contact(tg, avkSurfQuery, /ride|Lie/.test(AVK.pose));
+    } catch (e) { console.warn(e); }
+    // Sicherheitsnetz: steckt deine Hand oder dein Unterarm trotzdem in ihr (Stelle nicht sauber erreichbar), Stelle eine Weile meiden
+    try {
+      const HB = AVK.me.B.bones, now = performance.now() / 1000, Sx = AVK.hisH; AVK.hisBlock = AVK.hisBlock || {};
+      if (Sx) ['L', 'R'].forEach(sd => {
+        const S = Sx[sd]; if (!S || !S.kind || S.kind === 'own' || !AVK.hisTargets || !AVK.hisTargets[sd]) return;
+        const w = HB['wrist.' + sd].getWorldPosition(new T.Vector3()), el = HB['lowerarm01.' + sd].getWorldPosition(new T.Vector3()), f3 = HB['finger3-3.' + sd];
+        const pts = [w, el.clone().lerp(w, 0.5)]; [2, 3, 4, 5].forEach(fi => { const fb = HB['finger' + fi + '-3.' + sd]; if (fb) pts.push(fb.userData.tail.clone().sub(fb.userData.head).applyMatrix4(fb.matrixWorld)); });
+        let worst = 0; pts.forEach(pt => { const q = avkSurfQuery(pt); if (!q) return; const dd = pt.clone().sub(q.p).dot(q.n); if (q.p.distanceTo(pt) < 0.15 && -dd > 0.7 * q.p.distanceTo(pt)) worst = Math.min(worst, dd); });
+        S.bad = worst < -0.018 ? (S.bad || 0) + dt : Math.max(0, (S.bad || 0) - dt);
+        if (S.bad > 0.3) { AVK.hisBlock[sd + S.kind] = now + 15; S.until = now; S.bad = 0; }
+      });
+    } catch (e) {}
   }
   if (AVK.hair) AVK.hair.step(dt, AV.camera.position);
 }
@@ -28940,18 +29419,25 @@ function avkFromText(text) {
   if (h) { AVK.hand2 = h[0]; AVK.hand2Until = performance.now() + (h[0] === 'oil' ? 32000 : /slap|whip/.test(h[0]) ? 16000 : 12000); }
 }
 function avkSwitch(pose) {
-  if (AVK.B && AVK.B.isVrm && AVK.on && localStorage.getItem('companion_av3dBlend') !== 'false') {
-    // weicher Wechsel: alte Haltung merken, neue einrichten, dann 1,5 s lang überblenden
-    const snap = avkSnap();
-    avkSetPose(pose);
-    for (let i = 0; i < 40; i++) avkPlace(0.5, 1 / 30);
-    AVK.blend = { snap, t: 0, dur: 1.5, live: null };
-    avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[pose]);
-    return;
-  }
-  const c = document.getElementById('av3dCanvas');
-  if (c) { c.style.transition = 'opacity .25s'; c.style.opacity = '0'; }
-  setTimeout(() => { avkSetPose(pose); if (AVK.hair && AVK.hair.reset) AVK.hair.reset(); if (AVK.B && AVK.B.isVrm) { for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); try { AVK.B.vrm.springBoneManager.reset(); } catch (e) {} } for (let i = 0; i < 20; i++) avkPlace(0.5, 1 / 30); if (c) c.style.opacity = '1'; avHint({ hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[pose]); }, 260);
+  // kurz schwarz, neue Stellung einrichten und einschwingen lassen, dann wieder aufblenden (kein Überblenden mehr - das sah verdreht aus)
+  const v = avView ? avView() : null, names = { hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' };
+  let f = document.getElementById('avkFade');
+  if (!f && v) { f = document.createElement('div'); f.id = 'avkFade'; f.style.cssText = 'position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .22s ease; z-index:5;'; const c = document.getElementById('av3dCanvas'); if (c && c.parentNode === v) c.insertAdjacentElement('afterend', f); else v.appendChild(f); }
+  AVK.blend = null;
+  const fade = localStorage.getItem('companion_av3dBlend') !== 'false';
+  if (f && fade) f.style.opacity = '1';
+  clearTimeout(AVK.switchT);
+  AVK.switchT = setTimeout(() => {
+    try {
+      avkSetPose(pose);
+      if (AVK.hair && AVK.hair.reset) AVK.hair.reset();
+      for (let i = 0; i < 45; i++) avkPlace(0.5, 1 / 30);
+      if (AVK.B && AVK.B.isVrm) { try { AVK.B.vrm.springBoneManager.reset(); } catch (e) {} for (let i = 0; i < 15; i++) avkPlace(0.5, 1 / 30); }
+      AVK.camS = null;
+    } catch (e) { console.warn(e); }
+    if (f) setTimeout(() => { f.style.opacity = '0'; }, 60);
+    avHint(names[pose]);
+  }, fade ? 240 : 0);
 }
 function avkCamera(t) {
   const T = AV.T, cam = AV.camera, b = AVK.base, ch = AVK.chest || b, hd = AVK.head || b;
@@ -28960,19 +29446,20 @@ function avkCamera(t) {
   const eye = AVK.me && AVK.me.kp && AVK.me.kp.eye;
   if (AV.camMode === 0 && eye) {
     pos = eye.clone();
-    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blowLie' ? b.clone().add(new T.Vector3(0, 0.16, -0.1)) : pose === 'titsLie' ? b.clone().add(new T.Vector3(0, 0.24, -0.12)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : pose === 'tits' ? b.clone().add(new T.Vector3(0, 0.08, -0.22)) : pose === 'doggy' ? b.clone().add(new T.Vector3(0, -0.06, -0.38)) : pose === 'mission' ? b.clone().add(new T.Vector3(0, -0.08, -0.42)) : pose === 'carry' ? hd.clone().add(new T.Vector3(0, -0.04, 0)) : b.clone().lerp(hd, 0.72);
+    at = pose === 'ride' ? b.clone().add(new T.Vector3(0, 0.5, -0.05)) : pose === 'blowLie' ? b.clone().add(new T.Vector3(0, 0.16, -0.1)) : pose === 'titsLie' ? b.clone().add(new T.Vector3(0, 0.24, -0.12)) : pose === 'blow' ? b.clone().add(new T.Vector3(0, -0.12, -0.25)) : pose === 'tits' ? b.clone().add(new T.Vector3(0, 0.08, -0.22)) : pose === 'doggy' ? b.clone().add(new T.Vector3(0, -0.06, -0.38)) : pose === 'mission' ? b.clone().add(new T.Vector3(0, -0.08, -0.42)) : pose === 'carry' ? hd.clone().add(new T.Vector3(0, 0.03, 0)) : b.clone().lerp(hd, 0.72);
   } else if (AV.camMode === 2 && AVK.me) {
     const c = ch.clone().lerp(b, 0.5); c.y = (Math.max(hd.y, b.y) + Math.min(ch.y, b.y)) / 2 - 0.05; c.x = 0;
     pos = c.clone().add(new T.Vector3(1.75, 0.25, pose === 'ride' || /Lie/.test(pose) ? 0.35 : 0.1)); at = c;
   } else if (AV.camMode === 1 && AVK.me && (pose === 'blowLie' || pose === 'titsLie')) { pos = hd.clone().add(new T.Vector3(-0.42, pose === 'blowLie' ? 0.2 : 0.06, 0.55)); at = hd.clone().add(new T.Vector3(0, pose === 'blowLie' ? -0.08 : -0.1, 0)); }
-  else if (AV.camMode === 1 && AVK.me && pose === 'mission') { pos = hd.clone().add(new T.Vector3(0.32, 0.5, 0.3)); at = hd.clone().add(new T.Vector3(0, -0.02, 0.12)); }
+  else if (AV.camMode === 1 && AVK.me && pose === 'mission') { pos = hd.clone().add(new T.Vector3(0.18, 0.38, 0.42)); at = hd.clone().add(new T.Vector3(0, -0.02, 0.04)); }
+  else if (AV.camMode === 1 && AVK.me && pose === 'carry') { pos = hd.clone().add(new T.Vector3(0.7, 0.04, -0.22)); at = hd.clone().add(new T.Vector3(0, -0.08, 0.02)); }
   else if (AV.camMode === 1 && AVK.me && pose === 'doggy') { const fw = (AVK.herKp && AVK.herKp.fwd) || new T.Vector3(0, 0, -1); pos = hd.clone().addScaledVector(fw, 0.55).add(new T.Vector3(0.18, -0.12, 0)); at = hd.clone().add(new T.Vector3(0, -0.06, 0)); }
   else if (AV.camMode === 1 && AVK.me && pose !== 'ride') { pos = hd.clone().add(new T.Vector3(0.48, 0.12, 0.3)); at = hd.clone().add(new T.Vector3(0, 0.0, 0.05)); }
   else if (AV.camMode === 0) {
     if (pose === 'ride') { pos = b.clone().add(new T.Vector3(0, 0.3, 0.8)); at = b.clone().add(new T.Vector3(0, 0.48, 0)); }
     else if (pose === 'blow') { pos = b.clone().add(new T.Vector3(0, 0.45, 0.14)); at = b.clone().add(new T.Vector3(0, -0.06, -0.3)); }
     else { pos = b.clone().add(new T.Vector3(0, 0.62, 0.2)); at = b.clone().add(new T.Vector3(0, 0.02, -0.38)); }
-  } else if (AV.camMode === 1) { pos = hd.clone().add(new T.Vector3(0.05, 0.1, 0.55)); at = hd.clone().add(new T.Vector3(0, 0.06, 0)); }
+  } else if (AV.camMode === 1) { pos = hd.clone().add(new T.Vector3(0.14, 0.06, 0.4)); at = hd.clone().add(new T.Vector3(0, 0.03, 0)); }
   else { pos = ch.clone().add(new T.Vector3(1.2, 0.15, 0.55)); at = ch.clone().add(new T.Vector3(0, -0.15, 0.15)); }
   if (AV.camMode === 0 && eye) {
     // aus deinen Augen: Ziehen bzw. Handy drehen = umschauen (der Kopf dreht sich, die Kamera bleibt in dir)
@@ -29321,6 +29808,7 @@ function avkVrmRig(vrm, cal) {
     h.quaternion.copy(pq.invert().multiply(q));
   }
   const POLES = [[0.5, -0.5, -0.2], [0.85, -0.25, -0.35], [0.55, -0.05, -0.75], [0.9, -0.7, 0.1], [0.2, -0.4, -0.9]];
+  const POLES_LIE = [[0.25, -1, 0], [0.55, -0.8, 0.25], [0.55, -0.8, -0.25]];
   st.poleIdx = { left: 0, right: 0 };
   function rest(sd, target, curl, palm) {
     const sg = sd === 'left' ? 1 : -1, sh = B(sd + 'UpperArm').getWorldPosition(V());
@@ -29329,13 +29817,17 @@ function avkVrmRig(vrm, cal) {
     let fd = target.clone().sub(sh); fd.sub(pd.clone().multiplyScalar(fd.dot(pd))); if (fd.lengthSq() < 1e-6) fd = FW.clone(); fd.normalize();
     const wrist = target.clone().addScaledVector(pd, -0.028 * s0).addScaledVector(fd, -0.06 * s0);
     const side = LW.clone().multiplyScalar(sg);
-    const tryPole = i => { const [a, b, c] = POLES[i]; const pole = sh.clone().addScaledVector(side, a).addScaledVector(UP, b).addScaledVector(FW, c); limb(sd + 'UpperArm', sd + 'LowerArm', sd + 'Hand', wrist, pole); B(sd + 'UpperArm').updateWorldMatrix(true, true); return torsoHit(armPts(sd)); };
+    const PL = st.lyingBack ? POLES_LIE : POLES;   // auf dem Rücken: Ellbogen zeigt ins Bett (kein Umklappen beim Armschwung)
+    const tryPole = i => { const [a, b, c] = PL[Math.min(i, PL.length - 1)]; const pole = sh.clone().addScaledVector(side, a).addScaledVector(UP, b).addScaledVector(FW, c); limb(sd + 'UpperArm', sd + 'LowerArm', sd + 'Hand', wrist, pole); B(sd + 'UpperArm').updateWorldMatrix(true, true); return torsoHit(armPts(sd)); };
     const prev = st.poleIdx[sd] || 0;
     let hit = tryPole(prev);
-    if (hit > 0) {
+    // während die Hand umgesetzt wird, Ellbogen-Stellung halten (Umklappen mitten im Weg sah ruckartig aus) - nur bei deutlichem Durchdringen wechseln
+    st.poleAt = st.poleAt || {};
+    const lockP = (st.transit && st.transit[sd] > st.t) || (st.t - (st.poleAt[sd] || -9) < 0.8);   // nach einem Wechsel eine Weile halten (kein Hin- und Herklappen)
+    if (hit > (lockP ? 0.03 * s0 : 0)) {
       let best = { i: prev, hit };
-      for (let i = 0; i < POLES.length; i++) { if (i === prev) continue; const h2 = tryPole(i); if (h2 < best.hit - 0.004) best = { i, hit: h2 }; if (h2 <= 0) break; }
-      if (best.i !== st.poleIdx[sd]) tryPole(best.i);
+      for (let i = 0; i < PL.length; i++) { if (i === prev) continue; const h2 = tryPole(i); if (h2 < best.hit - 0.004) best = { i, hit: h2 }; if (h2 <= 0) break; }
+      if (best.i !== st.poleIdx[sd]) { tryPole(best.i); st.poleAt[sd] = st.t; }
       st.poleIdx[sd] = best.i;
     }
     // Finger halb Richtung Unterarm, halb zur Fläche - so knickt das Handgelenk nicht unnatürlich
@@ -29343,7 +29835,7 @@ function avkVrmRig(vrm, cal) {
     const fdir = fa.clone().multiplyScalar(0.55).add(fd.clone().multiplyScalar(0.45)).normalize();
     setHand(sd, fdir, pd);
     softFingers(sd, curl === undefined ? 0.2 : curl, st.t);
-    thumb(sd, Math.min(1, 0.25 + (curl || 0.2)));
+    thumb(sd, (curl || 0) > 0.9 ? 0.3 : Math.min(1, 0.25 + (curl || 0.2)));   // Faust: Daumen liegt an statt abzustehen
   }
   // Fuß gestreckt und flach: Spann liegt auf der Unterlage, Zehen zeigen nach hinten (wie beim echten Knien)
   const footFlat = (sd, y) => {
@@ -29381,7 +29873,7 @@ function avkVrmRig(vrm, cal) {
     vrm.humanoid.resetNormalizedPose();
     // Doggy: sie dreht dir den Rücken zu
     const U0 = vrm.scene.userData; if (U0.yaw0 === undefined) U0.yaw0 = vrm.scene.rotation.y;
-    vrm.scene.rotation.y = U0.yaw0 + (pose === 'doggy' ? Math.PI : 0);
+    vrm.scene.rotation.set(0, U0.yaw0 + (pose === 'doggy' ? Math.PI : 0), 0);
     legs(pose);
     st.pv = st.pv === undefined ? p : st.pv; const vel = (p - st.pv) / Math.max(dt, 1e-3); st.pv = p; const vv = Math.max(-1, Math.min(1, vel * 0.3));
     st.spd = (st.spd || 0) + (Math.abs(vel) - (st.spd || 0)) * Math.min(1, dt * 1.5);   // Tempo des Hubs, geglättet
@@ -29422,6 +29914,7 @@ function avkVrmRig(vrm, cal) {
       R('chest', 0.05 + 0.012 * breath * (1 + ar) + 0.06 * (st.rip || 0) - 0.08 * (st.archW || 0), 0, 0);
       if (B('upperChest')) R('upperChest', 0.04 + 0.01 * breath, 0, 0);
     };
+    st.lyingBack = pose === 'mission';
     if (pose === 'mission') backBend(st.mb === undefined ? -0.3 : st.mb);
     else if (pose === 'carry') {
       // getragen: Becken zu dir gekippt, Oberkörper leicht zurück, federt mit jedem Stoß
@@ -29597,7 +30090,9 @@ function avkVrmRig(vrm, cal) {
     } else if (pose === 'carry') {
       const depth = 0.2 + 0.5 * (1 - p);
       const want = pen.base.clone().addScaledVector(pen.axis, pen.L * (1 - depth) + 0.01);
-      vrm.scene.position.add(want.sub(keyPoints().crotch)); vrm.scene.position.y += (st.land || 0) * s0; vrm.scene.updateMatrixWorld(true);
+      const wantC = want.clone(); vrm.scene.position.add(want.sub(keyPoints().crotch)); vrm.scene.position.y += (st.land || 0) * s0; vrm.scene.updateMatrixWorld(true);
+      // Köpfe nicht ineinander: ist ihr Kopf zu nah an deinem, lehnt sie sich weiter zurück
+      if (him && him.eye) for (let it = 0; it < 3; it++) { const d = B('head').getWorldPosition(V()).distanceTo(him.eye); if (d > 0.24 * s0) break; st.cLean = Math.min(0.6, (st.cLean || 0) + (0.24 * s0 - d) * 2.5); Radd('spine', -(0.24 * s0 - d) * 1.6, 0, 0); Radd('chest', -(0.24 * s0 - d) * 1.0, 0, 0); vrm.scene.updateMatrixWorld(true); vrm.scene.position.add(wantC.clone().sub(keyPoints().crotch)); vrm.scene.updateMatrixWorld(true); }
       const kq = keyPoints(), fwC = kq.nipL.clone().add(kq.nipR).multiplyScalar(0.5).sub(B('hips').getWorldPosition(V())).setY(0).normalize(), lwC = kq.nipL.clone().sub(kq.nipR).setY(0).normalize();
       // Beine um deine Hüfte, Füße hinter deinem Rücken gekreuzt
       const back = him && him.belly ? him.belly.clone().addScaledVector(fwC, 0.17).add(V(0, -0.12, 0)) : pen.base.clone().addScaledVector(fwC, 0.2).add(V(0, 0.08, 0));
@@ -29697,18 +30192,26 @@ function avkVrmRig(vrm, cal) {
       else { q.addScaledVector(leftW, Math.sin(ph) * g.rub * s0).add(V(0, Math.sin(ph * 0.7 + 1) * g.rub * 0.4 * s0, 0)); }
       if (g.gest) { q.addScaledVector(fwd, Math.sin(ph * 1.3) * 0.02 * s0).add(V(0, st.lvS * 0.04 * s0 * Math.sin(t * 6.1), 0)); }
       if (g.own || g.gest || g.ownThigh) pushOut(q, g.gest ? 0.16 : 0.115);
+      // eigene Haut (Oberschenkel, Hüfte, Brust): Hand liegt wirklich auf, Handfläche zur Haut
+      let palmS = null;
+      if ((g.own || g.ownThigh) && !s.measure && !window.__noOwnProj && typeof avkSurfQuery === 'function') { try { const qs = avkSurfQuery(q); if (qs && qs.p.distanceTo(q) < 0.1 * s0) {
+        // Korrektur und Hautnormale weich nachführen (sonst zittert der Arm, wenn der nächste Hautpunkt springt)
+        const corr = qs.p.clone().addScaledVector(qs.n, 0.016 * s0).sub(q), kk = 1 - Math.exp(-dt * 7);
+        H.sc = H.sc && H.scKind === H.kind ? H.sc.lerp(corr, kk) : corr.clone(); H.sn = H.sn && H.scKind === H.kind ? H.sn.lerp(qs.n, kk).normalize() : qs.n.clone(); H.scKind = H.kind;
+        q.add(H.sc); palmS = H.sn.clone().negate(); } } catch (e) {} }
       if (!g.kiss && !g.noHead) keepHead(q);
       if (H.k < 1 && H.from) {
-        if (!H.dur) H.dur = Math.max(0.55, Math.min(1.5, (0.5 + H.from.distanceTo(q) / (0.5 * s0)) / (0.7 + 0.3 * E))) * (pose === 'mission' ? 1.5 : 1);
+        st.transit = st.transit || {}; st.transit[sd] = t + 0.1;
+        if (!H.dur) H.dur = Math.max(0.55, Math.min(1.5, (0.5 + H.from.distanceTo(q) / (0.5 * s0)) / (0.7 + 0.3 * E))) * (pose === 'mission' ? 2.0 : 1);
         H.k = Math.min(1, H.k + dt / H.dur); const e = ease5(H.k), arc = Math.sin(Math.PI * e);
         const r = H.from.clone().lerp(q, e).add(V(0, arc * 0.07 * s0, 0)).addScaledVector(fwd, arc * 0.04 * s0); if (pose === 'mission') r.addScaledVector(leftW, sgOf(sd) * arc * 0.34 * s0);   // liegend: Bogen nach außen, Ellbogen kippt nicht durch
         pushOut(r, 0.13 + 0.06 * arc); if (!g.kiss && !g.noHead) keepHead(r); q.copy(r);
       }
       H.last = q.clone();
       // Handfläche beim Wechsel weich mitdrehen (sonst springt das Handgelenk und der Ellbogen klappt um)
-      let palm = g.palm ? g.palm.clone().normalize() : g.palm;
+      let palm = palmS ? palmS.clone() : g.palm ? g.palm.clone().normalize() : g.palm;
       if (palm && H.from && H.palm0For !== H.from) { H.palm0 = H.lastPalm ? H.lastPalm.clone() : null; H.palm0For = H.from; }
-      if (palm && H.k < 1 && H.palm0) { const e = ease5(H.k); palm = H.palm0.clone().lerp(palm, e); if (palm.lengthSq() < 1e-4) palm = g.palm.clone(); palm.normalize(); }
+      if (palm && H.k < 1 && H.palm0) { const e = ease5(H.k); const pw2 = palm.clone(); palm = H.palm0.clone().lerp(pw2, e); if (palm.lengthSq() < 1e-4) palm = pw2; palm.normalize(); }
       if (palm) H.lastPalm = palm.clone();
       rest(sd, q, g.curl, palm);
     };
@@ -29726,7 +30229,7 @@ function avkVrmRig(vrm, cal) {
         let next = choose(sd, H.kind === 'gesture' ? 'gesture' : (Math.random() < 0.6 ? H.kind : null));
         if (other && other.kind === next && /breast|balls/.test(next)) next = H.kind;
         moveTo(H, next);
-        H.until = t + (H.kind === 'gesture' ? 1.4 + Math.random() * 1.4 : (3 + Math.random() * 6) / (0.75 + 0.35 * E));
+        H.until = t + (H.kind === 'gesture' ? 1.4 + Math.random() * 1.4 : (3 + Math.random() * 6) / (0.75 + 0.35 * E)) * (pose === 'mission' ? 1.6 : 1);   // liegend seltener umgreifen
       }
       guide(sd, (TGT[H.kind] && TGT[H.kind](sd)) || TGT.ownThigh(sd), H);
     };
@@ -29854,7 +30357,7 @@ function avkVrmRig(vrm, cal) {
       const H = handState('left'); H.until = t + 1;
       const gp = pen.base.clone().addScaledVector(pen.axis, pen.L * 0.08);
       if (H.kind !== 'base') { H.from = H.last ? H.last.clone() : null; H.kind = 'base'; H.k = 0; H.dur = 0; }
-      if (H.k < 1 && H.from) { H.k = Math.min(1, H.k + dt / 0.9); const e = ease5(H.k), arc = Math.sin(Math.PI * e); const q = H.from.clone().lerp(gp, e).add(V(0, arc * 0.06 * s0, 0)); pushOut(q, 0.14); H.last = q.clone(); rest('left', q, 0.6, V(0, -1, 0)); }
+      if (H.k < 1 && H.from) { st.transit = st.transit || {}; st.transit.left = t + 0.1; H.k = Math.min(1, H.k + dt / 0.9); const e = ease5(H.k), arc = Math.sin(Math.PI * e); const q = H.from.clone().lerp(gp, e).add(V(0, arc * 0.06 * s0, 0)); pushOut(q, 0.14); H.last = q.clone(); rest('left', q, 0.6, V(0, -1, 0)); }
       else { grip('left', gp, pen.axis, 0); H.last = gp.clone(); }
     }
     else if (pose === 'hand' && tech === 'balls' && s.balls) { const H = handState('left'); moveTo(H, 'balls'); H.until = t + 1; guide('left', TGT.balls('left'), H); }
@@ -29870,7 +30373,7 @@ function avkVrmRig(vrm, cal) {
           const pump = 0.05 * s0 * Math.max(0, Math.sin(rt * 8.5 + i * 0.7));
           const up = sh.clone().add(V(0, 0.34 * s0 + pump, 0)).addScaledVector(leftW, sg * 0.2 * s0).addScaledVector(fwd, 0.02 * s0);
           const cur = B(sd + 'Hand').getWorldPosition(V());
-          rest(sd, cur.lerp(up, env), 0.95, fwd.clone().negate());
+          rest(sd, cur.lerp(up, env), 0.12, fwd.clone().negate());   // offene Hände beim Jubeln (Faust sah nach Zeigen aus)
         });
       }
     }
@@ -30133,6 +30636,7 @@ async function avkVrmShow(figId) {
         <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px; ${lic ? 'opacity:.5;' : ''}"><input type="checkbox" id="avkVrmNude" ${avkVrmNude(AV.key, meta) ? 'checked' : ''} ${lic ? 'disabled' : ''}> Kleidung ausziehen (soweit das Modell es zulässt)</label>
         ${lic ? '<p class="hint">Die Lizenz dieses Modells erlaubt keine sexuelle Darstellung - deshalb bleibt es angezogen.</p>' : '<p class="hint" style="margin-top:4px;">Was der Ersteller direkt in die Haut gemalt hat (z. B. Unterwäsche), bleibt sichtbar.</p>'}
         <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkMeOn2" ${localStorage.getItem('companion_av3dMe') !== 'false' ? 'checked' : ''}> Mich mit anzeigen</label>
+        <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkMeToon" ${localStorage.getItem('companion_av3dMeToon') !== 'false' ? 'checked' : ''}> Mich im Anime-Stil zeichnen (passt besser zu VRM-Figuren)</label>
         <div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-secondary" id="avkVrmSave">⤓ VRM-Datei speichern</button></div>
         <hr style="border:0; border-top:1px solid var(--line); margin:16px 0;">`;
       body0.insertBefore(vb, body0.firstChild);
@@ -30140,6 +30644,7 @@ async function avkVrmShow(figId) {
       vb.querySelector('#avkVrmRoom').onchange = e => { safeSet('companion_vrmRoom', e.target.checked ? 'true' : 'false'); reshow(); };
       const nu = vb.querySelector('#avkVrmNude'); if (!lic) nu.onchange = e => { const m = avkVrmNudeMap(); m[AV.key] = e.target.checked; safeSet('companion_vrmNude', JSON.stringify(m)); if (AV.vrm) avkVrmClothes(AV.vrm, e.target.checked && !!AVK.vrmMode); };
       vb.querySelector('#avkMeOn2').onchange = e => { safeSet('companion_av3dMe', e.target.checked ? 'true' : 'false'); reshow(); };
+      vb.querySelector('#avkMeToon').onchange = e => { safeSet('companion_av3dMeToon', e.target.checked ? 'true' : 'false'); try { avkMeToon(); } catch (er) {} };
       vb.querySelector('#avkVrmSave').onclick = () => { if (!rec || !rec.blob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(rec.blob); a.download = (rec.name || 'figur').replace(/[^\w\-äöüÄÖÜß ]+/g, '_') + '.vrm'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
       return;
     }
@@ -30197,7 +30702,17 @@ async function avkVrmShow(figId) {
   b.style.cssText = 'width:44px; height:44px; padding:0; flex:0 0 44px; background:rgba(20,14,17,0.6); font-size:12px;';
   const LBL = { auto: 'Auto', hand: '✋', blow: '👄', ride: '🐎', tits: '🍈', doggy: '🐕', blowLie: '💋', titsLie: '🍒', mission: '🛏️', carry: '🫂' };
   const paint = () => { if (!LBL[AVK.poseMode]) AVK.poseMode = 'auto'; b.textContent = LBL[AVK.poseMode]; b.title = { auto: 'Stellung folgt der Handlung', hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst und schaut dich an', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest zwischen ihren Beinen', carry: 'Du trägst sie im Stehen' }[AVK.poseMode]; b.setAttribute('aria-label', b.title); };
-  b.onclick = () => { const order = AVK.vrmMode ? ['auto', 'hand', 'blow', 'ride', 'tits', 'doggy', 'blowLie', 'titsLie', 'mission', 'carry'] : ['auto', 'hand', 'blow', 'ride']; AVK.poseMode = order[(order.indexOf(AVK.poseMode) + 1) % order.length]; safeSet('companion_av3dPose', AVK.poseMode); paint(); avHint(b.title); if (AVK.on && AVK.poseMode !== 'auto' && AVK.poseMode !== AVK.pose) avkSwitch(AVK.poseMode); };
+  b.onclick = (ev) => {
+    ev.stopPropagation();
+    let m = document.getElementById('av3dPoseMenu'); if (m) { m.remove(); return; }
+    const order = AVK.vrmMode ? ['auto', 'hand', 'blow', 'ride', 'tits', 'doggy', 'blowLie', 'titsLie', 'mission', 'carry'] : ['auto', 'hand', 'blow', 'ride'];
+    const TT = { auto: 'Automatisch (folgt der Handlung)', hand: 'Mit der Hand', blow: 'Mit dem Mund', ride: 'Sie reitet dich', tits: 'Zwischen ihren Brüsten', doggy: 'Von hinten', blowLie: 'Du liegst - sie bläst', titsLie: 'Du liegst - zwischen ihren Brüsten', mission: 'Sie liegt - du kniest', carry: 'Du trägst sie im Stehen' };
+    m = document.createElement('div'); m.id = 'av3dPoseMenu';
+    m.style.cssText = 'position:absolute; z-index:30; top:64px; left:50%; transform:translateX(-50%); width:min(320px,calc(100% - 32px)); max-height:70%; overflow:auto; background:rgba(20,14,17,0.94); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:6px; box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+    order.forEach(k => { const it = document.createElement('button'); it.type = 'button'; it.style.cssText = 'display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border:0; border-radius:10px; background:' + (AVK.poseMode === k ? 'rgba(201,162,39,0.25)' : 'transparent') + '; color:inherit; font-size:15px; text-align:left; cursor:pointer;'; it.innerHTML = '<span style="width:30px; text-align:center; font-size:20px">' + (k === 'auto' ? '🔄' : LBL[k]) + '</span><span>' + TT[k] + '</span>'; it.onclick = e2 => { e2.stopPropagation(); m.remove(); AVK.poseMode = k; safeSet('companion_av3dPose', k); paint(); avHint(TT[k]); if (AVK.on && k !== 'auto' && k !== AVK.pose) avkSwitch(k); }; m.appendChild(it); });
+    v.appendChild(m);
+    setTimeout(() => document.addEventListener('pointerdown', function off(e3) { if (!m.contains(e3.target) && e3.target !== b) { m.remove(); document.removeEventListener('pointerdown', off, true); } }, true), 0);
+  };
   AVK.poseMode = localStorage.getItem('companion_av3dPose') || 'auto'; paint();
   const cam = v.querySelector('#av3dCam'); cam.parentNode.insertBefore(b, cam);
 }
@@ -30581,9 +31096,12 @@ function avkWhipStep(dt) {
   W.g.visible = !!sd; if (!sd || !vrm) { W.tails.forEach(tl => { tl.init = false; }); return; }
   const B = n => vrm.humanoid.getNormalizedBoneNode(n);
   const hand = B(sd + 'Hand').getWorldPosition(new T.Vector3()), elb = B(sd + 'LowerArm').getWorldPosition(new T.Vector3());
-  const dir = hand.clone().sub(elb).normalize();
-  const s0 = (AVK.rig && AVK.herKp) ? 1 : 1, HL = 0.2;
-  const base = hand.clone().addScaledVector(dir, 0.03), tip = base.clone().addScaledVector(dir, HL);
+  // Griff liegt in der Faust: quer durch die Hand (Kleinfinger -> Zeigefinger), ragt über den Daumen hinaus
+  const ip = B(sd + 'IndexProximal'), lp = B(sd + 'LittleProximal'), mp = B(sd + 'MiddleProximal');
+  let dir = hand.clone().sub(elb).normalize(), fist = hand.clone().addScaledVector(dir, 0.03);
+  if (ip && lp && mp) { const iw = ip.getWorldPosition(new T.Vector3()), lw2 = lp.getWorldPosition(new T.Vector3()); fist = hand.clone().lerp(mp.getWorldPosition(new T.Vector3()), 0.85); const ax = lw2.sub(iw); if (ax.lengthSq() > 1e-8) dir = ax.normalize(); }
+  const HL = 0.2;
+  const base = fist.clone().addScaledVector(dir, -0.04), tip = base.clone().addScaledVector(dir, HL);
   W.handle.position.copy(base.clone().lerp(tip, 0.5)); W.handle.scale.set(1, HL, 1); W.handle.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir);
   const SL = 0.055, G = new T.Vector3(0, -9.8, 0), h = Math.min(dt, 1 / 30);
   const side = new T.Vector3(0, 1, 0).cross(dir); if (side.lengthSq() < 1e-6) side.set(1, 0, 0); side.normalize(); const side2 = dir.clone().cross(side).normalize();
@@ -30770,14 +31288,18 @@ function avkHisHands(hk, dt) {
   const fwd = hk.fwd, lw = hk.leftW, s = hk.s || 1;
   // „frei": keine Vorgabe - seine Hand hängt locker (die Bewegung dorthin glättet sein Körper selbst)
   const own = () => null;
+  // Kopf: Hand oben auf dem Scheitel bzw. seitlich hinten an den Haaren - nie vorn übers Gesicht
+  const headPt = () => hk.head.clone().add(V(0, 0.085 * s, 0)).addScaledVector(fwd, -0.035 * s);
+  const shPt = sd => (sd === 'L' ? hk.shL : hk.shR).clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.04 * s).addScaledVector(fwd, -0.035 * s).add(V(0, 0.045 * s, 0));   // oben auf der Schulter, nicht vorn am Hals
+  const hairPt = sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.065 * s).addScaledVector(fwd, -0.085 * s).add(V(0, 0.095 * s, 0));   // hinten-oben am Hinterkopf, Finger im Haar - nicht an Schläfe/Auge
   const opts = {
     ride: { hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.03 * s), thigh: sd => (sd === 'L' ? hk.thighL : hk.thighR).clone().add(V(0, 0.06 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone(), breast: sd => (sd === 'L' ? hk.nipL : hk.nipR).clone().addScaledVector(fwd, 0.05 * s).add(V(0, -0.09 * s, 0)) },
-    blow: { head: () => hk.headTop.clone().addScaledVector(fwd, -0.08 * s).add(V(0, -0.02 * s, 0)), hair: sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.08 * s).addScaledVector(fwd, -0.06 * s).add(V(0, 0.03 * s, 0)), shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), own },
-    hand: { own, shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), head: () => hk.headTop.clone() },
-    tits: { own, shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), head: () => hk.headTop.clone() },
-    blowLie: { head: () => hk.headTop.clone().addScaledVector(fwd, -0.07 * s), hair: sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.08 * s).addScaledVector(fwd, -0.05 * s).add(V(0, 0.05 * s, 0)), shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), own },
-    titsLie: { shoulder: sd => (sd === 'L' ? hk.shL : hk.shR).clone().add(V(0, 0.05 * s, 0)), head: () => hk.headTop.clone(), hair: sd => hk.head.clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.1 * s).add(V(0, 0.05 * s, 0)) },
-    doggy: { hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().add(V(0, 0.06 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone().add(V(0, 0.05 * s, 0)), butt: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(fwd, -0.07 * s).add(V(0, 0.04 * s, 0)), back: sd => hk.hips.clone().lerp(hk.chestP, 0.45).addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.06 * s).add(V(0, 0.09 * s, 0)) },
+    blow: { head: () => headPt(), hair: sd => hairPt(sd), shoulder: sd => shPt(sd), own },
+    hand: { own, shoulder: sd => shPt(sd), head: () => headPt() },
+    tits: { own, shoulder: sd => shPt(sd), head: () => headPt() },
+    blowLie: { head: () => headPt(), hair: sd => hairPt(sd), shoulder: sd => shPt(sd), own },
+    titsLie: { shoulder: sd => shPt(sd), head: () => headPt(), hair: sd => hairPt(sd) },
+    doggy: { hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.03 * s).add(V(0, 0.045 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone().add(V(0, 0.05 * s, 0)), butt: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(fwd, -0.07 * s).add(V(0, 0.04 * s, 0)), back: sd => hk.hips.clone().lerp(hk.chestP, 0.62).addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.075 * s).add(V(0, 0.09 * s, 0)) },
     mission: { thigh: sd => (sd === 'L' ? hk.thighL : hk.thighR).clone().add(V(0, 0.05 * s, 0)), hip: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(lw, (sd === 'L' ? 1 : -1) * 0.04 * s).add(V(0, 0.03 * s, 0)), waist: sd => (sd === 'L' ? hk.waistL : hk.waistR).clone().add(V(0, 0.05 * s, 0)), breast: sd => (sd === 'L' ? hk.nipL : hk.nipR).clone().add(V(0, 0.04 * s, 0)) },
     carry: { butt: sd => (sd === 'L' ? hk.hipL : hk.hipR).clone().addScaledVector(fwd, -0.075 * s).add(V(0, -0.06 * s, 0)), thigh: sd => (sd === 'L' ? hk.thighL : hk.thighR).clone().add(V(0, -0.05 * s, 0)) },
   }[pose];
@@ -30788,8 +31310,8 @@ function avkHisHands(hk, dt) {
     hand: AV.camMode === 0 ? { L: [['own', 1]], R: [['own', 1]] } : { L: [['own', 4], ['shoulder', 0.6]], R: [['own', 3], ['shoulder', 1.2], ['head', 0.7]] },
     tits: AV.camMode === 0 ? { L: [['own', 1]], R: [['own', 1]] } : { L: [['own', 4], ['shoulder', 0.6]], R: [['own', 3], ['shoulder', 1], ['head', 1]] },
     blowLie: AV.camMode === 0 ? { L: [['own', 2], ['shoulder', 1]], R: [['own', 2], ['hair', 1.2], ['shoulder', 1]] } : { L: [['shoulder', 1], ['hair', 1], ['own', 1.5]], R: [['head', 2], ['hair', 1.5], ['own', 2]] },
-    titsLie: { L: [['shoulder', 2], ['hair', 0.6]], R: [['shoulder', 2], ['head', 1]] },
-    doggy: { L: [['hip', 4], ['waist', 1.5], ['butt', 1.2], ['back', 0.6]], R: [['hip', 4], ['waist', 1.5], ['butt', 1.2], ['back', 0.6]] },
+    titsLie: AV.camMode === 2 ? { L: [['shoulder', 2], ['hair', 0.6]], R: [['shoulder', 2], ['head', 1]] } : { L: [['shoulder', 2]], R: [['shoulder', 2]] },
+    doggy: { L: [['hip', 4], ['waist', 1.8], ['butt', 0.5], ['back', 0.4]], R: [['hip', 4], ['waist', 1.8], ['butt', 0.5], ['back', 0.4]] },
     mission: { L: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]], R: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]] },
     carry: { L: [['butt', 1]], R: [['butt', 1]] },
   }[pose];   // aus deinen Augen keine Arme quer durchs Bild
@@ -30819,33 +31341,42 @@ function avkHisHands(hk, dt) {
   }
   ['L', 'R'].forEach(sd => {
     let H = S[sd];
-    const pick = (avoid) => { const l = W[sd].filter(([k]) => k !== avoid && opts[k] && (k === 'own' || opts[k](sd))); let r = Math.random() * l.reduce((a, [, w]) => a + w, 0); for (const [k, w] of l) { r -= w; if (r <= 0) return k; } return l[0] ? l[0][0] : null; };
+    const pick = (avoid) => { const l = W[sd].filter(([k]) => k !== avoid && !(AVK.hisBlock && AVK.hisBlock[sd + k] > now) && opts[k] && (k === 'own' || opts[k](sd))); let r = Math.random() * l.reduce((a, [, w]) => a + w, 0); for (const [k, w] of l) { r -= w; if (r <= 0) return k; } return l[0] ? l[0][0] : null; };
     if (!H) { H = S[sd] = { kind: pick(), k: 1, from: null, until: now + 3 + Math.random() * 5, ph: Math.random() * 6 }; }
     if (now > H.until) {
       const other = S[sd === 'L' ? 'R' : 'L'];
-      let nk = Math.random() < 0.55 ? H.kind : pick(H.kind);
-      if (other && other.kind === nk && /breast|head/.test(nk)) nk = H.kind;
-      if (nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.kind = nk; H.k = 0; }
+      let nk = Math.random() < 0.55 && !(AVK.hisBlock && AVK.hisBlock[sd + H.kind] > now) ? H.kind : pick(H.kind);
+      if (other && other.kind === nk && /breast|head|back/.test(nk)) nk = H.kind;
+      if (nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.prevKind = H.kind; H.kind = nk; H.k = 0; }
       H.until = now + 3.5 + Math.random() * 6;
     }
-    if (!W[sd].some(([k]) => k === H.kind)) { const nk = pick(); if (nk && nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.kind = nk; H.k = 0; } }
+    if (!W[sd].some(([k]) => k === H.kind)) { const nk = pick(); if (nk && nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.prevKind = H.kind; H.kind = nk; H.k = 0; } }
     // aus deinen Augen: Hand lieber seitlich an Haaren/Ohr als oben auf dem Kopf (Arm quer durchs Bild)
     if (AV.camMode === 0 && H.kind === 'head' && opts.hair) H.kind = 'hair';
     let f = H.kind && opts[H.kind] ? opts[H.kind](sd) : null;
     // Kopf/Haare: nur eine Weile, dann nimmst du die Hand wieder weg
     if (/head|hair/.test(H.kind) && now > H.until - 0.01 && Math.random() < 0.5) { H.from = H.last ? H.last.clone() : null; H.kind = 'own'; H.until = now + 2.5 + Math.random() * 4; f = null; }
     // aus deinen Augen: nie die Sicht auf ihr Gesicht verdecken
-    if (f && AV.camMode === 0 && hk.head) {
+    if (f && (AV.camMode === 0 || AV.camMode === 1) && hk.head) {
       const c = AV.camera.position, fc = (hk.mouth || hk.head).clone(), ab = fc.clone().sub(c), L2 = ab.lengthSq();
       const chk = pt => { const k = Math.max(0, Math.min(1, pt.clone().sub(c).dot(ab) / L2)); return k > 0.15 && k < 0.92 && pt.distanceTo(c.clone().addScaledVector(ab, k)) < 0.11 * s; };
-      const arm = f.clone().lerp(c, 0.3);
-      if (chk(f) || chk(arm) || (H.last && chk(H.last))) { H.from = H.last ? H.last.clone() : null; H.kind = 'own'; H.k = 0; H.until = now + 3 + Math.random() * 4; f = null; }
+      const shW = me && me.B && me.B.bones['upperarm01.' + sd] ? me.B.bones['upperarm01.' + sd].getWorldPosition(V()) : c;
+      const arm = f.clone().lerp(shW, 0.3), arm2 = f.clone().lerp(shW, 0.6);
+      if (chk(f) || chk(arm) || chk(arm2) || (H.last && chk(H.last))) { H.from = H.last ? H.last.clone() : null; H.kind = 'own'; H.k = 0; H.until = now + 3 + Math.random() * 4; f = null; }
     }
     if (!f) { H.last = null; return; }
     const ph = now * 0.9 + H.ph;
     f.addScaledVector(lw, Math.sin(ph) * 0.02 * s).add(V(0, Math.sin(ph * 0.7) * 0.01 * s, 0));   // leicht streicheln
-    if (H.k < 1 && H.from) { H.k = Math.min(1, H.k + dt / 0.9); const e = H.k * H.k * H.k * (H.k * (H.k * 6 - 15) + 10); const a = Math.sin(Math.PI * e); f.copy(H.from.clone().lerp(f, e).add(V(0, a * 0.06, 0))); }
+    if (H.k < 1 && H.from) { H.k = Math.min(1, H.k + dt / 0.9); const e = H.k * H.k * H.k * (H.k * (H.k * 6 - 15) + 10); const a = Math.sin(Math.PI * e); f.copy(H.from.clone().lerp(f, e).add(V(0, a * 0.06, 0)));
+      // unterwegs nicht durch sie hindurch: Weg aus ihrem Körper herausdrücken (Abstand wächst zur Mitte des Wegs)
+      try { const q = avkSurfQuery(f); if (q && q.p.distanceTo(f) < 0.25) { const d = f.clone().sub(q.p).dot(q.n), want = 0.012 + 0.05 * a; if (d < want) f.addScaledVector(q.n, want - d); } } catch (e) {} }
     H.last = f.clone(); out[sd] = f;
+    // beim Umsetzen hebt sich die Hand etwas von der Haut (sonst streifen die Finger durch sie hindurch)
+    if (H.k < 1 && H.from) { out.lift = out.lift || {}; out.lift[sd] = 0.03 * s * Math.sin(Math.PI * Math.min(1, H.k)); }
+    // unterwegs zur neuen Stelle frei bewegen (Weg liegt außerhalb von ihr), erst kurz vor dem Ziel wieder an die Haut legen
+    if (H.k < 0.72 && H.from && (/head|hair/.test(H.kind) || /head|hair/.test(H.prevKind || ''))) { out.noContact = out.noContact || {}; out.noContact[sd] = true; }
+    // Kopf: unter den Haaren fehlt bei vielen Modellen die Kopfhaut - die Hand legt sich daher auf eine Kugel um Kopf und Haare (nie aufs Gesicht)
+    if (/head|hair/.test(H.kind)) { out.sphere = out.sphere || {}; out.sphere[sd] = { c: hk.head.clone().add(V(0, 0.07 * s, 0)).addScaledVector(fwd, -0.015 * s), r: 0.112 * s }; }
   });
   return out;
 }
@@ -31691,7 +32222,7 @@ function avkBlendRestore() {
 }
 // ---------- Kollision: ihre Beine weichen deinem Körper aus (Kapseln, sanft herausgedreht) ----------
 function avkCollide() {
-  if (!AV.vrm || !AVK.me || !AVK.me.B || !AVK.vrmMode || AVKE.on) return;
+  if (!AV.vrm || !AVK.me || !AVK.me.B || !AVK.vrmMode || AVKE.on || AVK.pose === 'carry') return;
   const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), N = n => AV.vrm.humanoid.getNormalizedBoneNode(n), H = AVK.me.B.bones;
   const s0 = (AVK.herKp && AVK.herKp.s) || 1, w = o => o.getWorldPosition(V());
   AV.vrm.scene.updateMatrixWorld(true); AVK.me.B.root.updateMatrixWorld(true);
@@ -31804,7 +32335,7 @@ function avkMoodApply() {
       `<label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:10px;"><input type="checkbox" id="avkDof" ${localStorage.getItem('companion_av3dDof') === 'true' ? 'checked' : ''}> Tiefenunschärfe in der Nahansicht (braucht etwas mehr Leistung)</label>
        <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkContactOn" ${localStorage.getItem('companion_av3dContact') !== 'false' ? 'checked' : ''}> Deine Hände liegen genau auf ihrer Haut (braucht etwas Rechenleistung)</label>
        <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkCapOn" ${localStorage.getItem('companion_av3dCap') === 'true' ? 'checked' : ''}> Gesprochenen Text im Bild einblenden</label>
-       <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkBlendOn" ${localStorage.getItem('companion_av3dBlend') !== 'false' ? 'checked' : ''}> Weiche Übergänge beim Stellungswechsel</label>
+       <label style="display:flex; gap:10px; align-items:center; font-size:13px; margin-top:6px;"><input type="checkbox" id="avkBlendOn" ${localStorage.getItem('companion_av3dBlend') !== 'false' ? 'checked' : ''}> Stellungswechsel mit kurzem Abblenden</label>
        <hr style="border:0; border-top:1px solid var(--line); margin:16px 0;">`;
     body.insertBefore(box, body.firstChild);
     box.querySelectorAll('input[name=avkMood]').forEach(i => i.onchange = () => { safeSet('companion_av3dMood', i.value); avkMoodApply(); });
@@ -31870,16 +32401,19 @@ function avkSurfInit() {
   if (AVK.surf && AVK.surf.vrm === vrm) return AVK.surf;
   const meshes = [];
   vrm.scene.traverse(o => { if (!o.isSkinnedMesh || !o.geometry || !o.geometry.attributes.position) return; const nm = (([].concat(o.material)[0] || {}).name) || ''; if (/EYE|Iris|Teeth|Tongue|Mouth|Lash|Brow|Highlight|FaceEye|HAIR|avkGarment/i.test(nm)) return; meshes.push(o); });
-  AVK.surf = avkSurfBuild(meshes); AVK.surf.vrm = vrm; return AVK.surf;
+  AVK.surf = avkSurfBuild(meshes, /Hand|Thumb|Index|Middle|Ring|Little|Finger|LowerArm|Forearm/i); AVK.surf.vrm = vrm; return AVK.surf;   // ohne ihre Hände/Unterarme (sonst legt sich ihre Hand auf sich selbst)
 }
 // Oberfläche aus beliebigen gehäuteten Netzen (sie oder dein Körper)
-function avkSurfBuild(meshes) {
+function avkSurfBuild(meshes, skipBone) {
   const T = AV.T, S = { list: [], frame: -1, pos: null, nrm: null, stamp: null };
-  const total = meshes.reduce((s, o) => s + o.geometry.attributes.position.count, 0), stride = Math.max(1, Math.ceil(total / 9000));
+  const total = meshes.reduce((s, o) => s + o.geometry.attributes.position.count, 0), stride = Math.max(1, Math.ceil(total / (AVK.surfN || 9000)));
   meshes.forEach(o => {
     const g = o.geometry, P = g.attributes.position, N = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight; if (!si || !sw) return;
-    for (let i = 0; i < P.count; i += stride) { let bi = 0, bw = -1; const ix = [], wt = []; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > 0.001) { ix.push(si.getComponent(i, k)); wt.push(w); } if (w > bw) { bw = w; bi = si.getComponent(i, k); } } S.list.push({ o, i, bone: o.skeleton.bones[bi], hasN: !!N, ix, wt, lp: [P.getX(i), P.getY(i), P.getZ(i)], ln: N ? [N.getX(i), N.getY(i), N.getZ(i)] : null }); }
+    // Kleidung merken: liegt sie über der Haut, legt sich deine Hand auf den Stoff, nicht darunter
+    try { const nm = (o.name || '') + ' ' + ([].concat(o.material).map(m => (m && m.name) || '').join(' ')); o.userData.avkCloth = typeof AVK_CLOTH_RX !== 'undefined' && AVK_CLOTH_RX.test(nm) && !/body|skin|Accessory|Acce/i.test(nm) ? (/Skirt|Onepiece|Dress|Bottoms|Coat|Jacket/i.test(nm) ? 0.09 : 0.035) : 0; } catch (e) {}
+    for (let i = 0; i < P.count; i += stride) { let bi = 0, bw = -1; const ix = [], wt = []; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > 0.001) { ix.push(si.getComponent(i, k)); wt.push(w); } if (w > bw) { bw = w; bi = si.getComponent(i, k); } } if (skipBone && skipBone.test(o.skeleton.bones[bi].name || '')) continue; S.list.push({ o, i, cloth: o.userData.avkCloth, bone: o.skeleton.bones[bi], hasN: !!N, ix, wt, lp: [P.getX(i), P.getY(i), P.getZ(i)], ln: N ? [N.getX(i), N.getY(i), N.getZ(i)] : null }); }
   });
+  S.hasCloth = S.list.some(s => s.cloth);
   S.pos = new Float32Array(S.list.length * 3); S.nrm = new Float32Array(S.list.length * 3); S.stamp = new Int32Array(S.list.length).fill(-1);
   return S;
 }
@@ -31915,6 +32449,33 @@ function avkSurfQ(S, p) {
     else v2.set(x - g.bp.x, y - g.bp.y, z - g.bp.z).normalize();
     S.nrm[j * 3] = v2.x; S.nrm[j * 3 + 1] = v2.y; S.nrm[j * 3 + 2] = v2.z; S.stamp[j] = fr;
   };
+  // schnell: je Bild alle Stichproben einmal häuten und in ein Raster (3,5 cm) sortieren - eine Abfrage sieht dann nur die Nachbarzellen
+  if (!S.noGrid && (!AVK.surfSlow || S.grid)) {   // frühe Abfragen nutzen das Raster des letzten Bildes (sahen ohnehin die alte Haltung)
+    const C = 0.035, key = (x, y, z) => ((x + 512) * 1024 + (y + 512)) * 1024 + (z + 512);
+    if (S.gridFr !== fr && !AVK.surfSlow) {
+      S.gridFr = fr; const G = S.grid || (S.grid = new Map()); G.forEach(l => { l.length = 0; });
+      for (const g of S.G) { g.bone.getWorldPosition(g.bp); g.st = fr; for (const j of g.idx) { const s = S.list[j]; if (!s.o.visible || (s.o.parent && !s.o.parent.visible)) continue; skin(j, g); const k = key(Math.floor(S.pos[j * 3] / C), Math.floor(S.pos[j * 3 + 1] / C), Math.floor(S.pos[j * 3 + 2] / C)); let l = G.get(k); if (!l) G.set(k, l = []); l.push(j); } }
+    }
+    const G = S.grid, cx = Math.floor(p.x / C), cy = Math.floor(p.y / C), cz = Math.floor(p.z / C);
+    const each = (r, fn) => { for (let x = cx - r; x <= cx + r; x++) for (let y = cy - r; y <= cy + r; y++) for (let z = cz - r; z <= cz + r; z++) { const l = G.get(key(x, y, z)); if (l) for (let i = 0; i < l.length; i++) fn(l[i]); } };
+    let bj = -1, bd2 = 1e9, r = 1;
+    const look = j => { const dx = S.pos[j * 3] - p.x, dy = S.pos[j * 3 + 1] - p.y, dz = S.pos[j * 3 + 2] - p.z, dd = dx * dx + dy * dy + dz * dz; if (dd < bd2) { bd2 = dd; bj = j; } };
+    each(1, look); if (bj < 0) { each(3, look); r = 3; } if (bj < 0) { each(7, look); r = 7; }
+    if (bj < 0) return null;
+    const dmin = Math.sqrt(bd2), band = 0.025, rr = Math.max(r, Math.ceil((dmin + band) / C)), pa = new T.Vector3(), n = new T.Vector3(); let ws = 0;
+    if (rr > r) { bd2 = 1e9; bj = -1; each(rr, look); }
+    const dm = Math.sqrt(bd2), cand = [];
+    each(rr, j => { const dx = S.pos[j * 3] - p.x, dy = S.pos[j * 3 + 1] - p.y, dz = S.pos[j * 3 + 2] - p.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) - dm; if (d > band) return; const w = (1 - d / band) ** 2; ws += w; pa.x += S.pos[j * 3] * w; pa.y += S.pos[j * 3 + 1] * w; pa.z += S.pos[j * 3 + 2] * w; n.x += S.nrm[j * 3] * w; n.y += S.nrm[j * 3 + 1] * w; n.z += S.nrm[j * 3 + 2] * w; });
+    if (ws <= 0 || n.lengthSq() < 1e-10) return { p: new T.Vector3(S.pos[bj * 3], S.pos[bj * 3 + 1], S.pos[bj * 3 + 2]), n: new T.Vector3(S.nrm[bj * 3], S.nrm[bj * 3 + 1], S.nrm[bj * 3 + 2]) };
+    pa.multiplyScalar(1 / ws); n.normalize();
+    const pr = p.clone().addScaledVector(n, -p.clone().sub(pa).dot(n));
+    if (S.hasCloth && !S.list[bj].cloth) {
+      let up = -1;
+      each(Math.max(rr, 2), j => { const s = S.list[j]; if (!s.cloth) return; const dx = S.pos[j * 3] - pr.x, dy = S.pos[j * 3 + 1] - pr.y, dz = S.pos[j * 3 + 2] - pr.z, al = dx * n.x + dy * n.y + dz * n.z; if (al < -0.004 || al > s.cloth) return; const lx = dx - n.x * al, ly = dy - n.y * al, lz = dz - n.z * al; if (lx * lx + ly * ly + lz * lz > 0.03 * 0.03) return; if (al > up) up = al; });
+      if (up > 0.002) return { p: pr.addScaledVector(n, up), n, cloth: true };
+    }
+    return { p: pr, n };
+  }
   // Knochen-Gruppen in der Nähe (Reichweite der Gruppe einmalig gemessen)
   let best = -1, bd = 1e9; const near = [];
   for (const g of S.G) {
@@ -31935,7 +32496,20 @@ function avkSurfQ(S, p) {
   for (const g of near) for (const j of g.idx) { if (S.stamp[j] !== fr) continue; const dx = S.pos[j * 3] - p.x, dy = S.pos[j * 3 + 1] - p.y, dz = S.pos[j * 3 + 2] - p.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) - dmin; if (d > band) continue; const w = (1 - d / band) ** 2; ws += w; pa.x += S.pos[j * 3] * w; pa.y += S.pos[j * 3 + 1] * w; pa.z += S.pos[j * 3 + 2] * w; n.x += S.nrm[j * 3] * w; n.y += S.nrm[j * 3 + 1] * w; n.z += S.nrm[j * 3 + 2] * w; }
   if (ws <= 0 || n.lengthSq() < 1e-10) return { p: new T.Vector3(S.pos[best * 3], S.pos[best * 3 + 1], S.pos[best * 3 + 2]), n: new T.Vector3(S.nrm[best * 3], S.nrm[best * 3 + 1], S.nrm[best * 3 + 2]) };
   pa.multiplyScalar(1 / ws); n.normalize();
-  return { p: p.clone().addScaledVector(n, -p.clone().sub(pa).dot(n)), n };
+  const pr = p.clone().addScaledVector(n, -p.clone().sub(pa).dot(n));
+  // Stoff knapp über dieser Stelle (z. B. Kleid über der Hüfte): dann gilt der Stoff als Oberfläche
+  if (!S.list[best].cloth) {
+    let up = -1, cn = null;
+    for (const g of near) for (const j of g.idx) {
+      const s = S.list[j]; if (!s.cloth || S.stamp[j] !== fr) continue;
+      const dx = S.pos[j * 3] - pr.x, dy = S.pos[j * 3 + 1] - pr.y, dz = S.pos[j * 3 + 2] - pr.z, al = dx * n.x + dy * n.y + dz * n.z;
+      if (al < -0.004 || al > s.cloth) continue;
+      const lx = dx - n.x * al, ly = dy - n.y * al, lz = dz - n.z * al; if (lx * lx + ly * ly + lz * lz > 0.03 * 0.03) continue;
+      if (al > up) { up = al; cn = j; }
+    }
+    if (cn !== null && up > 0.002) return { p: pr.addScaledVector(n, up), n, cloth: true };
+  }
+  return { p: pr, n };
 }
 
 // ---------- Gesprochener Text im Bild: standardmäßig aus (verdeckt sonst das Bild), unter ⚙ einschaltbar ----------
@@ -32139,6 +32713,17 @@ function avkSkirt(vrm, R, g) {
 // der passendsten Frisur und liest Haar-, Augen-, Hautfarbe, Figur, Elfenohren und die Kleidung auf dem Bild aus.
 function avkHexRgb(hex) { const n = parseInt(String(hex).replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
 function avkHexToHsl(hex) { const [r, g, b] = avkHexRgb(hex); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; } return { h, s, l }; }
+// Ein Blatt aus Porträt (links) und nummerierten Vorschaubildern (rechts, Raster)
+async function avkSheet(main, thumbs) {
+  const load = src => new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  const H = 768, mi = await load(main); const mw = mi ? Math.round(H * mi.width / mi.height) : H;
+  const n = thumbs.length, cols = n > 6 ? 3 : n > 2 ? 2 : n ? 1 : 0, rows = cols ? Math.ceil(n / cols) : 0, cell = rows ? Math.floor(H / rows) : 0;
+  const c = document.createElement('canvas'); c.width = Math.min(2048, mw + cols * cell); c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, H);
+  if (mi) g.drawImage(mi, 0, 0, mw, H);
+  for (let i = 0; i < n; i++) { const im = await load(thumbs[i]); const x = mw + (i % cols) * cell, y = Math.floor(i / cols) * cell; if (im) { const s = Math.min(cell / im.width, cell / im.height); g.drawImage(im, x + (cell - im.width * s) / 2, y + (cell - im.height * s) / 2, im.width * s, im.height * s); } g.strokeStyle = '#888'; g.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1); g.fillStyle = '#d00'; g.font = `bold ${Math.max(18, cell * 0.16 | 0)}px sans-serif`; g.fillText(String(i + 1), x + 6, y + Math.max(20, cell * 0.17)); }
+  return c.toDataURL('image/jpeg', 0.85);
+}
 async function avkAnimeFromImage(figId, onMsg, opts) {
   opts = opts || {};
   const say = t => { try { onMsg && onMsg(t); } catch (e) {} };
@@ -32152,10 +32737,10 @@ async function avkAnimeFromImage(figId, onMsg, opts) {
   for (const r of recs) { if (r.thumb) continue; try { const rec = await avGet(r.key); const t = await avThumbFromBuf(await rec.blob.arrayBuffer()); if (t) { r.thumb = t; await avSetRec(r.key, { thumb: t, thumbTried: true }); } } catch (e) {} }
   const cands = recs.filter(r => r.thumb).slice(0, 10);
   say('Ich schaue mir ihr Bild an …');
-  const imgs = [await asDataUrl(url, 768)];
-  for (const c of cands) imgs.push(await asDataUrl(c.thumb, 256));
+  // viele Bild-Modelle nehmen nur EIN Bild je Anfrage: Porträt links, nummerierte Modelle rechts auf ein Blatt
+  const imgs = [await avkSheet(url, cands.map(c => c.thumb))];
   const G = AVK_GARMENTS.map(g => g[0]).join('|'), Pt = AVK_PATTERNS.map(p => p[0]).join('|');
-  const sys = `Du bekommst ${imgs.length} Bilder. Bild 1 zeigt eine erwachsene Person, nach der eine Anime-Figur (VRM) gestaltet wird.${cands.length ? ` Bilder 2 bis ${imgs.length} sind Vorschaubilder vorhandener Anime-Modelle (Nr. 1 bis ${cands.length}): ${cands.map((c, i) => `Nr. ${i + 1} ${c.sexual === false ? '(bleibt immer angezogen)' : '(frei)'}`).join(', ')}. Bei ähnlicher Frisur bevorzuge ein „(frei)"-Modell.` : ''}
+  const sys = `Du bekommst ein Bild. Links (großes Feld) ist eine erwachsene Person, nach der eine Anime-Figur (VRM) gestaltet wird - im Folgenden „Bild 1".${cands.length ? ` Rechts daneben stehen kleine, rot nummerierte Vorschaubilder vorhandener Anime-Modelle (Nr. 1 bis ${cands.length}): ${cands.map((c, i) => `Nr. ${i + 1} ${c.sexual === false ? '(bleibt immer angezogen)' : '(frei)'}`).join(', ')}. Bei ähnlicher Frisur bevorzuge ein „(frei)"-Modell.` : ''}
 Lies aus Bild 1 ab und antworte NUR als JSON-Objekt:
 {"hairColor":"#rrggbb","eyeColor":"#rrggbb","skin":"pale|fair|olive|tan|brown|dark","elf":true|false,"bust":"small|medium|large|very large","body":"slim|athletic|curvy|voluptuous","hips":"narrow|medium|wide","outfit":[{"t":"${G}","c":"#rrggbb","p":"${Pt}","o":0.3-1}],${cands.length ? '"model":Nummer des Modells mit der ähnlichsten Frisur (Länge, Form, Pony, Zöpfe),' : ''}"reason":"kurz"}
 Regeln: Farben als Hex so, wie sie wirken (Haare: Mittelton, nicht Glanzlichter). "elf": true nur bei spitzen Ohren. "outfit": nur Kleidungsstücke, die im Bild zu sehen sind, sonst []; ein Kleid = "bodysuit" + "skirt"; Unterwäsche aus Spitze = "lace", Netzstrümpfe = "net", glänzend = "satin"; "o" < 1 nur bei durchsichtigem Stoff.`;
@@ -32867,36 +33452,7 @@ async function avSetRec(k, patch) { const r = await avGet(k); if (!r) return; aw
     }, 2500);
     return res;
   };
-  // Liste unter ⚙: Bild, Umbenennen, Foto, eigenes Bild
-  const oSheet = avSheet;
-  avSheet = async function () {
-    await oSheet.apply(this, arguments);
-    const body = document.querySelector('#av3dSheet .sheet-body'); if (!body) return;
-    const list = await avList(); const byKey = {}; list.forEach(m => { byKey[m.key] = m; });
-    body.querySelectorAll('button[data-act="del"]').forEach(del => {
-      const k = del.dataset.k, m = byKey[k]; if (!m) return;
-      const card = del.parentNode.parentNode; if (!card || card.querySelector('.avThumb')) return;
-      const inner = document.createElement('div'); inner.style.cssText = 'flex:1; min-width:0;';
-      while (card.firstChild) inner.appendChild(card.firstChild);
-      card.style.display = 'flex'; card.style.gap = '12px'; card.style.alignItems = 'flex-start';
-      const th = document.createElement('div'); th.className = 'avThumb';
-      th.style.cssText = 'flex:0 0 64px; width:64px; height:64px; border-radius:12px; overflow:hidden; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer;';
-      th.innerHTML = m.thumb ? `<img src="${m.thumb}" alt="" style="width:100%; height:100%; object-fit:cover;">` : '🧍';
-      th.title = 'Bild ändern';
-      card.append(th, inner);
-      const row = del.parentNode;
-      const mk = (txt, title) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); b.style.cssText = 'width:auto; padding:7px 11px; font-size:13px;'; row.insertBefore(b, del); return b; };
-      mk('✏', 'Umbenennen').onclick = async () => { const n = prompt('Name für dieses Modell:', m.name || ''); if (n === null || !n.trim()) return; await avSetRec(k, { name: n.trim().slice(0, 60) }); avSheet(); };
-      const pick = async () => {
-        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
-        inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; try { await avSetRec(k, { thumb: await avSmallImg(f, 160), thumbTried: true }); avSheet(); } catch (e) { alert('Bild ging nicht: ' + e.message); } };
-        inp.click();
-      };
-      th.onclick = pick;
-      mk('🖼', 'Eigenes Bild wählen').onclick = pick;
-      if (AV.key === k && AV.vrm) mk('📸', 'Foto aus der 3D-Ansicht').onclick = async () => { const t = avSnapThumb(); if (!t) return; await avSetRec(k, { thumb: t, thumbTried: true }); avSheet(); };
-    });
-  };
+  // (Bilder, Umbenennen und Foto stehen jetzt direkt in der Modell-Liste)
 }
 
 window.__appReady = true;
