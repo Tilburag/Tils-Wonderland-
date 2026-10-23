@@ -3626,8 +3626,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.00';
+const APP_VERSION = '3.02';
 const CHANGELOG = [
+  { v: '3.02', date: '2026-10-23', items: [
+    'Mila kennt jetzt die Neuerungen von heute (automatisches Gedächtnis, Schutz vor doppeltem Sprechen, Stellungsmenü) und kann dazu Auskunft geben',
+  ] },
+  { v: '3.01', date: '2026-10-23', items: [
+    'Doppeltes Sprechen, zwei weitere Ursachen behoben: (1) Hörte das Mikrofon im Anruf die Figur selbst (Lautsprecher, oder Kopfhörer laut), kam ihr eigener Satz als deine Nachricht zurück und sie wiederholte sich - jetzt erkannt und ignoriert („ihre eigene Stimme" im Protokoll). (2) Im Selbstlauf lag schon eine Fortsetzung bereit, wenn du geschrieben hast - sie wurde erst gesprochen, dann die Antwort an dich, oft mit demselben Inhalt. Jetzt wird die vorbereitete Fortsetzung verworfen.',
+  ] },
   { v: '3.00', date: '2026-10-23', items: [
     'Doppeltes Sprechen: die App liest Wiederholungen nicht mehr vor - dieselbe Zeile zweimal in einer Antwort (auch als Erzählung und Rede), derselbe Satz direkt hintereinander, oder eine Zeile wörtlich aus der vorigen Antwort. Bewegungsmarker der weggelassenen Zeile bleiben erhalten. Im Protokoll steht dann „doppelte Stelle(n) nicht vorgelesen".',
   ] },
@@ -5601,6 +5607,7 @@ if (SpeechRecognition) {
     if (!text) return;
     try { bodyForgetSpeech(text); } catch (e) {}
     if (callActive) { collectSpoken(text); return; }
+    if (looksLikeEcho(text)) { logEvent('msg', { role: 'system', text: 'Erkannt, aber ignoriert (ihre eigene Stimme): ' + text }); return; }
     addUserMsg(text);
     askActive(text);
   };
@@ -6100,7 +6107,18 @@ const FILLER_WORD = /^(h+m+|m+h*m+|ä+h+m*|e+h+m*|a+h+|o+h+|u+h+m*|hu+st\w*|räu
 function hasRealWord(text) {
   return String(text || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).some(w => !FILLER_WORD.test(w));
 }
+// Echo-Schutz: hört das Mikrofon die Figur selbst (Lautsprecher statt Kopfhörer, oder Kopfhörer zu laut),
+// kam ihr eigener Satz als „meine" Nachricht zurück - sie antwortete darauf und wiederholte sich.
+const spokenRecent = [];
+function noteSpokenText(text) { spokenRecent.push({ t: Date.now(), w: echoWords(text) }); while (spokenRecent.length > 30) spokenRecent.shift(); }
+function echoWords(t) { return String(t || '').replace(/\[[^\]]*\]/g, ' ').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(w => w.length > 1); }
+function looksLikeEcho(text) {
+  const w = echoWords(text); if (w.length < 3) return false;
+  const now = Date.now();
+  return spokenRecent.some(s => { if (now - s.t > 30000 || !s.w.length) return false; const set = new Set(s.w); const hit = w.filter(x => set.has(x)).length; return hit / w.length >= 0.7; });
+}
 function collectSpoken(text) {
+  if (looksLikeEcho(text)) { logEvent('msg', { role: 'system', text: 'Erkannt, aber ignoriert (ihre eigene Stimme): ' + text }); return; }
   if (!hasRealWord(text)) {
     logEvent('msg', { role: 'system', text: 'Erkannt, aber ignoriert (nur Füllwort): ' + text });
     return;
@@ -7576,6 +7594,7 @@ function playElevenUrl(objectUrl, onStart, text, role, starts, whisper) {
 // done ahead of time (the network round trip) happens here; play() only starts
 // the sound. Browser TTS has nothing to prefetch, so it just defers.
 function prepareSpeech(text, role, timed, ctx) {
+  try { noteSpokenText(text); } catch (e) {}
   const level = ctx && ctx.level !== undefined ? ctx.level : currentMotionLevel();
   ctx = Object.assign({}, ctx || {}, { level });
   const estimate = () => makeTimeline(text, estimateSpeechMs(text, role), null);
@@ -15752,6 +15771,8 @@ async function askEnsemble(userText, options) {
   if (!(options && options.silent)) { try { applyEnvironmentWishes(userText); } catch (e) {} } else envNote = '';
   if (!(options && options.silent) && CAME_RE.test(String(userText || '').trim())) { try { hrRecordEvent('came'); } catch (e) {} try { scheduleOrgasmCard(); } catch (e) {} }
   if (!(options && options.silent)) { try { gameOnUserText(userText); } catch (e) {} if (game.running && game.type === 'adventure') { game.choices = []; renderGameHud(); } }
+  const myStartAt = Date.now();
+  if (userText && !(options && (options.silent || options.autoStep))) window.__lastUserAskAt = myStartAt;
   const queueMode = !(options && options.interrupt) && activeReplies > 0;
   if (!queueMode) interruptPlayback();
   const myEpoch = chainEpoch;
@@ -15850,6 +15871,13 @@ async function askEnsemble(userText, options) {
       logEvent('msg', { role: 'system', text: 'Nächste Antwort fertig - wartet, bis die Figur ausgesprochen hat.' });
       await prevPlayback;
       if (chainEpoch !== myEpoch) return false;
+      // Selbstlauf-Fortsetzung, während ich inzwischen geschrieben habe: verwerfen - sonst sprach die Figur
+      // erst die vorbereitete Fortsetzung und dann die Antwort an mich, oft mit demselben Inhalt (klang doppelt).
+      if (options && options.autoStep && (window.__lastUserAskAt || 0) > myStartAt) {
+        const ix = history.map(m => m.content).lastIndexOf(replyText); if (ix >= 0 && history[ix].role === 'assistant') history.splice(ix, 1);
+        logEvent('msg', { role: 'system', text: 'Vorbereitete Fortsetzung verworfen - du hast inzwischen geschrieben.' });
+        return true;   // kein Fehler: der Selbstlauf geht nach deiner Antwort weiter
+      }
       playbackGeneration += 1;
       generation = playbackGeneration;
     }
@@ -24727,6 +24755,9 @@ const HELP_HANDBOOK = `APP-AUFBAU
 - Ich: Woche, Gelernt (Chips), Medaillen, Gesunder Umgang (Tageslimit, Pause, Nachtruhe, Tabuzeit tagsüber an gewählten Wochentagen z. B. Arbeitszeit, freie Tage, Kalender), Nutzungsindex 🌡 (0-100, farbig, Selbsttest, bei Tiefrot spricht Mila es an), Auswertung.
 - 3D-Ansicht 🧍 (oben in der Sitzung oder in der Figurenkarte): weibliche Figuren automatisch als nackter 3D-Körper aus dem Baukasten (aus ihrem Phantombild; Datei koerper.bin muss im Repository liegen), mit Tils Penis aus seinem Profil, Brust-/Haarphysik; Stellungen Hand/Mund/Reiten/Brüste/von hinten wechseln je nach Handlung (Knopf Auto/✋/👄/🐎/🍈/🐕/💋/🍒), zweite Hand: Eier, Nippel, streicheln, Klaps; Schlafzimmer mit Schatten; Gesicht wird aus dem Porträt übertragen (⚙ → 🎯 Gesichtspunkte zum Nachziehen); alternativ eigene VRM-Datei; Hand folgt Gerät 1; 🎥 Perspektive, Wischen dreht, ▶ Probelauf, ⚙ Modelle laden/zuordnen (VRoid Studio) und Verzögerung/Richtung. Eigene VRM-Figuren formen: ✏️ rechts in der 3D-Ansicht (Körper, Haut/Haare/Augen umfärben, Kleidung einzeln, Wesen) - ohne Einstellung automatisch aus dem Phantombild; gilt je Figur und Modell. Aktions-Menü 💥: Klaps, Peitsche, Öl, Eier kraulen. 🥽 VR. [[open:avatar]] öffnet sie.
 - Lernen nur mit verbundenem Pulsgurt. Körpergeräusche (Atem, Stöhnen) brauchen Kopfhörer; die ersten 45 s misst die App den Ruhepegel.
+- Gedächtnis: Die Figuren merken sich Gespräche automatisch (alle paar Antworten, beim Verlassen der App, bei „Neues Gespräch" und vor Spielen) - der Knopf „Erinnern" ist nur noch zum sofortigen Merken. Was eine Figur weiß, steht in ihrer Figurenkarte unter Gedächtnis.
+- Doppeltes Sprechen: Wiederholte Zeilen/Sätze liest die App nicht vor („doppelte Stelle(n) nicht vorgelesen"); hört das Mikrofon im Anruf die Figur selbst, wird das ignoriert („ihre eigene Stimme"). Passiert es trotzdem, im Protokoll nach diesen Meldungen schauen.
+- 3D-Stellungen: Knopf links neben 🎥 öffnet ein Auswahlmenü (Auto oder eine feste Stellung); 3D-Modelle unter ⚙ als Bilderliste - Bild antippen nimmt das Modell.
 - Verbindungen: Gerät (SSR1) über WLAN-WebSocket (gleiches WLAN, richtige IP in Einstellungen → Verbindungen), Pulsgurt über Bluetooth, Kopfhörer für Körpergeräusche.
 - PIN-Sperre schützt die App. „Code vergessen?" LÖSCHT ALLES - nur mit Sicherungsdatei sinnvoll.
 - Als App installieren (Menü), dann öffnet sie ohne Browserleiste.
@@ -27161,6 +27192,10 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
 
 
 
