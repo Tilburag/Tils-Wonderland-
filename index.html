@@ -3626,8 +3626,60 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.04';
+const APP_VERSION = '3.18';
 const CHANGELOG = [
+  { v: '3.18', date: '2026-10-23', items: [
+    'Zweite Figur (Test): beim Tragen steckten die Beine der Hauptfigur in ihrem Hals - kommen Beine/Füße der Hauptfigur ihrem Körper näher als 14 cm, rückt sie nach außen (alle Stellungen geprüft)'
+  ] },
+  { v: '3.17', date: '2026-10-23', items: [
+    'Zweite Figur (Test): Rollentausch, ruhige Variante - sagt der Text ausdrücklich, dass die Nebenfigur übernimmt („Jetzt bin ich dran", „Emma übernimmt", „Fenja macht ihr Platz"), tauschen beide mit kurzem Abblenden die Rollen; Stellung bleibt, höchstens alle 20 s'
+  ] },
+  { v: '3.16', date: '2026-10-23', items: [
+    'Zweite Figur (Test): ihre dir zugewandte Hand liegt locker auf deiner Brust und streichelt leicht (wenn sie hinreicht - liegst du, beugt sie sich vor); Hand wird aus deiner Haut herausgehalten, blendet weich ein und aus'
+  ] },
+  { v: '3.15', date: '2026-10-23', items: [
+    'Zweite Figur (Test) hat jetzt ihr eigenes Aussehen (Haar-, Haut-, Augenfarbe, Körperform, Outfit) - teilen sich zwei Figuren dasselbe Modell, sehen sie trotzdem verschieden aus'
+  ] },
+  { v: '3.14', date: '2026-10-23', items: [
+    'Stabiler auf dem Handy: jede Änderung an „Dich formen" ließ Grafikspeicher zurück (alter Penis-Körper, Knochen-Texturen des alten Skeletts) - wird jetzt freigegeben; Figuren-, Stellungs- und Editorwechsel geprüft: kein Zuwachs'
+  ] },
+  { v: '3.13', date: '2026-10-23', items: [
+    'Zweite Figur (Test): ruckelt die 3D-Ansicht damit trotz niedrigster Auflösung länger, schaltet sie sich von selbst ab und sagt Bescheid',
+    'Geprüft: dreiteilige Antwort mit zwei Stimmen über den echten Sprachweg mit Streaming - jeder Abschnitt genau einmal und in der richtigen Reihenfolge, Folgeantwort wartet'
+  ] },
+  { v: '3.12', date: '2026-10-23', items: [
+    'Stimme im Gespräch beginnt, während ElevenLabs noch liefert - im Test nach 0,3 s statt 1,6 s; der Clip landet danach wie bisher im Speicher, das Abschneiden von Wiederholungen funktioniert weiter (Geschichten-Modus unverändert)'
+  ] },
+  { v: '3.11', date: '2026-10-23', items: [
+    'Stimme startet schneller: ein laufender Füll-Laut klingt beim Eintreffen der Antwort kurz aus, statt bis zu 2,5 s abgewartet zu werden',
+    'Protokoll zeigt bei „Stimme startet …" jetzt, wie viel davon Füll-Laut und wie viel Vertonung bei ElevenLabs war'
+  ] },
+  { v: '3.10', date: '2026-10-23', items: [
+    'Will eine Figur mitspielen, die nicht in der Besetzung ist (z. B. Vanessa), bietet die App ab ihrer zweiten Zeile „Dazuholen" an - vorher wurden ihre Zeilen nur stumm gelöscht'
+  ] },
+  { v: '3.09', date: '2026-10-23', items: [
+    'Test: zweite Figur in der 3D-Ansicht (⚙ → „Zweite Figur zeigen (Test)") - sind mehrere Figuren im Chat, kniet die, die zuletzt gesprochen hat, neben dir: atmet, blinzelt, schaut die Sprecherin an bzw. dich, wenn sie selbst spricht; Mund bewegt sich nur zu ihrer eigenen Stimme; Kleidung wie bei ihr eingestellt'
+  ] },
+  { v: '3.08', date: '2026-10-23', items: [
+    'Kleidung gilt jetzt je Figur: teilen sich mehrere Figuren ein Modell (z. B. nach „Anime aus Bild"), zieht die eine die andere nicht mehr mit aus - vorher war deine Einstellung beim nächsten Mal wieder weg',
+    '👗 schaltet auch das Outfit aus dem Bild an und aus (vorher nur die Kleidung des Modells - der Knopf schien nichts zu tun)',
+    'Figuren aus „Anime aus Bild": gelten als angezogen (im Outfit), die eigene Kleidung des Modells bleibt aus - bestehende Figuren werden automatisch umgestellt',
+    'Aus der Figur abgeleitet: Tierohren, -schwänze und ähnliches Zubehör des Modells nur, wenn ihre Beschreibung so etwas erwähnt - im Editor einzeln wieder einschaltbar'
+  ] },
+  { v: '3.07', date: '2026-10-23', items: [
+    'Doppelt/dreifach Gesprochenes: Wiederholt die Stimme (v4 Turbo u. a.) einen Satz innerhalb eines Clips, endet der Clip an der erwarteten Stelle - im Protokoll steht dann „Stimme: Clip … wiederholt sich vermutlich"',
+    'Du bist jetzt eine eigene Figur: 🙋 in der 3D-Ansicht öffnet „Dich formen" - der Reiter „Du" ist aus dem Editor jeder Figur raus, und beim Ändern springt das Bild nicht mehr zur Figur',
+    'Dein Körper: Figur und Muskeln wirken jetzt sichtbar (vorher kaum), Größe stimmt mit den cm am Regler (vorher bis 2,4 m)',
+    'Deine Hände sind standardmäßig ruhig: eine natürliche Stelle je Stellung statt Umherwandern - lebhaft unter ⚙ in der 3D-Ansicht',
+    'Wesen im Editor zeigt, was aus der Figurenkarte kommt (forsch/zart/verspielt → Temperament, Blick, Gesten, Lächeln)',
+    'Mila: bekommt zu Sitzungsfragen einen Überblick mit Zahlen (sagte sonst bei ausgeblendetem Text, es gebe keine Sitzung); „Körper unter der Kleidung" steht nur noch einmal je Modell im Protokoll'
+  ] },
+  { v: '3.06', date: '2026-10-23', items: [
+    'Du liegst - sie bläst: deine Hände wandern nicht mehr durch ihren Kopf (Weg führt außen um Kopf und Haare herum, auch von deiner eigenen Ablage aus); Hand am Kopf berücksichtigt Ohr und Stirn (Messung: von ~13 % der Bilder auf ~3 %)'
+  ] },
+  { v: '3.05', date: '2026-10-23', items: [
+    'Ihr Ellbogen schwingt nicht mehr: lag ihre Hand ruhig auf ihrer Brust (v. a. im Missionar), kippte der Ellbogen teils eine Viertelsekunde lang um die Schulter-Hand-Achse; jetzt folgt er mit Trägheit (größter Sprung pro Bild etwa halbiert)'
+  ] },
   { v: '3.04', date: '2026-10-23', items: [
     'Seine Unterarme springen nicht mehr: beim Missionar und Reiten kippte der Ellbogen teils um bis zu 90° von einem Bild zum nächsten, jetzt gleitet er in wenigen Bildern in die neue Lage',
     'Geprüft: Mila greift nach einem Neustart auf das Protokoll der zuletzt gesicherten Sitzung zurück (inkl. Fehlermeldungen)'
@@ -6928,8 +6980,11 @@ function stopFillers(hard) {
 async function settleFillers() {
   fillerActive = false;
   clearTimeout(fillerTimer);
-  if (fillerAudio && fillerDone) await Promise.race([fillerDone, new Promise(r => setTimeout(r, 2500))]);
-  if (fillerAudio) { try { fillerAudio.pause(); } catch (e) {} fillerAudio = null; }
+  const t0 = Date.now();
+  // Füll-Laut kurz ausklingen lassen statt bis zu 2,5 s auf sein Ende zu warten - die Antwort ist schon da (W-5)
+  if (fillerAudio && fillerDone) await Promise.race([fillerDone, new Promise(r => setTimeout(r, 450))]);
+  if (fillerAudio) { const a = fillerAudio; const v0 = a.volume; for (let i = 1; i <= 5; i++) { try { a.volume = Math.max(0, v0 * (1 - i / 5)); } catch (e) {} await new Promise(r => setTimeout(r, 40)); } try { a.pause(); a.volume = v0; } catch (e) {} if (fillerAudio === a) fillerAudio = null; }
+  return Date.now() - t0;
 }
 
 function speak(text, role) {
@@ -7123,11 +7178,32 @@ function fetchElevenAudio(text, role, ctx) {
       } catch (e) { /* body wasn't JSON */ }
       throw new Error('ElevenLabs ' + res.status + (detail ? ': ' + detail : ''));
     }
+    // Live: schon abspielen, während ElevenLabs noch liefert (die ersten Daten kommen nach ~0,3 s, der ganze
+    // Clip erst nach ~1 s) - über MediaSource. Geht das nicht, wie bisher erst den ganzen Clip laden.
+    if (ctx && ctx.stream && res.body && typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('audio/mpeg') && localStorage.getItem('companion_ttsStream') !== 'false' && !elevenStreamBroken) {
+      try { return elevenStreamUrl(res, rq.key); } catch (e) { elevenStreamBroken = true; }
+    }
     // Bricht das Netz mitten im Herunterladen ab, wartete die Antwort sonst minutenlang
     const blob = await Promise.race([res.blob(), new Promise((_, rej) => setTimeout(() => rej(new Error('Stimme kam nicht vollständig an (Netz)')), 30000))]);
     if (audioCacheEnabled()) dbPut(STORE_AUDIO, rq.key, blob).catch(() => {});
     return URL.createObjectURL(blob);
   })();
+}
+
+let elevenStreamBroken = false;
+function elevenStreamUrl(res, cacheKey) {
+  const ms = new MediaSource(), url = URL.createObjectURL(ms), parts = [];
+  ms.addEventListener('sourceopen', async () => {
+    let sb; try { sb = ms.addSourceBuffer('audio/mpeg'); } catch (e) { elevenStreamBroken = true; try { ms.endOfStream('decode'); } catch (e2) {} return; }
+    const rd = res.body.getReader(), until = () => new Promise(r => { if (!sb.updating) r(); else sb.addEventListener('updateend', r, { once: true }); });
+    const stall = setTimeout(() => { try { rd.cancel(); } catch (e) {} }, 30000);
+    try {
+      for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); await until(); sb.appendBuffer(value); }
+      await until(); clearTimeout(stall); if (ms.readyState === 'open') ms.endOfStream();
+      if (audioCacheEnabled() && parts.length) dbPut(STORE_AUDIO, cacheKey, new Blob(parts, { type: 'audio/mpeg' })).catch(() => {});
+    } catch (e) { clearTimeout(stall); try { if (ms.readyState === 'open') ms.endOfStream('network'); } catch (e2) {} }
+  }, { once: true });
+  return { url, streaming: true };
 }
 
 // Lets a voice be heard before it is assigned. Deliberately uses the same
@@ -7589,11 +7665,32 @@ function playElevenUrl(objectUrl, onStart, text, role, starts, whisper) {
     const done = () => { URL.revokeObjectURL(objectUrl); resolve(); };
     audio.onended = done;
     audio.onerror = done;
+    // Beim Streamen ist die Länge erst am Ende bekannt - die Wiederholungs-Prüfung läuft dann nach
+    let loopChecked = false;
+    const loopCheck = () => {
+      if (loopChecked || !isFinite(audio.duration) || audio.duration <= 0) return 0;   // beim Streamen wächst die Länge - bei jeder Änderung neu prüfen, bis einmal geschnitten wurde
+      try {
+        const dur = audio.duration * 1000, est = estimateSpeechMs(stripAudioTags(text || ''), role), tags = (String(text || '').match(/\[[^\]]+\]/g) || []).length;
+        if (dur > est * 1.55 + 1200 + tags * 1200 && dur > 4500) {
+          const cut = Math.round(est * 1.25 + 600 + tags * 900); loopChecked = true;
+          logEvent('msg', { role: 'system', text: `Stimme: Clip ${(dur / 1000).toFixed(1)} s statt etwa ${(est / 1000).toFixed(1)} s - wiederholt sich vermutlich, endet nach ${(cut / 1000).toFixed(1)} s.` });
+          setTimeout(() => { if (!audio.paused && !audio.ended) { try { audio.pause(); } catch (e) {} done(); } }, Math.max(0, cut - audio.currentTime * 1000));
+          return cut;
+        }
+      } catch (e) {}
+      return 0;
+    };
+    audio.addEventListener('durationchange', () => { if (begun) loopCheck(); });
     audio.onplaying = () => {
-      if (begun || !onStart) return;
+      if (begun) return;
       begun = true;
-      const dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration * 1000 : estimateSpeechMs(text || '', role);
-      onStart(makeTimeline(text, dur, starts));
+      if (!isFinite(audio.duration)) { if (onStart) onStart(makeTimeline(text, estimateSpeechMs(text || '', role), starts)); return; }
+      // Neuere Stimm-Modelle (v3/v4 mit Regieanweisungen) wiederholen manchmal Sätze innerhalb eines Clips -
+      // im Protokoll stand die Zeile einmal, zu hören war sie zwei-, dreimal. Ist der Clip viel länger, als der
+      // Text sein kann, endet er an der erwarteten Stelle.
+      let dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration * 1000 : estimateSpeechMs(text || '', role);
+      const c0 = loopCheck(); if (c0) dur = c0;
+      if (onStart) onStart(makeTimeline(text, dur, starts));
     };
     audio.play().catch(() => done());
   });
@@ -7627,7 +7724,9 @@ function prepareSpeech(text, role, timed, ctx) {
   // Swallow the rejection here so an early failure can't surface as an
   // unhandled rejection while the previous piece is still playing.
   const safe = pending.catch((err) => ({ error: err }));
-  return {
+  const handle = { timed: !!timed, readyAt: 0 };
+  safe.then(() => { handle.readyAt = Date.now(); });
+  return Object.assign(handle, {
     play: async (onStart) => {
       if (isMuted) return;
       const gen = playbackGeneration;
@@ -7649,7 +7748,7 @@ function prepareSpeech(text, role, timed, ctx) {
       const starts = typeof result === 'string' ? null : result.starts;
       return playElevenUrl(url, onStart, text, role, starts, !!(ctx && ctx.whisper));
     }
-  };
+  });
 }
 
 async function speakElevenLabs(text, role) {
@@ -15027,6 +15126,7 @@ function parseEnsembleText(text) {
       const absent = matchSpeakerName(m[1], archiveNames);
       if (absent) {
         logEvent('msg', { role: 'system', text: 'Zeile einer abwesenden Figur entfernt (' + absent + '): ' + line.slice(0, 100) });
+        try { offerAbsentFigure(absent); } catch (e) {}
         return;
       }
     }
@@ -15999,6 +16099,7 @@ async function askEnsemble(userText, options) {
       return item && !item.muster ? motionLevelOf(item) : currentMotionLevel();
     };
     const context = (i) => ({
+      stream: true,
       whisper: !!(pieces[i] && pieces[i].whisper),
       level: pieceLevel(i),
       previous: pieces.slice(Math.max(0, i - 2), i).filter(x => x.role === pieces[i].role).map(x => x.text).join(' '),
@@ -16019,6 +16120,7 @@ async function askEnsemble(userText, options) {
       if (i === pieces.length - 1) nearEnd();
       if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
       noteSpeaker(pieces[i].role);
+      try { if (typeof avk2MaybeSwap === 'function') avk2MaybeSwap(pieces[i].role, pieces[i].text); } catch (e) {}
       if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
@@ -16034,9 +16136,10 @@ async function askEnsemble(userText, options) {
       const piece = pieces[i];
       let ctl = null;
       const firstOne = i === 0;
-      if (firstOne) { await settleFillers(); wishOnReplyStart(); }
+      let fillWait = 0, ttsT0 = Date.now();
+      if (firstOne) { fillWait = await settleFillers(); wishOnReplyStart(); }
       await current.play((timeline) => {
-        if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte).` });
+        if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte; Füll-Laut ${(fillWait / 1000).toFixed(1)} s, Vertonung ${((current.readyAt ? current.readyAt - replyShownAt : Date.now() - ttsT0) / 1000).toFixed(1)} s${current.timed ? ', mit Zeitstempeln' : ''}).` });
         if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
       });
       if (ctl) ctl.flush();
@@ -19834,6 +19937,22 @@ function fillAddOptions(select) {
   });
 }
 
+// Will die Geschichte eine Figur dabeihaben, die nicht in der Besetzung ist (ihre Zeilen fliegen raus),
+// bietet die App ab der zweiten solchen Zeile an, sie dazuzuholen - statt sie stumm immer wieder zu löschen.
+const absentSeen = {};
+function offerAbsentFigure(name) {
+  const n = (absentSeen[name] = (absentSeen[name] || 0) + 1);
+  if (n !== 2 && n !== 6) return;   // einmal anbieten, später höchstens noch einmal erinnern
+  const f = figureArchive.find(x => (latestVersion(x) || {}).name === name); if (!f) return;
+  if (characters.some(c => c.figureId === f.id)) return;
+  if (!els.toastHost) return;
+  const node = document.createElement('div'); node.className = 'toast shown'; node.style.cssText = 'display:flex; gap:10px; align-items:center; pointer-events:auto;';
+  const t = document.createElement('span'); t.textContent = `${name.split(' ')[0]} will mitspielen, ist aber nicht in der Besetzung.`; t.style.flex = '1';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-primary'; b.style.cssText = 'width:auto; padding:5px 11px; font-size:13px; flex:0 0 auto;'; b.textContent = 'Dazuholen';
+  b.onclick = (e) => { e.stopPropagation(); addFigureToCast(f.id); logEvent('msg', { role: 'system', text: 'Besetzung: ' + name + ' dazugeholt.' }); showToast(name.split(' ')[0] + ' ist jetzt dabei'); node.remove(); };
+  node.append(t, b); node.onclick = () => node.remove();
+  els.toastHost.appendChild(node); setTimeout(() => node.remove(), 15000);
+}
 function addFigureToCast(figureId) {
   const figure = getFigure(figureId);
   if (!figure) return;
@@ -24818,7 +24937,18 @@ function helpProtocol() {
   }).map(l => (!HELP.withText && /^\s*Beschreibung:/.test(l)) ? '  Beschreibung: (ausgeblendet)' : l);
   let s = out.join('\n');
   if (s.length > 14000) { const head = s.slice(0, 2500); s = head + '\n(… gekürzt …)\n' + s.slice(-11000); }
-  return s;
+  return helpOverview() + '\n' + s;
+}
+// Kurzer Überblick mit harten Zahlen vorneweg - ohne Gesprächstext sah ein kleines Modell sonst nur
+// technische Zeilen und meinte, es habe noch gar keine Sitzung gegeben
+function helpOverview() {
+  try {
+    const L = sessionLog, n = k => L.filter(e => e.kind === 'msg' && (e.role || '') === k).length, mot = L.filter(e => e.kind === 'motion' && e.texture !== 'stop').length;
+    const t0 = L.length ? L[0].t || 0 : 0, t1 = L.length ? L[L.length - 1].t || 0 : 0, min = Math.round((t1 - t0) / 60000);
+    const cast = (typeof characters !== 'undefined' ? characters : []).map(c => c.name).filter(Boolean).join(', ');
+    const games = L.filter(e => e.kind === 'msg' && /^Spiel|Besetzung:/.test(e.text || '')).length;
+    return `ÜBERBLICK DIESER SITZUNG: läuft seit etwa ${min} Min · Antworten der Figuren: ${n('char') + n('assistant')} · Nachrichten von Til: ${n('user')} · Bewegungsbefehle: ${mot} · App-Meldungen: ${n('system')} · Besetzung jetzt: ${cast || '?'}${games ? ' · Start/Besetzung gemeldet: ' + games + '×' : ''}.${(n('char') + n('assistant')) ? ' Es gab also ein Gespräch, auch wenn sein Text hier ausgeblendet ist.' : ''}`;
+  } catch (e) { return ''; }
 }
 // Protokoll für Fragen: die laufende Sitzung - ist sie (nach einem Neustart der App) noch leer, die zuletzt gesicherte
 async function helpProtocolAny() {
@@ -27509,6 +27639,49 @@ async function avSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -27552,9 +27725,12 @@ function mhWeights(p) {
   if (p.male) {
     // Mann: eigene Grundform, Brust-/Make-up-Formen entfallen
     w.male = 1;
-    pm2('mWeightMax', 'mWeightMin', p.weight || 0);
-    pm2('mMuscleMax', 'mMuscleMin', p.muscle || 0);
-    pm2('mHeightMax', 'mHeightMin', p.height || 0);
+    // die Männer-Formen für Figur/Muskeln sind im Baukasten sehr schwach (max. ~3-5 cm) - verstärkt, sonst sah man die Regler kaum
+    const AMP = (typeof window !== 'undefined' && window.__mhAmp) || 2.2, AMPM = (typeof window !== 'undefined' && window.__mhAmpM) || 1.4;
+    pm2('mWeightMax', 'mWeightMin', (p.weight || 0) * AMP);
+    pm2('mMuscleMax', 'mMuscleMin', (p.muscle || 0) * AMPM);
+    // Größe: die Formen sind sehr stark (+68 / -35 cm) - so skaliert, dass ±1 etwa ±20 cm ergibt (Regler zeigt 157-197 cm)
+    { const hv = p.height || 0; pm2('mHeightMax', 'mHeightMin', hv > 0 ? hv * 0.29 : hv * 0.57); }
     w.mOlder = Math.max(0.04, Math.min(0.6, p.older || 0.1));
   } else {
   pm2('weightMax', 'weightMin', p.weight || 0);
@@ -28633,7 +28809,9 @@ function mhManRig(THREE, B, opts) {
     ['L', 'R'].forEach(sd => {
       // Abstand über der Haut (z. B. Haare auf dem Kopf): Fläche um lift nach außen versetzt
       const lift = (tg && tg.lift && tg.lift[sd]) || 0, sph = tg && tg.sphere && tg.sphere[sd];
-      const surf = sph ? (p => { const d = p.clone().sub(sph.c); if (d.lengthSq() < 1e-8) d.set(0, 1, 0); d.normalize(); return { p: sph.c.clone().addScaledVector(d, sph.r), n: d }; })
+      const surf = sph ? (p => { const d = p.clone().sub(sph.c); if (d.lengthSq() < 1e-8) d.set(0, 1, 0); d.normalize(); const sp = { p: sph.c.clone().addScaledVector(d, sph.r), n: d };
+          // ragt ihre echte Haut (Ohr, Stirn, Wange) über die Kugel hinaus, gilt die Haut
+          const q0 = surf0(p); if (q0 && q0.p.distanceTo(p) < 0.08 && q0.p.distanceTo(sph.c) > sph.r + 0.004 && q0.n.dot(d) > 0.2) return q0; return sp; })
         : lift ? (p => { const q = surf0(p); return q && Object.assign({}, q, { p: q.p.clone().addScaledVector(q.n, lift) }); }) : surf0;
       const T = tg && tg[sd]; if (!T) { cw[sd] = Math.max(0, (cw[sd] || 0) - (tg.dt || 0.03) * 4); if (!cw[sd]) Object.keys(cq).forEach(k => { if (k.includes('.' + sd + '|')) delete cq[k]; }); return; }
       let q = surf(T); if (!q || q.p.distanceTo(T) > 0.12) { cw[sd] = Math.max(0, (cw[sd] || 0) - (tg.dt || 0.03) * 4); return; }
@@ -28977,8 +29155,8 @@ async function avkMeBuild(K) {
   if (!K.morphs.male) return null;
   const spec = avkMeSpec(), key = JSON.stringify(spec);
   if (AVK.me && AVK.me.key === key) return AVK.me;
-  if (AVK.me) avkMeUnload();
   const B = await MH.mhBuild(AV.T, K, spec.params, spec.look);
+  if (AVK.me) avkMeUnload();   // erst nach dem Bauen tauschen (sonst sah man im Editor kurz die Figur statt dich)
   if (B.lashes) B.lashes.visible = false;
   AVK.me = { B, key, rig: MH.mhManRig(AV.T, B, {}), hair: null, kp: null };
   if (!spec.hair.bald) try { AVK.me.hair = MH.mhHair(AV.T, B, { style: 'short', color: spec.hair.color, shells: 1 }); } catch (e) {}
@@ -28986,7 +29164,7 @@ async function avkMeBuild(K) {
 }
 function avkMeUnload() {
   const m = AVK.me; if (!m) return;
-  [m.B.root, m.hair && m.hair.group].forEach(o => { if (o) { if (o.parent) o.parent.remove(o); o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) [].concat(x.material).forEach(mm => { if (mm.map) mm.map.dispose(); mm.dispose(); }); }); } });
+  [m.B.root, m.hair && m.hair.group].forEach(o => { if (o) { if (o.parent) o.parent.remove(o); o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.isSkinnedMesh && x.skeleton) { try { x.skeleton.dispose(); } catch (e) {} } if (x.material) [].concat(x.material).forEach(mm => { Object.values(mm).forEach(v => { if (v && v.isTexture) v.dispose(); }); mm.dispose(); }); }); } });   // alle Texturen (Bump, AO, Toon …), nicht nur die Hauptfarbe
   AVK.me = null;
 }
 // ---------- Gesicht aus dem Porträt: Orientierungspunkte ----------
@@ -29556,7 +29734,10 @@ function avkCamera(t) {
 // VRM 0.x ist nach rotateVRM0 um 180° gedreht: dort X- und Z-Drehungen umkehren (k0).
 const AVK_CLOTH_RX = /CLOTH|Shoes|Accessory|Socks|Glove|Tops|Bottoms|Onepiece|Underwear|Inner|Bra|Pants|Skirt|Jacket|Coat|Dress|Shirt/i;
 function avkVrmNudeMap() { try { return JSON.parse(localStorage.getItem('companion_vrmNude') || '{}'); } catch (e) { return {}; } }
-function avkVrmNude(key, meta) { const m = avkVrmNudeMap(); if (meta && meta.sexual === false) return false; return m[key] === undefined ? AVK.intact !== false : !!m[key]; }
+// an/aus gilt je Figur und Modell (vorher je Modell - teilten sich Figuren ein Modell, zog die eine die andere mit aus)
+function avkNudeKey(key, fig) { return (fig || AV.figId || '') + '|' + key; }
+function avkVrmNude(key, meta, fig) { const m = avkVrmNudeMap(); if (meta && meta.sexual === false) return false; const fk = avkNudeKey(key, fig); const v = m[fk] !== undefined ? m[fk] : m[key]; return v === undefined ? AVK.intact !== false : !!v; }
+function avkSetNude(key, val, fig) { const m = avkVrmNudeMap(); m[avkNudeKey(key, fig)] = !!val; safeSet('companion_vrmNude', JSON.stringify(m)); }
 // Ist unter der Kleidung ein ganzer Körper? Viele Modelle sparen die verdeckten
 // Stellen ein - ausgezogen fehlen dann Bauch, Hüfte oder Beine. Geprüft wird,
 // ob die Haut rund um Rumpf und Oberschenkel lückenlos ist.
@@ -29692,7 +29873,7 @@ function avkVrmRig(vrm, cal) {
   const fistCircle = sd => { const n1 = B(sd + 'MiddleProximal'), n2 = B(sd + 'MiddleIntermediate'), n3 = B(sd + 'MiddleDistal'); if (!n1 || !n2 || !n3) return null; const a = n1.getWorldPosition(V()), b = n2.getWorldPosition(V()), c = n3.getWorldPosition(V()); const tip = n3.children[0] ? n3.children[0].getWorldPosition(V()) : c.clone().add(c.clone().sub(b).multiplyScalar(0.8)); const ab = b.clone().sub(a), ac = tip.clone().sub(a), n = V(0, 0, 0).crossVectors(ab, ac); const nn = n.lengthSq(); if (nn < 1e-10) return null; const off = V(0, 0, 0).crossVectors(n, ab).multiplyScalar(ac.lengthSq()).add(V(0, 0, 0).crossVectors(ac, n).multiplyScalar(ab.lengthSq())).multiplyScalar(1 / (2 * nn)); return { c: a.clone().add(off), r: off.length() }; };
   const P = avkPersona(AVK.figId);
   let s_pen = null;
-  const st = { t: 0, blinkAt: 2, blinkT: -1, look: null, glanceAt: 3, glance: null, wristOff: {}, pokeT: 0, fistR: 0, q: {}, ex: {}, P };
+  const st = { t: 0, blinkAt: 2, blinkT: -1, look: null, glanceAt: 3, glance: null, wristOff: {}, pokeT: 0, fistR: 0, q: {}, ex: {}, P }; AVK.vst = st;
   // ---------- Glätten: jedes Gelenk läuft gefedert hinter seinem Ziel her ----------
   const smooth = (names, rate, dt) => {
     const a = 1 - Math.exp(-dt * rate);
@@ -29897,8 +30078,24 @@ function avkVrmRig(vrm, cal) {
       if (best.i !== st.poleIdx[sd]) { tryPole(best.i); st.poleAt[sd] = st.t; }
       st.poleIdx[sd] = best.i;
     }
+    // Ellbogen-Ebene mit Trägheit: liegt die Hand nah an der Schulter (z. B. an der eigenen Brust), kippt die IK-Lösung
+    // sonst um die Achse Schulter-Hand (Ellbogen schwang ~10 Bilder lang mit 2-3 cm/Bild, obwohl die Hand ruhig lag)
+    {
+      st.elD = st.elD || {}; st.elT = st.elT || {}; if (!window.__noElD) {
+      const ax = wrist.clone().sub(sh), L = ax.length(); if (L > 1e-4) { ax.normalize();
+        const perpOf = p => { const d = p.clone().sub(sh); d.sub(ax.clone().multiplyScalar(d.dot(ax))); return d.lengthSq() > 1e-8 ? d.normalize() : null; };
+        const cur = perpOf(B(sd + 'LowerArm').getWorldPosition(V())), prevD = st.elD[sd] ? perpOf(sh.clone().add(st.elD[sd])) : null;
+        const dtE = Math.max(0, Math.min(0.1, st.t - (st.elT[sd] == null ? st.t : st.elT[sd]))); st.elT[sd] = st.t;
+        if (cur && prevD) {
+          const ang = prevD.angleTo(cur), mx = Math.max(0.02, dtE * 3);
+          if (ang > mx) { const rax = prevD.clone().cross(cur); if (rax.lengthSq() > 1e-10) { const nd = prevD.clone().applyAxisAngle(rax.normalize(), mx);
+            limb(sd + 'UpperArm', sd + 'LowerArm', sd + 'Hand', wrist, sh.clone().addScaledVector(ax, L * 0.5).addScaledVector(nd, 0.5 * s0)); B(sd + 'UpperArm').updateWorldMatrix(true, true); st.elD[sd] = nd; } else st.elD[sd] = cur; }
+          else st.elD[sd] = cur;
+        } else if (cur) st.elD[sd] = cur;
+      } }
+    }
     // Finger halb Richtung Unterarm, halb zur Fläche - so knickt das Handgelenk nicht unnatürlich
-    const fa = B(sd + 'Hand').getWorldPosition(V()).sub(B(sd + 'LowerArm').getWorldPosition(V())).normalize();
+    const fa =B(sd + 'Hand').getWorldPosition(V()).sub(B(sd + 'LowerArm').getWorldPosition(V())).normalize();
     const fdir = fa.clone().multiplyScalar(0.55).add(fd.clone().multiplyScalar(0.45)).normalize();
     setHand(sd, fdir, pd);
     softFingers(sd, curl === undefined ? 0.2 : curl, st.t);
@@ -30623,7 +30820,7 @@ async function avkVrmShow(figId) {
   const meta = (rec && rec.meta) || {};
   if (AV.sleeve) AV.sleeve.visible = false;
   const bi = avkVrmBodyIntact(vrm); AVK.intact = bi.intact; AVK.lic = meta.sexual === false;
-  avkLog(`Körper unter der Kleidung: ${bi.intact ? 'vollständig' : 'lückenhaft'} (${Math.round(bi.cov * 100)} %)`);
+  { const lk = (AV.key || '?') + (bi.intact ? 'v' : 'l'); AVK.intactLogged = AVK.intactLogged || {}; if (!AVK.intactLogged[lk]) { AVK.intactLogged[lk] = 1; avkLog(`Körper unter der Kleidung: ${bi.intact ? 'vollständig' : 'lückenhaft'} (${Math.round(bi.cov * 100)} %)`); } }   // einmal je Modell (sonst füllte die Zeile das Protokoll)
   avkVrmClothes(vrm, avkVrmNude(AV.key, meta));
   const cal = avkVrmCalib(vrm);
   AVK.B = { root: vrm.scene, isVrm: true, vrm, bones: {} }; AVK.vrmMode = true; AVK.figId = figId; AVK.spec = null;
@@ -30681,6 +30878,7 @@ async function avkVrmShow(figId) {
     avkCamera(t);
     avLipFrame(dt);
     avkPlace(p, dt);
+    try { avk2Frame(dt, t); } catch (e) { if (!AVK2.err) { AVK2.err = 1; avkLog('Zweite Figur: ' + e.message); } }
     if (AVK.room) AVK.room.flames.forEach(([fl, pl], i) => { const f = 0.85 + 0.15 * Math.sin(t * 11 + i * 2) * Math.sin(t * 7.3 + i) + 0.05 * Math.random(); if (pl) pl.intensity = 0.5 * f * (AVK.moodFlame === undefined ? 1 : AVK.moodFlame); fl.scale.set(1, 2 * f, 1); });
     try { avkBedDip(dt); } catch (e) {}
     avRender();
@@ -30704,14 +30902,16 @@ async function avkVrmShow(figId) {
         ${lic ? '<p class="hint">Die Lizenz dieses Modells erlaubt keine sexuelle Darstellung - deshalb bleibt es angezogen.</p>' : '<p class="hint" style="margin-top:4px;">Was der Ersteller direkt in die Haut gemalt hat (z. B. Unterwäsche), bleibt sichtbar.</p>'}
         <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkMeOn2" ${localStorage.getItem('companion_av3dMe') !== 'false' ? 'checked' : ''}> Mich mit anzeigen</label>
         <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkMeToon" ${localStorage.getItem('companion_av3dMeToon') !== 'false' ? 'checked' : ''}> Mich im Anime-Stil zeichnen (passt besser zu VRM-Figuren)</label>
+        <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkSecond" ${localStorage.getItem('companion_av3dSecond') === 'true' ? 'checked' : ''}> Zweite Figur zeigen (Test) - wer aus dem Chat zuletzt gesprochen hat, kniet neben dir</label>
+        <label style="display:flex; gap:10px; align-items:center; margin-top:6px; font-size:13px;"><input type="checkbox" id="avkHandsLive" ${localStorage.getItem('companion_av3dHands') === 'live' ? 'checked' : ''}> Meine Hände lebhaft (wandern, streicheln) - sonst ruhig an einer Stelle</label>
         <div class="btn-row" style="margin-top:8px;"><button type="button" class="btn-secondary" id="avkVrmSave">⤓ VRM-Datei speichern</button></div>
         <hr style="border:0; border-top:1px solid var(--line); margin:16px 0;">`;
       body0.insertBefore(vb, body0.firstChild);
       const reshow = () => { const f = AV.figId; AV.key = null; avkUnload(); avShowFigure(f); };
       vb.querySelector('#avkVrmRoom').onchange = e => { safeSet('companion_vrmRoom', e.target.checked ? 'true' : 'false'); reshow(); };
-      const nu = vb.querySelector('#avkVrmNude'); if (!lic) nu.onchange = e => { const m = avkVrmNudeMap(); m[AV.key] = e.target.checked; safeSet('companion_vrmNude', JSON.stringify(m)); if (AV.vrm) avkVrmClothes(AV.vrm, e.target.checked && !!AVK.vrmMode); };
+      const nu = vb.querySelector('#avkVrmNude'); if (!lic) nu.onchange = e => { avkSetNude(AV.key, e.target.checked); if (AV.vrm) avkVrmClothes(AV.vrm, e.target.checked && !!AVK.vrmMode); };
       vb.querySelector('#avkMeOn2').onchange = e => { safeSet('companion_av3dMe', e.target.checked ? 'true' : 'false'); reshow(); };
-      vb.querySelector('#avkMeToon').onchange = e => { safeSet('companion_av3dMeToon', e.target.checked ? 'true' : 'false'); try { avkMeToon(); } catch (er) {} };
+      vb.querySelector('#avkMeToon').onchange = e => { safeSet('companion_av3dMeToon', e.target.checked ? 'true' : 'false'); try { avkMeToon(); } catch (er) {} }; vb.querySelector('#avkHandsLive').onchange = e => { safeSet('companion_av3dHands', e.target.checked ? 'live' : 'calm'); AVK.hisH = null; }; vb.querySelector('#avkSecond').onchange = e => { safeSet('companion_av3dSecond', e.target.checked ? 'true' : 'false'); if (!e.target.checked) avk2Unload(); };
       vb.querySelector('#avkVrmSave').onclick = () => { if (!rec || !rec.blob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(rec.blob); a.download = (rec.name || 'figur').replace(/[^\w\-äöüÄÖÜß ]+/g, '_') + '.vrm'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
       return;
     }
@@ -31077,7 +31277,7 @@ function htStop() {
   b.onclick = () => {
     if (!AV.vrm || !AV.key) return;
     const nude = !avkVrmNude(AV.key, {});
-    const m = avkVrmNudeMap(); m[AV.key] = nude; safeSet('companion_vrmNude', JSON.stringify(m));
+    avkSetNude(AV.key, nude);
     const n = avkVrmClothes(AV.vrm, nude); paint();
     avHint(nude ? (AVK.intact === false ? 'Ausgezogen - Achtung: bei diesem Modell fehlen unter der Kleidung Körperteile' : 'Ausgezogen') : (n ? 'Angezogen' : 'Dieses Modell hat keine abnehmbare Kleidung'));
   };
@@ -31382,6 +31582,9 @@ function avkHisHands(hk, dt) {
     mission: { L: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]], R: [['thigh', 3], ['hip', 2.5], ['waist', 1.2], ['breast', 0.4]] },
     carry: { L: [['butt', 1]], R: [['butt', 1]] },
   }[pose];   // aus deinen Augen keine Arme quer durchs Bild
+  // ruhig (Standard): je Stellung eine natürliche Stelle, die Hand bleibt dort - kein Umherwandern, kaum Streicheln
+  const calm = localStorage.getItem('companion_av3dHands') !== 'live';
+  if (calm) { const C = { ride: [['hip', 1]], doggy: [['hip', 1]], mission: [['hip', 1]], carry: [['butt', 1]], titsLie: [['shoulder', 1]] }[pose]; Object.assign(W, C ? { L: C, R: C } : { L: [['own', 1]], R: [['own', 1]] }); }
   const S = AVK.hisH && AVK.hisH.pose === pose ? AVK.hisH : (AVK.hisH = { pose });
   const out = {};
   const act = AVK.hand2 && performance.now() < AVK.hand2Until ? AVK.hand2 : null;
@@ -31406,37 +31609,41 @@ function avkHisHands(hk, dt) {
       return out;
     }
   }
+  const curHand = sd => { try { const B2 = me && me.B && me.B.bones; if (!B2 || !B2['wrist.' + sd]) return null; return B2['wrist.' + sd].getWorldPosition(V()).lerp(B2['finger3-1.' + sd].getWorldPosition(V()), 0.6); } catch (e) { return null; } };
   ['L', 'R'].forEach(sd => {
     let H = S[sd];
     const pick = (avoid) => { const l = W[sd].filter(([k]) => k !== avoid && !(AVK.hisBlock && AVK.hisBlock[sd + k] > now) && opts[k] && (k === 'own' || opts[k](sd))); let r = Math.random() * l.reduce((a, [, w]) => a + w, 0); for (const [k, w] of l) { r -= w; if (r <= 0) return k; } return l[0] ? l[0][0] : null; };
     if (!H) { H = S[sd] = { kind: pick(), k: 1, from: null, until: now + 3 + Math.random() * 5, ph: Math.random() * 6 }; }
+    if (calm && W[sd].some(([k]) => k === H.kind)) H.until = Math.max(H.until, now + 5);   // ruhig: an der Stelle bleiben
     if (now > H.until) {
       const other = S[sd === 'L' ? 'R' : 'L'];
       let nk = Math.random() < 0.55 && !(AVK.hisBlock && AVK.hisBlock[sd + H.kind] > now) ? H.kind : pick(H.kind);
       if (other && other.kind === nk && /breast|head|back/.test(nk)) nk = H.kind;
-      if (nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.prevKind = H.kind; H.kind = nk; H.k = 0; }
+      if (nk !== H.kind) { H.from = H.last ? H.last.clone() : curHand(sd); H.prevKind = H.kind; H.kind = nk; H.k = 0; }
       H.until = now + 3.5 + Math.random() * 6;
     }
-    if (!W[sd].some(([k]) => k === H.kind)) { const nk = pick(); if (nk && nk !== H.kind) { H.from = H.last ? H.last.clone() : null; H.prevKind = H.kind; H.kind = nk; H.k = 0; } }
+    if (!W[sd].some(([k]) => k === H.kind)) { const nk = pick(); if (nk && nk !== H.kind) { H.from = H.last ? H.last.clone() : curHand(sd); H.prevKind = H.kind; H.kind = nk; H.k = 0; } }
     // aus deinen Augen: Hand lieber seitlich an Haaren/Ohr als oben auf dem Kopf (Arm quer durchs Bild)
     if (AV.camMode === 0 && H.kind === 'head' && opts.hair) H.kind = 'hair';
     let f = H.kind && opts[H.kind] ? opts[H.kind](sd) : null;
     // Kopf/Haare: nur eine Weile, dann nimmst du die Hand wieder weg
-    if (/head|hair/.test(H.kind) && now > H.until - 0.01 && Math.random() < 0.5) { H.from = H.last ? H.last.clone() : null; H.kind = 'own'; H.until = now + 2.5 + Math.random() * 4; f = null; }
+    if (/head|hair/.test(H.kind) && now > H.until - 0.01 && Math.random() < 0.5) { H.from = H.last ? H.last.clone() : curHand(sd); H.prevKind = H.kind; H.kind = 'own'; H.k = 0; H.until = now + 2.5 + Math.random() * 4; f = null; }
     // aus deinen Augen: nie die Sicht auf ihr Gesicht verdecken
     if (f && (AV.camMode === 0 || AV.camMode === 1) && hk.head) {
       const c = AV.camera.position, fc = (hk.mouth || hk.head).clone(), ab = fc.clone().sub(c), L2 = ab.lengthSq();
       const chk = pt => { const k = Math.max(0, Math.min(1, pt.clone().sub(c).dot(ab) / L2)); return k > 0.15 && k < 0.92 && pt.distanceTo(c.clone().addScaledVector(ab, k)) < 0.11 * s; };
       const shW = me && me.B && me.B.bones['upperarm01.' + sd] ? me.B.bones['upperarm01.' + sd].getWorldPosition(V()) : c;
       const arm = f.clone().lerp(shW, 0.3), arm2 = f.clone().lerp(shW, 0.6);
-      if (chk(f) || chk(arm) || chk(arm2) || (H.last && chk(H.last))) { H.from = H.last ? H.last.clone() : null; H.kind = 'own'; H.k = 0; H.until = now + 3 + Math.random() * 4; f = null; }
+      if (chk(f) || chk(arm) || chk(arm2) || (H.last && chk(H.last))) { H.from = H.last ? H.last.clone() : curHand(sd); H.kind = 'own'; H.k = 0; H.until = now + 3 + Math.random() * 4; f = null; }
     }
-    if (!f) { H.last = null; return; }
+    if (!f) { H.last = null; H.k = 1; return; }   // eigene Ablage: nichts zu überblenden
     const ph = now * 0.9 + H.ph;
-    f.addScaledVector(lw, Math.sin(ph) * 0.02 * s).add(V(0, Math.sin(ph * 0.7) * 0.01 * s, 0));   // leicht streicheln
+    { const am = calm ? 0.25 : 1; f.addScaledVector(lw, Math.sin(ph) * 0.02 * s * am).add(V(0, Math.sin(ph * 0.7) * 0.01 * s * am, 0)); }   // leicht streicheln (ruhig: kaum)
     if (H.k < 1 && H.from) { H.k = Math.min(1, H.k + dt / 0.9); const e = H.k * H.k * H.k * (H.k * (H.k * 6 - 15) + 10); const a = Math.sin(Math.PI * e); f.copy(H.from.clone().lerp(f, e).add(V(0, a * 0.06, 0)));
       // unterwegs nicht durch sie hindurch: Weg aus ihrem Körper herausdrücken (Abstand wächst zur Mitte des Wegs)
-      try { const q = avkSurfQuery(f); if (q && q.p.distanceTo(f) < 0.25) { const d = f.clone().sub(q.p).dot(q.n), want = 0.012 + 0.05 * a; if (d < want) f.addScaledVector(q.n, want - d); } } catch (e) {} }
+      try { const q = avkSurfQuery(f); if (q && q.p.distanceTo(f) < 0.25) { const d = f.clone().sub(q.p).dot(q.n), want = 0.012 + 0.05 * a; if (d < want) f.addScaledVector(q.n, want - d); } } catch (e) {}
+      // Kopf: unter den Haaren fehlt oft die Kopfhaut - Weg auch aus der Kugel um Kopf und Haare heraushalten
+      if (hk.head) { const c = hk.head.clone().add(V(0, 0.07 * s, 0)).addScaledVector(fwd, -0.015 * s), rr = (0.112 + 0.03 + 0.04 * a) * s, dv = f.clone().sub(c), dl = dv.length(); if (dl < rr) { if (dl < 1e-4) dv.set(0, 1, 0); f.copy(c).addScaledVector(dv.normalize(), rr); } } }
     H.last = f.clone(); out[sd] = f;
     // beim Umsetzen hebt sich die Hand etwas von der Haut (sonst streifen die Finger durch sie hindurch)
     if (H.k < 1 && H.from) { out.lift = out.lift || {}; out.lift[sd] = 0.03 * s * Math.sin(Math.PI * Math.min(1, H.k)); }
@@ -31572,6 +31779,9 @@ function avkLookAll() { try { return JSON.parse(localStorage.getItem('companion_
 function avkLookKey(figId, key) { return (figId || '_') + '|' + (key || ''); }
 function avkLookGet(figId, key) {
   const a = avkLookAll(), s = a[avkLookKey(figId, key)];
+  // Umstellung 3.08: Figuren aus „Anime aus Bild" waren als „ausgezogen" markiert und trugen das Outfit trotzdem -
+  // jetzt heißt das: angezogen (im Outfit), eigene Kleidung des Modells aus
+  try { if (s && s.fromImage && s.ownClothOff === undefined) { s.ownClothOff = true; avkLookSet(figId, key, s); const m = avkVrmNudeMap(); if (m[avkNudeKey(key, figId)] === undefined && (s.outfit || []).length) avkSetNude(key, false, figId); } } catch (e) {}
   if (s && !s.auto) return Object.assign({}, LOOK_DEF, s, { cloth: Object.assign({}, s.cloth || {}) });
   return Object.assign({}, LOOK_DEF, avkLookFromPhantom(figId), { auto: true, cloth: Object.assign({}, (s && s.cloth) || {}) });
 }
@@ -31740,7 +31950,14 @@ function avkClothList(vrm) {
 }
 function avkLookCloth(vrm, L) {
   if (!vrm) return;
-  avkClothList(vrm).forEach((meshes, n) => { if (L.cloth && L.cloth[n] === false) meshes.forEach(o => { o.visible = false; }); });
+  // aus der Figur abgeleitet: Tierohren, -schwänze & Co. des Modells nur, wenn ihre Beschreibung so etwas hergibt
+  avkClothList(vrm).forEach((meshes, n) => { if (avkClothHidden(L, n)) meshes.forEach(o => { o.visible = false; }); });
+}
+function avkClothHidden(L, n) {
+  let desc = ''; try { const f = getFigure(AV.figId), v = f && latestVersion(f); desc = ((v && (v.appearance || '')) + ' ' + ((v && v.style) || '')).toLowerCase(); } catch (e) {}
+  const accOk = /hase|häschen|bunny|ohren|katze|kitty|fuchs|tier|schwanz|cosplay|kostüm|elfe|teufel|hörner|engel|flügel|haarreif|schleife/.test(desc);
+  const explicitOn = L.cloth && L.cloth[n] === true;
+  return (L.cloth && L.cloth[n] === false) || (L.ownClothOff && !explicitOn) || (/^Accessoire/.test(n) && !accOk && !explicitOn);
 }
 function avkApplyLook(vrm, L, parts) {
   if (!vrm || !L) return;
@@ -31821,7 +32038,7 @@ function avkElfEarsVrm(vrm, amt) {
   };
   // Kleidung: einzelne Stücke bleiben aus, auch wenn sie „angezogen" ist
   const oCl = avkVrmClothes;
-  avkVrmClothes = function (vrm, nude) { const n = oCl.apply(this, arguments); try { if (AVK.look) avkLookCloth(vrm, AVK.look); } catch (e) {} return n; };
+  avkVrmClothes = function (vrm, nude) { const n = oCl.apply(this, arguments); try { if (AVK.look) avkLookCloth(vrm, AVK.look); } catch (e) {} try { const om = (vrm.scene.userData.outfitMeshes || []); om.forEach(m => { m.visible = !nude; }); return n + om.length; } catch (e) {} return n; };
   // Wesen: Werte aus dem Editor fließen in die Eigenheiten
   const oP = avkPersona;
   avkPersona = function (figId) {
@@ -31916,8 +32133,10 @@ function avkEditFrame(dt, t) {
   vrm.update(dt);
 }
 // ---------- Editor-Oberfläche ----------
-function avkEdOpen() {
+function avkEdOpen(mode) {
   if (!AVK.on || !AVK.vrmMode || !AV.vrm) { avHint('Der Editor geht mit einem eigenen VRM-Modell im Zimmer'); return; }
+  const meOnly = mode === 'me'; AVKE.meOnly = meOnly;
+  if (meOnly) AVKE.tab = 'me'; else if (AVKE.tab === 'me') AVKE.tab = 'body';
   const v = avView(); document.getElementById('avkEd')?.remove();
   AVKE.on = true; AVKE.figId = AV.figId; AVKE.key = AV.key; AVKE.t = 0; AVKE.yaw = 0; AVKE.zoom = 'full'; AVKE.cam = null; AVKE.dist = null; AVKE.P = null; AVKE.dirty = false;
   AVKE.L = avkLookGet(AVKE.figId, AVKE.key);
@@ -31927,7 +32146,7 @@ function avkEdOpen() {
   const ed = document.createElement('div'); ed.id = 'avkEd';
   ed.style.cssText = 'position:absolute; left:0; right:0; bottom:0; height:50%; z-index:5; background:rgba(16,10,13,0.94); border-top-left-radius:20px; border-top-right-radius:20px; display:flex; flex-direction:column; color:#fff; touch-action:pan-y;';
   ed.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:10px 14px 6px;">
-      <b style="flex:1; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">✏️ ${esc(name)} formen</b>
+      <b style="flex:1; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${meOnly ? '🙋 Dich formen' : '✏️ ' + esc(name) + ' formen'}</b>
       <button type="button" class="btn-secondary" data-ed="anime" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Anime aus ihrem Bild ableiten">🪄</button>
       <button type="button" class="btn-secondary" data-ed="phantom" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Aus ihrem Phantombild">🧩</button>
       <button type="button" class="btn-secondary" data-ed="random" style="width:auto; padding:6px 10px; font-size:12.5px;" title="Zufällig">🎲</button>
@@ -31944,7 +32163,8 @@ function avkEdOpen() {
   const paintZ = () => zb.querySelectorAll('button').forEach(b => { b.style.background = b.dataset.z === AVKE.zoom ? 'rgba(160,60,90,0.85)' : 'rgba(20,14,17,0.7)'; });
   v.appendChild(zb); paintZ();
   v.classList.add('avkEditing');
-  const TABS = [['body', 'Körper'], ['color', 'Farben'], ['cloth', 'Kleidung'], ['soul', 'Wesen'], ['me', 'Du']];
+  const TABS = meOnly ? [['me', 'Dein Körper']] : [['body', 'Körper'], ['color', 'Farben'], ['cloth', 'Kleidung'], ['soul', 'Wesen']];
+  if (meOnly) ['anime', 'phantom', 'random', 'reset'].forEach(k => { const x = ed.querySelector(`[data-ed=${k}]`); if (x) x.style.display = 'none'; });
   const tabs = ed.querySelector('#avkEdTabs');
   TABS.forEach(([k, l]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-secondary'; b.dataset.t = k; b.textContent = l; b.style.cssText = 'width:auto; padding:6px 14px; font-size:13.5px; flex:0 0 auto;'; b.onclick = () => { AVKE.tab = k; AVKE.cam = null; AVKE.dist = null; render(); }; tabs.appendChild(b); });
   let tmrC = 0, tmrS = 0;
@@ -32034,15 +32254,15 @@ function avkEdOpen() {
         const nude = avkVrmNude(AV.key, {});
         const all = document.createElement('div'); all.className = 'btn-row'; all.style.marginTop = '8px';
         all.innerHTML = `<button type="button" class="btn-secondary" data-a="on">Alles an</button><button type="button" class="btn-secondary" data-a="off" ${lic ? 'disabled' : ''}>Alles aus</button>`;
-        all.querySelector('[data-a=on]').onclick = () => { const m = avkVrmNudeMap(); m[AV.key] = false; safeSet('companion_vrmNude', JSON.stringify(m)); AVKE.L.cloth = {}; changed({ cloth: true }); render(); };
-        all.querySelector('[data-a=off]').onclick = () => { const m = avkVrmNudeMap(); m[AV.key] = true; safeSet('companion_vrmNude', JSON.stringify(m)); changed({ cloth: true }); render(); };
+        all.querySelector('[data-a=on]').onclick = () => { avkSetNude(AV.key, false); AVKE.L.cloth = {}; AVKE.L.ownClothOff = false; changed({ cloth: true }); render(); };
+        all.querySelector('[data-a=off]').onclick = () => { avkSetNude(AV.key, true); changed({ cloth: true }); render(); };
         body.appendChild(all);
         if (nude) body.appendChild(hint('Gerade ganz ausgezogen (👙). „Alles an" zieht sie wieder an, danach kannst du einzelne Stücke weglassen.'));
         list.forEach((meshes, n) => {
-          const on = !nude && AVKE.L.cloth[n] !== false;
+          const on = !nude && !avkClothHidden(AVKE.L, n);
           const w = document.createElement('label'); w.style.cssText = 'display:flex; gap:10px; align-items:center; font-size:13.5px; margin-top:8px;';
           w.innerHTML = `<input type="checkbox" ${on ? 'checked' : ''} ${nude || (lic && on) ? 'disabled' : ''}> ${esc(n)}`;
-          w.querySelector('input').onchange = e => { AVKE.L.cloth[n] = e.target.checked; if (e.target.checked) delete AVKE.L.cloth[n]; changed({ cloth: true }); };
+          w.querySelector('input').onchange = e => { AVKE.L.cloth[n] = e.target.checked; if (e.target.checked && !AVKE.L.ownClothOff && !/^Accessoire/.test(n)) delete AVKE.L.cloth[n]; changed({ cloth: true }); };
           body.appendChild(w);
         });
         if (lic) body.appendChild(hint('Die Lizenz dieses Modells erlaubt keine sexuelle Darstellung - es bleibt angezogen.'));
@@ -32074,7 +32294,7 @@ function avkEdOpen() {
       if (!AVK.me && !AVKE.meBusy) { AVKE.meBusy = true; avkEdMeRebuild().finally(() => { AVKE.meBusy = false; }); }
       const meSl = (k, label, min, max, step, val, fmt, apply) => { const w = document.createElement('label'); w.style.cssText = 'display:block; font-size:13px; margin-top:10px;'; w.innerHTML = `<span style="display:flex; justify-content:space-between;"><span>${label}</span><span class="v" style="color:rgba(255,255,255,0.6);">${fmt(val)}</span></span><input type="range" min="${min}" max="${max}" step="${step}" value="${val}" style="width:100%;">`; const inp = w.querySelector('input'); inp.oninput = () => { w.querySelector('.v').textContent = fmt(+inp.value); apply(+inp.value); }; return w; };
       const meChanged = () => { AVKE.dirty = true; clearTimeout(AVKE.meT); AVKE.meT = setTimeout(avkEdMeRebuild, 450); };
-      body.appendChild(hint('Dein Körper - gilt für alle Figuren. Du siehst dich gerade von vorn.'));
+      body.appendChild(hint('Dein Körper - gilt für alle Figuren. Größe in cm, Figur und Muskeln wirken nach etwa einer halben Sekunde.'));
       body.appendChild(meSl('weight', 'Figur (schlank ↔ kräftig)', -1, 1, 0.02, pp.weight || 0, sign, v => { avkSetOverride('__me', 'params', 'weight', v); meChanged(); }));
       body.appendChild(meSl('muscle', 'Muskeln', -0.2, 1, 0.02, pp.muscle || 0, x => Math.round(x * 100), v => { avkSetOverride('__me', 'params', 'muscle', v); meChanged(); }));
       body.appendChild(meSl('height', 'Größe', -1, 1, 0.02, pp.height || 0, x => Math.round(177 + x * 20) + ' cm', v => { avkSetOverride('__me', 'params', 'height', v); meChanged(); }));
@@ -32093,11 +32313,15 @@ function avkEdOpen() {
       const cc = document.createElement('label'); cc.style.cssText = 'display:flex; gap:10px; align-items:center; font-size:13.5px; margin-top:10px;';
       cc.innerHTML = `<input type="checkbox" ${ps.circ ? 'checked' : ''}> Beschnitten`; cc.querySelector('input').onchange = e => penSet('circ', e.target.checked); body.appendChild(cc);
     } else {
+      { const P0 = avkPersona(AVKE.figId), pc = x => Math.round(x * 100) + ' %', lv = (x, a, m, b2) => x < 0.34 ? a : x < 0.67 ? m : b2;
+        const nm = (getFigure(AVKE.figId) || {}).name || 'ihrer Figurenkarte';
+        const box = document.createElement('div'); box.style.cssText = 'margin:8px 0 4px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,0.06); font-size:12.5px; line-height:1.45;';
+        box.innerHTML = `<b>Aus der Karte von ${esc(nm)}:</b> forsch ${pc(P0.dom)} · zart ${pc(P0.soft)} · verspielt ${pc(P0.play)}<br>→ Temperament ${lv((P0.energy - 0.6) / 0.9, 'eher ruhig', 'mittel', 'lebhaft')}, Blickkontakt ${lv((P0.gaze - 0.4) / 0.5, 'eher scheu', 'mittel', 'direkt')}, Gesten ${lv((P0.gest - 0.2) / 0.8, 'wenig', 'mittel', 'viel')}, Lächeln ${lv((P0.smile) / 0.55, 'ernst', 'freundlich', 'strahlend')}.<br><span style="color:rgba(255,255,255,0.6);">Die Regler stehen in der Mitte auf diesem Wert - nach links/rechts verschiebst du davon aus. Änderst du die Karte, ändert sich auch das hier.</span>`;
+        body.appendChild(box); }
       body.appendChild(slider('energy', 'Temperament (ruhig ↔ lebhaft)', -1, 1, 0.05, sign, 'soul'));
       body.appendChild(slider('gaze', 'Blickkontakt (scheu ↔ direkt)', -1, 1, 0.05, sign, 'soul'));
       body.appendChild(slider('play', 'Verspieltheit (Gesten, Zwinkern, Luftküsse)', -1, 1, 0.05, sign, 'soul'));
       body.appendChild(slider('smile', 'Lächeln (ernst ↔ strahlend)', -1, 1, 0.05, sign, 'soul'));
-      body.appendChild(hint('Dazu kommen ihre Eigenschaften aus der Figurenkarte (forsch, zart, verspielt …). Hier verschiebst du nur.'));
     }
   }
   render();
@@ -32162,7 +32386,12 @@ async function avkEdClose(save) {
   b.textContent = '✏️'; b.title = 'Figur formen (Körper, Farben, Kleidung, Wesen)'; b.setAttribute('aria-label', b.title);
   b.onclick = () => avkEdOpen();
   avkSideCol().insertBefore(b, avkSideCol().firstChild);
-  setInterval(() => { b.style.display = AVK.on && AVK.vrmMode ? '' : 'none'; }, 800);
+  // eigener Knopf für dich selbst - du bist keine Eigenschaft der Figur
+  const bm = document.createElement('button'); bm.type = 'button'; bm.id = 'av3dEditMe'; bm.className = 'btn-secondary';
+  bm.style.cssText = b.style.cssText; bm.textContent = '🙋'; bm.title = 'Dich formen (dein Körper, gilt für alle Figuren)'; bm.setAttribute('aria-label', bm.title);
+  bm.onclick = () => avkEdOpen('me');
+  avkSideCol().insertBefore(bm, b.nextSibling);
+  setInterval(() => { b.style.display = AVK.on && AVK.vrmMode ? '' : 'none'; bm.style.display = AVK.on && AVK.vrmMode ? '' : 'none'; }, 800);
   const oClose = avClose; avClose = function () { if (AVKE.on) { AVKE.on = false; document.getElementById('avkEd')?.remove(); document.getElementById('avkEdZoom')?.remove(); avView().classList.remove('avkEditing'); try { avkStudio(false); } catch (e) {} } return oClose.apply(this, arguments); };
   // Wechsel des Modells/der Figur: alten Umfärbe-Speicher behalten, Aussehen neu
   const oUn = avkUnload; avkUnload = function () { AVK.look = null; return oUn.apply(this, arguments); };
@@ -32202,7 +32431,7 @@ function avkEditMeFrame(dt) {
 }
 async function avkEdMeRebuild() {
   try {
-    const K = await avkKit(); avkMeUnload();
+    const K = await avkKit();
     const m = await avkMeBuild(K); if (m) { AV.scene.add(m.B.root); if (m.hair && m.hair.group && !m.hair.group.parent) AV.scene.add(m.hair.group); }
     AVKE.meH = null; avkEdPenRebuild();
   } catch (e) { avkLog('Du-Editor: ' + e.message); }
@@ -32211,7 +32440,7 @@ function avkEdPenRebuild() {
   try {
     const T = AV.T; let spec = avkPenisSpec();
     if (AVK.me) { let map = null; AVK.me.B.root.traverse(x => { if (!map && x.isSkinnedMesh && x.material && x.material.map) map = x.material.map; }); if (map) { const av = avkTexAvg(map), c = new T.Color().setRGB(av[0], av[1], av[2], T.SRGBColorSpace); spec = Object.assign(spec, { skin: '#' + c.getHexString(), glans: '#' + c.clone().lerp(new T.Color('#c25a66'), 0.5).getHexString() }); } }
-    const np = MH.mhPenis(T, spec); if (AVK.pen) AV.scene.remove(AVK.pen); AVK.pen = np; AV.scene.add(np);
+    const np = MH.mhPenis(T, spec); if (AVK.pen) { AV.scene.remove(AVK.pen); AVK.pen.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) [].concat(x.material).forEach(m => m.dispose()); }); } AVK.pen = np; AV.scene.add(np);   // alten freigeben (blieb bei jeder Änderung im Grafikspeicher)
   } catch (e) { avkLog('Penis: ' + e.message); }
 }
 
@@ -32425,6 +32654,8 @@ function avkPerf(dt) {
   P.ema += (dt - P.ema) * 0.05; P.at += dt;
   if (P.at < 2) return;
   const pr = r.getPixelRatio();
+  // zweite Figur (Test): ist die Auflösung schon ganz unten und es ruckelt trotzdem, schaltet sie sich ab
+  if (AVK2 && AVK2.vrm && P.ema > 1 / 20 && pr <= 0.62) { P.slow2 = (P.slow2 || 0) + P.at; if (P.slow2 > 6) { P.slow2 = 0; safeSet('companion_av3dSecond', 'false'); avk2Unload(); avHint('Zweite Figur ausgeschaltet - das Handy kam mit zwei Figuren nicht flüssig mit'); avkLog('Zweite Figur abgeschaltet (Bildrate ' + Math.round(1 / P.ema) + ' fps)'); } } else if (P) P.slow2 = 0;
   if (P.ema > 1 / 26 && pr > 0.62) { r.setPixelRatio(Math.max(0.6, pr * 0.85)); P.at = 0; P.good = 0; avkDofResize(); }
   else if (P.ema < 1 / 50) { P.good += dt; if (P.good > 4 && pr < P.max - 0.01) { r.setPixelRatio(Math.min(P.max, pr * 1.12)); P.at = 0; P.good = 0; avkDofResize(); } }
   else P.good = 0;
@@ -32660,6 +32891,7 @@ function avkOutfitApply(vrm, outfit) {
   (U.outfitMeshes || []).forEach(m => { if (m.parent) m.parent.remove(m); m.geometry.dispose(); });
   U.outfitMeshes = [];
   if (!outfit || !outfit.length) return;
+  setTimeout(() => { try { if (AV.vrm === vrm && avkVrmNude(AV.key, {})) (U.outfitMeshes || []).forEach(m => { m.visible = false; }); } catch (e) {} }, 0);   // ausgezogen: auch das Outfit
   const R = avkBodyRest(vrm), V = (x, y, z) => new T.Vector3(x, y, z);
   outfit.forEach((g, gi) => {
     if (!g || !g.t || g.on === false) return;
@@ -32841,7 +33073,8 @@ Regeln: Farben als Hex so, wie sie wirken (Haare: Mittelton, nicht Glanzlichter)
   L.outfit = (Array.isArray(j.outfit) ? j.outfit : []).filter(g => g && okT.has(g.t)).slice(0, 6).map(g => ({ t: g.t, c: /^#[0-9a-f]{6}$/i.test(g.c || '') ? g.c : '#222222', p: okP.has(g.p) ? g.p : 'plain', o: Math.max(0.3, Math.min(1, +g.o || 1)), len: g.t === 'skirt' ? 0.3 : undefined }));
   // anwenden: Modell zuordnen, eigene Kleidung des Modells aus (sofern erlaubt), Aussehen speichern, anzeigen
   avSetMap(figId, pick.key);
-  if (pick.sexual !== false) { const nm = avkVrmNudeMap(); nm[pick.key] = true; safeSet('companion_vrmNude', JSON.stringify(nm)); }
+  // eigene Kleidung des Modells weg (die Figur trägt das Outfit aus ihrem Bild) - „angezogen“ heißt dann: im Outfit
+  if (pick.sexual !== false) { L.ownClothOff = true; avkSetNude(pick.key, false, figId); }
   L.fromImage = v.imageKey || (v.image || '').slice(-40);
   avkLookSet(figId, pick.key, L);
   if (opts.show !== false && AV.open) { say('Anime-Figur wird gebaut …'); AV.key = null; await avShowFigure(figId); }
@@ -32881,7 +33114,7 @@ function avkStripStart(mode, parts) {
   let pcs = avkStripPieces(vrm).filter(p => want.has(p.part));
   pcs = pcs.filter(p => mode === 'off' ? p.meshes.some(m => m.visible) : p.meshes.some(m => !m.visible));
   // Anziehen: auch Stücke, die gerade über „ausgezogen" versteckt sind
-  if (mode === 'on' && !pcs.length) { const nm = avkVrmNudeMap(); if (nm[AV.key]) { nm[AV.key] = false; safeSet('companion_vrmNude', JSON.stringify(nm)); } pcs = avkStripPieces(vrm).filter(p => want.has(p.part) && p.meshes.some(m => !m.visible)); }
+  if (mode === 'on' && !pcs.length) { if (avkVrmNude(AV.key, {})) avkSetNude(AV.key, false); pcs = avkStripPieces(vrm).filter(p => want.has(p.part) && p.meshes.some(m => !m.visible)); }
   if (!pcs.length) return;
   // Anziehen: hat sie selbst entworfene Kleidung, kommt nur diese wieder an (nicht doppelt mit der Modell-Kleidung)
   if (mode === 'on' && pcs.some(p => p.gen)) pcs = pcs.filter(p => p.gen);
@@ -32910,7 +33143,7 @@ function avkStripStep(dt) {
   });
   if (S.t > S.dur) {
     AVK.strip = null;
-    if (S.mode === 'off' && avkStripPieces(AV.vrm).every(p => !p.meshes.some(m => m.visible))) { const nm = avkVrmNudeMap(); nm[AV.key] = true; safeSet('companion_vrmNude', JSON.stringify(nm)); }
+    if (S.mode === 'off' && avkStripPieces(AV.vrm).every(p => !p.meshes.some(m => m.visible))) avkSetNude(AV.key, true);
   }
 }
 
@@ -33038,6 +33271,204 @@ async function avkAutoAnime(figId) {
     };
     inp.click();
   };
+}
+
+
+// ---------- Zweite Figur (Test) ----------
+// Ist mehr als eine Figur im Chat, kniet die, die zuletzt gesprochen hat (außer der Hauptfigur), neben dir:
+// atmet, blinzelt, schaut die Sprecherin an (oder dich, wenn sie selbst spricht), Mund nur zu ihrer eigenen Stimme.
+// Eigene, schlanke Steuerung - die Hauptfigur mit Gerät, Händen und Stellungen bleibt unverändert.
+const AVK2 = { vrm: null, figId: null, key: null, loading: false, checkAt: 0, t: 0, blinkAt: 2, blinkT: -1, last: {}, look: null };
+function avk2Enabled() { return localStorage.getItem('companion_av3dSecond') === 'true'; }
+function avk2Unload() {
+  if (!AVK2.vrm) { AVK2.figId = AVK2.key = null; return; }
+  try { AV.scene.remove(AVK2.vrm.scene); AV.V.VRMUtils.deepDispose(AVK2.vrm.scene); } catch (e) {}
+  AVK2.vrm = null; AVK2.figId = AVK2.key = null;
+}
+function avk2Pick() {
+  if (typeof characters === 'undefined') return null;
+  const main = AVK.figId || AV.figId;
+  const fid = c => c.figureId || c.id;
+  const cand = characters.filter(c => !c.isUser && !c.isNarrator && fid(c) && fid(c) !== main && avModelKeyFor(fid(c))).map(c => ({ id: fid(c), name: c.name }));
+  if (!cand.length) return null;
+  const sp = AV.speaker || '';
+  const now = cand.find(c => c.name === sp || (c.name || '').split(' ')[0] === sp.split(' ')[0]);
+  if (now) { AVK2.last[now.id] = Date.now(); }
+  cand.sort((a, b) => (AVK2.last[b.id] || 0) - (AVK2.last[a.id] || 0));
+  return cand[0];
+}
+async function avk2Load(figId, key) {
+  AVK2.loading = true;
+  try {
+    const rec = await avGet(key); if (!rec || !rec.blob) throw new Error('Modell fehlt');
+    const loader = new AV.GLTFLoader(); loader.register(p => new AV.V.VRMLoaderPlugin(p));
+    const url = URL.createObjectURL(rec.blob); let gltf; try { gltf = await loader.loadAsync(url); } finally { URL.revokeObjectURL(url); }
+    const vrm = gltf.userData.vrm; if (!vrm) throw new Error('keine VRM-Daten');
+    try { AV.V.VRMUtils.removeUnnecessaryVertices(gltf.scene); AV.V.VRMUtils.combineSkeletons(gltf.scene); } catch (e) {}
+    AV.V.VRMUtils.rotateVRM0(vrm);
+    vrm.scene.traverse(o => { o.frustumCulled = false; if (o.isMesh) { o.castShadow = true; } });
+    if (!avk2Enabled() || !AVK.on) { try { AV.V.VRMUtils.deepDispose(vrm.scene); } catch (e) {} return; }
+    avk2Unload();
+    AV.scene.add(vrm.scene); AVK2.vrm = vrm; AVK2.figId = figId; AVK2.key = key; AVK2.t = 0;
+    AVK2.k0 = (vrm.meta && vrm.meta.metaVersion === '0') ? -1 : 1;
+    AVK2.look = AVK2.look || new AV.T.Object3D(); if (!AVK2.look.parent) AV.scene.add(AVK2.look);
+    if (vrm.lookAt) vrm.lookAt.target = AVK2.look;
+    // Kleidung wie bei ihr eingestellt (je Figur)
+    // Aussehen wie bei ihr eingestellt (Farben, Körperform, Elfenohren, Outfit) - teilen sich zwei Figuren ein Modell, sehen sie trotzdem verschieden aus
+    try {
+      const nude = avkVrmNude(key, rec.meta || {}, figId), L = avkLookGet(figId, key);
+      try { avkApplyLook(vrm, L, { bones: true, colors: true, elf: true, outfit: true }); } catch (e) { avkLog('Zweite Figur, Aussehen: ' + e.message); }
+      avkVrmClothes(vrm, nude); avkClothList(vrm).forEach((ms, n) => { if (avkClothHidden(L, n)) ms.forEach(o => { o.visible = false; }); });
+      (vrm.scene.userData.outfitMeshes || []).forEach(m => { m.visible = !nude; });
+    } catch (e) {}
+    const f = getFigure(figId), v = f && latestVersion(f); AVK2.name = v ? v.name : '';
+    avkLog('Zweite Figur: ' + (AVK2.name || '?') + ' (' + (rec.name || 'Modell') + ')');
+  } catch (e) { avkLog('Zweite Figur ließ sich nicht laden: ' + e.message); AVK2.failKey = key; }
+  finally { AVK2.loading = false; }
+}
+function avk2Frame(dt, t) {
+  if (!avk2Enabled() || !AVK.on || !AVK.vrmMode || !AVK.me || !AVK.me.B) { if (AVK2.vrm) avk2Unload(); return; }
+  if (t > AVK2.checkAt && !AVK2.loading) {
+    AVK2.checkAt = t + 1.5;
+    const c = avk2Pick(), key = c && avModelKeyFor(c.id);
+    if (!c) { if (AVK2.vrm) avk2Unload(); }
+    else if ((c.id !== AVK2.figId || key !== AVK2.key) && key !== AVK2.failKey) avk2Load(c.id, key);
+  }
+  const vrm = AVK2.vrm; if (!vrm) return;
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z), k0 = AVK2.k0, Bn = n => vrm.humanoid.getNormalizedBoneNode(n);
+  const R = (n, x, y, z) => { const b = Bn(n); if (b) b.rotation.set(x * k0, y, z * k0); };
+  AVK2.t += dt; const tt = AVK2.t;
+  // Haltung: kniend auf den Fersen, Hände auf den Oberschenkeln, leicht zu dir geneigt
+  vrm.humanoid.resetNormalizedPose();
+  const br = Math.sin(tt * 1.6) * 0.025;
+  R('leftUpperLeg', -1.45, 0, 0.12); R('rightUpperLeg', -1.45, 0, -0.12); R('leftLowerLeg', 2.95, 0, 0); R('rightLowerLeg', 2.95, 0, 0);   // Schienbeine flach nach hinten (auf den Fersen)
+  R('leftFoot', 0.9, 0, 0); R('rightFoot', 0.9, 0, 0);
+  const lean = AVK2.lean || 0;   // liegt er, beugt sie sich zu ihm vor (sonst kommt ihre Hand nicht an seine Brust)
+  R('spine', 0.12 + br + lean * 0.55, 0, 0); R('chest', 0.06 + br * 0.6 + lean * 0.35, 0, 0);
+  { const A = window.__a2 || [0.35, -1.2, -1.1]; R('leftUpperArm', A[0], 0, A[1]); R('rightUpperArm', A[0], 0, -A[1]); R('leftLowerArm', 0, A[2], 0); R('rightLowerArm', 0, -A[2], 0); }
+  // Platz: neben deiner Brust, auf der Seite, auf der die Hauptfigur nicht ist; Blick zu dir
+  const HB = AVK.me.B.bones, wp = b => b ? b.getWorldPosition(V()) : null;
+  const head = wp(HB['head']) || wp(Object.values(HB).find(b => /^head/.test(b.name))), uaL = wp(HB['upperarm01.L']), uaR = wp(HB['upperarm01.R']), hip = wp(HB['root']) || wp(Object.values(HB)[0]);
+  if (!head || !uaL || !uaR) return;
+  const chest = uaL.clone().lerp(uaR, 0.5).lerp(hip || uaL, 0.35);
+  let side = uaL.clone().sub(uaR).setY(0); if (side.lengthSq() < 1e-6) side.set(1, 0, 0); side.normalize();
+  const herHips = AV.vrm ? AV.vrm.humanoid.getNormalizedBoneNode('hips').getWorldPosition(V()) : null;
+  if (herHips && herHips.clone().sub(chest).dot(side) > 0) side.negate();
+  if (AVK2.sideSign === undefined) AVK2.sideSign = 1; const want = side.clone();
+  AVK2.side = AVK2.side ? AVK2.side.lerp(want, Math.min(1, dt * 1.5)).normalize() : want;
+  const bedY = AVK.room ? AVK.room.bed.position.y : 0;
+  const spineDir = head.clone().sub(hip || chest); const lying = spineDir.lengthSq() > 1e-6 ? spineDir.normalize().y < 0.75 : chest.y - bedY < 0.4;;   // er liegt (oder lehnt): Wirbelsäule flacher als ~50°
+  AVK2.lean = (AVK2.lean || 0) + ((lying ? 0.95 : 0) - (AVK2.lean || 0)) * Math.min(1, dt * 2);
+  const pos = chest.clone().addScaledVector(AVK2.side, lying ? 0.33 : 0.42); pos.y = bedY;
+  vrm.scene.position.copy(pos);
+  const toHim = chest.clone().sub(pos).setY(0); vrm.scene.rotation.set(0, Math.atan2(toHim.x, toHim.z) + Math.PI, 0);
+  vrm.scene.updateMatrixWorld(true);
+  // Knie auf die Matratze
+  { const ys = ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot', 'leftToes', 'rightToes'].map(n => Bn(n)).filter(Boolean).map(b => b.getWorldPosition(V()).y); if (ys.length) vrm.scene.position.y += bedY - Math.min(...ys) + 0.035; }   // nicht in der Hauptfigur: kommen deren Beine/Körper ihrem Rumpf oder Kopf zu nah (z. B. beim Tragen), rückt sie nach außen
+  if (AV.vrm) { const mb = ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot'].map(n => AV.vrm.humanoid.getNormalizedBoneNode(n)).filter(Boolean).map(b => b.getWorldPosition(V()));
+    const sb = ['hips', 'spine', 'chest', 'neck', 'head'].map(n => Bn(n)).filter(Boolean).map(b => b.getWorldPosition(V()));
+    let need = -1; for (const a of mb) for (const b of sb) need = Math.max(need, 0.14 - a.distanceTo(b));
+    AVK2.push = (AVK2.push || 0) + (need > 0 ? need : need < -0.06 ? -0.03 : 0) * Math.min(1, dt * 6); AVK2.push = Math.max(0, Math.min(0.5, AVK2.push));
+    if (AVK2.push > 0.001) { vrm.scene.position.addScaledVector(AVK2.side, AVK2.push); vrm.scene.updateMatrixWorld(true); } }
+  // Knie und Füße auf die Matratze
+  // Hand auf seiner Brust: die ihm nähere Hand legt sich locker auf (nur wenn erreichbar), streichelt leicht
+  try { avk2Hand(vrm, Bn, chest, head, dt, tt); } catch (e) { if (!AVK2.handErr) { AVK2.handErr = 1; avkLog('Zweite Figur, Hand: ' + e.message); } }
+  // Blick: spricht sie selbst, schaut sie dich an - sonst die Sprecherin
+  const mainName = (latestVersion(getFigure(AVK.figId) || { versions: [] }) || {}).name;
+  const mineTalking = !!(AVK2.name && AV.speaker === AVK2.name && typeof someoneSpeaking === 'function' && someoneSpeaking());
+  const lookAt = !mineTalking && AV.speaker === mainName && AV.vrm ? AV.vrm.humanoid.getNormalizedBoneNode('head').getWorldPosition(V()) : head;
+  AVK2.look.position.lerp(lookAt, Math.min(1, dt * 4));
+  const hd = Bn('head'); if (hd) { hd.updateWorldMatrix(true, false); const lp = hd.parent.worldToLocal(AVK2.look.position.clone()), yaw = Math.atan2(lp.x, lp.z) * k0; hd.rotation.y = Math.max(-0.6, Math.min(0.6, yaw * 0.6)); hd.rotation.x = 0.1; }
+  // Mimik
+  const em = vrm.expressionManager;
+  if (em) {
+    if (AVK2.blinkT < 0 && tt > AVK2.blinkAt) AVK2.blinkT = 0;
+    let bl = 0; if (AVK2.blinkT >= 0) { AVK2.blinkT += dt; bl = AVK2.blinkT < 0.07 ? AVK2.blinkT / 0.07 : AVK2.blinkT < 0.17 ? 1 - (AVK2.blinkT - 0.07) / 0.1 : 0; if (AVK2.blinkT >= 0.17) { AVK2.blinkT = -1; AVK2.blinkAt = tt + 2 + Math.random() * 4; } }
+    const lip = AV.lip, o = mineTalking && lip ? Math.min(1, lip.level * 1.6) : 0, sh = (lip && lip.shape) || {};
+    const set = (n, v) => { try { em.setValue(n, v); } catch (e) {} };
+    set('blink', bl); ['aa', 'oh', 'ih', 'ee', 'ou'].forEach(n => set(n, o * (sh[n] || 0)));
+    set('happy', mineTalking ? 0.3 : 0.15); set('relaxed', 0.3);
+  }
+  vrm.update(dt);
+}
+
+function avk2Hand(vrm, Bn, chest, head, dt, tt) {
+  const T = AV.T, V = (x, y, z) => new T.Vector3(x, y, z);
+  vrm.scene.updateMatrixWorld(true);
+  const side = AVK2.side, up = V(0, 1, 0);
+  // Ziel: Brust, etwas zu ihr hin, auf seiner Haut; Streicheln entlang seines Körpers
+  const along = head.clone().sub(chest).normalize();
+  let tgt = chest.clone().addScaledVector(side, 0.07).addScaledVector(along, 0.03 * Math.sin(tt * 0.8)), n = side.clone();
+  const q = typeof avkSurfQueryHim === 'function' ? avkSurfQueryHim(tgt) : null;
+  if (q && q.p.distanceTo(tgt) < 0.25) { tgt = q.p.clone(); n = q.n.clone(); }
+  // welche Hand: die ihm nähere
+  const pick = ['left', 'right'].map(sd => ({ sd, sh: Bn(sd + 'UpperArm').getWorldPosition(V()) })).sort((a, b) => a.sh.distanceTo(tgt) - b.sh.distanceTo(tgt))[0];
+  const sd = AVK2.handSd || (AVK2.handSd = pick.sd);
+  const U = Bn(sd + 'UpperArm'), L = Bn(sd + 'LowerArm'), H = Bn(sd + 'Hand'); if (!U || !L || !H) return;
+  const S = U.getWorldPosition(V()), E0 = L.getWorldPosition(V()), W0 = H.getWorldPosition(V()), a = S.distanceTo(E0), b = E0.distanceTo(W0);
+  // Handgelenk: über der Haut, Handballen zurück, damit die Handfläche aufliegt
+  const toT = tgt.clone().sub(S); const fdir = toT.clone().sub(n.clone().multiplyScalar(toT.dot(n))).normalize();
+  const W = tgt.clone().addScaledVector(n, 0.035).addScaledVector(fdir, -0.06);
+  const reach = S.distanceTo(W) < (a + b) * 0.96; AVK2.dbg = { d: +S.distanceTo(W).toFixed(2), ab: +(a + b).toFixed(2), dy: +(S.y - W.y).toFixed(2) };
+  AVK2.handW = Math.max(0, Math.min(1, (AVK2.handW || 0) + (reach ? dt / 0.8 : -dt / 0.5)));
+  const w = AVK2.handW * AVK2.handW * (3 - 2 * AVK2.handW); if (w < 0.01) return;
+  const Wt = W0.clone().lerp(W, w), d = Math.min(S.distanceTo(Wt), (a + b) * 0.999), dir = Wt.clone().sub(S).normalize();
+  const x = (a * a - b * b + d * d) / (2 * d), h = Math.sqrt(Math.max(0, a * a - x * x));
+  const awayFromHim = side.clone(); const P = S.clone().add(V(0, -0.35, 0)).addScaledVector(awayFromHim, 0.25);
+  let pp = P.sub(S); pp.sub(dir.clone().multiplyScalar(pp.dot(dir))); if (pp.lengthSq() < 1e-8) pp = V(0, -1, 0); pp.normalize();
+  const E = S.clone().addScaledVector(dir, x).addScaledVector(pp, h);
+  const aim = (bone, child, target) => { bone.updateWorldMatrix(true, false); child.updateWorldMatrix(true, false); const bp = bone.getWorldPosition(V()), cur = child.getWorldPosition(V()).sub(bp).normalize(), want = target.clone().sub(bp).normalize(); const dq = new T.Quaternion().setFromUnitVectors(cur, want); const wq = bone.getWorldQuaternion(new T.Quaternion()), pq = bone.parent.getWorldQuaternion(new T.Quaternion()).invert(); bone.quaternion.copy(pq.multiply(dq.multiply(wq))); bone.updateWorldMatrix(false, true); };
+  const solve = (Wt2) => {
+    const d2 = Math.min(S.distanceTo(Wt2), (a + b) * 0.999), dir2 = Wt2.clone().sub(S).normalize();
+    const x2 = (a * a - b * b + d2 * d2) / (2 * d2), h2 = Math.sqrt(Math.max(0, a * a - x2 * x2));
+    let pp2 = S.clone().add(V(0, -0.35, 0)).addScaledVector(side, 0.25).sub(S); pp2.sub(dir2.clone().multiplyScalar(pp2.dot(dir2))); if (pp2.lengthSq() < 1e-8) pp2 = V(0, -1, 0); pp2.normalize();
+    aim(U, L, S.clone().addScaledVector(dir2, x2).addScaledVector(pp2, h2)); aim(L, H, Wt2);
+    const mid = Bn(sd + 'MiddleProximal'); if (mid) aim(H, mid, Wt2.clone().addScaledVector(fdir, 0.09).addScaledVector(n, -0.015 * w));
+  };
+  solve(Wt);
+  // steckt die Hand (Handballen, Mitte, Fingerspitzen) in ihm: Handgelenk entlang seiner Hautnormale heraus
+  let Wc = Wt.clone();
+  for (let it = 0; it < 4; it++) {
+    const pts = [H.getWorldPosition(V()).lerp(Wc.clone().addScaledVector(fdir, 0.06), 0.5), Wc.clone().addScaledVector(fdir, 0.06)];
+    const mid = Bn(sd + 'MiddleDistal'); if (mid) pts.push(mid.getWorldPosition(V()));
+    let worst = 0, nn = null; pts.forEach(pt => { const qq = typeof avkSurfQueryHim === 'function' ? avkSurfQueryHim(pt) : null; if (!qq || qq.p.distanceTo(pt) > 0.15) return; const g = pt.clone().sub(qq.p).dot(qq.n) - 0.015; if (g < worst) { worst = g; nn = qq.n; } });
+    if (!nn) break; Wc.addScaledVector(nn, -worst); solve(Wc);
+  }
+  AVK2.handPt = Wc.clone().addScaledVector(fdir, 0.06);
+}
+
+// ---------- Rollentausch (Test, ruhige Variante): nur bei ausdrücklichem Wechsel ----------
+// true, wenn die Zeile sagt, dass die Nebenfigur jetzt übernimmt
+function avk2Takeover(role, text, mainName, secName) {
+  if (!secName || !text) return false;
+  const t = String(text).toLowerCase().replace(/\[[^\]]*\]/g, ' '), first = n => String(n || '').split(' ')[0].toLowerCase();
+  const sec = first(secName), main = first(mainName), who = first(role);
+  if (who === sec && /\b(jetzt bin ich dran|ich bin dran|jetzt ich|ich übernehme|lass mich (mal |jetzt )?(ran|übernehmen)|rutsch (mal )?rüber|mach (mal |mir )?platz|meine runde)\b/.test(t)) return true;
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (sec && new RegExp('\\b' + esc(sec) + '\\b[^.!?]{0,40}(übernimmt|ist (jetzt )?dran|setzt sich auf (dich|ihn|til)|nimmt (ihren|deren) platz ein|löst \\S+ ab|tauscht mit)').test(t)) return true;
+  if (main && new RegExp('\\b' + esc(main) + '\\b[^.!?]{0,40}(macht (ihr |für \\S+ )?platz|rutscht zur seite|überlässt (dich|ihn|til) )').test(t)) return true;
+  if (who === main && sec && new RegExp('\\b' + esc(sec) + '\\b[^.!?]{0,30}(du bist dran|jetzt du|übernimm)').test(t)) return true;
+  return false;
+}
+async function avk2MaybeSwap(role, text) {
+  if (!avk2Enabled() || !AV.open || !AVK.on || !AVK2.vrm || !AVK2.figId || AVK2.swapping) return;
+  if (AVK2.swapAt && performance.now() - AVK2.swapAt < 20000) return;
+  const mainId = AVK.figId || AV.figId, mainName = (latestVersion(getFigure(mainId) || { versions: [] }) || {}).name;
+  if (!avk2Takeover(role, text, mainName, AVK2.name)) return;
+  AVK2.swapping = true; AVK2.swapAt = performance.now();
+  const newMain = AVK2.figId, pose = AVK.pose, v = avView ? avView() : null;
+  let f = document.getElementById('avkFade');
+  if (!f && v) { f = document.createElement('div'); f.id = 'avkFade'; f.style.cssText = 'position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .22s ease; z-index:5;'; v.appendChild(f); }
+  try {
+    if (f) { f.style.opacity = '1'; await new Promise(r => setTimeout(r, 260)); }
+    AVK2.last[mainId] = Date.now(); avk2Unload();
+    const sel = document.getElementById('av3dFig'); if (sel) sel.value = newMain;
+    AV.key = null; avkUnload(); await avShowFigure(newMain);
+    for (let i = 0; i < 60 && !AVK.on; i++) await new Promise(r => setTimeout(r, 100));
+    if (pose) { try { avkSetPose(pose); for (let i = 0; i < 30; i++) avkPlace(0.5, 1 / 30); } catch (e) {} }
+    avkLog('Rollentausch: ' + (AVK2.name || '?') + ' übernimmt');
+  } catch (e) { avkLog('Rollentausch: ' + e.message); }
+  finally { if (f) setTimeout(() => { f.style.opacity = '0'; }, 80); AVK2.swapping = false; }
 }
 
 {
