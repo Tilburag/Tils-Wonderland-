@@ -3626,8 +3626,17 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.02';
+const APP_VERSION = '3.04';
 const CHANGELOG = [
+  { v: '3.04', date: '2026-10-23', items: [
+    'Seine Unterarme springen nicht mehr: beim Missionar und Reiten kippte der Ellbogen teils um bis zu 90° von einem Bild zum nächsten, jetzt gleitet er in wenigen Bildern in die neue Lage',
+    'Geprüft: Mila greift nach einem Neustart auf das Protokoll der zuletzt gesicherten Sitzung zurück (inkl. Fehlermeldungen)'
+  ] },
+  { v: '3.03', date: '2026-10-23', items: [
+    'Ich-Sicht von hinten: Daumen liegt am Zeigefinger an statt abzustehen (auch wenn die Hand über den Rand von Hüfte/Taille reicht)',
+    'Finger, die über die Haut hinausragen, bleiben locker gebeugt statt steif gestreckt',
+    'Daumen dreht sich pro Glied nur begrenzt von der lockeren Haltung weg (kein weit abgespreizter Daumen an der Taille)'
+  ] },
   { v: '3.02', date: '2026-10-23', items: [
     'Mila kennt jetzt die Neuerungen von heute (automatisches Gedächtnis, Schutz vor doppeltem Sprechen, Stellungsmenü) und kann dazu Auskunft geben',
   ] },
@@ -27484,6 +27493,22 @@ async function avSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -28686,10 +28711,14 @@ function mhManRig(THREE, B, opts) {
         const solve = (pl, qx, wpX) => { H.limb('upperarm01.' + sd, 'lowerarm01.' + sd, 'wrist.' + sd, wpX, pl); const pq = w.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); w.quaternion.copy(pq.multiply(qx)); bn('upperarm01.' + sd).updateWorldMatrix(false, true); };
         // Unterarm/Ellbogen dürfen nicht durch sie gehen (z. B. beim Reiten an ihrem Oberschenkel vorbei)
         const armIn = () => { const el2 = bn('lowerarm01.' + sd).getWorldPosition(V()), wp2 = w.getWorldPosition(V()); let s2 = 0; [el2, el2.clone().lerp(wp2, 0.5), el2.clone().lerp(wp2, 0.8)].forEach(pt => { const qq = surf0(pt); if (qq && qq.p.distanceTo(pt) < 0.15) s2 += Math.max(0, 0.01 - pt.clone().sub(qq.p).dot(qq.n)); }); return s2; };
-        solve(pole, qw, wristP);
-        let bestPole = pole, bestB = bendFor(qw), bestC = bestB + armIn() * 40;
-        for (const a of [-1.2, -0.6, 0.6, 1.2, -1.8, 1.8]) { const pl = sh.clone().add(pole.clone().sub(sh).applyAxisAngle(axSW, a)); solve(pl, qw, wristP); const b = bendFor(qw); if (b >= bestC - 0.02) continue; const c = b + armIn() * 40; if (c < bestC - 0.02) { bestC = c; bestB = b; bestPole = pl; } }
-        solve(bestPole, qw, wristP);
+        // Ellbogenrichtung mit Trägheit: bevorzugt die bisherige Richtung und dreht nur schrittweise dorthin
+        // (vorher sprang der Unterarm bis ~90° pro Bild zwischen zwei gleich guten Lösungen)
+        const pA = (frame.poleA = frame.poleA || {}), prevA = pA[sd] == null ? 0 : pA[sd], plAt = a => sh.clone().add(pole.clone().sub(sh).applyAxisAngle(axSW, a));
+        let bestA = prevA, bestC = 1e9;
+        for (const a of [prevA, 0, -0.6, 0.6, -1.2, 1.2, -1.8, 1.8]) { solve(plAt(a), qw, wristP); const c = bendFor(qw) + armIn() * 40 + Math.abs(a - prevA) * 0.05; if (c < bestC - 0.01) { bestC = c; bestA = a; } }
+        const A1 = prevA + (bestA - prevA) * Math.min(1, (tg.dt || 0.03) * 9);   // in wenigen Bildern hingleiten statt springen
+        pA[sd] = A1; const bestPole = plAt(A1);
+        solve(bestPole, qw, wristP); const bestB = bendFor(qw);
         if (bestB > lim) {
           const K0 = wristP.clone().add(P.u.clone().applyQuaternion(qw)), sideA = P.fl.clone().applyQuaternion(qw).cross(nS).normalize();
           let done = false;
@@ -28724,7 +28753,7 @@ function mhManRig(THREE, B, opts) {
         setF(b1, 0.06, spread); setF(b2, 0.06); setF(b3, 0.06); b1.updateWorldMatrix(true, true);
         const A = b1.getWorldPosition(V()), tipW = segTip(b3).w, Lf = tipW.distanceTo(A);
         const dirF = tipW.clone().sub(A).normalize();
-        const qa = surf(A), qb = surf(A.clone().addScaledVector(dirF, Lf * 0.9)); if (!qa || !qb) continue;
+        const qbP = A.clone().addScaledVector(dirF, Lf * 0.9), qa = surf(A), qb = surf(qbP); if (!qa || !qb || qb.p.distanceTo(qbP) > 0.05) { setF(b1, 0.35, spread); setF(b2, 0.45); setF(b3, 0.3); b1.updateWorldMatrix(false, true); continue; }   // über den Rand hinaus: locker gebeugt statt steif gestreckt
         let th = qa.n.angleTo(qb.n); const convex = qb.n.dot(dirF) > qa.n.dot(dirF); th = convex ? th : -th;
         const dTip = tipW.clone().sub(qb.p).dot(qb.n) - 0.009; th += Math.atan2(dTip, Lf) * 1.6;
         const a1 = Math.max(-0.42, Math.min(0.85, 0.06 + 0.42 * th)), a2 = Math.max(0.03, Math.min(0.95, 0.06 + 0.34 * th)), a3 = Math.max(0.03, Math.min(0.8, 0.05 + 0.24 * th));
@@ -28759,9 +28788,12 @@ function mhManRig(THREE, B, opts) {
         const wq = bn('wrist.' + sd).getWorldPosition(V()), k2 = bn('finger2-1.' + sd).getWorldPosition(V()), k5 = bn('finger5-1.' + sd).getWorldPosition(V());
         const fdir = k2.clone().lerp(k5, 0.5).sub(wq).normalize(), side = k2.clone().sub(k5).normalize();
         const guess = st0.w.clone().lerp(wq.clone().addScaledVector(fdir, 0.05 + 0.025 * k).addScaledVector(side, 0.035), 0.6);
-        const q2 = surf(guess); if (!q2) continue;
-        const want = q2.p.clone().addScaledVector(q2.n, 0.011), J = b.getWorldPosition(V());
-        if (want.distanceTo(J) > 1e-4) mhAim(THREE, b, st0.loc, J.clone().add(want.sub(J).normalize().multiplyScalar(st0.loc.length())));
+        const q2 = surf(guess); const off = !q2 || q2.p.distanceTo(guess) > 0.04;   // über den Rand: Daumen legt sich an den Zeigefinger statt abzustehen
+        const want = off ? wq.clone().addScaledVector(fdir, 0.05 + 0.025 * k).addScaledVector(side, 0.02).addScaledVector(fdir.clone().cross(side).normalize(), (sd === 'L' ? 1 : -1) * 0.012) : q2.p.clone().addScaledVector(q2.n, 0.011), J = b.getWorldPosition(V());
+        // höchstens ~26° pro Glied von der lockeren Haltung weg (sonst steht der Daumen an Mulden wie der Taille weit ab)
+        const cur = st0.w.clone().sub(J).normalize(); let dW = want.sub(J).normalize(); const angD = cur.angleTo(dW);
+        const lim = off ? 1.1 : 0.45; if (angD > lim) { const ax = cur.clone().cross(dW); if (ax.lengthSq() > 1e-8) dW = cur.clone().applyAxisAngle(ax.normalize(), lim); }
+        if (angD > 1e-3) mhAim(THREE, b, st0.loc, J.clone().add(dW.multiplyScalar(st0.loc.length())));
         b.updateWorldMatrix(false, true);
       }
       B.root.updateMatrixWorld(true);
