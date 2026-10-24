@@ -1835,7 +1835,7 @@
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-primary" id="swipeOpenBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">💘 Durchswipen</button>
-        <button class="btn-secondary" id="upgradeAllBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap;">⟳ Alle aktualisieren</button>
+        <button class="btn-secondary" id="upgradeAllBtn" type="button" style="flex:1; min-width:0; height:46px; padding:0 12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">⟳ Alle auf aktuellen Stand</button>
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="deriveAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🖼️ Aussehen aus Bildern</button>
@@ -1843,9 +1843,13 @@
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="spreadVoicesBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="spreadVoices(this)">🎙️ Stimmen verteilen</button>
+        <button class="btn-secondary" id="sigAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="refreshAllSignatures(this)">💋 Markenzeichen erneuern</button>
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="charMapBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="openCharMap()">🗺️ Charakter-Karte</button>
+        <button class="btn-secondary" id="relBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="openRelations()">💞 Beziehungen</button>
+      </div>
+      <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="sharpenAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">✨ Alle Charaktere schärfen</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
@@ -3638,8 +3642,26 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.31';
+const APP_VERSION = '3.34';
 const CHANGELOG = [
+  { v: '3.34', date: '2026-10-24', items: [
+    '„⟳ Alle auf aktuellen Stand" macht jetzt alles in einem Durchgang: Figuren einschätzen → wo sich zu viele ähneln, bekommen einzelne einen deutlich anderen Charakter (Beschreibung, Eigenschaften, Kern, Tonfall; Name und Aussehen bleiben), bis es ein bunter Mix ist → fehlende Felder → neue Markenzeichen für alle → Beziehungen aus Beschreibungen übernehmen und ein paar neue → doppelte Stimmen verteilen. Nochmal tippen hält an; am Ende ein Bericht',
+    'Der Umbau zielt gezielt auf die schwach besetzten Seiten (z. B. „neugierig", „kühl", „geduldig", „lässt sich führen") und zieht Doppelgänger auseinander',
+    'Durchswipen: die Vorstellung ist jetzt auf den Punkt - Name, ein Satz, was sie ausmacht, und dann führt sie dir ihr Markenzeichen vor; ändert sich Kern oder Markenzeichen, entsteht die Vorstellung automatisch neu',
+  ] },
+  { v: '3.33', date: '2026-10-24', items: [
+    'Neu: „💞 Beziehungen" (Figuren, Charakter-Karte und im Editor jeder Figur) - für je zwei Figuren Art (Freundinnen, Paar, Rivalinnen, Ex, heimlich verliebt …) und wie sie miteinander umgehen',
+    'Sind beide im selben Gespräch, spielen sie die Beziehung aktiv aus (Ton, Gesten, Insider, Reibung); ist eine nicht dabei, bleibt die Beziehung außen vor - die andere redet nicht mit',
+    '„In Beschreibungen erwähnt": findet Figuren, die eine andere beim Namen nennen (wie bei den alten Paaren), und verschiebt diese Sätze mit einem Tipp in eine Beziehung',
+    '„✨ Vorschläge" lässt die KI spannende Beziehungen zwischen deinen Figuren vorschlagen - einzeln übernehmen',
+    'Beziehungen werden je Figur gespeichert (nicht mehr nach Namen) - gleichnamige Figuren werden nicht verwechselt; das Lagerfeuer ergänzt sie weiter, Karten des Abends bauen darauf auf',
+    'Abwesende Figuren: auch Namen im Kern, im Intimen und im Gedächtnis der Anwesenden werden jetzt erkannt, damit niemand mitspricht, der nicht da ist',
+  ] },
+  { v: '3.32', date: '2026-10-24', items: [
+    'Markenzeichen: „💋 Markenzeichen erneuern" (Figuren) und „💋 Neues Markenzeichen" im Editor schreiben ein unverwechselbares, freches Markenzeichen - etwas, das sie MIT dir tut, ihr typischer Satz dazu und ein Rhythmus, den man am Gerät spürt; aus Kern und Vorlieben, jede anders als die anderen',
+    '„Alle aktualisieren" ergänzt jetzt auch zu dünne Markenzeichen und sagt am Ende, was es abdeckt und was nicht',
+    'Charakter-Karte, Ähnlichkeit: Grüppchen nur noch aus Figuren, die sich alle untereinander ähneln (vorher hängte eine Kette 16 Figuren zusammen)',
+  ] },
   { v: '3.31', date: '2026-10-24', items: [
     'Charakter-Karte: die Reiter lassen sich immer antippen (vorher gesperrt, solange die KI-Einschätzung fehlte)',
     'Einschätzung robuster: kleinere Portionen (6 Figuren je Anfrage), genug Antwortlänge auch bei knapp eingestelltem Budget, ein zweiter Versuch, Figuren mit gleichem Namen werden nicht mehr verwechselt',
@@ -13792,6 +13814,9 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       sigArea.placeholder = 'Etwas, woran man sie sofort erkennt: eine typische Bewegung, ein Satz, eine Geste. Z. B. „Hält oben inne, zählt leise bis drei und stößt dann dreimal hart nach unten."';
       sigArea.oninput = () => { c.signature = sigArea.value; };
       card.appendChild(sigArea);
+      const sigBtn = document.createElement('button'); sigBtn.type = 'button'; sigBtn.className = 'btn-secondary'; sigBtn.style.cssText = 'margin:6px 0 4px; height:40px; padding:0 14px; width:auto;'; sigBtn.textContent = '💋 Neues Markenzeichen';
+      sigBtn.onclick = async () => { sigBtn.disabled = true; sigBtn.textContent = '💋 Denke mir eins aus …'; try { const sig = await freshSignature(c, otherSignatures(c.figureId)); c.signature = sig; sigArea.value = sig; } catch (e) { addMsg('system', 'Markenzeichen ging nicht: ' + e.message); } sigBtn.disabled = false; sigBtn.textContent = '💋 Neues Markenzeichen'; };
+      card.appendChild(sigBtn);
       const dsLabel = document.createElement('label');
       dsLabel.textContent = 'Handschrift am Gerät';
       card.appendChild(dsLabel);
@@ -13813,6 +13838,7 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       const shBtn = document.createElement('button'); shBtn.type = 'button'; shBtn.className = 'btn-secondary'; shBtn.style.marginTop = '6px'; shBtn.textContent = '✨ Charakter schärfen';
       shBtn.onclick = async () => { shBtn.disabled = true; shBtn.textContent = '✨ Denke mir ihren Kern aus …'; try { const core = await sharpenCharacter(c); if (core) { c.core = core; coreArea.value = core; } } catch (e) { addMsg('system', 'Charakter schärfen ging nicht: ' + e.message); } shBtn.disabled = false; shBtn.textContent = '✨ Charakter schärfen'; };
       card.appendChild(shBtn);
+      if (c.figureId) { const rlBtn = document.createElement('button'); rlBtn.type = 'button'; rlBtn.className = 'btn-secondary'; rlBtn.style.cssText = 'margin:6px 0 0 8px;'; rlBtn.textContent = '💞 Beziehungen'; rlBtn.onclick = () => openRelations(c.figureId); card.appendChild(rlBtn); }
     }
 
     // Das Gedächtnis gehört zur Figur, nicht zu einer Version: überarbeitet man
@@ -14240,7 +14266,7 @@ function saveIntroMap(map) { safeSet('companion_figureIntros', JSON.stringify(ma
 function introFingerprint(v) {
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
   return [source, source === 'elevenlabs' ? (v.elevenVoice || '') : (v.voice || ''),
-    v.name, v.v || v.version || 0, v.emotional ? 1 : 0].join('|');
+    v.name, v.v || v.version || 0, v.emotional ? 1 : 0, (() => { const t = String(v.signature || '') + String(v.core || ''); let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; })()].join('|');
 }
 
 async function forgetIntro(figureId) {
@@ -14256,9 +14282,9 @@ function buildIntroRequest(v) {
 
 Wer du bist: ${String(v.notes || '').slice(0, 700)}
 Wesen: ${traits || '-'}
-So sprichst du: ${String(v.styleExamples || '').slice(0, 400)}
-
-Zwei bis vier Sätze, höchstens 320 Zeichen: dein Name, was dich ausmacht, was du magst - ruhig auch, was dir im Bett gefällt. Du sprichst mich direkt an.${emotional ? ' Setze zwei bis drei Audio-Tags in eckigen Klammern ein, dort wo sie passen: [lacht], [lacht herzhaft], [kichert], [seufzt], [flüstert], [atmet schwer], [stöhnt leise], [stöhnt].' : ' Keine Klammern, keine Regieanweisungen.'}
+${(v.core || '').trim() ? 'Dein Kern: ' + String(v.core).replace(/\s*\n\s*/g, ' | ').slice(0, 600) + '\n' : ''}So sprichst du: ${String(v.styleExamples || '').slice(0, 400)}
+${(v.signature || '').trim() ? 'Dein Markenzeichen: ' + String(v.signature).slice(0, 400) + '\n' : ''}
+Auf den Punkt, höchstens 420 Zeichen: dein Name und in EINEM Satz, was dich ausmacht (dein Motiv, deine Art - so, dass man dich von allen anderen unterscheidet). ${(v.signature || '').trim() ? 'Dann führst du mir dein Markenzeichen vor - du tust es jetzt mit mir, in der Gegenwart, mit deinem typischen Satz dazu, so dass ich es nie vergesse.' : 'Dann zeigst du mir mit einer kleinen Handlung, was dir im Bett gefällt.'} Du sprichst mich direkt an.${emotional ? ' Setze zwei bis drei Audio-Tags in eckigen Klammern ein, dort wo sie passen: [lacht], [lacht herzhaft], [kichert], [seufzt], [flüstert], [atmet schwer], [stöhnt leise], [stöhnt].' : ' Keine Klammern, keine Regieanweisungen.'}
 Keine Anführungszeichen, keine Erklärung - nur der gesprochene Text.`;
 }
 
@@ -15705,7 +15731,7 @@ setTimeout(() => {
 function absentFigureNames() {
   const present = characters.map(c => String(c.name).toLowerCase());
   const presentFirst = present.map(n => n.split(' ')[0]);
-  const text = characters.map(c => [c.notes, c.styleExamples, c.signature].join(' ')).join(' ').toLowerCase();
+  const text = characters.map(c => [c.notes, c.styleExamples, c.signature, c.core, c.intimate, c.figureId ? (figureMemory(c.figureId) || '') : ''].join(' ')).join(' ').toLowerCase();
   const out = [];
   figureArchive.forEach(f => {
     const v = latestVersion(f);
@@ -17577,12 +17603,28 @@ function appendFigureMemory(figureId, lines) {
 }
 function relations() { try { return JSON.parse(localStorage.getItem('companion_relations') || '{}'); } catch (e) { return {}; } }
 function relKey(a, b) { return [a, b].sort().join('|'); }
+// Beziehungen: gespeichert unter den Figuren-IDs (ältere Einträge unter Namen werden weiter gelesen)
+const REL_KINDS = ['Freundinnen', 'beste Freundinnen', 'Paar', 'heimlich verliebt', 'Ex', 'Rivalinnen', 'Kolleginnen', 'Mitbewohnerinnen', 'Mentorin & Schülerin', 'Komplizinnen', 'flüchtig bekannt', 'können sich nicht ausstehen'];
+function relIdOf(x) { if (!x) return ''; if (x.figureId) return x.figureId; if (x.id && figureArchive.some(f => f.id === x.id)) return x.id; return (figureByName(x.name) || {}).id || ''; }
+function relGet(a, b) { const R = relations(), ia = relIdOf(a), ib = relIdOf(b); return (ia && ib && R[relKey(ia, ib)]) || R[relKey(a.name, b.name)] || null; }
+function relSet(fa, fb, data) {
+  const R = relations(), va = latestVersion(fa), vb = latestVersion(fb); if (!va || !vb || fa.id === fb.id) return;
+  delete R[relKey(va.name, vb.name)];
+  if (data) R[relKey(fa.id, fb.id)] = Object.assign({ t: Date.now() }, data); else delete R[relKey(fa.id, fb.id)];
+  safeSet('companion_relations', JSON.stringify(R));
+}
+function relList() {
+  const R = relations(), byId = id => figureArchive.find(f => f.id === id), out = [];
+  Object.entries(R).forEach(([k, r]) => { const [x, y] = k.split('|'); const fa = byId(x) || figureByName(x), fb = byId(y) || figureByName(y); if (fa && fb && fa !== fb && latestVersion(fa) && latestVersion(fb)) out.push({ key: k, fa, fb, r }); });
+  return out.sort((p, q) => (q.r.t || 0) - (p.r.t || 0));
+}
+function relText(r) { return [r.kind, r.text].filter(Boolean).join(' - '); }
 function relationsBlock() {
-  const names = characters.filter(c => !c.isUser && !c.isNarrator).map(c => c.name);
-  if (names.length < 2) return '';
-  const R = relations(); const out = [];
-  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) { const r = R[relKey(names[i], names[j])]; if (r && r.text) out.push(`${names[i]} und ${names[j]}: ${r.text}`); }
-  return out.length ? `\n\nWIE DIE FIGUREN ZUEINANDER STEHEN (aus früheren Begegnungen - spielt damit, es darf durchscheinen):\n${out.join('\n')}` : '';
+  const cs = characters.filter(c => !c.isUser && !c.isNarrator);
+  if (cs.length < 2) return '';
+  const out = [];
+  for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) { const r = relGet(cs[i], cs[j]); if (r && (r.text || r.kind)) out.push(`${cs[i].name} und ${cs[j].name}: ${relText(r)}`); }
+  return out.length ? `\n\nBEZIEHUNGEN UNTEREINANDER - die gelten, weil beide heute dabei sind. Spielt sie aktiv aus: wie sie einander ansprechen, necken, berühren, sich verbünden oder reiben, Insider und gemeinsame Geschichte - sichtbar in fast jeder Antwort, in der beide vorkommen:\n${out.join('\n')}` : '';
 }
 function figureByName(name) { return figureArchive.find(f => (latestVersion(f) || {}).name === name); }
 function parseJsonLoose(raw) { const m = String(raw || '').match(/\{[\s\S]*\}/); try { return m ? JSON.parse(m[0]) : null; } catch (e) { return null; } }
@@ -17626,7 +17668,7 @@ function campfirePrompt() {
   const R = relations();
   const known = cf.cast.map(c => { const f = figureByName(c.name); const m = f ? (figureMemory(f.id) || '').split('\n').slice(-6).join(' ') : ''; return m ? `- ${c.name} weiß bereits: ${m.slice(0, 350)}` : ''; }).filter(Boolean).join('\n');
   const rel = [];
-  for (let i = 0; i < cf.cast.length; i++) for (let j = i + 1; j < cf.cast.length; j++) { const r = R[relKey(cf.cast[i].name, cf.cast[j].name)]; if (r) rel.push(`${cf.cast[i].name} und ${cf.cast[j].name}: ${r.text}`); }
+  for (let i = 0; i < cf.cast.length; i++) for (let j = i + 1; j < cf.cast.length; j++) { const r = relGet(cf.cast[i], cf.cast[j]); if (r) rel.push(`${cf.cast[i].name} und ${cf.cast[j].name}: ${relText(r)}`); }
   const so_far = cf.lines.slice(-30).map(l => `${l.role}: ${l.text}`).join('\n');
   // Was ihr mit Til erlebt habt - aus den Aufzeichnungen
   const facts = cf.cast.map(c => {
@@ -17712,7 +17754,8 @@ Antworte NUR als JSON: {"memories": {"Name": ["...", "..."]}, "relations": [{"a"
     j.relations.slice(0, 10).forEach(r => {
       const names = cf.cast.map(c => c.name);
       const a = matchSpeakerName(r.a, names), b = matchSpeakerName(r.b, names);
-      if (a && b && a !== b && r.text) { R[relKey(a, b)] = { text: String(r.text).slice(0, 200), t: Date.now() }; summary.push(`💞 ${esc(a.split(' ')[0])} & ${esc(b.split(' ')[0])}: ${esc(r.text)}`); }
+      const fa = a && (figureByName(a)), fb = b && figureByName(b);
+      if (a && b && a !== b && r.text && fa && fb) { const old = relGet(fa, fb) || {}; delete R[relKey(a, b)]; R[relKey(fa.id, fb.id)] = { kind: old.kind || '', text: (old.by === 'du' && old.text ? old.text + ' · Zuletzt: ' : '') + String(r.text).slice(0, 200), by: old.by || 'Lagerfeuer', t: Date.now() }; summary.push(`💞 ${esc(a.split(' ')[0])} & ${esc(b.split(' ')[0])}: ${esc(r.text)}`); }
     });
     safeSet('companion_relations', JSON.stringify(R));
   }
@@ -18069,7 +18112,7 @@ async function upgradeFigure(figure, quiet) {
   const c = characterFromVersion(figure);
   const missing = [];
   if (!v.isNarrator && (!v.phantom || !Object.keys(v.phantom).length)) { setTimeout(() => autoPhantom(figure.id, 'Aktualisierung'), 0); }
-  if (!v.isNarrator && !(v.signature || '').trim()) missing.push('signature');
+  if (!v.isNarrator && (v.signature || '').trim().length < 40) missing.push('signature');   // fehlt oder zu dünn
   if (!(v.styleExamples || '').trim()) missing.push('styleExamples');
   if (!(v.voiceDescription || '').trim()) missing.push('voiceDescription');
   if (!v.isNarrator && !(v.core || '').trim()) missing.push('core');
@@ -18080,7 +18123,7 @@ ${describeCharacter(c)}
 Aussehen: ${v.appearance || '(keins)'}
 
 Fehlend: ${missing.join(', ')}
-- "signature": ein Markenzeichen - eine typische Geste, Bewegung oder ein Satz, an dem man sie sofort erkennt (1 Satz).
+- "signature": ihr Markenzeichen (Signature Move) - eine konkrete, frech-sinnliche Handlung, die sie im intimen Zusammenspiel MIT Til tut, mit ihrem typischen kurzen Satz dabei und einem Rhythmus, den man am Gerät spürt; unverwechselbar, aus ihren Vorlieben abgeleitet (1-2 Sätze).
 - "styleExamples": drei bis vier typische Sätze von ihr, je eine Zeile, in ihrer Sprechweise.
 - "voiceDescription": englische Stimmbeschreibung für ElevenLabs Voice Design (Alter, Akzent, Klangfarbe, Ausdruck; 1-2 Sätze).
 - "core": ihr Charakterkern als kurze Zeilen: Motiv (was sie antreibt); Eigenheiten (2-3 unverwechselbare Angewohnheiten); Sprechweise (Wortwahl, Rhythmus, Lieblingswörter); Was sie von Til will; Vorlieben und Fetische (was sie besonders reizt und mit Til einmal ausprobieren möchte); Wie sie die Geschichte lenkt (welche Wendungen sie anstößt); Wiederkehrende Motive (Rituale, Spiele, Sätze); Innere Spannung (was sie reizt oder unsicher macht). Kräftig und eigen, nicht beliebig - eine erwachsene Figur, alles einvernehmlich.
@@ -18122,19 +18165,20 @@ function pickVoiceFor(v, pool, figId) {
   return pool.slice().sort((a, b) => score(a) - score(b))[0];
 }
 // Alle Figuren: doppelt vergebene Stimmen neu verteilen, damit möglichst jede anders klingt
-async function spreadVoices(btn) {
-  if (!apiKeyFor('companion_elevenKey')) { showToast('Erst den ElevenLabs-Schlüssel eintragen', true); return; }
+async function spreadVoices(btn, silent) {
+  if (!apiKeyFor('companion_elevenKey')) { if (!silent) showToast('Erst den ElevenLabs-Schlüssel eintragen', true); return 0; }
   if (!elevenVoiceCache.length) { try { await loadElevenVoices(true); } catch (e) {} }
   if (!elevenVoiceCache.length) { showToast('Keine Stimmen im ElevenLabs-Konto gefunden', true); return; }
   const figs = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
   const byVoice = {}; figs.forEach(f => { const id = latestVersion(f).elevenVoice || '-'; (byVoice[id] = byVoice[id] || []).push(f); });
   const dups = Object.entries(byVoice).filter(([id, l]) => id === '-' || l.length > 1).flatMap(([id, l]) => id === '-' ? l : l.slice(1));
-  if (!dups.length) { showToast('Jede Figur hat schon ihre eigene Stimme'); return; }
-  if (!confirm(`${dups.length} Figuren teilen sich eine Stimme mit einer anderen (oder haben keine). Neue Stimmen aus deinem Konto verteilen - unbenutzte zuerst?`)) return;
+  if (!dups.length) { if (!silent) showToast('Jede Figur hat schon ihre eigene Stimme'); return 0; }
+  if (!silent && !confirm(`${dups.length} Figuren teilen sich eine Stimme mit einer anderen (oder haben keine). Neue Stimmen aus deinem Konto verteilen - unbenutzte zuerst?`)) return;
   let n = 0;
   for (const f of dups) { const v = latestVersion(f), pick = pickVoiceFor(v, voicePool(v), f.id); if (pick && pick.voice_id !== v.elevenVoice) { v.elevenVoice = pick.voice_id; n++; characters.forEach(ch => { if (ch.figureId === f.id) ch.elevenVoice = pick.voice_id; }); } }
   saveArchive(); try { saveCharacters(); } catch (e) {}
   const left = Object.values(voiceUsage()).filter(k => k > 1).length;
+  if (silent) { logEvent('msg', { role: 'system', text: `Stimmen verteilt: ${n} neu, ${left} noch doppelt, ${elevenVoiceCache.length} Stimmen im Konto.` }); return n; }
   showToast(`${n} Figuren neu vertont${left ? ` - ${left} Stimmen sind noch doppelt: dein Konto hat zu wenige. In ElevenLabs aus der Stimmbibliothek welche hinzufügen oder im Editor eigene erzeugen` : ''}`, !!left);
   logEvent('msg', { role: 'system', text: `Stimmen verteilt: ${n} neu, ${left} noch doppelt, ${elevenVoiceCache.length} Stimmen im Konto.` });
 }
@@ -18205,6 +18249,132 @@ async function deriveAllFromPortraits(btn) {
   try { renderFigureList(); } catch (e) {}
   alert(`Abgeleitet: ${ok.length ? ok.join(', ') : 'keine'}${bad.length ? '\n\nNicht geklappt:\n' + bad.join('\n') : ''}`);
 }
+// ---------- Markenzeichen (Signature Move): spicy, unverwechselbar, aus Kern und Vorlieben ----------
+async function freshSignature(c, othersSigs) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Erotisches Rollenspiel zwischen Erwachsenen (alle über 21, alles einvernehmlich). Schreibe für ${c.name} ein neues MARKENZEICHEN (Signature Move) - das, woran Til sie im Bett sofort erkennt, auch mit geschlossenen Augen.
+So soll es sein:
+- eine konkrete, körperliche, frech-sinnliche Handlung im intimen Zusammenspiel mit Til - kein Haarezwirbeln oder Lippenlecken, sondern etwas, das sie MIT IHM tut und das richtig heiß ist
+- dazu ihr typischer kurzer Satz dabei (in Anführungszeichen)
+- und ein Rhythmus, den man am Gerät spürt (z. B. Pause - Zählen - drei harte Stöße, ganz langsames Herausziehen bis zur Spitze, Zittern oben, Kreisen) - so beschrieben, dass die Bewegung eindeutig ist
+- abgeleitet aus ihrem Charakter, ihrem Motiv und ihren Vorlieben/Fetischen; unverwechselbar und deutlich anders als die Markenzeichen der anderen
+1-2 Sätze, höchstens 320 Zeichen, in der dritten Person ("Sie ...").
+${describeCharacter(c)}
+${othersSigs.length ? 'MARKENZEICHEN DER ANDEREN (nichts davon wiederholen, auch nicht ähnlich):\n' + othersSigs.map(x => '- ' + x).join('\n') : ''}
+Antworte NUR als JSON: {"signature": "..."}`;
+  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.95, Math.max(500, taskBudget('draft', 500)), { task: 'draft' }));
+  const sig = j && String(j.signature || '').trim();
+  if (!sig || sig.length < 25) throw new Error('keine brauchbare Antwort');
+  return sig.slice(0, 400);
+}
+function otherSignatures(exceptId) { return figureArchive.filter(f => f.id !== exceptId).map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && (v.signature || '').trim()).map(v => v.name + ': ' + v.signature.trim().slice(0, 160)).slice(0, 30); }
+async function refreshAllSignatures(btn) {
+  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
+  if (!list.length || !confirm(`Allen ${list.length} Figuren ein neues, unverwechselbares Markenzeichen schreiben - frech, körperlich, mit typischem Satz und einem Rhythmus, den man am Gerät spürt? Jede sieht die der anderen und macht etwas Eigenes. Die alten bleiben in der Versionsliste.`)) return;
+  const label = btn.textContent; btn.disabled = true; let ok = 0; const bad = [];
+  for (let i = 0; i < list.length; i++) {
+    const f = list[i], name = latestVersion(f).name; btn.textContent = `💋 ${i + 1}/${list.length}: ${name} …`;
+    try { const c = characterFromVersion(f); const sig = await freshSignature(c, otherSignatures(f.id)); c.signature = sig; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, { signature: sig }) : x); ok++; }
+    catch (e) { bad.push(name + ': ' + e.message); }
+  }
+  btn.disabled = false; btn.textContent = label; try { renderFigureList(); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `Markenzeichen erneuert: ${ok} von ${list.length}${bad.length ? ' - nicht geklappt: ' + bad.join('; ') : ''}` });
+  showToast(`${ok} von ${list.length} Markenzeichen erneuert${bad.length ? ' - ' + bad.length + ' nicht geklappt (siehe Protokoll)' : ''}`, !!bad.length);
+}
+// ---------- Alles auf einen Knopf: bunter Mix + alle Ableitungen ----------
+// Plan: Wo sich zu viele auf einer Seite eines Merkmals drängen (z. B. 22 von 28 „erfahren"), wandern die,
+// die ohnehin nahe der Mitte liegen, auf die schwach besetzte Seite; Doppelgänger werden auseinandergezogen.
+function diversityPlan(D) {
+  const N = D.length, K = Object.keys(CM_DIMS), plan = new Map(), add = (d, k, side) => { const p = plan.get(d) || { dims: {}, twin: null }; if (Object.keys(p.dims).length >= 2 || p.dims[k] !== undefined) return false; p.dims[k] = side; plan.set(d, p); return true; };
+  const maxMoved = Math.ceil(N * 0.6);
+  // Runde für Runde je Merkmal eine Figur - so verteilt sich der Umbau über alle Merkmale, und erst bekommt jede höchstens eine Richtung
+  const st = K.map(k => { const neg = D.filter(d => d.d[k] < -0.15), pos = D.filter(d => d.d[k] > 0.15), minSide = neg.length <= pos.length ? 0 : 1; return { k, minSide, need: Math.ceil(N * 0.33) - (minSide ? pos : neg).length }; }).filter(x => x.need > 0).sort((a, b) => b.need - a.need);
+  for (let round = 0; round < N && st.some(x => x.need > 0); round++) {
+    let progress = false;
+    st.forEach(x => { if (x.need <= 0) return;
+      const onMajor = d => x.minSide ? d.d[x.k] <= 0.15 : d.d[x.k] >= -0.15, dims = d => plan.has(d) ? Object.keys(plan.get(d).dims).length : 0;
+      const cand = D.filter(d => onMajor(d) && dims(d) < 2 && !(plan.get(d) || { dims: {} }).dims.hasOwnProperty(x.k) && (plan.has(d) || plan.size < maxMoved))
+        .sort((a, b) => dims(a) - dims(b) || Math.abs(a.d[x.k]) - Math.abs(b.d[x.k]))[0];
+      if (cand && add(cand, x.k, x.minSide)) { x.need--; progress = true; } });
+    if (!progress) break;
+  }
+  try { const sim = cmSimilarity(D); sim.close.concat(sim.clusters.flatMap(c => c.members.slice(1).map(m => ({ a: c.members[0], b: m })))).forEach(pr => { if (plan.size >= maxMoved && !plan.has(pr.b)) return; const p = plan.get(pr.b) || { dims: {}, twin: null }; p.twin = pr.a; plan.set(pr.b, p); }); } catch (e) {}
+  return [...plan.entries()].map(([d, p]) => {
+    const dir = Object.entries(p.dims).map(([k, side]) => CM_DIMS[k][side ? 3 : 2]);
+    const hint = (dir.length ? `Verändere ihren Charakter deutlich in diese Richtung: ${dir.join('; ')}.` : '') + (p.twin ? ` Sie ähnelt ${p.twin.v.name} zu sehr - mach sie klar anders (anderes Motiv, anderer Ton, andere Vorlieben).` : '');
+    return { d, hint: hint.trim(), dirs: Object.entries(p.dims).map(([k, side]) => CM_DIMS[k][side]), twin: p.twin && p.twin.v.name };
+  }).filter(x => x.hint);
+}
+async function reshapeCharacter(c, hint) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const T = TRAIT_GROUPS.flatMap(g => g.traits.map(([id, t]) => `${id} (${t})`)).join(', ');
+  const sys = `Erotisches Rollenspiel zwischen Erwachsenen (alle über 21, alles einvernehmlich). Til hat viele Figuren, die sich zu sehr ähneln - diese hier soll einen deutlich anderen CHARAKTER bekommen.
+RICHTUNG: ${hint}
+Bleibt gleich: Name, Aussehen, Alter, Herkunft, Beruf und äußere Fakten. Ändert sich: Persönlichkeit, Verhalten im Bett, Sprechweise, Motive, Vorlieben - glaubwürdig, als wäre sie schon immer so gewesen.
+${describeCharacter(c)}
+
+Gib zurück:
+- "notes": ihre Beschreibung neu geschrieben (gleiche Länge wie bisher, gleiche äußeren Fakten, neue Persönlichkeit; keine anderen Figuren namentlich nennen)
+- "traits": 4-8 Eigenschafts-IDs aus dieser Liste, passend zum neuen Charakter: ${T}
+- "core": Zeilen "Motiv: …", "Eigenheiten: …; …; …", "Sprechweise: …", "Was sie von Til will: …", "Vorlieben und Fetische: …", "Wie sie die Geschichte lenkt: …", "Wiederkehrende Motive: …", "Innere Spannung: …" (je 1-2 Sätze, durch Zeilenumbruch getrennt)
+- "styleExamples": 3-4 typische Sätze von ihr in der neuen Sprechweise, je eine Zeile
+Antworte NUR als JSON: {"notes": "...", "traits": ["..."], "core": "...", "styleExamples": "..."}`;
+  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.85, Math.max(1800, taskBudget('draft', 1800)), { task: 'draft' }));
+  if (!j || !j.core || !j.notes) throw new Error('keine brauchbare Antwort');
+  const ids = new Set(TRAIT_GROUPS.flatMap(g => g.traits.map(([id]) => id)));
+  const join = x => Array.isArray(x) ? x.join('\n') : typeof x === 'object' ? Object.entries(x).map(([k, y]) => k + ': ' + y).join('\n') : String(x);
+  const traits = (Array.isArray(j.traits) ? j.traits : []).map(String).filter(t => ids.has(t));
+  return { notes: String(j.notes).slice(0, 3000), core: join(j.core).slice(0, 2000), styleExamples: j.styleExamples ? join(j.styleExamples).slice(0, 1200) : c.styleExamples, traits: traits.length >= 3 ? traits : c.traits };
+}
+let fullRefresh = null;
+async function refreshAllFigures(btn) {
+  if (fullRefresh) { fullRefresh.stop = true; btn.textContent = 'Hält nach diesem Schritt an …'; return; }
+  const figs = () => figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator);
+  const N = figs().length;
+  if (!confirm(`Alle ${N} Figuren auf den aktuellen Stand bringen - in einem Durchgang:\n\n1. KI liest alle Figuren und setzt sie auf die Charakter-Karte\n2. Wo sie sich zu sehr ähneln, bekommen einzelne einen deutlich anderen Charakter (Beschreibung, Eigenschaften, Kern, Tonfall - Name und Aussehen bleiben), bis es ein bunter Mix ist\n3. Fehlende Felder ergänzen\n4. Neue, unverwechselbare Markenzeichen für alle\n5. Beziehungen: Namen aus Beschreibungen übernehmen, ein paar spannende neu\n6. Doppelte Stimmen neu verteilen\n\nDauert je nach Anzahl 10-20 Minuten und kostet etwa ${(N * 0.03 + 0.2).toFixed(2).replace('.', ',')} $. Bildschirm bitte anlassen. Alte Versionen bleiben erhalten; nochmal tippen hält an.`)) return;
+  fullRefresh = { stop: false }; const label = btn.dataset.label || btn.textContent; btn.dataset.label = label;
+  const rep = [], step = t => { btn.textContent = t; }, stopped = () => fullRefresh.stop;
+  const upd = (f, patch) => { const c = characterFromVersion(f); Object.assign(c, patch); storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, patch) : x); };
+  try {
+    // 1. einschätzen
+    const stale = () => charMapData().filter(d => !d.ai).map(d => ({ f: d.f, v: d.v }));
+    if (stale().length) { await rateFigures(stale(), (i, n) => step(`1/6 KI liest Figuren … ${Math.min(n, i + 6)}/${n}`)); }
+    let D = charMapData().filter(d => d.ai);
+    if (D.length < 3) throw new Error('Einschätzung ging nicht' + (rateFigures.lastErr ? ': ' + rateFigures.lastErr : ''));
+    // 2. bunter Mix
+    if (!stopped()) {
+      const plan = diversityPlan(D); let ok = 0;
+      for (let i = 0; i < plan.length && !stopped(); i++) {
+        const x = plan[i]; step(`2/6 Charakter ${i + 1}/${plan.length}: ${x.d.v.name} …`);
+        try { const r = await reshapeCharacter(characterFromVersion(x.d.f), x.hint); upd(x.d.f, Object.assign(r, { deviceStyle: '' })); ok++; rep.push(`${x.d.v.name}: ${x.dirs.length ? '→ ' + x.dirs.join(', ') : ''}${x.twin ? (x.dirs.length ? ', ' : '') + 'anders als ' + x.twin : ''}`); }
+        catch (e) { rep.push(`${x.d.v.name}: Umbau ging nicht (${e.message})`); }
+      }
+      logEvent('msg', { role: 'system', text: `Bunter Mix: ${ok} von ${plan.length} Figuren umgebaut. ` + rep.join(' · ') });
+      if (ok && !stopped()) await rateFigures(stale(), (i, n) => step(`2/6 Neu einschätzen … ${Math.min(n, i + 6)}/${n}`));
+    }
+    // 3. fehlende Felder
+    const filled = [];
+    for (let i = 0; i < N && !stopped(); i++) { const f = figs()[i].f; step(`3/6 Felder ${i + 1}/${N} …`); try { const r = await upgradeFigure(f, true); if (r && r.changed.length) filled.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) {} }
+    // 4. Markenzeichen
+    let sigs = 0;
+    for (let i = 0; i < N && !stopped(); i++) { const f = figs()[i].f, nm = latestVersion(f).name; step(`4/6 Markenzeichen ${i + 1}/${N}: ${nm} …`); try { const sig = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: sig }); sigs++; } catch (e) {} }
+    // 5. Beziehungen
+    let relTaken = 0, relNew = 0;
+    if (!stopped()) {
+      step('5/6 Beziehungen …');
+      relMentions().forEach(m => { const { text, clean } = relExtract(m); if (!text) return; upd(m.f, clean); const old = relGet(m.f, m.g) || {}; relSet(m.f, m.g, { kind: old.kind || '', text: [old.text, text].filter(Boolean).join(' ').slice(0, 600), by: old.by || 'du' }); relTaken++; });
+      if (relList().length < Math.ceil(N / 3)) { try { (await relSuggest()).forEach(x => { if (!relGet(x.fa, x.fb)) { relSet(x.fa, x.fb, { kind: x.kind, text: x.text, by: 'Vorschlag' }); relNew++; } }); } catch (e) {} }
+    }
+    // 6. Stimmen
+    let voices = 0; if (!stopped()) { step('6/6 Stimmen …'); try { voices = await spreadVoices(null, true) || 0; } catch (e) {} }
+    try { renderFigureList(); } catch (e) {}
+    const Dn = charMapData().filter(d => d.ai), sim = Dn.length > 2 ? cmSimilarity(Dn) : null;
+    const msg = `${stopped() ? 'Angehalten. ' : 'Fertig. '}Charaktere umgebaut: ${rep.filter(r => !/ging nicht/.test(r)).length}\n${rep.join('\n')}\n\nFelder ergänzt: ${filled.length}${filled.length ? '\n' + filled.join('\n') : ''}\nMarkenzeichen neu: ${sigs}\nBeziehungen: ${relTaken} aus Beschreibungen übernommen, ${relNew} neu\nStimmen neu verteilt: ${voices}${sim ? `\n\nKarte jetzt: ${sim.clusters.length} Grüppchen, ${sim.close.length} fast Doppelgänger` : ''}`;
+    logEvent('msg', { role: 'system', text: 'Alle auf aktuellen Stand: ' + msg.replace(/\n+/g, ' · ') });
+    alert(msg);
+  } catch (e) { alert('Abgebrochen: ' + e.message); }
+  finally { fullRefresh = null; btn.textContent = label; }
+}
 async function upgradeAllFigures(btn) {
   if (false && rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
     safeSet('companion_rollbackAsked_' + startOfToday(), '1');
@@ -18219,7 +18389,7 @@ async function upgradeAllFigures(btn) {
   }
   if (btn) btn.textContent = '⟳ Alle aktualisieren';
   renderFigureList();
-  alert(report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.');
+  alert((report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.') + '\n\n„Aktualisieren" füllt nur, was fehlt oder zu dünn ist (Markenzeichen, Tonfall-Beispiele, Stimmbeschreibung, Charakterkern, Phantombild). Vorhandenes neu schreiben: „✨ Alle Charaktere schärfen" (Kern) und „💋 Markenzeichen erneuern".');
 }
 
 // ======================= FRÜHERE VERSIONEN =======================
@@ -18597,7 +18767,7 @@ async function renderSwipe() {
 }
 function flipSwipe(card, f) {
   const ex = card.querySelector('.sw-back'); if (ex) { ex.remove(); return; }
-  const v = latestVersion(f); const R = relations(); const rel = Object.entries(R).filter(([k]) => k.split('|').includes(v.name)).map(([k, r]) => `${k.split('|').find(n => n !== v.name)}: ${r.text}`);
+  const v = latestVersion(f); const rel = relList().filter(x => x.fa === f || x.fb === f).map(x => `${latestVersion(x.fa === f ? x.fb : x.fa).name}: ${relText(x.r)}`);
   const diary = (diaries()[f.id] || []).slice(-1)[0];
   const back = document.createElement('div'); back.className = 'sw-back';
   back.innerHTML = `<div style="font-family:var(--font-display); font-size:28px; font-weight:600;">${esc(v.name)}</div>
@@ -19777,7 +19947,7 @@ async function makePitches(count) {
 Figuren (die oberen waren lange nicht mehr auf einer Karte - nehmt bevorzugt sie):
 ${sel.map(x => '- ' + x.v.name + ': ' + figureGist(x.v) + coreBit(x.v)).join('\n')}
 ${(() => { const o = cmOpposites(3); return o.length ? 'Laut Charakter-Karte die größten Gegensätze (ergeben spannende Paare): ' + o.join(' · ') + '\n' : ''; })()}${threads.length ? 'Offene Serien (eine Karte darf eine davon fortsetzen - dann genau diese Figuren und „Folge X" im Titel): ' + threads.map(t => t.names.join(' & ') + ' (Folge ' + (t.ep + 1) + '): ' + (t.next || t.offen[0])).join(' · ') : ''}
-${Object.keys(R).length ? 'Beziehungen: ' + Object.entries(R).slice(0, 8).map(([k, r]) => k.replace('|', ' & ') + ': ' + r.text).join('; ') : ''}
+${(() => { const L = relList().slice(0, 10); return L.length ? 'Beziehungen (eine Karte darf auf so einer Beziehung aufbauen): ' + L.map(x => latestVersion(x.fa).name + ' & ' + latestVersion(x.fb).name + ': ' + relText(x.r)).join('; ') : ''; })()}
 ${recent.length ? 'Diese Karten gab es schon - mach etwas anderes (anderer Ort, andere Stimmung, andere Figuren): ' + recent.join(' · ') : ''}
 Regeln: ${count === 1 ? 'ein frischer, überraschender Vorschlag' : 'deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen'}. Jede Figur höchstens auf einer Karte. Wählt Konstellationen mit Spannung: Gegensätze (die Zarte mit der Strengen, die Erfahrene mit der Neugierigen), zwei, die sich necken oder heimlich anziehend finden, eine, die eine andere zu etwas überredet. Lasst die Vorlieben und Motive der Figuren die Idee tragen - z. B. eine Figur will heute ihren Fetisch mit Til ausleben, oder sie will vorsichtig etwas zum ersten Mal ausprobieren (langsam, mit viel Gefühl, dann mutiger). Nicht nur „immer wilder": eine Karte darf auch eine kleine Geschichte mit Wendung sein. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen). Genau ${count} Karte${count === 1 ? '' : 'n'}.
 Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}`;
@@ -21599,7 +21769,7 @@ document.getElementById('swBack').onclick = () => { els.swipeView.style.display 
 document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
-document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
+document.getElementById('upgradeAllBtn').onclick = (e) => refreshAllFigures(e.currentTarget);
 // ---------- Charakter-Karte: wie verschieden sind deine Figuren? ----------
 // ---------- KI-Einschätzung der Figuren (zart↔wild, folgt↔führt) aus dem ganzen Text ----------
 // Die Schlüsselwortzählung erkannte weder Verneinungen noch Umschreibungen; jetzt liest die KI Häkchen, Notizen,
@@ -21698,12 +21868,93 @@ function cmSimilarity(D) {
   const pairs = []; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pairs.push({ a: D[i], b: D[j], dist: cmDist(D[i], D[j]) });
   const avg = pairs.reduce((t, p) => t + p.dist, 0) / Math.max(1, pairs.length);
   // Grüppchen: Single-Link, wer näher als die Hälfte des Durchschnitts liegt, gehört zusammen
-  const g = D.map((_, i) => i), root = i => g[i] === i ? i : (g[i] = root(g[i]));
-  pairs.filter(p => p.dist < avg * 0.5).forEach(p => { g[root(D.indexOf(p.a))] = root(D.indexOf(p.b)); });
-  const cl = {}; D.forEach((d, i) => (cl[root(i)] = cl[root(i)] || []).push(d));
-  const clusters = Object.values(cl).filter(c => c.length > 1).map(c => ({ members: c, share: K.map(k => [k, c.reduce((t, d) => t + (d.d[k] || 0), 0) / c.length]).filter(([, m]) => Math.abs(m) >= 0.4).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).map(([k, m]) => CM_DIMS[k][m < 0 ? 0 : 1]) }));
+  // vollständige Verknüpfung: in ein Grüppchen kommt nur, wer ALLEN darin nahe ist (vorher reihte die Kette 16 Figuren aneinander)
+  let groups = D.map(d => [d]); const thr = avg * 0.55;
+  for (;;) { let best = null; for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) { let m = 0; groups[i].forEach(a => groups[j].forEach(b => { m = Math.max(m, cmDist(a, b)); })); if (m < thr && (!best || m < best.m)) best = { i, j, m }; } if (!best) break; groups[best.i] = groups[best.i].concat(groups[best.j]); groups.splice(best.j, 1); }
+  const clusters = groups.filter(c => c.length > 1).map(c => ({ members: c, share: K.map(k => [k, c.reduce((t, d) => t + (d.d[k] || 0), 0) / c.length]).filter(([, m]) => Math.abs(m) >= 0.4).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).map(([k, m]) => CM_DIMS[k][m < 0 ? 0 : 1]) }));
   const sorted = pairs.slice().sort((a, b) => a.dist - b.dist);
   return { pos: P.map(p => [p[0] / mx, p[1] / mx]), axX: axName(e1), axY: axName(e2), clusters, close: sorted.filter(p => p.dist < avg * 0.6).slice(0, 3), far: sorted.slice(-3).reverse(), avg };
+}
+// ---------- Beziehungen zwischen Figuren: festlegen, aus Beschreibungen übernehmen, vorschlagen lassen ----------
+const REL_FIELDS = ['notes', 'styleExamples', 'signature', 'core', 'intimate'];
+function relMentions() {
+  // Figuren, deren Texte eine andere Figur beim Namen nennen - das ließ früher Abwesende mitreden
+  const figs = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator && v.name; }), out = [];
+  figs.forEach(f => { const v = latestVersion(f);
+    figs.forEach(g => { if (g === f) return; const first = latestVersion(g).name.split(' ')[0]; if (first.length < 3 || first.toLowerCase() === v.name.split(' ')[0].toLowerCase()) return;
+      const re = new RegExp('(?:^|[^A-Za-zÄÖÜäöüßÀ-ÿ])' + first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-zäöüßà-ÿ])');
+      const fields = REL_FIELDS.filter(k => re.test(String(v[k] || ''))); if (fields.length) out.push({ f, g, first, fields, re }); }); });
+  return out;
+}
+function relExtract(m) {
+  // Sätze mit dem Namen der anderen aus den Feldern lösen; Rückgabe: Text für die Beziehung + bereinigte Felder
+  const v = latestVersion(m.f), taken = [], clean = {};
+  m.fields.forEach(k => { const parts = String(v[k] || '').split(/(?<=[.!?…])\s+|\n/); const keep = []; parts.forEach(ps => { if (m.re.test(ps)) taken.push(ps.trim()); else keep.push(ps); }); clean[k] = keep.join(k === 'styleExamples' || k === 'core' ? '\n' : ' ').replace(/[ \t]+\n/g, '\n').trim(); });
+  return { text: taken.length ? (v.name.split(' ')[0] + ': ' + taken.join(' ')).slice(0, 400) : '', clean };
+}
+async function relSuggest() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const pool = figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator).slice(0, 40);
+  const have = relList().map(x => latestVersion(x.fa).name + ' & ' + latestVersion(x.fb).name);
+  const motiv = v => ((String(v.core || '').match(/Motiv:[^\n|]*/i) || [''])[0]).slice(0, 120);
+  const sys = `Erotische Rollenspiel-App für Erwachsene (alle über 21). Til spielt mit diesen Figuren - oft mit zwei oder drei gleichzeitig. Schlage 6 spannende BEZIEHUNGEN zwischen je zwei Figuren vor, die das Zusammenspiel mit Til lebendig machen: Freundinnen mit Insidern, heimlich verliebt, Rivalinnen, die sich um Til überbieten, Ex-Paar mit Restfunken, Mentorin und Neugierige, Komplizinnen … Wähle Paare, die sich ergänzen oder reiben (Gegensätze sind gut), keine Figur doppelt.
+Figuren:
+${pool.map(x => '- ' + x.v.name + ': ' + figureGist(x.v) + (motiv(x.v) ? ' | ' + motiv(x.v) : '')).join('\n')}
+${have.length ? 'Gibt es schon (nicht noch einmal): ' + have.join(', ') : ''}
+Je Vorschlag: "a", "b" (Namen genau aus der Liste), "art" (eines von: ${REL_KINDS.join(', ')}), "text" (1-2 Sätze: wie sie miteinander umgehen, wenn beide bei Til sind - Ton, Gesten, ein Ritual oder Insider, was zwischen ihnen knistert).
+Antworte NUR als JSON: {"vorschlaege": [{"a": "...", "b": "...", "art": "...", "text": "..."}]}`;
+  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(1200, taskBudget('draft', 1200)), { task: 'draft' }));
+  const names = pool.map(x => x.v.name);
+  return ((j && j.vorschlaege) || []).map(r => ({ fa: figureByName(matchSpeakerName(r.a, names)), fb: figureByName(matchSpeakerName(r.b, names)), kind: REL_KINDS.includes(r.art) ? r.art : String(r.art || '').slice(0, 40), text: String(r.text || '').slice(0, 400) })).filter(x => x.fa && x.fb && x.fa !== x.fb && x.text);
+}
+function openRelations(focusId, suggestions) {
+  const old = document.getElementById('relView'), keep = old ? old.scrollTop : 0; if (old) old.remove();
+  const figs = figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator).sort((a, b) => a.v.name.localeCompare(b.v.name));
+  if (figs.length < 2) { showToast('Dafür braucht es mindestens zwei Figuren'); return; }
+  const L = relList().filter(x => !focusId || x.fa.id === focusId || x.fb.id === focusId), M = relMentions().filter(m => !focusId || m.f.id === focusId || m.g.id === focusId);
+  const v = document.createElement('div'); v.id = 'relView';
+  v.style.cssText = 'position:fixed; inset:0; z-index:3001; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 28px; font-size:14px;';
+  const opt = (sel) => figs.map(x => `<option value="${x.f.id}"${x.f.id === sel ? ' selected' : ''}>${esc(x.v.name)}</option>`).join('');
+  const nm = f => esc(latestVersion(f).name), av = f => `<span style="display:inline-block; width:26px; height:26px; border-radius:50%; overflow:hidden; vertical-align:middle;">${avaHtml(latestVersion(f).name, latestVersion(f).image)}</span>`;
+  const focusName = focusId ? nm(figureArchive.find(f => f.id === focusId)) : '';
+  v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">💞 Beziehungen${focusName ? ' · ' + focusName : ''}</h2><button type="button" class="btn-secondary rv-x" style="width:44px; height:44px; padding:0;">✕</button></div>
+    <p class="hint" style="margin:6px 0 12px;">Gilt nur, wenn beide im selben Gespräch sind - dann spielen sie die Beziehung aus. Wer nicht dabei ist, redet nicht mit.${focusId ? ' · <a href="#" class="rv-all" style="color:var(--gold);">alle Figuren zeigen</a>' : ''}</p>
+    <div style="border:1px solid rgba(255,255,255,0.14); border-radius:14px; padding:12px; margin-bottom:14px;">
+      <div style="display:flex; gap:8px;"><select class="rv-a" style="flex:1; min-width:0;">${opt(focusId || figs[0].f.id)}</select><select class="rv-b" style="flex:1; min-width:0;">${opt(figs.find(x => x.f.id !== (focusId || figs[0].f.id)).f.id)}</select></div>
+      <select class="rv-k" style="width:100%; margin-top:8px;"><option value="">Art der Beziehung …</option>${REL_KINDS.map(k => `<option>${esc(k)}</option>`).join('')}</select>
+      <textarea class="rv-t" style="width:100%; min-height:70px; margin-top:8px;" placeholder="Wie gehen sie miteinander um, wenn beide bei dir sind? Ton, Gesten, Insider, was zwischen ihnen knistert …"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;"><button type="button" class="btn-primary rv-save" style="flex:1;">Beziehung sichern</button><button type="button" class="btn-secondary rv-sug" style="flex:1;">✨ Vorschläge</button></div>
+    </div>
+    <div class="rv-sugl"></div>
+    <h3 style="font-size:16px; margin:10px 0 6px;">Festgelegt (${L.length})</h3>
+    <div class="rv-list">${L.length ? '' : '<p class="hint">Noch keine.</p>'}</div>
+    ${M.length ? `<h3 style="font-size:16px; margin:18px 0 6px;">In Beschreibungen erwähnt (${M.length})</h3><p class="hint" style="margin:0 0 6px;">Diese Figuren nennen eine andere beim Namen - dadurch tauchte die andere manchmal auf, obwohl sie nicht dabei war. „Übernehmen" verschiebt die Sätze in eine Beziehung und nimmt sie aus der Beschreibung (neue Version, die alte bleibt).</p><div class="rv-men"></div><button type="button" class="btn-secondary rv-menall" style="width:100%; margin-top:6px;">Alle übernehmen</button>` : ''}`;
+  document.body.appendChild(v); v.scrollTop = keep;
+  v.querySelector('.rv-x').onclick = () => v.remove();
+  const all = v.querySelector('.rv-all'); if (all) all.onclick = (e) => { e.preventDefault(); openRelations(); };
+  const A = v.querySelector('.rv-a'), B = v.querySelector('.rv-b'), K = v.querySelector('.rv-k'), T = v.querySelector('.rv-t');
+  const fill = () => { const fa = figureArchive.find(f => f.id === A.value), fb = figureArchive.find(f => f.id === B.value); const r = fa && fb ? relGet(fa, fb) : null; K.value = r && REL_KINDS.includes(r.kind) ? r.kind : ''; T.value = r ? r.text || '' : ''; };
+  A.onchange = fill; B.onchange = fill; fill();
+  v.querySelector('.rv-save').onclick = () => { const fa = figureArchive.find(f => f.id === A.value), fb = figureArchive.find(f => f.id === B.value); if (!fa || !fb || fa === fb) { showToast('Zwei verschiedene Figuren wählen', true); return; } if (!K.value && !T.value.trim()) { showToast('Art oder Beschreibung angeben', true); return; } relSet(fa, fb, { kind: K.value, text: T.value.trim(), by: 'du' }); showToast('Beziehung gesichert'); openRelations(focusId); };
+  const list = v.querySelector('.rv-list');
+  L.forEach(x => { const row = document.createElement('div'); row.style.cssText = 'padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);';
+    row.innerHTML = `<div style="display:flex; align-items:center; gap:6px;">${av(x.fa)}${av(x.fb)}<b style="flex:1;">${nm(x.fa)} & ${nm(x.fb)}</b><button type="button" class="btn-secondary rv-e" style="height:32px; padding:0 10px;">✎</button><button type="button" class="btn-secondary rv-d" style="height:32px; padding:0 10px;">🗑</button></div><div style="margin-top:4px; opacity:0.9;">${x.r.kind ? '<span style="color:var(--gold);">' + esc(x.r.kind) + '</span> · ' : ''}${esc(x.r.text || '')}${x.r.by && x.r.by !== 'du' ? ` <span style="opacity:0.55;">(${esc(x.r.by)})</span>` : ''}</div>`;
+    row.querySelector('.rv-e').onclick = () => { A.value = x.fa.id; B.value = x.fb.id; fill(); v.scrollTo({ top: 0, behavior: 'smooth' }); };
+    row.querySelector('.rv-d').onclick = () => { if (!confirm(`Beziehung ${latestVersion(x.fa).name} & ${latestVersion(x.fb).name} löschen?`)) return; const R = relations(); delete R[x.key]; safeSet('companion_relations', JSON.stringify(R)); openRelations(focusId); };
+    list.appendChild(row); });
+  const takeOver = (m) => { const { text, clean } = relExtract(m); if (!text) return false; const c = characterFromVersion(m.f); Object.assign(c, clean); storeCharacterVersion(c, true); saveArchive(); characters = characters.map(ch => ch.figureId === m.f.id ? Object.assign(ch, clean) : ch);
+    const old = relGet(m.f, m.g) || {}; relSet(m.f, m.g, { kind: old.kind || '', text: [old.text, text].filter(Boolean).join(' ').slice(0, 600), by: old.by || 'du' }); return true; };
+  const men = v.querySelector('.rv-men');
+  if (men) { M.forEach(m => { const row = document.createElement('div'); row.style.cssText = 'padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08);'; const prev = relExtract(m).text;
+      row.innerHTML = `<div><b>${nm(m.f)}</b> nennt <b>${nm(m.g)}</b> <span style="opacity:0.6;">(${m.fields.map(k => ({ notes: 'Notizen', styleExamples: 'Tonfall', signature: 'Markenzeichen', core: 'Kern', intimate: 'Intimes' })[k] || k).join(', ')})</span></div><div style="opacity:0.8; font-size:13px; margin:3px 0;">„${esc(prev.slice(0, 220))}${prev.length > 220 ? ' …' : ''}"</div><button type="button" class="btn-secondary rv-take" style="height:34px; padding:0 12px;">Übernehmen</button>`;
+      row.querySelector('.rv-take').onclick = () => { if (takeOver(m)) { showToast('Übernommen'); openRelations(focusId); } }; men.appendChild(row); });
+    v.querySelector('.rv-menall').onclick = () => { if (!confirm(`${M.length} Erwähnungen in Beziehungen verschieben und aus den Beschreibungen nehmen?`)) return; let n = 0; relMentions().filter(m => !focusId || m.f.id === focusId || m.g.id === focusId).forEach(m => { if (takeOver(m)) n++; }); showToast(n + ' übernommen'); openRelations(focusId); }; }
+  const sl = v.querySelector('.rv-sugl');
+  const showSug = (S) => { sl.innerHTML = S.length ? '<h3 style="font-size:16px; margin:4px 0 6px;">Vorschläge</h3>' : ''; S.forEach((x, i) => { const row = document.createElement('div'); row.style.cssText = 'padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08);';
+      row.innerHTML = `<div style="display:flex; align-items:center; gap:6px;">${av(x.fa)}${av(x.fb)}<b style="flex:1;">${nm(x.fa)} & ${nm(x.fb)}</b><button type="button" class="btn-primary rv-ok" style="height:32px; padding:0 12px; width:auto;">Übernehmen</button></div><div style="margin-top:4px;"><span style="color:var(--gold);">${esc(x.kind)}</span> · ${esc(x.text)}</div>`;
+      row.querySelector('.rv-ok').onclick = () => { relSet(x.fa, x.fb, { kind: x.kind, text: x.text, by: 'du' }); S.splice(i, 1); openRelations(focusId, S); }; sl.appendChild(row); }); };
+  if (suggestions) showSug(suggestions);
+  v.querySelector('.rv-sug').onclick = async (e) => { const b = e.currentTarget; b.disabled = true; b.textContent = '✨ Denke nach …'; try { const S = await relSuggest(); showSug(S); if (!S.length) showToast('Keine Vorschläge bekommen', true); } catch (err) { showToast('Vorschläge gingen nicht: ' + err.message, true); } b.disabled = false; b.textContent = '✨ Vorschläge'; };
 }
 // Für die Karten des Abends: die spannendsten Gegensätze unter den eingeschätzten Figuren
 function cmOpposites(k) {
@@ -21726,7 +21977,7 @@ function openCharMap(noRate, viewId) {
   const S = Math.min(window.innerWidth - 32, 420);
   const tab = w => `<button type="button" class="cm-tab" data-v="${w.id}" style="flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; font-size:13px; border:1px solid ${w.id === vid ? 'var(--gold)' : 'rgba(255,255,255,0.18)'}; background:${w.id === vid ? 'rgba(217,178,107,0.18)' : 'transparent'}; color:#fff; cursor:pointer; position:relative; z-index:2; touch-action:manipulation;">${w.name}</button>`;
   v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🗺️ Charakter-Karte</h2><button type="button" class="btn-secondary cm-x" style="width:44px; height:44px; padding:0;">✕</button></div>
-    <div style="display:flex; gap:6px; overflow-x:auto; margin:10px -16px 6px; padding:0 16px 4px; scrollbar-width:none;">${CM_VIEWS.map(tab).join('')}</div>
+    <div style="display:flex; gap:6px; overflow-x:auto; margin:10px -16px 6px; padding:0 16px 4px; scrollbar-width:none;">${CM_VIEWS.map(tab).join('')}<button type="button" class="cm-rel" style="flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; font-size:13px; border:1px solid rgba(255,255,255,0.18); background:transparent; color:#fff; cursor:pointer;">💞 Beziehungen</button></div>
     <p class="hint" style="margin:6px 0 4px;">${D.length} Figuren · ${sim ? 'alle acht Merkmale zusammen - nah = ähnlich' : `Verteilung: <b>${verdict}</b>${empty.length ? ' · leer: ' + empty.join(', ') : ''}`}</p>
     <p class="hint cm-status" style="margin:0 0 10px;">${D.every(d => d.ai) ? 'Eingeschätzt von der KI aus dem ganzen Text jeder Figur · Figur antippen für Details · <a href="#" class="cm-redo" style="color:var(--gold);">neu einschätzen</a>' : anyAi ? 'Teils von der KI eingeschätzt, teils nur nach Stichwörtern (gestrichelt)' : 'Vorläufig nach Stichwörtern (gestrichelt) - in den anderen Ansichten stehen diese Figuren noch in der Mitte'}${D.every(d => d.ai) ? '' : ' · <a href="#" class="cm-redo" style="color:var(--gold);">jetzt von der KI einschätzen lassen</a>'}</p>
     <div class="cm-plot" style="position:relative; width:${S}px; height:${S}px; margin:0 auto; border:1px solid rgba(255,255,255,0.15); border-radius:14px; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);">
@@ -21738,6 +21989,7 @@ function openCharMap(noRate, viewId) {
     <button type="button" class="btn-primary cm-sharp" style="width:100%; margin-top:12px;">✨ Ecken verstärken${sim ? ' - Doppelgänger auseinanderziehen' : ' - jede Figur deutlicher in ihre Richtung'}</button>
     <p class="hint" style="margin-top:6px;">${sim ? 'Schärft die Figuren, die sich zu sehr ähneln, so dass sie sich deutlich voneinander abheben.' : `Schärft jede Figur in ihre Richtung ${vid === 'dyn' ? '(zärtliche zärtlicher, führende bestimmter …)' : 'in dieser Ansicht (' + esc(L.l + ' / ' + L.r + ', ' + L.b + ' / ' + L.t) + ')'} und hebt sie von den anderen ab.`} Alte Versionen bleiben erhalten.</p>`;
   document.body.appendChild(v); v.scrollTop = keepScroll;
+  v.querySelector('.cm-rel').onclick = () => openRelations();
   v.querySelectorAll('.cm-tab').forEach(b => b.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); safeSet('companion_cmView', b.dataset.v); openCharMap(true, b.dataset.v); }));
   const clusterOf = new Map(); if (sim) sim.clusters.forEach((c, k) => c.members.forEach(d => clusterOf.set(d, k)));
   const CL = ['#ffcf5a', '#7ee0b0', '#ff8fb3', '#8fb8ff', '#d39bff', '#ffa86b'];
@@ -27968,6 +28220,12 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
 
 
 
