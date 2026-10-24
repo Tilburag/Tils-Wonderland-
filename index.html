@@ -1626,7 +1626,7 @@
         </ol></details>
       <label for="syncRepo">Repository</label><input type="text" id="syncRepo" placeholder="dein-name/notizen-daten" autocomplete="off">
       <label for="syncToken">GitHub-Token</label><input type="text" id="syncToken" name="nz-sync-a" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
-      <label for="syncPass">Abgleich-Kennwort</label><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
+      <label for="syncPass">Abgleich-Kennwort</label><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;flex:1;"><button type="button" id="syncPassEye" class="btn-secondary" style="width:auto;padding:6px 10px;" title="Kennwort zeigen">👁</button></div>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="syncImages" style="width:auto;"><span style="font-size:13.5px;">Bilder mit abgleichen (beim ersten Mal dauert das eine Weile)</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0 0;"><input type="checkbox" id="syncOnBox" style="width:auto;"><span style="font-size:13.5px;"><b>Abgleich an</b></span></label>
       <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button><button class="btn-secondary" id="syncResetBtn" type="button" title="Daten auf GitHub verwerfen und von diesem Gerät neu hochladen">♻️ Neu anlegen</button></div>
@@ -3702,8 +3702,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.54';
+const APP_VERSION = '3.55';
 const CHANGELOG = [
+  { v: '3.55', date: '2026-10-24', items: [
+    '🔄 Abgleich: 👁-Knopf zeigt das gespeicherte Abgleich-Kennwort, damit du es auf beiden Geräten vergleichen kannst',
+  ] },
   { v: '3.54', date: '2026-10-24', items: [
     '🔄 Abgleich: klarere Meldung bei Dateien aus älteren Versuchen; nach „Neu anlegen" macht die App sofort eine Gegenprobe',
   ] },
@@ -5068,6 +5071,7 @@ function syncUiInit() {
   ['syncToken', 'syncPass'].forEach(id => { const el = g(id); el.dataset.typed = ''; ['keydown', 'paste', 'beforeinput'].forEach(ev => el.addEventListener(ev, (e) => { if (e.isTrusted && !(e.type === 'beforeinput' && /^insertReplacementText$/.test(e.inputType || ''))) el.dataset.typed = '1'; })); el.addEventListener('focus', () => { if (el.value.startsWith('••')) el.select(); }); });
   g('syncToken').onchange = () => { const el = g('syncToken'), v = el.value.trim(); if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { safeSet('companion_syncToken', v); showToast('Token gespeichert'); } syncUiInit.mask(); };
   g('syncPass').onchange = () => { const el = g('syncPass'), v = el.value; if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { if (v.length < 8) { showToast('Kennwort: mindestens 8 Zeichen', true); return; } safeSet('companion_syncPass', v); sync.key = null; showToast('Abgleich-Kennwort gespeichert'); } syncUiInit.mask(); };
+  g('syncPassEye').onclick = () => { const el = g('syncPass'); if (el.value.startsWith('••')) { const p = syncCfg().pass; el.value = p; el.dataset.typed = ''; } const hidden = el.style.webkitTextSecurity !== 'none'; el.style.webkitTextSecurity = hidden ? 'none' : 'disc'; if (!hidden) syncUiInit.mask(); };
   g('syncResetBtn').onclick = async () => {
     if (!syncOn()) { showToast('Erst Repository, Token und Kennwort eintragen und „Abgleich an" setzen', true); return; }
     if (!confirm('Die Abgleich-Daten auf GitHub werden verworfen und mit dem Stand DIESES Geräts und dem jetzigen Kennwort neu angelegt. Auf dem anderen Gerät danach dasselbe Kennwort eintragen. Weiter?')) return;
@@ -29608,6 +29612,7 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
 
 
 
