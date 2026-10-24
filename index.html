@@ -3703,8 +3703,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.59';
+const APP_VERSION = '3.60';
 const CHANGELOG = [
+  { v: '3.60', date: '2026-10-24', items: [
+    '🔄 Abgleich: schreiben beide Geräte gleichzeitig (GitHub 409), führt die App kurz danach von selbst neu zusammen, statt mit Fehler stehen zu bleiben',
+  ] },
   { v: '3.59', date: '2026-10-24', items: [
     '💋 Markenzeichen am Gerät sind jetzt kurze, prägnante Motive (4-10 Sekunden statt 15-35) - wie ein Klingelton, den man nach einmal Spüren wiedererkennt. „Alle auf aktuellen Stand" erneuert die Bewegungen aller Figuren',
     '🗣 Zu jedem Markenzeichen gehören 2-3 kurze Sätze oder Laute der Figur, genau an der passenden Stelle der Bewegung (beim Stillstand ein Flüstern, beim Stoß ein Wort) - in ihrer Stimme; im Gespräch kennt sie ihre Worte und wandelt sie ab',
@@ -4958,7 +4961,7 @@ async function ghApi(path, opts) {
   const res = await fetch(`https://api.github.com/repos/${c.repo}/contents/${path}`, { method: opts.method || 'GET', headers: Object.assign({ Authorization: 'Bearer ' + c.token, Accept: opts.accept || 'application/vnd.github.object', 'X-GitHub-Api-Version': '2022-11-28' }, opts.body ? { 'Content-Type': 'application/json' } : {}), body: opts.body ? JSON.stringify(opts.body) : undefined, cache: 'no-store' });
   if (res.status === 404) return null;
   if (res.status === 401 || res.status === 403) throw new Error('GitHub lehnt den Schlüssel ab (' + res.status + ') - Token und Rechte prüfen');
-  if (!res.ok) throw new Error('GitHub ' + res.status + ': ' + (await res.text()).slice(0, 120));
+  if (!res.ok) { const e = new Error('GitHub ' + res.status + ': ' + (await res.text()).slice(0, 120)); e.status = res.status; if (res.status === 409 || res.status === 422) e.conflict = true; throw e; }
   return res;
 }
 function b64ToBytes(b64) { const bin = atob(String(b64 || '').replace(/\s/g, '')); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
@@ -5099,11 +5102,17 @@ async function syncNow(reason) {
       localStorage.setItem('syncmeta_img', JSON.stringify(it));
       if (imgLeft) setTimeout(() => syncNow('Bilder'), 4000);
     }
-    syncShowPrint().catch(() => {}); sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
+    sync.conflicts = 0; syncShowPrint().catch(() => {}); sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
     syncSetStatus(`Abgeglichen ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}: ${applied ? applied + ' vom anderen Gerät übernommen, ' : ''}${pushed ? 'eigene Änderungen hochgeladen, ' : ''}${imgUp || imgDown ? `Bilder ↑${imgUp} ↓${imgDown}${imgLeft ? ' (weitere folgen)' : ''}, ` : ''}${((Date.now() - t0) / 1000).toFixed(1)} s`.replace(/, ([\d.]+ s)$/, ' · $1'));
     logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}${imgBad ? ' (' + imgBad + ' kaputt übersprungen)' : ''}` });
+    if (sync.pendingApplied) { applied = applied || 1; sync.pendingApplied = false; }
     if (applied) { if (!inSession()) { showToast('🔄 Neue Daten vom anderen Gerät - die App lädt kurz neu'); setTimeout(() => location.reload(), 1500); } else { sync.pendingReload = true; showToast('🔄 Neue Daten vom anderen Gerät - werden nach der Sitzung geladen'); } }
-  } catch (e) { syncShowPrint().catch(() => {}); syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
+  } catch (e) {
+    if (e.conflict && (sync.conflicts = (sync.conflicts || 0) + 1) <= 4) {   // das andere Gerät hat gerade gleichzeitig geschrieben (oder GitHub war noch nicht nachgezogen): neu zusammenführen
+      if (applied) sync.pendingApplied = true; sync.shas = {}; syncSetStatus('Das andere Gerät war gleichzeitig dran - gleiche gleich nochmal ab …');
+      setTimeout(() => { try { syncNow('nochmal'); } catch (er) {} }, 2500 + Math.random() * 3000); return;
+    }
+    sync.conflicts = 0; syncShowPrint().catch(() => {}); syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
   finally { sync.busy = false; }
 }
 // wann abgleichen: beim Öffnen, beim Zurückkommen, beim Verlassen, und jede Minute, wenn sich etwas geändert hat
@@ -29897,6 +29906,8 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
 
 
 
