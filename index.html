@@ -1626,7 +1626,7 @@
         </ol></details>
       <label for="syncRepo">Repository</label><input type="text" id="syncRepo" placeholder="dein-name/notizen-daten" autocomplete="off">
       <label for="syncToken">GitHub-Token</label><input type="text" id="syncToken" name="nz-sync-a" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
-      <label for="syncPass">Abgleich-Kennwort</label><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;flex:1;"><button type="button" id="syncPassEye" class="btn-secondary" style="width:auto;padding:6px 10px;" title="Kennwort zeigen">👁</button></div>
+      <label for="syncPass">Abgleich-Kennwort</label><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;flex:1;"><button type="button" id="syncPassEye" class="btn-secondary" style="width:auto;padding:6px 10px;" title="Kennwort zeigen">👁</button></div><p class="hint" id="syncPassPrint" style="margin:4px 0 0;font-size:12px;"></p>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="syncImages" style="width:auto;"><span style="font-size:13.5px;">Bilder mit abgleichen (beim ersten Mal dauert das eine Weile)</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0 0;"><input type="checkbox" id="syncOnBox" style="width:auto;"><span style="font-size:13.5px;"><b>Abgleich an</b></span></label>
       <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button><button class="btn-secondary" id="syncResetBtn" type="button" title="Daten auf GitHub verwerfen und von diesem Gerät neu hochladen">♻️ Neu anlegen</button></div>
@@ -3702,8 +3702,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.55';
+const APP_VERSION = '3.56';
 const CHANGELOG = [
+  { v: '3.56', date: '2026-10-24', items: [
+    '🔄 Abgleich: unter dem Kennwort steht ein Fingerabdruck (z. B. „A1B2C3 · 12 Zeichen“) - auf beiden Geräten muss er gleich sein; Leerzeichen am Rand und unterschiedliche Tastatur-Zeichenformen werden jetzt ausgeglichen',
+  ] },
   { v: '3.55', date: '2026-10-24', items: [
     '🔄 Abgleich: 👁-Knopf zeigt das gespeicherte Abgleich-Kennwort, damit du es auf beiden Geräten vergleichen kannst',
   ] },
@@ -4963,17 +4966,24 @@ async function ghPut(path, bytes, msg) {
   const j = await res.json(); sync.shas[path] = j.content && j.content.sha;
 }
 const SYNC_CHECK = 'notizen-abgleich-ok';
+function syncNormPass(p) { return String(p || '').normalize('NFC').trim(); }
+async function syncPassPrint() { const p = syncCfg().pass; if (!p) return 'kein Kennwort'; const n = syncNormPass(p); const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(n)); const hex = [...new Uint8Array(h).slice(0, 3)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase(); return 'Fingerabdruck ' + hex + ' · ' + [...n].length + ' Zeichen' + (n !== p ? ' (Leerzeichen am Rand ignoriert)' : '') + (/[^\x20-\x7e]/.test(n) ? ' · enthält Sonderzeichen' : ''); }
+async function syncShowPrint() { const el = document.getElementById('syncPassPrint'); if (el) el.textContent = (await syncPassPrint()) + (sync.saltHex ? ' · Salz ' + sync.saltHex : ''); }
 async function syncKey() {
   const c = syncCfg(); if (sync.key && sync.keyFor === c.repo + c.pass) return sync.key;
   let saltBuf = await ghGet('salt.bin'), fresh = false;
   if (!saltBuf) { const salt = crypto.getRandomValues(new Uint8Array(16)); await ghPut('salt.bin', salt, 'Abgleich eingerichtet'); saltBuf = salt.buffer; fresh = true; }
-  const key = await deriveBackupKey(c.pass, new Uint8Array(saltBuf));
+  sync.saltHex = [...new Uint8Array(saltBuf).slice(0, 3)].map(x => x.toString(16).padStart(2, '0')).join('');
+  const norm = syncNormPass(c.pass);
+  let key = await deriveBackupKey(norm, new Uint8Array(saltBuf));
   // Prüfdatei: zeigt sofort, ob das Kennwort zu den Daten auf GitHub passt
   const chk = fresh ? null : await ghGet('check.bin');
   if (chk) {
     const b = new Uint8Array(chk); let ok = false;
-    try { ok = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, key, b.slice(12))) === SYNC_CHECK; } catch (e) {}
-    if (!ok) { sync.key = null; const e = new Error('Das Abgleich-Kennwort passt nicht zu den Daten auf GitHub. Gib hier das Kennwort ein, mit dem du den Abgleich zuerst eingerichtet hast - oder tippe auf „Neu anlegen".'); e.wrongPass = true; throw e; }
+    const tryKey = async (k) => { try { return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, k, b.slice(12))) === SYNC_CHECK; } catch (e) { return false; } };
+    ok = await tryKey(key);
+    if (!ok && norm !== c.pass) { const k2 = await deriveBackupKey(c.pass, new Uint8Array(saltBuf)); if (await tryKey(k2)) { key = k2; ok = true; } }   // ältere Daten mit ungeglättetem Kennwort
+    if (!ok) { sync.key = null; const e = new Error('Das Abgleich-Kennwort passt nicht zu den Daten auf GitHub (hier: ' + await syncPassPrint() + ', Salz ' + sync.saltHex + '). Vergleich das mit dem anderen Gerät. Gib hier das Kennwort ein, mit dem du den Abgleich zuerst eingerichtet hast - oder tippe auf „Neu anlegen".'); e.wrongPass = true; throw e; }
   } else {
     const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(SYNC_CHECK)));
     const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); await ghPut('check.bin', out, 'Abgleich-Prüfung');
@@ -5049,11 +5059,11 @@ async function syncNow(reason) {
       localStorage.setItem('syncmeta_img', JSON.stringify(it));
       if (imgLeft) setTimeout(() => syncNow('Bilder'), 4000);
     }
-    sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
+    syncShowPrint().catch(() => {}); sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
     syncSetStatus(`Abgeglichen ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}: ${applied ? applied + ' vom anderen Gerät übernommen, ' : ''}${pushed ? 'eigene Änderungen hochgeladen, ' : ''}${imgUp || imgDown ? `Bilder ↑${imgUp} ↓${imgDown}${imgLeft ? ' (weitere folgen)' : ''}, ` : ''}${((Date.now() - t0) / 1000).toFixed(1)} s`.replace(/, ([\d.]+ s)$/, ' · $1'));
     logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}${imgBad ? ' (' + imgBad + ' kaputt übersprungen)' : ''}` });
     if (applied) { if (!inSession()) { showToast('🔄 Neue Daten vom anderen Gerät - die App lädt kurz neu'); setTimeout(() => location.reload(), 1500); } else { sync.pendingReload = true; showToast('🔄 Neue Daten vom anderen Gerät - werden nach der Sitzung geladen'); } }
-  } catch (e) { syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
+  } catch (e) { syncShowPrint().catch(() => {}); syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
   finally { sync.busy = false; }
 }
 // wann abgleichen: beim Öffnen, beim Zurückkommen, beim Verlassen, und jede Minute, wenn sich etwas geändert hat
@@ -5062,7 +5072,8 @@ document.addEventListener('visibilitychange', () => { try { if (syncOn()) syncNo
 setInterval(() => { try { if (!syncOn()) return; if (sync.pendingReload && !inSession()) { sync.pendingReload = false; location.reload(); return; } if ((window.__syncDirtyAt || 0) > sync.lastAt || Date.now() - sync.lastAt > 300000) syncNow('laufend'); } catch (e) {} }, 60000);
 window.addEventListener('online', () => { try { syncNow('Netz zurück'); } catch (e) {} });
 function syncUiInit() {
-  syncUiInit.mask = () => { const c = syncCfg(), g = id => document.getElementById(id); g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; };
+  setTimeout(() => syncShowPrint().catch(() => {}), 0);
+  syncUiInit.mask = () => { syncShowPrint().catch(() => {}); const c = syncCfg(), g = id => document.getElementById(id); g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; };
   const g = id => document.getElementById(id); if (!g('syncRepo')) return;
   const c = syncCfg(); g('syncRepo').value = c.repo; g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; g('syncImages').checked = c.images; g('syncOnBox').checked = localStorage.getItem('companion_syncOn') === '1';
   const last = +localStorage.getItem('companion_syncLastAt') || 0; syncSetStatus(sync.status || (last ? 'Zuletzt abgeglichen: ' + new Date(last).toLocaleString('de-DE') : 'Noch nicht eingerichtet'));
@@ -29612,6 +29623,7 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
 
 
 
