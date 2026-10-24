@@ -1255,6 +1255,20 @@
         <label for="d1FastGap">Schnellster Takt fürs Zittern: <span id="d1FastGapVal">70</span> ms</label>
         <input type="range" id="d1FastGap" min="30" max="140" step="5" value="70">
         <p class="hint">Wie oft pro Sekunde beim Zittern ein neuer Befehl ans Gerät geht. Kleiner ist schneller. Kappt das Gerät die Verbindung, verlangsamt die App von selbst - dann hier einen Schritt zurück.</p>
+        <details style="margin:10px 0;" id="fwGenBox"><summary style="cursor:pointer; font-size:13.5px;">🧪 Eingebauter Bewegungsgenerator der Firmware (Test)</summary>
+          <p class="hint" style="margin:6px 0;">Deine Firmware (TCodeESP32 v0.57b) kann selbst Bewegungen erzeugen - dann rechnet das Gerät die Welle, nicht das WLAN. Hier testest du, ob sie über die App-Verbindung auf die Befehle hört. Die Profile 1-5 stellst du in der Weboberfläche des Geräts ein (Adresse im Browser öffnen → Motion). Vorher stoppt die App ihre eigene Bewegung.</p>
+          <div class="btn-row" style="flex-wrap:wrap; gap:6px;">
+            <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:1|#motion-enable" style="width:auto;">▶ Profil 1</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:2|#motion-enable" style="width:auto;">▶ 2</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:3|#motion-enable" style="width:auto;">▶ 3</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:4|#motion-enable" style="width:auto;">▶ 4</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:5|#motion-enable" style="width:auto;">▶ 5</button>
+            <button type="button" class="btn-primary fw-b" data-c="#motion-disable" style="width:auto;">■ Generator aus</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#help" style="width:auto;">❓ Befehle</button>
+            <button type="button" class="btn-secondary fw-b" data-c="#list-settings" style="width:auto;">⚙ Einstellungen</button>
+          </div>
+          <pre id="fwOut" class="hint" style="white-space:pre-wrap; max-height:180px; overflow:auto; margin:6px 0 0; font-size:11.5px;"></pre>
+        </details>
         <label>Erlaubte Bewegungsart</label>
         <div style="display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0 8px 0;">
           <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:0;"><input type="checkbox" id="d1pat_pulse" style="width:auto;">Stoßende Bewegung erlauben</label>
@@ -1626,7 +1640,7 @@
         </ol></details>
       <label for="syncRepo">Repository</label><input type="text" id="syncRepo" placeholder="dein-name/notizen-daten" autocomplete="off">
       <label for="syncToken">GitHub-Token</label><input type="text" id="syncToken" name="nz-sync-a" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
-      <label for="syncPass">Abgleich-Kennwort</label><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;flex:1;"><button type="button" id="syncPassEye" class="btn-secondary" style="width:auto;padding:6px 10px;" title="Kennwort zeigen">👁</button></div><p class="hint" id="syncPassPrint" style="margin:4px 0 0;font-size:12px;"></p>
+      <label for="syncPass">Abgleich-Kennwort</label><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;flex:1;"><button type="button" id="syncPassEye" class="btn-secondary" style="width:auto;padding:6px 10px;" title="Kennwort zeigen">👁</button></div><p class="hint" id="syncPassPrint" style="margin:4px 0 0;font-size:12px;"></p><p class="hint" id="syncTokenExp" style="margin:2px 0 0;font-size:12px;"></p>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="syncImages" style="width:auto;"><span style="font-size:13.5px;">Bilder mit abgleichen (beim ersten Mal dauert das eine Weile)</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0 0;"><input type="checkbox" id="syncOnBox" style="width:auto;"><span style="font-size:13.5px;"><b>Abgleich an</b></span></label>
       <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button><button class="btn-secondary" id="syncResetBtn" type="button" title="Daten auf GitHub verwerfen und von diesem Gerät neu hochladen">♻️ Neu anlegen</button></div>
@@ -3703,8 +3717,32 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.60';
+const APP_VERSION = '3.66';
 const CHANGELOG = [
+  { v: '3.66', date: '2026-10-24', items: [
+    '🧪 Einstellungen → Gerät 1: Test für den eingebauten Bewegungsgenerator der Firmware (Profile 1-5 starten, Generator aus, Befehlsliste) - Antworten des Geräts landen im Protokoll und im Kästchen darunter',
+  ] },
+  { v: '3.65', date: '2026-10-24', items: [
+    '🗣 Schreibst du (oder startest den Anruf), während eine Figur im Selbstlauf oder geführten Abend gerade spricht, spricht sie die schon angezeigte Antwort zu Ende - vorher blieb der Rest stumm stehen; nur der Stopp-Knopf bricht sofort ab',
+  ] },
+  { v: '3.64', date: '2026-10-24', items: [
+    '⬇ Menü: „Protokoll als Datei" - lange Protokolle wurden beim Einfügen im Chat abgeschnitten, als Datei kommt alles an',
+    '🌙 Mond-Ansicht: führt die App wieder selbst (dein Wunsch ist abgelaufen oder per Doppeltipp aufgehoben), wandert der rote Punkt sanft dorthin, wo das Gerät gerade ist - rechts = lange Hübe, oben = schnell; gestrichelter Rand = die App führt',
+  ] },
+  { v: '3.63', date: '2026-10-24', items: [
+    '💋 Nach dem Markenzeichen kommt das Gerät erst zur Ruhe - abbremsend tief hinunter, kurz still, dann ganz ruhig und weich tief unten - statt im letzten (oft sehr schnellen) Tempo weiterzulaufen; erst danach geht es mit dem Nächsten weiter',
+    '🔄 Abgleich: ein Bild, das sich nicht hoch- oder herunterladen lässt, hält nicht mehr den ganzen Abgleich auf - es wird übersprungen und Stunden später nochmal versucht; die Bilderliste wird alle 10 Bilder zwischengespeichert; Fehlermeldungen sagen, bei welchem Schritt es hakte',
+  ] },
+  { v: '3.62', date: '2026-10-24', items: [
+    '〰️ Neue Bewegungsart „weich" (sine): jeder Hub als Sinusbogen - an den Umkehrpunkten sanft abbremsen, in der Mitte am schnellsten; einzelne Fahrten auch „weich" oder „abbremsend". Die Figuren nutzen sie für Zärtliches, Reiten, Streicheln und lange Züge',
+    '〰️ Weich gemacht: tief langsam, welle, atem, schaukeln, ebbe flut, tauchen, hochfahren',
+    '🆕 Acht neue Muster: wiegen, gleiten, brandung, abbremsen (rund) - dazu stampfen, beben mitte, tief steigern und tief überraschung, die die vier Lücken aus der Übersicht füllen',
+    '⏱ Bewegungsmuster: Regler „Bild-Verzögerung zum Gerät" - so lange wartet die Kurve, bis sie genau mit deinem Gerät mitläuft',
+    '💋 „Alle auf aktuellen Stand" kürzt jetzt auch alle noch langen Markenzeichen-Bewegungen (über 13 s) und probiert es beim nächsten Mal wieder, falls eine lang geraten ist',
+  ] },
+  { v: '3.61', date: '2026-10-24', items: [
+    '🔄 Abgleich: unter dem Kennwort steht, bis wann der GitHub-Token gilt; 14 Tage vorher warnt die App, damit er nicht plötzlich abgelehnt wird',
+  ] },
   { v: '3.60', date: '2026-10-24', items: [
     '🔄 Abgleich: schreiben beide Geräte gleichzeitig (GitHub 409), führt die App kurz danach von selbst neu zusammen, statt mit Fehler stehen zu bleiben',
   ] },
@@ -4954,13 +4992,22 @@ function syncCfg() { return { repo: (localStorage.getItem('companion_syncRepo') 
 function syncOn() { const c = syncCfg(); return localStorage.getItem('companion_syncOn') === '1' && /^[\w.-]+\/[\w.-]+$/.test(c.repo) && c.token && c.pass.length >= 8; }
 function syncTimes() { try { return JSON.parse(localStorage.getItem('syncmeta_times') || '{}'); } catch (e) { return {}; } }
 function syncDels() { try { return JSON.parse(localStorage.getItem('syncmeta_dels') || '{}'); } catch (e) { return {}; } }
+function syncImgSkip(k) { let o = {}; try { o = JSON.parse(localStorage.getItem('syncmeta_imgskip') || '{}'); } catch (e) {} if (k !== undefined) { o[k] = Date.now(); try { localStorage.setItem('syncmeta_imgskip', JSON.stringify(o)); } catch (e) {} } return o; }
 function syncImgTimes() { try { return JSON.parse(localStorage.getItem('syncmeta_img') || '{}'); } catch (e) { return {}; } }
+// Ablaufdatum des Tokens (GitHub schickt es bei jeder Antwort mit): rechtzeitig warnen, statt plötzlich 401
+function syncTokenExpNote() {
+  const ex = localStorage.getItem('companion_syncTokenExp'); const el = document.getElementById('syncTokenExp'); if (!ex) { if (el) el.textContent = ''; return; }
+  const d = new Date(ex.replace(' UTC', 'Z').replace(' ', 'T')); if (isNaN(d)) return; const days = Math.round((d - Date.now()) / 86400000);
+  if (el) { el.textContent = `Token gültig bis ${d.toLocaleDateString('de-DE')}${days < 14 ? ` - noch ${Math.max(0, days)} Tag${days === 1 ? '' : 'e'}! Rechtzeitig auf GitHub einen neuen erzeugen und auf beiden Geräten eintragen.` : ''}`; el.style.color = days < 14 ? 'var(--danger, #ff7a7a)' : ''; }
+  if (days < 14 && localStorage.getItem('companion_syncExpWarned') !== String(days)) { safeSet('companion_syncExpWarned', String(days)); setTimeout(() => showToast(`🔄 Dein GitHub-Token für den Abgleich läuft in ${Math.max(0, days)} Tag${days === 1 ? '' : 'en'} ab - unter Einstellungen → Geräte-Abgleich erneuern`, true), 3000); }
+}
 function syncSetStatus(t, bad) { sync.status = t; const el = document.getElementById('syncStatus'); if (el) { el.textContent = t; el.style.color = bad ? 'var(--danger, #ff7a7a)' : ''; } }
 async function ghApi(path, opts) {
   const c = syncCfg(); opts = opts || {};
   const res = await fetch(`https://api.github.com/repos/${c.repo}/contents/${path}`, { method: opts.method || 'GET', headers: Object.assign({ Authorization: 'Bearer ' + c.token, Accept: opts.accept || 'application/vnd.github.object', 'X-GitHub-Api-Version': '2022-11-28' }, opts.body ? { 'Content-Type': 'application/json' } : {}), body: opts.body ? JSON.stringify(opts.body) : undefined, cache: 'no-store' });
+  try { const ex = res.headers.get('github-authentication-token-expiration'); if (ex && ex !== localStorage.getItem('companion_syncTokenExp')) { safeSet('companion_syncTokenExp', ex); syncTokenExpNote(); } } catch (e) {}
   if (res.status === 404) return null;
-  if (res.status === 401 || res.status === 403) throw new Error('GitHub lehnt den Schlüssel ab (' + res.status + ') - Token und Rechte prüfen');
+  if (res.status === 401 || res.status === 403) throw new Error('GitHub lehnt den Token ab (' + res.status + ') - abgelaufen, neu erzeugt oder ohne Contents-Recht? Neuen Token erzeugen und auf BEIDEN Geräten eintragen');
   if (!res.ok) { const e = new Error('GitHub ' + res.status + ': ' + (await res.text()).slice(0, 120)); e.status = res.status; if (res.status === 409 || res.status === 422) e.conflict = true; throw e; }
   return res;
 }
@@ -5050,10 +5097,10 @@ async function syncNow(reason) {
   if (!syncOn() || sync.busy) return; if (navigator.onLine === false) { syncSetStatus('Offline - Abgleich, sobald Netz da ist'); return; }
   sync.busy = true; const t0 = Date.now(); let applied = 0, pushed = 0;
   try {
-    syncSetStatus('Abgleich läuft …');
+    syncSetStatus('Abgleich läuft …'); sync.stage = 'Prüfung';
     await syncKey();
     // 1. Einstellungen und Figuren: je Schlüssel das Neuere
-    const remote = await syncJson('core.bin');
+    sync.stage = 'Daten holen'; const remote = await syncJson('core.bin');
     const times = syncTimes(), dels = syncDels(), firstHere = !localStorage.getItem('companion_syncDone');
     const local = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('companion_') && !SYNC_SKIP_RE.test(k)) local[k] = [localStorage.getItem(k), firstHere && !remote ? Date.now() : (times[k] || 0)]; }
     const merged = { keys: {}, dels: Object.assign({}, remote ? remote.dels || {} : {}) };
@@ -5078,33 +5125,40 @@ async function syncNow(reason) {
     if (stories.length > rStories.length || ws.length > rWs.length) pushed++;
     try { window.__syncReloadTimes && window.__syncReloadTimes(); } catch (e) {}
     localStorage.setItem('syncmeta_times', JSON.stringify(times));
-    if (pushed || !remote) { await syncPutJson('core.bin', Object.assign(merged, { stories, ws, t: Date.now() }), 'Abgleich ' + new Date().toISOString().slice(0, 16)); }
+    sync.stage = 'Daten hochladen'; if (pushed || !remote) { await syncPutJson('core.bin', Object.assign(merged, { stories, ws, t: Date.now() }), 'Abgleich ' + new Date().toISOString().slice(0, 16)); }
     localStorage.setItem('companion_syncDone', '1');
     // 3. Bilder: jedes einzeln, verschlüsselt, nur was fehlt oder neuer ist (höchstens 30 je Durchgang)
-    let imgUp = 0, imgDown = 0, imgLeft = 0, imgBad = 0;
+    let imgUp = 0, imgDown = 0, imgLeft = 0, imgBad = 0, imgFail = 0, failRun = 0;
     if (syncCfg().images) {
-      const man = (await syncJson('images.bin')) || {}; const it = syncImgTimes(); let manChanged = false, budget = 30;
+      sync.stage = 'Bilderliste'; const man = (await syncJson('images.bin')) || {}; const it = syncImgTimes(); let manChanged = false, budget = 30;
       const keys = await dbKeys(STORE_IMAGES).catch(() => []);
       const localSet = new Set(keys);
       for (const [hk, m] of Object.entries(man)) {
         if (budget <= 0) { imgLeft++; continue; }
-        if (!localSet.has(m.k) || (m.t > (it[m.k] || 0) && m.t > 1)) { const b = await ghGet('img/' + hk + '.bin'); if (b) { let dec = null; try { dec = await syncDec(b, 'img/' + hk + '.bin'); } catch (er) { if (er.wrongPass) throw er; imgBad++; continue; } if (!dec) continue; window.__syncApplying = true; await dbPut(STORE_IMAGES, m.k, new Blob([dec], { type: m.type || 'image/jpeg' })); window.__syncApplying = false; it[m.k] = m.t; imgDown++; budget--; } }
+        if (failRun >= 3) { imgLeft++; continue; }
+        if (!localSet.has(m.k) || (m.t > (it[m.k] || 0) && m.t > 1)) { sync.stage = 'Bild holen'; let b = null; try { b = await ghGet('img/' + hk + '.bin'); failRun = 0; } catch (er) { if (er.conflict || er.status === 401 || er.status === 403) throw er; imgFail++; failRun++; continue; } if (b) { let dec = null; try { dec = await syncDec(b, 'img/' + hk + '.bin'); } catch (er) { if (er.wrongPass) throw er; imgBad++; continue; } if (!dec) continue; window.__syncApplying = true; await dbPut(STORE_IMAGES, m.k, new Blob([dec], { type: m.type || 'image/jpeg' })); window.__syncApplying = false; it[m.k] = m.t; imgDown++; budget--; } }
       }
       for (const k of keys) {
         const hk = await sha256hex(String(k)), m = man[hk], lt = it[k] || 1;
         if (m && m.t >= lt) continue;
         if (budget <= 0) { imgLeft++; continue; }
+        const skip = syncImgSkip(); if (skip[k] && Date.now() - skip[k] < 6 * 3600000) continue;   // ging zuletzt nicht - später nochmal
+        if (failRun >= 3) { imgLeft++; continue; }
         const v = await dbGet(STORE_IMAGES, k).catch(() => null), b = await asBlob(v); if (!b) continue;
-        await ghPut('img/' + hk + '.bin', await syncEnc(new Uint8Array(await b.arrayBuffer())), 'Bild');
+        if (b.size > 30 * 1024 * 1024) { syncImgSkip(k); imgFail++; continue; }   // zu groß für GitHub
+        sync.stage = 'Bild hochladen';
+        try { await ghPut('img/' + hk + '.bin', await syncEnc(new Uint8Array(await b.arrayBuffer())), 'Bild'); failRun = 0; }
+        catch (er) { if (er.conflict || er.status === 401 || er.status === 403) throw er; syncImgSkip(k); imgFail++; failRun++; continue; }
         man[hk] = { k, t: lt, type: b.type }; manChanged = true; imgUp++; budget--;
+        if (imgUp % 10 === 0) { sync.stage = 'Bilderliste'; await syncPutJson('images.bin', man, 'Bilder'); manChanged = false; }   // Zwischenstand sichern
       }
       if (manChanged) await syncPutJson('images.bin', man, 'Bilder');
       localStorage.setItem('syncmeta_img', JSON.stringify(it));
-      if (imgLeft) setTimeout(() => syncNow('Bilder'), 4000);
+      if (imgLeft) setTimeout(() => syncNow('Bilder'), failRun >= 3 ? 60000 : 4000);
     }
     sync.conflicts = 0; syncShowPrint().catch(() => {}); sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
     syncSetStatus(`Abgeglichen ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}: ${applied ? applied + ' vom anderen Gerät übernommen, ' : ''}${pushed ? 'eigene Änderungen hochgeladen, ' : ''}${imgUp || imgDown ? `Bilder ↑${imgUp} ↓${imgDown}${imgLeft ? ' (weitere folgen)' : ''}, ` : ''}${((Date.now() - t0) / 1000).toFixed(1)} s`.replace(/, ([\d.]+ s)$/, ' · $1'));
-    logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}${imgBad ? ' (' + imgBad + ' kaputt übersprungen)' : ''}` });
+    logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}${imgBad ? ' (' + imgBad + ' kaputt übersprungen)' : ''}${imgFail ? ' (' + imgFail + ' gingen gerade nicht - später nochmal)' : ''}` });
     if (sync.pendingApplied) { applied = applied || 1; sync.pendingApplied = false; }
     if (applied) { if (!inSession()) { showToast('🔄 Neue Daten vom anderen Gerät - die App lädt kurz neu'); setTimeout(() => location.reload(), 1500); } else { sync.pendingReload = true; showToast('🔄 Neue Daten vom anderen Gerät - werden nach der Sitzung geladen'); } }
   } catch (e) {
@@ -5112,7 +5166,7 @@ async function syncNow(reason) {
       if (applied) sync.pendingApplied = true; sync.shas = {}; syncSetStatus('Das andere Gerät war gleichzeitig dran - gleiche gleich nochmal ab …');
       setTimeout(() => { try { syncNow('nochmal'); } catch (er) {} }, 2500 + Math.random() * 3000); return;
     }
-    sync.conflicts = 0; syncShowPrint().catch(() => {}); syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
+    sync.conflicts = 0; syncShowPrint().catch(() => {}); const stg = sync.stage ? ' (bei: ' + sync.stage + ')' : ''; e.message = e.message + stg; syncSetStatus('Abgleich ging nicht: ' + e.message + (/Failed to fetch|NetworkError|Load failed/.test(e.message) ? ' - keine Verbindung zu GitHub; versucht es gleich wieder' : ''), true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
   finally { sync.busy = false; }
 }
 // wann abgleichen: beim Öffnen, beim Zurückkommen, beim Verlassen, und jede Minute, wenn sich etwas geändert hat
@@ -5121,7 +5175,7 @@ document.addEventListener('visibilitychange', () => { try { if (syncOn()) syncNo
 setInterval(() => { try { if (!syncOn()) return; if (sync.pendingReload && !inSession()) { sync.pendingReload = false; location.reload(); return; } if ((window.__syncDirtyAt || 0) > sync.lastAt || Date.now() - sync.lastAt > 300000) syncNow('laufend'); } catch (e) {} }, 60000);
 window.addEventListener('online', () => { try { syncNow('Netz zurück'); } catch (e) {} });
 function syncUiInit() {
-  setTimeout(() => syncShowPrint().catch(() => {}), 0);
+  setTimeout(() => { syncShowPrint().catch(() => {}); try { syncTokenExpNote(); } catch (e) {} }, 0);
   syncUiInit.mask = () => { syncShowPrint().catch(() => {}); const c = syncCfg(), g = id => document.getElementById(id); g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; };
   const g = id => document.getElementById(id); if (!g('syncRepo')) return;
   const c = syncCfg(); g('syncRepo').value = c.repo; g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; g('syncImages').checked = c.images; g('syncOnBox').checked = localStorage.getItem('companion_syncOn') === '1';
@@ -5129,7 +5183,7 @@ function syncUiInit() {
   g('syncRepo').onchange = () => safeSet('companion_syncRepo', g('syncRepo').value.trim());
   // Nur übernehmen, was du selbst getippt oder eingefügt hast - kein automatisches Ausfüllen durch den Browser
   ['syncToken', 'syncPass'].forEach(id => { const el = g(id); el.dataset.typed = ''; ['keydown', 'paste', 'beforeinput'].forEach(ev => el.addEventListener(ev, (e) => { if (e.isTrusted && !(e.type === 'beforeinput' && /^insertReplacementText$/.test(e.inputType || ''))) el.dataset.typed = '1'; })); el.addEventListener('focus', () => { if (el.value.startsWith('••')) el.select(); }); });
-  g('syncToken').onchange = () => { const el = g('syncToken'), v = el.value.trim(); if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { safeSet('companion_syncToken', v); showToast('Token gespeichert'); } syncUiInit.mask(); };
+  g('syncToken').onchange = () => { const el = g('syncToken'), v = el.value.trim(); if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { safeSet('companion_syncToken', v); localStorage.removeItem('companion_syncTokenExp'); showToast('Token gespeichert'); } syncUiInit.mask(); };
   g('syncPass').onchange = () => { const el = g('syncPass'), v = el.value; if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { if (v.length < 8) { showToast('Kennwort: mindestens 8 Zeichen', true); return; } safeSet('companion_syncPass', v); sync.key = null; showToast('Abgleich-Kennwort gespeichert'); } syncUiInit.mask(); };
   g('syncPassEye').onclick = () => { const el = g('syncPass'); if (el.value.startsWith('••')) { const p = syncCfg().pass; el.value = p; el.dataset.typed = ''; } const hidden = el.style.webkitTextSecurity !== 'none'; el.style.webkitTextSecurity = hidden ? 'none' : 'disc'; if (!hidden) syncUiInit.mask(); };
   g('syncResetBtn').onclick = async () => {
@@ -5653,6 +5707,13 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       state.dropAnnounced = false;
       state.everConnected = true;
     };
+    // Antworten des Geräts (z. B. auf #help oder #motion-…): nur kurz nach einem Firmware-Befehl ins Protokoll, sonst wäre es Rauschen
+    ws.onmessage = (ev) => {
+      if (!(state.fwListenUntil > Date.now())) return;
+      const t = String(ev.data || '').trim(); if (!t) return;
+      logEvent('msg', { role: 'system', text: label + ' antwortet: ' + t.slice(0, 600) });
+      try { const el = document.getElementById('fwOut'); if (el) { el.textContent = (el.textContent + '\n' + t).slice(-3000); el.scrollTop = el.scrollHeight; } } catch (e) {}
+    };
     ws.onclose = () => {
       // Das Schließen eines alten Sockets setzte vorher den neuen, offenen auf
       // null und meldete "getrennt", obwohl die Verbindung stand.
@@ -5884,16 +5945,18 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // Weg. Jedes Stück mindestens 140 ms, damit die Verbindung keinen Befehl
   // verschluckt.
   let easeToken = null;
-  function easedMove(targetDevicePos, totalMs) {
+  // Profile: true/'in' = immer schneller, 'sine' = weich wie eine Sinuskurve (langsam an den Enden), 'out' = abbremsend
+  function easedMove(targetDevicePos, totalMs, prof) {
     const token = {};
     easeToken = token;
     const start = state.motion.lastPos;
-    const segs = Math.max(1, Math.min(8, Math.floor(totalMs / 140)));
+    const sine = prof === 'sine';
+    const segs = Math.max(1, Math.min(sine ? 10 : 8, Math.floor(totalMs / (sine ? 115 : 140))));
     const slice = Math.round(totalMs / segs);
     let k = 1;
     const step = () => {
       if (easeToken !== token) return;
-      const f = Math.pow(k / segs, 2);
+      const x = k / segs, f = sine ? 0.5 - 0.5 * Math.cos(Math.PI * x) : prof === 'out' ? 1 - Math.pow(1 - x, 2) : Math.pow(x, 2);
       sendMove(start + (targetDevicePos - start) * f, slice);
       k++;
       if (k <= segs) setTimeout(step, slice);
@@ -5924,7 +5987,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // dreieinhalb Minuten lang. Ein kurzes "halten 2s" bleibt eine echte Pause,
     // danach geht es weiter.
     const r = state.motion.requested || {};
-    let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor', 'zitterhub'].includes(r.texture)
+    let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor', 'zitterhub', 'sine'].includes(r.texture)
       ? { low: r.low, high: r.high, bpm: r.bpm, texture: r.texture } : null;
     let endPos = null;
     const next = () => {
@@ -5956,7 +6019,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       if (step.type === 'move') {
         haltLoop();
         let actual = step.ms;
-        if (step.ease) easedMove(toDevice(step.to), step.ms);
+        if (step.ease) easedMove(toDevice(step.to), step.ms, step.ease);
         else actual = sendMove(toDevice(step.to), step.ms);
         m.texture = 'hold';
         m.requested = { low: step.to, high: step.to, bpm: 0, texture: 'hold' };
@@ -6168,6 +6231,12 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // Rampe: jeder Hub beginnt langsam und wird bis zum Umkehrpunkt immer
     // schneller. TCode kennt nur gleichförmige Fahrten - also wird der Hub in
     // gleich lange Zeitstücke zerlegt, deren Weg quadratisch wächst.
+    // Weich: jeder Hub als Sinusbogen - an den Umkehrpunkten langsam, in der Mitte am schnellsten
+    if (m.texture === 'sine') {
+      easedMove(pos, stepMs, 'sine');
+      m.timer = setTimeout(tick, stepMs);
+      return;
+    }
     if (m.texture === 'accel') {
       easedMove(pos, stepMs);
       m.timer = setTimeout(tick, stepMs);
@@ -6202,7 +6271,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     connect(true);
   }
   const motionInfo = () => { const m = state.motion || {}; return { level: vibeLevel(Date.now()), running: !!m.timer, texture: m.texture || 'stop', bpm: (m.current && m.current.bpm) || (m.requested && m.requested.bpm) || 0, req: m.requested || null }; };
-  return { motionInfo, setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
+  // Firmware-Befehl direkt senden ("#motion-enable" usw.) - für den eingebauten Bewegungsgenerator
+  function sendRaw(line) { if (!isOpen()) return false; try { state.socket.send(String(line).trim() + '\n'); state.lastSendAt = Date.now(); state.fwListenUntil = Date.now() + 8000; logEvent('msg', { role: 'system', text: label + ' Firmware-Befehl: ' + String(line).trim() }); return true; } catch (e) { return false; } }
+  return { sendRaw, motionInfo, setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
 try { const ef = document.getElementById('edgeFollow'); if (ef) ef.value = localStorage.getItem('companion_edgeFollow') || 'takt'; } catch (e) {}
@@ -6826,7 +6897,7 @@ els.talkBtn.onclick = () => {
     endCall('Anruf beendet.');
     return;
   }
-  autoPlaying = false; setAutoStatus(false); // a call always interrupts auto-continue
+  autoPlaying = false; setAutoStatus(false); window.__softStopAt = Date.now(); // a call always interrupts auto-continue
   // Erst klären, ob die Erkennung auf dem Gerät laufen kann. Darf sie nur
   // lokal und kann es nicht, beginnt der Anruf gar nicht erst.
   prepareSpeechMode().then(ok => {
@@ -6861,7 +6932,7 @@ function sendTypedMessage() {
     setStoryStatus('Im Geschichtenmodus wird nicht geantwortet - zum Mitreden auf „Live" wechseln.');
     return;
   }
-  autoPlaying = false; setAutoStatus(false); // typing also interrupts auto-continue (im geführten Abend geht es nach der Antwort von selbst weiter)
+  autoPlaying = false; setAutoStatus(false); window.__softStopAt = Date.now(); // typing also interrupts auto-continue (im geführten Abend geht es nach der Antwort von selbst weiter)
   try { guided.userStopped = false; hsp.userStopped = false; } catch (e) {}
   // Typing mid-call is fine, but the microphone has to be closed for it -
   // otherwise the reply to the typed message gets transcribed as input.
@@ -7026,19 +7097,33 @@ setInterval(async () => {
   } finally { padAuto.busy = false; }
 }, 5000);
 let padWakeLock = null;
+let padDragging = false;
 let padPulseTimer = null;
+// Führt die App (kein Wunsch aktiv), wandert der Punkt dorthin, wo das Gerät gerade ist: rechts = lange Hübe, oben = schnell
+function padAppPos() {
+  const st = device1.getState && device1.getState(); if (!st || !device1.isConnected()) return null;
+  if (st.texture === 'stop' || st.texture === 'hold' || !st.bpm) return { stroke: Math.max(0, Math.min(1, ((st.high || 500) - (st.low || 500) - 150) / 849)), speed: 0 };
+  const len = st.texture === 'tremor' ? 150 : (st.high - st.low);
+  return { stroke: Math.max(0, Math.min(1, (len - 150) / 849)), speed: Math.max(0, Math.min(1, ((st.texture === 'tremor' ? Math.max(st.bpm, WISH_BPM_MAX * 0.8) : st.bpm) - WISH_BPM_MIN) / (WISH_BPM_MAX - WISH_BPM_MIN))) };
+}
 function padPlaceDot() {
   const r = els.padArea.getBoundingClientRect();
-  els.padDot.style.left = (motionWish.stroke * r.width) + 'px';
-  els.padDot.style.top = ((1 - motionWish.speed) * r.height) + 'px';
-  els.padDot.style.opacity = motionWish.active ? '0.9' : '0.45';
+  const app = !motionWish.active && !padDragging ? padAppPos() : null;
+  const p = app || motionWish;
+  els.padDot.style.transition = app ? 'left 0.9s ease-in-out, top 0.9s ease-in-out, opacity 0.4s' : 'opacity 0.3s';
+  els.padDot.style.left = (p.stroke * r.width) + 'px';
+  els.padDot.style.top = ((1 - p.speed) * r.height) + 'px';
+  els.padDot.style.opacity = motionWish.active ? '0.9' : app ? '0.6' : '0.45';
+  els.padDot.style.outline = app ? '2px dashed rgba(255,140,160,0.55)' : 'none'; els.padDot.style.outlineOffset = '4px';
+  padPlaceDot.app = !!app;
 }
 function padUpdatePulse() {
   const st = device1.getState && device1.getState();
   const bpm = st && st.texture !== 'stop' ? (st.bpm || 0) : 0;
   els.padDot.style.animation = bpm > 0 ? `padPulse ${(60 / bpm).toFixed(2)}s ease-in-out infinite` : 'none';
   const w = wishWords();
-  els.padInfo.textContent = (hr.connected && hr.bpm ? '❤️ ' + hr.bpm + ' · ' : '') + (motionWish.active ? `Wunsch: ${w.sp}, ${w.st}` : 'Punkt ziehen, um Tempo und Hub zu wünschen');
+  if (!padDragging) padPlaceDot();
+  els.padInfo.textContent = (hr.connected && hr.bpm ? '❤️ ' + hr.bpm + ' · ' : '') + (motionWish.active ? `Wunsch: ${w.sp}, ${w.st}` : padPlaceDot.app ? 'Die App führt - der Punkt zeigt, wo sie gerade ist. Ziehen, um selbst zu wünschen' : 'Punkt ziehen, um Tempo und Hub zu wünschen');
 }
 async function openPad() {
   els.padOverlay.style.display = '';
@@ -7066,7 +7151,6 @@ function padPointer(e) {
   padPlaceDot();
   padUpdatePulse();
 }
-let padDragging = false;
 let padReapplyTimer = null;
 els.padArea.addEventListener('pointerdown', e => { padDragging = true; try { els.padArea.setPointerCapture(e.pointerId); } catch (x) {} padPointer(e); });
 els.padArea.addEventListener('pointermove', e => { if (padDragging) padPointer(e); });
@@ -9058,7 +9142,7 @@ function sigMotionHuman(steps) {
   steps.forEach(st => { const a = t; t += st.ms || 0; let lb = '';
     if (st.type === 'move') lb = st.to > 800 ? 'hoch zur Spitze' : st.to < 250 ? 'ganz hinunter' : 'zur Mitte';
     else if (st.type === 'hold') lb = 'Stillstand';
-    else if (st.type === 'osc') lb = `${st.texture === 'tremor' ? 'Zittern' : st.texture === 'pulse' ? 'harte Stöße' : st.texture === 'accel' ? 'immer schneller' : st.bpm < 50 ? 'langsame Züge' : st.bpm > 140 ? 'schnelle Hübe' : 'gleichmäßige Hübe'} ${where(st.low, st.high)}`;
+    else if (st.type === 'osc') lb = `${st.texture === 'tremor' ? 'Zittern' : st.texture === 'pulse' ? 'harte Stöße' : st.texture === 'accel' ? 'immer schneller' : st.texture === 'sine' ? 'weiche, runde Züge' : st.bpm < 50 ? 'langsame Züge' : st.bpm > 140 ? 'schnelle Hübe' : 'gleichmäßige Hübe'} ${where(st.low, st.high)}`;
     if (!lb) return; const last = L[L.length - 1];
     if (last && (last.lb === lb || (lb === 'Stillstand' && t - a < 1000 && last.lb !== 'Stillstand' && L.length && /Hübe|Züge/.test(last.lb) && false))) last.t = t; else L.push({ a, t, lb }); });
   // kurze Pausen zwischen gleichen Hüben gehören zum Muster („mit kurzen Pausen")
@@ -9078,10 +9162,14 @@ function duettSteps() {
   const res = []; for (let k = 0; k < Math.max(...chunks.map(c => c.length)) && res.length < 40; k++) chunks.forEach(c => { if (c[k]) res.push(...c[k]); });
   return { steps: res, names: own.map(x => x.c.name.split(' ')[0]) };
 }
+// Nach einem Markenzeichen (oder Duett) kommt das Gerät erst zur Ruhe: abbremsend tief hinunter, kurz still, dann ganz ruhig und weich tief unten -
+// so bleibt das Markenzeichen klar abgegrenzt und läuft nicht im letzten (oft sehr schnellen) Tempo weiter
+const SIG_CALM = () => [{ type: 'move', to: 90, ms: 1500, ease: 'out', noTint: true }, { type: 'hold', ms: 1500, noTint: true }, { type: 'osc', low: 60, high: 330, bpm: 12, texture: 'sine', ms: 0, noTint: true }];
+const sigCalmMs = 3000;
 function resolveSigSteps(steps) {
   if (!Array.isArray(steps)) return steps;
   return steps.flatMap(st => { if (!st) return [st];
-    if (st.type === 'duettref') { const d = duettSteps(); if (d) { sigLockUntil = Date.now() + d.steps.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(d.names.join(' & ') + ' (Duett)', d.steps); logEvent('msg', { role: 'system', text: `Duett am Gerät: ${d.names.join(' & ')} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return d.steps.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('wirbel', 'mittel'); } if (st.type === 'sigref') { const own = sigStepsFor(motionTint.who); if (own) { sigLockUntil = Date.now() + own.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(motionTint.who, own); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät: ${motionTint.who} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return own.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('locken', 'mittel'); } if (st.type === 'pattern') return [Object.assign({}, st, { steps: resolveSigSteps(st.steps) })]; return [st]; });
+    if (st.type === 'duettref') { const d = duettSteps(); if (d) { sigLockUntil = Date.now() + d.steps.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(d.names.join(' & ') + ' (Duett)', d.steps); logEvent('msg', { role: 'system', text: `Duett am Gerät: ${d.names.join(' & ')} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); sigLockUntil += sigCalmMs; return d.steps.map(x => Object.assign({}, x, { noTint: true })).concat(SIG_CALM()); } return expandPattern('wirbel', 'mittel'); } if (st.type === 'sigref') { const own = sigStepsFor(motionTint.who); if (own) { sigLockUntil = Date.now() + own.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(motionTint.who, own); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät: ${motionTint.who} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); sigLockUntil += sigCalmMs; return own.map(x => Object.assign({}, x, { noTint: true })).concat(SIG_CALM()); } return expandPattern('locken', 'mittel'); } if (st.type === 'pattern') return [Object.assign({}, st, { steps: resolveSigSteps(st.steps) })]; return [st]; });
 }
 function tintSteps(steps, num) {
   steps = resolveSigSteps(steps);
@@ -9314,8 +9402,8 @@ function hrCheckPattern() {
 // Auswertung Zusammenhänge aus - auch ohne „Entdecken", aus jeder Sitzung.
 let currentSpeaker = null, currentSpeakerAt = 0;
 function noteSpeaker(role) { currentSpeaker = role === 'narrator' ? 'Erzähler' : role; currentSpeakerAt = Date.now(); try { updateStage(role); } catch (e) {} }
-const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5, zitterhub: 6 };
-const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend', 'Zitterhub'];
+const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5, zitterhub: 6, sine: 7 };
+const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend', 'Zitterhub', 'weich'];
 // Atemfrequenz aus der Herzfrequenzvariabilität (respiratorische Sinusarrhythmie):
 // RR-Abstände glätten, Trend abziehen, Nulldurchgänge zählen.
 function breathRate(t0, t1) {
@@ -10103,6 +10191,7 @@ const TEXTURE_LABELS = {
   pulse: 'pulse (schneller Stoß zum Umkehrpunkt, dann kurz halten - deutlich abgesetzt)',
   hold: 'hold (Bewegung ruht an einer Stelle, kein Hub)',
   accel: 'accel (Rampe: jeder Hub beginnt langsam und wird bis zum Umkehrpunkt immer schneller)',
+  sine: 'sine (weich und rund wie eine Sinuskurve: an den Umkehrpunkten sanft abbremsen und wieder anziehen, in der Mitte am schnellsten - wie eine streichelnde Hand, ein wiegendes Becken, eine Welle)',
   tremor: 'tremor (feines, schnelles Zittern auf kurzer Strecke; low und high legen Ort und Weite fest, 12 bis 90 Einheiten; bpm legt fest, wie schnell es zittert: 0 ist ein ruhiges Flattern, 230 so schnell das Gerät kann)',
   stop: 'stop (Gerät kommt zur Ruhe)',
 };
@@ -10111,7 +10200,7 @@ function allowedTexturesFor(prefix) {
   const list = ['smooth']; // always available - it's the baseline movement
   if (on('pulse')) list.push('pulse');
   if (on('tremor')) list.push('tremor', 'zitterhub');   // Zitterhub: Hub über den Bereich mit Zittern darauf
-  list.push('accel');
+  list.push('accel', 'sine');
   return list;
 }
 
@@ -10122,7 +10211,7 @@ function allowedTexturesFor(prefix) {
 const MOTION_PRIORITY = `FÜR DIE BEWEGUNGSWERTE (Marker bzw. Werte - nicht für den gesprochenen Text) GILT ALS WICHTIGSTES: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
 - STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
 - TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
-- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, Hub über die ganze Länge mit Zittern darauf (z. B. Zunge und Hand zugleich) = zitterhub, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe). Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
+- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, Hub über die ganze Länge mit Zittern darauf (z. B. Zunge und Hand zugleich) = zitterhub, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe), weich, rund, wiegend, gleitend (an den Enden sanft bremsen) = sine - nutze sine oft für Zärtliches, Reiten, Streicheln und lange Züge, damit es sich nicht nur nach geraden Zacken anfühlt. Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
 - EINMALIGES bleibt einmalig: "einmal ganz hoch", "kurz innehalten", "dann zittern" sind Schritte einer Folge, kein Zustand, der sich wiederholt - wo das Format Folgen erlaubt, nutze sie.
 - VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.
 - JEDE HANDLUNG FÜHLT SICH EIGEN AN - man soll am Gerät spüren, was gerade passiert: Hand = gleichmäßig über die ganze Länge, mal fester (pulse), Griffwechsel mit kurzem Halten; Mund = eher kurz und weiter oben, Zunge = zittern_oben oder zitterhub, tief nehmen = langsam bis ganz unten; Reiten = tief unten, Tempo und Wellen bestimmt sie (welle, lange Hübe); zwischen den Brüsten = mittig, weich, gleichmäßig; von hinten = kräftig, pulse; Handwechsel = kurze Pause, dann fängt die andere in IHRER Art neu an.
@@ -15712,6 +15801,15 @@ const PATTERN_INFO = {
   verweigern: 'zieht schnell an bis kurz vor dem Höhepunkt - dann abrupter Stopp, Stille, ganz langsam wieder anfangen',
   schaukeln: 'kurzes, weiches Wiegen in der Mitte',
   wirbel: 'harte Stöße und Zittern an der Spitze im schnellen Wechsel',
+  // neu (3.62): weich und rund
+  wiegen: 'weiche, runde Bögen in der Mitte, die langsam immer weiter ausholen - wie ein wiegendes Becken',
+  gleiten: 'einzelne lange, weiche Fahrten ganz hoch und ganz runter, an den Enden sanft abbremsen und kurz verweilen',
+  brandung: 'lange weiche Wellen über fast die ganze Länge, dazwischen bricht oben kurz eine schnellere Welle',
+  abbremsen: 'schnell hochziehen, dann ganz langsam auslaufend hinunter gleiten - wie ein tiefer Atemzug',
+  stampfen: 'harte, kurze Stöße nur tief unten am Ansatz',
+  beben_mitte: 'feines Beben in der Mitte des Schafts',
+  tief_steigern: 'tief unten weich beginnen, dann immer schneller, bis es unten hart stößt',
+  tief_ueberraschung: 'ruhige weiche Züge tief unten - plötzlich ganz runter, Stille, dann harte Stöße und Zittern am Ansatz',
 };
 
 function expandPattern(name, tempo) {
@@ -15721,33 +15819,42 @@ function expandPattern(name, tempo) {
   const pick = (a, b, c) => [a, b, c][t];
   const osc = (low, high, bpm, texture, ms, vib) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0, vib });
   const hold = (ms) => ({ type: 'hold', ms });
-  const move = (to, ms, ease) => ({ type: 'move', to, ms, ease: !!ease });
+  const move = (to, ms, ease) => ({ type: 'move', to, ms, ease: ease === 'sine' || ease === 'out' ? ease : !!ease });
   const b = pick(30, 55, 90);
   const patterns = {
     spitze_necken: () => [osc(760, 950, pick(90, 140, 190), 'smooth', 2500), hold(900), osc(760, 950, pick(90, 140, 190), 'smooth', 2500), hold(700), osc(760, 950, pick(90, 140, 190))],
-    tief_langsam: () => [osc(50, 550, pick(14, 26, 42))],
+    tief_langsam: () => [osc(50, 550, pick(14, 26, 42), 'sine')],
     ganze_laenge: () => [osc(50, 950, pick(20, 42, 75))],
-    welle: () => [osc(420, 580, b, 'smooth', 2000), osc(280, 720, b, 'smooth', 2000), osc(80, 920, b, 'smooth', 3000), osc(280, 720, b, 'smooth', 2000), osc(420, 580, b)],
+    welle: () => [osc(420, 580, b, 'sine', 2000), osc(280, 720, b, 'sine', 2000), osc(80, 920, b, 'sine', 3000), osc(280, 720, b, 'sine', 2000), osc(420, 580, b, 'sine')],
     stottern: () => [osc(200, 850, pick(60, 90, 130), 'pulse', 1500), hold(700), osc(200, 850, pick(60, 90, 130), 'pulse', 1500), hold(700), osc(200, 850, pick(60, 90, 130), 'pulse')],
     zittern_oben: () => [osc(880, 950, pick(80, 150, 220), 'tremor')],
     zittern_unten: () => [osc(50, 120, pick(80, 150, 220), 'tremor')],
     halbweg_anhalten: () => [move(500, 1000), hold(2000), osc(250, 750, b)],
     steigern: () => [osc(200, 800, pick(20, 30, 45), 'smooth', 3000), osc(200, 800, pick(40, 60, 80), 'smooth', 3000), osc(250, 850, pick(60, 100, 130), 'smooth', 3000), osc(300, 900, pick(90, 140, 190), 'pulse')],
     rampe: () => [osc(50, 950, pick(18, 32, 55), 'accel')],
-    hochfahren: () => [move(950, pick(4000, 2500, 1500), true), osc(700, 950, b)],
+    hochfahren: () => [move(950, pick(4000, 2500, 1500), true), osc(700, 950, b, 'sine')],
     // neu (3.21)
     zitterhub: () => [osc(60, 960, pick(24, 40, 65), 'zitterhub', 0, pick(120, 170, 220))],
     herzschlag: () => { const beat = () => [move(950, pick(260, 200, 160)), move(760, pick(220, 170, 140)), move(950, pick(220, 170, 140)), move(760, pick(260, 200, 160)), hold(pick(900, 650, 420))]; return [move(760, 800)].concat(beat(), beat(), beat(), beat(), beat(), beat()); },
     kaskade: () => [800, 650, 480, 300, 120, 40].map(lo => osc(lo, 960, pick(30, 50, 80), 'smooth', 2200)).concat([osc(40, 960, pick(30, 50, 80))]),
     spirale: () => [[40, 960, 0.5], [250, 960, 0.75], [450, 960, 1], [620, 965, 1.35], [760, 970, 1.7]].map(([lo, hi, f], i, arr) => osc(lo, hi, Math.round(pick(28, 45, 70) * f), 'smooth', i < arr.length - 1 ? 3000 : 0)),
-    ebbe_flut: () => [osc(40, 960, pick(16, 24, 34), 'smooth', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34), 'smooth', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34))],
-    tauchen: () => [move(30, 1600), hold(1800), osc(30, 260, pick(30, 45, 65), 'smooth', 4000), move(950, pick(3500, 2500, 1800), true), hold(900), move(30, 1600), hold(1500), osc(30, 260, pick(30, 45, 65))],
+    ebbe_flut: () => [osc(40, 960, pick(16, 24, 34), 'sine', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34), 'sine', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34), 'sine')],
+    tauchen: () => [move(30, 1600), hold(1800), osc(30, 260, pick(30, 45, 65), 'sine', 4000), move(950, pick(3500, 2500, 1800), true), hold(900), move(30, 1600), hold(1500), osc(30, 260, pick(30, 45, 65))],
     verweigern: () => [osc(150, 900, pick(60, 90, 120), 'accel', 2500), osc(300, 950, pick(110, 150, 190), 'smooth', 3000), move(500, 400), hold(pick(4500, 3500, 2500)), osc(500, 950, pick(10, 14, 20))],
-    schaukeln: () => [osc(400, 600, pick(36, 55, 85))],
+    schaukeln: () => [osc(400, 600, pick(36, 55, 85), 'sine')],
     wirbel: () => { const r = []; for (let k = 0; k < 4; k++) r.push(osc(150, 900, pick(90, 120, 160), 'pulse', 1500), osc(860, 960, pick(160, 200, 240), 'tremor', 1200)); r.push(osc(150, 900, pick(90, 120, 160), 'pulse')); return r; },
     treppe: () => [osc(650, 950, b, 'smooth', 2500), hold(500), osc(450, 950, b, 'smooth', 2500), hold(500), osc(250, 950, b, 'smooth', 2500), hold(500), osc(50, 950, b)],
     locken: () => [osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70), 'smooth', 1500), osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70))],
-    atem: () => [osc(150, 850, pick(10, 14, 18), 'smooth')],
+    atem: () => [osc(150, 850, pick(10, 14, 18), 'sine')],
+    // neu (3.62): weich und rund - und die vier Lücken tief unten bzw. in der Mitte
+    wiegen: () => [osc(420, 580, pick(26, 38, 55), 'sine', 3000), osc(320, 680, pick(26, 38, 55), 'sine', 3500), osc(200, 800, pick(24, 34, 50), 'sine', 4000), osc(120, 880, pick(22, 30, 45), 'sine')],
+    gleiten: () => { const up = pick(3200, 2200, 1400), r = []; for (let k = 0; k < 3; k++) r.push(move(960, up, 'sine'), hold(pick(500, 350, 200)), move(40, up, 'sine'), hold(pick(500, 350, 200))); r.push(osc(40, 960, Math.round(60000 / (up * 2.4)), 'sine')); return r; },
+    brandung: () => { const r = []; for (let k = 0; k < 2; k++) r.push(osc(80, 900, pick(14, 22, 32), 'sine', 6000), osc(650, 970, pick(80, 110, 150), 'sine', 2200)); r.push(osc(80, 900, pick(14, 22, 32), 'sine')); return r; },
+    abbremsen: () => [move(960, pick(1400, 1000, 700), true), move(60, pick(2600, 1900, 1300), 'out'), hold(pick(700, 500, 300)), move(960, pick(1400, 1000, 700), true), move(60, pick(2600, 1900, 1300), 'out'), hold(pick(700, 500, 300)), osc(60, 960, pick(24, 36, 55), 'sine')],
+    stampfen: () => [osc(40, 380, pick(55, 85, 120), 'pulse', 3000), hold(pick(700, 500, 350)), osc(40, 380, pick(55, 85, 120), 'pulse')],
+    beben_mitte: () => [osc(450, 560, pick(100, 160, 220), 'tremor')],
+    tief_steigern: () => [osc(40, 420, pick(18, 30, 45), 'sine', 3000), osc(40, 420, pick(35, 55, 80), 'accel', 3000), osc(40, 420, pick(60, 90, 120), 'accel', 3000), osc(30, 450, pick(90, 130, 170), 'pulse')],
+    tief_ueberraschung: () => [osc(60, 360, pick(16, 24, 34), 'sine', 4000), move(30, 600), hold(pick(1600, 1200, 800)), osc(30, 330, pick(110, 150, 190), 'pulse', 1800), osc(40, 140, pick(120, 170, 220), 'tremor', 1500), osc(60, 360, pick(16, 24, 34), 'sine')],
   };
   const key = String(name || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z_]/g, '');
   return patterns[key] ? patterns[key]() : null;
@@ -16319,13 +16426,13 @@ function parseMotionStep(raw) {
     return { type: 'hold', ms: clampMs(m[1], 100, 30000) };
   }
   if (/^(?:stopp|stop|aus|ende)$/.test(t)) return { type: 'stop' };
-  if ((m = t.match(/^(?:(pendeln|pendel|gleiten|streichen|streicheln|stoßen|stossen|pumpen|welle)\s*)?(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*([a-z]+)?\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) {
+  if ((m = t.match(/^(?:(pendeln|pendel|gleiten|streichen|streicheln|stoßen|stossen|pumpen|welle|wiegen|schwingen|wogen|kreisen|weich)\s*)?(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*([a-z]+)?\s*(?:(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) {
     const verb = m[1] || '';
-    let texture = m[5] && ['smooth', 'pulse', 'tremor', 'hold', 'stop'].includes(m[5]) ? m[5] : (/^(sto|pump)/.test(verb) ? 'pulse' : 'smooth');
+    let texture = m[5] && ['smooth', 'pulse', 'tremor', 'hold', 'stop', 'accel', 'sine', 'zitterhub'].includes(m[5]) ? m[5] : m[5] === 'weich' || m[5] === 'rund' ? 'sine' : (/^(sto|pump)/.test(verb) ? 'pulse' : /^(wieg|schwing|wog|kreis|weich|gleit|streich|welle)/.test(verb) ? 'sine' : 'smooth');
     return { type: 'osc', low: pos999(m[2]), high: pos999(m[3]), bpm: parseInt(m[4], 10), texture, ms: m[6] ? clampMs(m[6], 300, 60000) : 0 };
   }
-  if ((m = t.match(/^(?:zu|zur|zum|auf|nach|bis|hoch(?:\s+(?:auf|zu|bis))?|runter(?:\s+(?:auf|zu|bis))?|hinauf|hinunter|fahr\w*|gleit\w*)?\s*(\d{1,3})\s*(?:in\s*)?(\d+(?:[.,]\d+)?)\s*s\w*(?:\s+(beschleunigend|schneller\s+werdend|rampe|immer\s+schneller))?$/))) {
-    return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000), ease: !!m[3] };
+  if ((m = t.match(/^(?:zu|zur|zum|auf|nach|bis|hoch(?:\s+(?:auf|zu|bis))?|runter(?:\s+(?:auf|zu|bis))?|hinauf|hinunter|fahr\w*|gleit\w*)?\s*(\d{1,3})\s*(?:in\s*)?(\d+(?:[.,]\d+)?)\s*s\w*(?:\s+(beschleunigend|schneller\s+werdend|rampe|immer\s+schneller|weich|sanft|rund|abbremsend|bremsend|langsamer\s+werdend))?$/))) {
+    return { type: 'move', to: pos999(m[1]), ms: clampMs(m[2], 130, 20000), ease: !m[3] ? false : /weich|sanft|rund/.test(m[3]) ? 'sine' : /brems|langsamer/.test(m[3]) ? 'out' : true };
   }
   // Ein Muster aus dem Bewegungswortschatz: "muster welle schnell"
   // Auch ohne das Wort "muster" ("<<rampe>>") oder vertippt ("mustern").
@@ -16364,7 +16471,7 @@ function parseMotionStepLoose(raw) {
   }
   let step = parseMotionStep(t);
   if (step) return step;
-  const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop|zitterhub)/.test(all) ? all : bpm + ' smooth' + end);
+  const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop|zitterhub|sine|weich|rund)/.test(all) ? all : bpm + ' smooth' + end);
   if (fixed !== t && (step = parseMotionStep(fixed))) return step;
   const words = t.split(' ');
   for (let k = 1; k < words.length && k <= 3; k++) {
@@ -17703,7 +17810,9 @@ async function askEnsemble(userText, options) {
       if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
-      if (!autoPlaying && silent && !(options && options.speak)) break;   // Zufallsbegegnung spricht auch ohne Selbstlauf
+      // Stopp-Knopf beendet den Selbstlauf sofort. Hast du nur geschrieben oder den Anruf gestartet, spricht die Figur die schon angezeigte Antwort
+      // zu Ende (vorher blieb der Rest stumm stehen - „die Figuren haben noch was geschrieben, aber nicht mehr gesprochen")
+      if (!autoPlaying && silent && !(options && options.speak) && !((window.__softStopAt || 0) >= myStartAt)) break;   // Zufallsbegegnung spricht auch ohne Selbstlauf
       playIndex = i; window.__speechTick = Date.now();
       const current = prep(i);
       prep(i + 1); prep(i + 2);   // zwei Abschnitte Vorlauf
@@ -19523,7 +19632,7 @@ function sigWordsFrom(arr, steps) {
   return w.length ? JSON.stringify(w) : '';
 }
 function sigWordsOf(v) { try { const w = JSON.parse(v && v.sigWords || '[]'); return Array.isArray(w) ? w.filter(x => x && x.x) : []; } catch (e) { return []; } }
-const SIG_MOTION_SYNTAX = `Positionen 0 = ganz tief, 999 = ganz an der Spitze. Schritte: "zu 950 in 1,5s" (fahren), "halten 1s" (stillhalten), "pendeln 100-900@60 3s" (Hübe von-bis @ Takt pro Minute, Dauer), "stoßen 100-900@150 2s" (stoßend), "zittern 880-960@200 2s" (zittern), "rampe 100-950@40-180 4s" (immer schneller), oder ein Muster mit Dauer: ${Object.keys(PATTERN_INFO).filter(k => k !== 'markenzeichen').join(', ')} (z. B. "spitze_necken mittel 3s"). Beispiel: "zu 980 in 3s | halten 2s | spitze_necken langsam 4s | halten 1,5s | stoßen 100-980@150 3s | halten 1s | zittern 900-980@200 2s | rampe 100-950@40-170 6s | pendeln 600-950@30 5s"`;
+const SIG_MOTION_SYNTAX = `Positionen 0 = ganz tief, 999 = ganz an der Spitze. Schritte: "zu 950 in 1,5s" (fahren), "halten 1s" (stillhalten), "pendeln 100-900@60 3s" (Hübe von-bis @ Takt pro Minute, Dauer), "stoßen 100-900@150 2s" (stoßend), "wiegen 100-900@40 3s" (weich und rund wie eine Sinuskurve - an den Enden sanft bremsen; gut für Zärtliches, Reiten, lange Züge), "zu 950 in 2s weich" bzw. "zu 50 in 3s abbremsend" (einzelne runde oder auslaufende Fahrt), "zittern 880-960@200 2s" (zittern), "rampe 100-950@40-180 4s" (immer schneller), oder ein Muster mit Dauer: ${Object.keys(PATTERN_INFO).filter(k => k !== 'markenzeichen').join(', ')} (z. B. "spitze_necken mittel 3s"). Beispiel: "zu 980 in 3s | halten 2s | spitze_necken langsam 4s | halten 1,5s | stoßen 100-980@150 3s | halten 1s | zittern 900-980@200 2s | rampe 100-950@40-170 6s | pendeln 600-950@30 5s"`;
 async function sigMotionFor(c) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Übersetze das Markenzeichen dieser Figur in eine Bewegungsfolge für ein Gerät (Erwachsenen-App). Die Folge soll sich unverwechselbar nach IHR anfühlen - Rhythmus, Pausen, Überraschung genau wie beschrieben.
@@ -19697,7 +19806,7 @@ async function refreshAllFigures(btn) {
     const mixPlan = D.length >= 3 ? diversityPlan(D).filter(x => (genOf(x.d.f.id).mix || 0) < GEN.mix) : [];
     const fieldList = figs().filter(x => missingFieldsOf(x.v).length && !mixPlan.some(m => m.d.f === x.f));
     const sigList = () => figs().filter(x => (genOf(x.f.id).sig || 0) < GEN.sig);
-    const motionList = () => figs().filter(x => (genOf(x.f.id).sig || 0) >= GEN.sig && ((genOf(x.f.id).sigMotion || 0) < GEN.sigMotion || !parseSigMotion(x.v.sigMotion)));
+    const motionList = () => figs().filter(x => (genOf(x.f.id).sig || 0) >= GEN.sig && ((genOf(x.f.id).sigMotion || 0) < GEN.sigMotion || !parseSigMotion(x.v.sigMotion) || !sigShort(x.v.sigMotion)));
     const mentions = relMentions(), wantRel = relList().length < Math.ceil(figs().length / 3) && Date.now() - (+localStorage.getItem('companion_relSuggestAt') || 0) > 7 * 86400000;
     const byVoice = {}; figs().forEach(x => { const id = x.v.elevenVoice || '-'; (byVoice[id] = byVoice[id] || []).push(x); }); const dupVoices = apiKeyFor('companion_elevenKey') ? Object.entries(byVoice).reduce((n, [id, l]) => n + (id === '-' ? l.length : l.length - 1), 0) : 0;
     const nm = l => l.slice(0, 6).map(x => (x.v || x.d.v).name.split(' ')[0]).join(', ') + (l.length > 6 ? ' …' : '');
@@ -19727,9 +19836,9 @@ async function refreshAllFigures(btn) {
     // 3. Markenzeichen (ganz neu) und 4. nur Gerätebewegung
     let sigs = 0, motions = 0; const sigFail = [];
     const SL = sigList();
-    for (let i = 0; i < SL.length && !stopped(); i++) { const f = SL[i].f, n = latestVersion(f).name; step(`Markenzeichen ${i + 1}/${SL.length}: ${n} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion, sigWords: r.words || '' }); genSet(f.id, { sig: GEN.sig, sigMotion: r.motion ? GEN.sigMotion : 0 }); sigs++; } catch (e) { sigFail.push(n + ': ' + e.message); } }
+    for (let i = 0; i < SL.length && !stopped(); i++) { const f = SL[i].f, n = latestVersion(f).name; step(`Markenzeichen ${i + 1}/${SL.length}: ${n} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion, sigWords: r.words || '' }); genSet(f.id, { sig: GEN.sig, sigMotion: r.motion && sigShort(r.motion) ? GEN.sigMotion : 0 }); sigs++; } catch (e) { sigFail.push(n + ': ' + e.message); } }
     const ML = motionList();
-    for (let i = 0; i < ML.length && !stopped(); i++) { const f = ML[i].f, n = latestVersion(f).name; step(`Bewegung ${i + 1}/${ML.length}: ${n} …`); try { const m = await sigMotionFor(characterFromVersion(f)); upd(f, { sigMotion: m, sigWords: sigMotionFor.lastWords || '' }); genSet(f.id, { sigMotion: GEN.sigMotion }); motions++; } catch (e) { sigFail.push(n + ' (Bewegung): ' + e.message); } }
+    for (let i = 0; i < ML.length && !stopped(); i++) { const f = ML[i].f, n = latestVersion(f).name; step(`Bewegung ${i + 1}/${ML.length}: ${n} …`); try { const m = await sigMotionFor(characterFromVersion(f)); upd(f, { sigMotion: m, sigWords: sigMotionFor.lastWords || '' }); genSet(f.id, { sigMotion: sigShort(m) ? GEN.sigMotion : 0 }); motions++; } catch (e) { sigFail.push(n + ' (Bewegung): ' + e.message); } }
     // 5. Beziehungen
     let relTaken = 0, relNew = 0;
     if (!stopped()) {
@@ -20757,7 +20866,7 @@ function llSave() { safeSet(LL_KEY, JSON.stringify(llGet())); }
 function llTempo(b) { return b < 40 ? 'sehr langsam' : b < 70 ? 'langsam' : b < 110 ? 'mittel' : b < 150 ? 'schnell' : 'sehr schnell'; }
 function llHub(r) { return r < 250 ? 'kurz' : r < 550 ? 'mittel' : 'lang'; }
 function llSpot(m) { return m > 650 ? 'oben an der Spitze' : m < 350 ? 'unten an der Basis' : 'in der Mitte'; }
-const LL_TEX = { smooth: 'gleichmäßig', pulse: 'pulsierend', tremor: 'zitternd', hold: 'stillhalten', accel: 'beschleunigend', stop: 'Pause' };
+const LL_TEX = { smooth: 'gleichmäßig', pulse: 'pulsierend', tremor: 'zitternd', hold: 'stillhalten', accel: 'beschleunigend', sine: 'weich wiegend', stop: 'Pause' };
 function llKeys() {
   const keys = [];
   const now = Date.now();
@@ -24213,14 +24322,14 @@ const mv = { tab: 'muster', idx: 0, tempo: 'mittel', play: null, raf: 0 };
 function mvSim(steps, maxMs) {
   const out = [], dt = 40, fastGap = 60; let t = 0, pos = 500;
   const push = () => out.push([t, Math.max(0, Math.min(999, pos))]);
-  const lin = (to, ms, ease) => { const from = pos, n = Math.max(1, Math.round(ms / dt)); for (let i = 1; i <= n && t < maxMs; i++) { const f = i / n; pos = from + (to - from) * (ease ? f * f : f); t += dt; push(); } pos = to; };
+  const lin = (to, ms, ease) => { const from = pos, n = Math.max(1, Math.round(ms / dt)); for (let i = 1; i <= n && t < maxMs; i++) { const f = i / n; pos = from + (to - from) * (ease === 'sine' ? 0.5 - 0.5 * Math.cos(Math.PI * f) : ease === 'out' ? 1 - (1 - f) * (1 - f) : ease ? f * f : f); t += dt; push(); } pos = to; };
   push();
   for (const st of steps) {
     if (t >= maxMs) break;
     if (!st) continue;
     if (st.type === 'stop') break;
     if (st.type === 'hold') { const n = Math.round((st.ms || 0) / dt); for (let i = 0; i < n && t < maxMs; i++) { t += dt; push(); } continue; }
-    if (st.type === 'move') { lin(st.to, st.ms || 800, st.ease); continue; }
+    if (st.type === 'move') { lin(st.to, st.ms || 800, st.ease); continue; }   // ease: true = schneller werdend, 'sine' = weich, 'out' = abbremsend
     if (st.type !== 'osc') continue;
     const end = st.ms ? Math.min(maxMs, t + st.ms) : maxMs, tex = st.texture || 'smooth', bpm = Math.max(2, st.bpm || 60);
     let up = pos < (st.low + st.high) / 2;
@@ -24229,7 +24338,7 @@ function mvSim(steps, maxMs) {
     while (t < end) {
       const to = up ? st.high : st.low; up = !up;
       if (tex === 'pulse') { lin(to, half * 0.45); const n = Math.round(half * 0.55 / dt); for (let i = 0; i < n && t < end; i++) { t += dt; push(); } }
-      else lin(to, half, tex === 'accel');
+      else lin(to, half, tex === 'accel' ? true : tex === 'sine' ? 'sine' : false);
     }
   }
   return out;
@@ -24255,12 +24364,12 @@ function mvEdgeSvg(pts, w, h, maxMs) {
 }
 // Einordnen: wo (Zone) und wie (Art) - für die Lücken-Übersicht
 const MV_ZONES = [['spitze', 'Spitze'], ['mitte', 'Mitte'], ['unten', 'tief unten'], ['ganz', 'ganze Länge']];
-const MV_KINDS = [['gleich', 'gleichmäßig'], ['stoss', 'harte Stöße'], ['zittern', 'Zittern'], ['steigern', 'Aufbau / schneller'], ['pause', 'mit Pausen'], ['wechsel', 'Wechsel / Überraschung']];
+const MV_KINDS = [['rund', 'weich / rund'], ['gleich', 'gleichmäßig'], ['stoss', 'harte Stöße'], ['zittern', 'Zittern'], ['steigern', 'Aufbau / schneller'], ['pause', 'mit Pausen'], ['wechsel', 'Wechsel / Überraschung']];
 function mvClassify(steps) {
   const z = new Set(), k = new Set(); const osc = steps.filter(s => s.type === 'osc');
   osc.forEach(s => { const span = s.high - s.low; const mid = (s.low + s.high) / 2; z.add(span > 650 ? 'ganz' : mid >= 640 ? 'spitze' : mid <= 340 ? 'unten' : 'mitte');
-    if (s.texture === 'pulse') k.add('stoss'); else if (s.texture === 'tremor' || s.texture === 'zitterhub') k.add('zittern'); else if (s.texture === 'accel') k.add('steigern'); else k.add('gleich'); });
-  steps.filter(s => s.type === 'move').forEach(s => z.add(s.to > 800 ? 'spitze' : s.to < 250 ? 'unten' : 'mitte'));
+    if (s.texture === 'pulse') k.add('stoss'); else if (s.texture === 'tremor' || s.texture === 'zitterhub') k.add('zittern'); else if (s.texture === 'accel') k.add('steigern'); else if (s.texture === 'sine') k.add('rund'); else k.add('gleich'); });
+  steps.filter(s => s.type === 'move').forEach(s => { z.add(s.to > 800 ? 'spitze' : s.to < 250 ? 'unten' : 'mitte'); if (s.ease === 'sine' || s.ease === 'out') k.add('rund'); });
   if (steps.some(s => s.type === 'hold' && (s.ms || 0) >= 400)) k.add('pause');
   const b = osc.map(s => s.bpm || 0); if (b.length > 2 && b.slice(1).every((x, i) => x >= b[i]) && b[b.length - 1] > b[0] * 1.4) k.add('steigern');
   if (new Set(osc.map(s => (s.texture || 'smooth') + Math.round((s.low + s.high) / 300))).size >= 3) k.add('wechsel');
@@ -24295,9 +24404,10 @@ function mvStart(item, where) {
   const dev = where === 1 ? device1 : where === 2 ? device2 : null;
   if (dev) { if (!devOn(dev)) { showToast('Gerät ' + where + ' ist nicht verbunden', true); return; } dev.runSequence(run.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Muster vorgeführt (Gerät ${where}): ${item.name}${item.tempo ? ' ' + mv.tempo : ''}` }); }
   const pts = mvSim(run, dur);
-  mv.play = { id: item.id, dev, t0: performance.now(), dur, pts, timer: setTimeout(() => mvStopPlay(), dur + 300) };
+  const lag = dev ? Math.max(0, +localStorage.getItem('companion_mvDelay') || 0) : 0;   // Bild wartet, bis das Gerät nachkommt
+  mv.play = { id: item.id, dev, t0: performance.now() + lag, dur, pts, timer: setTimeout(() => mvStopPlay(), dur + lag + 300) };
   mvRender();
-  const tick = () => { if (!mv.play || mv.play.id !== item.id) return; const ms = performance.now() - mv.play.t0;
+  const tick = () => { if (!mv.play || mv.play.id !== item.id) return; const ms = Math.max(0, performance.now() - mv.play.t0);
     const mark = document.querySelector('#mvView .mv-big .mv-mark'); if (mark) { mark.style.display = ''; const x = (ms / dur * 600).toFixed(1); mark.setAttribute('x1', x); mark.setAttribute('x2', x); }
     const i = Math.min(pts.length - 1, Math.round(ms / 40)); const s = document.querySelector('#mvView .mv-sleeve'); if (s) s.style.bottom = (pts[i] ? pts[i][1] / 999 * 78 : 40) + '%';
     mv.raf = requestAnimationFrame(tick); };
@@ -24309,7 +24419,7 @@ function mvGapsHtml() {
   const cell = (z, k) => all.filter(x => x.c.z.includes(z) && x.c.k.includes(k));
   const missing = [];
   const rows = MV_KINDS.map(([k, kl]) => `<tr><th style="text-align:left; padding:4px 6px 4px 0; font-weight:600; font-size:12px; width:72px; line-height:1.25;">${kl}</th>${MV_ZONES.map(([z, zl]) => { const c = cell(z, k); const sc = sigs.filter(x => x.c.z.includes(z) && x.c.k.includes(k)).length; if (!c.length) missing.push(`${kl} – ${zl}${sc ? ` (nur in ${sc} Markenzeichen)` : ''}`);
-    return `<td style="padding:4px; vertical-align:top; border:1px solid rgba(255,255,255,0.08); background:${c.length ? 'rgba(95,184,255,' + Math.min(0.35, 0.08 + c.length * 0.07) + ')' : 'rgba(255,90,110,0.13)'}; font-size:11.5px; line-height:1.35;">${c.length ? c.map(x => `<a href="#" class="mv-jump" data-id="${x.n}" style="color:#fff;">${esc(x.n.replace(/_/g, ' '))}</a>`).join('<br>') : `<span style="color:#ff9aa8;">fehlt${sc ? `<br><span style="opacity:.75">${sc}× Markenz.</span>` : ''}</span>`}</td>`; }).join('')}</tr>`).join('');
+    return `<td style="padding:4px; vertical-align:top; border:1px solid rgba(255,255,255,0.08); background:${c.length ? 'rgba(95,184,255,' + Math.min(0.35, 0.08 + c.length * 0.07) + ')' : 'rgba(255,90,110,0.13)'}; font-size:11.5px; line-height:1.35;">${c.length ? c.map(x => `<a href="#" class="mv-jump" data-id="${x.n}" style="color:#fff;">${esc(x.n.replace(/_/g, ' ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü'))}</a>`).join('<br>') : `<span style="color:#ff9aa8;">fehlt${sc ? `<br><span style="opacity:.75">${sc}× Markenz.</span>` : ''}</span>`}</td>`; }).join('')}</tr>`).join('');
   const texCount = {}; all.forEach(x => x.c.k.forEach(k => texCount[k] = (texCount[k] || 0) + 1));
   return `<p class="hint" style="margin:0 0 8px;">Welche Art von Bewegung gibt es in welchem Bereich? Rot = dafür gibt es noch kein fertiges Muster (die Figuren können es trotzdem frei beschreiben). Tipp auf einen Namen, um das Muster zu öffnen.</p>
     <div style="overflow-x:auto;"><table style="border-collapse:collapse; width:100%; min-width:360px; table-layout:fixed;"><tr><th></th>${MV_ZONES.map(([, zl]) => `<th style="font-size:12px; padding:4px; font-weight:600;">${zl}</th>`).join('')}</tr>${rows}</table></div>
@@ -24344,6 +24454,7 @@ function mvRender() {
       <p class="hint" style="margin:6px 0 8px;">${esc(meta)}</p>
       ${it.tempo ? `<div style="display:flex; gap:6px; margin-bottom:8px;">${['langsam', 'mittel', 'schnell'].map(t => `<button type="button" class="mv-tempo" data-t="${t}" style="flex:1; padding:7px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:${mv.tempo === t ? 'rgba(255,207,77,0.22)' : 'transparent'}; color:#fff;">${t}</button>`).join('')}</div>` : ''}
       <div style="display:flex; gap:8px; margin-bottom:10px;">${devBtns}</div>
+      ${it.edge ? '' : `<div style="margin:0 0 10px;"><label style="font-size:13px; font-weight:normal; display:flex; justify-content:space-between;"><span>⏱ Bild-Verzögerung zum Gerät</span><b class="mv-dlv">${+localStorage.getItem('companion_mvDelay') || 0} ms</b></label><input type="range" class="mv-dl" min="0" max="1500" step="25" value="${+localStorage.getItem('companion_mvDelay') || 0}" style="width:100%;"><p class="hint" style="margin:2px 0 0;">Spiel ein Muster am Gerät ab und schieb, bis die Hülse im Bild genau mit deinem Gerät mitgeht. Wirkt sofort, auch während es läuft.</p></div>`}
       ${human ? `<details style="margin-bottom:10px;"><summary style="cursor:pointer; font-size:13.5px;">Ablauf in Worten</summary><p class="hint" style="margin:6px 0 0; line-height:1.5;">${esc(human)}</p></details>` : ''}
       ${it.tempo ? `<p class="hint" style="margin:0 0 10px;">So rufen die Figuren es ab: <code>&lt;&lt;muster ${esc(it.id)} ${mv.tempo}&gt;&gt;</code></p>` : ''}
       <h3 style="font-size:15px; margin:12px 0 6px;">Alle ${items.length}</h3>
@@ -24359,6 +24470,7 @@ function mvRender() {
   const go = d => { mvStopPlay(true); mv.idx = (mv.idx + d + items.length) % items.length; mvRender(); };
   const p = v.querySelector('.mv-prev'), n = v.querySelector('.mv-next'); if (p) p.onclick = () => go(-1); if (n) n.onclick = () => go(1);
   v.querySelectorAll('.mv-tempo').forEach(b => b.onclick = () => { mvStopPlay(true); mv.tempo = b.dataset.t; mvRender(); });
+  const dl = v.querySelector('.mv-dl'); if (dl) dl.oninput = () => { const old = +localStorage.getItem('companion_mvDelay') || 0, nw = +dl.value; safeSet('companion_mvDelay', String(nw)); v.querySelector('.mv-dlv').textContent = nw + ' ms'; if (mv.play && mv.play.dev) mv.play.t0 += nw - old; };
   v.querySelectorAll('.mv-pick').forEach(b => b.onclick = () => { mvStopPlay(true); mv.idx = +b.dataset.i; mvRender(); v.scrollTop = 0; });
   v.querySelectorAll('.mv-jump').forEach(a => a.onclick = (e) => { e.preventDefault(); mv.tab = 'muster'; mv.idx = Math.max(0, mvItems().findIndex(x => x.id === a.dataset.id)); mvRender(); v.scrollTop = 0; });
   v.querySelectorAll('.mv-go').forEach(b => b.onclick = () => { const w = b.dataset.w; const playing = mv.play && mv.play.id === it.id && (w === 'e' ? mv.play.edge : w === '0' ? !mv.play.dev : mv.play.dev === (w === '1' ? device1 : device2)); if (playing) { mvStopPlay(); return; } mvStart(it, w === 'e' ? 'e' : +w); });
@@ -24434,6 +24546,29 @@ showHome();
   it.innerHTML = '<span class="glyph">⧉</span><span>Protokoll kopieren<span class="sub">zum Einfügen im Chat</span></span>';
   els.navSetup.parentNode.insertBefore(it, els.navSetup);
   it.onclick = () => { els.copyLogBtn.click(); it.querySelector('.sub').textContent = '✓ kopiert'; setTimeout(() => { it.querySelector('.sub').textContent = 'zum Einfügen im Chat'; }, 2500); };
+}
+// 🧪 Firmware-Bewegungsgenerator testen
+document.querySelectorAll('#fwGenBox .fw-b').forEach(b => b.onclick = () => {
+  if (!device1.isConnected()) { showToast('Gerät 1 ist nicht verbunden', true); return; }
+  const cmds = b.dataset.c.split('|');
+  if (/enable/.test(b.dataset.c)) { try { device1.setMotion({ low: 500, high: 500, bpm: 0, texture: 'stop' }); } catch (e) {} }
+  const out = document.getElementById('fwOut'); if (out) out.textContent = '→ ' + cmds.join('  ·  ');
+  cmds.forEach((c, i) => setTimeout(() => device1.sendRaw(c), 400 + i * 350));
+  if (/enable/.test(b.dataset.c)) showToast('Generator gestartet - bewegt sich das Gerät jetzt von selbst?');
+});
+// Lange Protokolle wurden beim Einfügen abgeschnitten - als Datei kommt alles an
+{
+  const it = document.createElement('button');
+  it.className = 'drawer-item'; it.id = 'navSaveLog';
+  it.innerHTML = '<span class="glyph">⬇</span><span>Protokoll als Datei<span class="sub">vollständig, zum Anhängen</span></span>';
+  els.navSetup.parentNode.insertBefore(it, els.navSetup);
+  it.onclick = () => {
+    const text = buildSessionExport(), d = new Date(), pad = n => String(n).padStart(2, '0');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    a.download = `notizen-protokoll-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    it.querySelector('.sub').textContent = `✓ gespeichert (${Math.round(text.length / 1024)} KB)`; setTimeout(() => { it.querySelector('.sub').textContent = 'vollständig, zum Anhängen'; }, 3000);
+  };
 }
 // ---------- Als App installieren ----------
 // Mit manifest.webmanifest, sw.js und den Symbolen im selben Ordner bietet
@@ -29906,6 +30041,18 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
