@@ -1250,6 +1250,11 @@
           <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:0;"><input type="checkbox" id="d1pat_pulse" style="width:auto;">Stoßende Bewegung erlauben</label>
         </div>
         <p class="hint">Fließende Bewegungen sind immer erlaubt. „Stoßend" heißt: schneller Vorstoß zum Umkehrpunkt, dann kurz halten dort. Wie lang der Hub ist und wo auf der Strecke er liegt, entscheidet die KI - immer innerhalb deiner Grenzen oben.</p>
+        <label for="d1vibe">Vibration am Board</label>
+        <select id="d1vibe" onchange="safeSet('companion_d1_vibe', this.value)"><option value="off">aus</option><option value="V0">an Ausgang V0</option><option value="V1">an Ausgang V1</option><option value="V2">an Ausgang V2</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="d1tint" style="width:auto;" onchange="safeSet('companion_tint', this.checked ? '1' : '0')">Figur und Handlung spürbar machen</label>
+        <p class="hint">Die Bewegung neigt sich leicht nach der Art der Figur, die gerade spricht (bestimmt, zärtlich, neckend, drängend), und nach dem, was passiert: Mund kürzer an der Spitze, Hand über die ganze Länge, Reiten tief unten, von hinten lang und kräftig, „zum ersten Mal" zart und langsam.</p>
+        <p class="hint">Für einen Vibrationsmotor, der über einen kleinen MOSFET an einem Vibe-Pin deines Boards hängt (TCode V0-V2). Er folgt der Bewegung: beim Zittern und Zitterhub stark, bei Stößen im Takt, sonst je nach Tempo.</p>
       </details>
       <div class="btn-row">
         <button class="btn-secondary" id="connectBtn">Mit Gerät 1 verbinden</button>
@@ -1835,6 +1840,13 @@
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="deriveAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🖼️ Aussehen aus Bildern</button>
         <button class="btn-secondary" id="portfolioAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📸 Galerien auffüllen</button>
+      </div>
+      <div style="display:flex; gap:8px; margin:0 0 10px;">
+        <button class="btn-secondary" id="spreadVoicesBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="spreadVoices(this)">🎙️ Stimmen verteilen</button>
+      </div>
+      <div style="display:flex; gap:8px; margin:0 0 10px;">
+        <button class="btn-secondary" id="charMapBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="openCharMap()">🗺️ Charakter-Karte</button>
+        <button class="btn-secondary" id="sharpenAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">✨ Alle Charaktere schärfen</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
@@ -3626,8 +3638,55 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.18';
+const APP_VERSION = '3.28';
 const CHANGELOG = [
+  { v: '3.28', date: '2026-10-24', items: [
+    'Am Gerät spürt man, wer spricht: die Bewegung neigt sich nach der Art der Figur - bestimmt (länger, ruhiger), zärtlich (langsamer, nie stoßend), neckend (kürzer, weiter oben), drängend (schneller, länger)',
+    'Und was gerade passiert: Mund = kürzer an der Spitze, Hand = über die ganze Länge, Reiten = tief unten und schwerer, Brüste = weich gleitend, von hinten = lang und kräftig, „zum ersten Mal" = zart und langsam - erkannt aus dem Text, auch aus der Erzählerin',
+    'Abschaltbar unter Gerät 1: „Figur und Handlung spürbar machen"; im Protokoll steht jeweils, welche Färbung gerade gilt',
+  ] },
+  { v: '3.27', date: '2026-10-24', items: [
+    'Figuren: „🗺️ Charakter-Karte" zeigt alle Figuren auf zwei Achsen (zart ↔ wild, folgt ↔ führt) - mit Urteil, ob sie zu nah beieinander liegen, und „✨ Ecken verstärken", das jede Figur weiter in ihre eigene Richtung schärft',
+    'Vorlieben und Fetische gehören jetzt zum Charakterkern und treiben die Handlung: eine Figur bringt ihre Sache nach und nach ins Spiel - vorschlagen, fragen, behutsam ausprobieren, dann steigern',
+    'Gerät erzählt mit: „etwas zum ersten Mal ausprobieren" fängt ganz zart an und wird in Stufen mutiger; Fesseln = Stillhalten und plötzlich, Klaps/Peitsche = stotternde Stöße; Hand, Mund, Reiten, Brüste, von hinten und Handwechsel fühlen sich je eigen an',
+    'Figuren: „🎙️ Stimmen verteilen" gibt Figuren, die sich eine Stimme teilen, eine andere aus deinem ElevenLabs-Konto (unbenutzte zuerst, passendes Alter bevorzugt); neue Figuren bekommen automatisch die am wenigsten genutzte Stimme',
+    'Karten des Abends mischen mehr: wer zuletzt oft dran war, rückt nach hinten; jede Figur höchstens auf einer Karte; spannende Paarungen (Gegensätze, Necken, Überreden); Vorlieben und Motive tragen die Ideen; offene Serien können als „Folge X" weitergehen',
+  ] },
+  { v: '3.26', date: '2026-10-24', items: [
+    'Handwechsel: sagt eine Figur „Jetzt bin ich dran", „Rutsch rüber" oder übernimmt sie, hält das Gerät 1-2 s an, bevor die andere anfängt',
+    'Mehrere Figuren haben miteinander etwas: frotzeln, Komplimente, finden einander anziehend, sprechen sich ab, kleine Rivalität, sagen Wechsel an - je nach Charakter, du bleibst der rote Faden',
+    'Figuren: „✨ Alle Charaktere schärfen" gibt allen einen neuen, kräftigeren Kern - bewusst verschieden voneinander (jede sieht die anderen und unterscheidet sich)',
+    'Gerät 1: „Vibration am Board" (TCode V0-V2) - ein Vibrationsmotor am Board folgt der Bewegung (Zittern/Zitterhub stark, Stöße im Takt, sonst je Tempo)'
+  ] },
+  { v: '3.25', date: '2026-10-24', items: [
+    'Wie eine Serie: nach jeder Sitzung merkt sich die App den Handlungsfaden dieser Besetzung (wo die Geschichte steht, offene Fäden wie Versprechen und Wetten, was nächstes Mal kommt). Beim nächsten Mal knüpfen die Figuren daran an',
+    'Start: Karte „🎬 Nächste Folge" holt die Besetzung der letzten Geschichte zurück und zeigt, womit es weitergeht'
+  ] },
+  { v: '3.24', date: '2026-10-24', items: [
+    'Spielen aufgeräumt: oben „Deine Lieblinge" (was du oft und kürzlich spielst), alles andere eingeklappt unter „Alle Spiele" - nichts gelöscht'
+  ] },
+  { v: '3.23', date: '2026-10-24', items: [
+    'Charakterkern je Figur: Motiv, Eigenheiten, Sprechweise, was sie von dir will, wie sie die Geschichte lenkt, wiederkehrende Motive, innere Spannung - fest in ihren Anweisungen, sie treibt die Geschichte aktiv in ihre Richtung. Wird beim ersten Gespräch automatisch angelegt; im Editor „✨ Charakter schärfen" für einen neuen, kräftigeren Kern',
+    'Erinnerungen kommen zur Sprache: zu Beginn und etwa jede fünfte Antwort greift eine Figur eine konkrete Erinnerung auf (als Anspielung, Necken oder Frage) - im Protokoll als „Erinnerungs-Impuls"'
+  ] },
+  { v: '3.22', date: '2026-10-24', items: [
+    'Handschrift am Gerät: jede Figur fühlt sich am Gerät anders an - führende bestimmen Tempo, lassen warten, hören abrupt auf; zärtliche ruhig im Atemrhythmus; verspielte necken mit Tempowechseln; drängende wild ohne Pausen. Automatisch aus ihren Eigenschaften, in der Figurenkarte sichtbar und im Editor überschreibbar'
+  ] },
+  { v: '3.21', date: '2026-10-24', items: [
+    'Neue Bewegung „Zitterhub": Hub über den ganzen Bereich, dabei zittert es die ganze Zeit',
+    'Versuchung: Treffer überlagern sich statt sich zu ersetzen - Zunge während ihrer Hand (oder Vollgas) = voller Hub mit Zittern',
+    'Neue Muster für alle Figuren: zitterhub, treppe (Stufe für Stufe tiefer), locken (necken, plötzlich ganze Hübe), atem (ganz ruhig im Atemrhythmus)'
+  ] },
+  { v: '3.20', date: '2026-10-23', items: [
+    'VR (🥽): auf dem Handy startet direkt Handy-VR (geteiltes Bild für die Halterung, Kopfdrehung über den Lagesensor) - die „echte" VR-Sitzung lief auf Handys an, zeigte aber nichts Brauchbares; VR-Brillen (Quest, Pico …) nutzen weiter WebXR und wechseln ohne Bild nach 3 s auf Handy-VR'
+  ] },
+  { v: '3.19', date: '2026-10-23', items: [
+    'Stellung folgt wieder der Handlung - auch nachdem du eine im Menü gewählt hast (gilt als Start, nicht als Sperre); dein eigener Wunsch („Reite mich") wirkt sofort; Ich-Form wird erkannt („Ich setze mich auf dich")',
+    'Zoom: mit zwei Fingern (oder Mausrad) näher/weiter, je Kameraansicht gemerkt; doppelt tippen setzt zurück',
+    'Zweite Figur (Test) hat feste Plätze je Stellung: beim Reiten an deinem Kopf, vorgebeugt; liegst du, neben deiner Brust zu deinem Hals; von hinten vor der Hauptfigur; Missionar neben ihrem Kopf; stehst du, kniet sie neben dir auf dem Boden statt in Betthöhe zu schweben; aus deinen Augen nie direkt vor der Kamera',
+    'Ihre Hände gehen seltener durch ihren eigenen Körper: Fingerspitzen in Schenkel/Brust → Hand flacher, notfalls ganz heraus (Hand am Schenkel: von 18 % auf 0-3 % der Bilder)',
+    '🪄 „Gestalte mich" in „Dich formen": leitet Figur, Alter, Haut, Haare und Augen aus deinem Profilbild ab'
+  ] },
   { v: '3.18', date: '2026-10-23', items: [
     'Zweite Figur (Test): beim Tragen steckten die Beine der Hauptfigur in ihrem Hals - kommen Beine/Füße der Hauptfigur ihrem Körper näher als 14 cm, rückt sie nach außen (alle Stellungen geprüft)'
   ] },
@@ -5242,7 +5301,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   // addiert sich auf den jeweiligen Grundabstand.
   function currentGap() {
     const backoff = Math.max(0, state.sendGapMs - WS_SEND_GAP_START_MS);
-    const base = state.motion.texture === 'tremor' ? getSettings().fastGap : WS_SEND_GAP_START_MS;
+    const base = (state.motion.texture === 'tremor' || state.motion.texture === 'zitterhub') ? getSettings().fastGap : WS_SEND_GAP_START_MS;
     return base + backoff;
   }
 
@@ -5267,6 +5326,24 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     return { line: 'L0' + tcodePos(job.pos) + 'I' + ms, sent: { from, to: job.pos, at: now, ms, v0: 0, kind: 'lin' } };
   }
 
+  // Vibrationskanal (TCode V0-V3): Stärke aus der laufenden Bewegung - Zittern/Zitterhub stark, Pulse im Takt, sonst je Tempo
+  function vibeOut() { const v = localStorage.getItem(`companion_${settingsPrefix}_vibe`) || 'off'; return /^V[0-3]$/.test(v) ? v : null; }
+  function vibeLevel(now) {
+    const m = state.motion; if (!m || !m.timer || !m.target) return 0;
+    const t = m.texture, maxB = MOTION_LIMITS.maxBpm, bpm = (m.current && m.current.bpm) || 0;
+    if (t === 'tremor' || t === 'zitterhub') return 0.55 + 0.45 * Math.min(1, (m.target.tremorBpm || 120) / maxB);
+    if (t === 'pulse') return m.goingUp ? 0.25 : 0.85;
+    if (t === 'hold') return 0.2;
+    return Math.min(0.7, 0.12 + 0.55 * bpm / maxB);
+  }
+  function vibeCmd(now) {
+    const ch = vibeOut(); if (!ch) return '';
+    const lv = Math.round(Math.max(0, Math.min(1, vibeLevel(now))) * 9999);
+    // nur bei Änderung oder spätestens alle 1,2 s (die Firmware schaltet nach ~2 s ohne Befehl ab)
+    if (state.vibeLast != null && Math.abs(lv - state.vibeLast) < 600 && now - (state.vibeAt || 0) < 1200) return '';
+    state.vibeLast = lv; state.vibeAt = now;
+    return ch + String(lv).padStart(4, '0');
+  }
   function flushTCode() {
     state.flushTimer = null;
     const job = state.pending;
@@ -5287,7 +5364,9 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // des eingestellten Limits.
     const now = Date.now();
     const built = buildLine(job, now, getSettings());
-    const line = built.line;
+    let line = built.line;
+    // Vibration an V0/V1 (Ausgang am Board, z. B. kleiner Vibrationsmotor über MOSFET): in derselben Zeile mitsenden
+    try { const vb = vibeCmd(now); if (vb) line += ' ' + vb; } catch (e) {}
     try {
       state.socket.send(line + '\n');
       logEvent('tcode', { device: label, line });
@@ -5365,7 +5444,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // dreieinhalb Minuten lang. Ein kurzes "halten 2s" bleibt eine echte Pause,
     // danach geht es weiter.
     const r = state.motion.requested || {};
-    let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor'].includes(r.texture)
+    let resume = r.bpm > 0 && ['smooth', 'pulse', 'accel', 'tremor', 'zitterhub'].includes(r.texture)
       ? { low: r.low, high: r.high, bpm: r.bpm, texture: r.texture } : null;
     let endPos = null;
     const next = () => {
@@ -5387,7 +5466,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
         }
         return;
       }
-      if (step.type === 'osc') { resume = { low: step.low, high: step.high, bpm: step.bpm, texture: step.texture }; endPos = null; }
+      if (step.type === 'osc') { resume = { low: step.low, high: step.high, bpm: step.bpm, texture: step.texture, vib: step.vib }; endPos = null; }
       if (step.type === 'move') endPos = step.to;
       const m = state.motion;
       const { minPos, maxPos } = getSettings();
@@ -5416,7 +5495,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       } else {
         // Innerhalb einer Folge ohne sanftes Anlaufen: die KI hat genau
         // diesen Schritt gewählt, er soll sofort in seinem Tempo laufen.
-        applyState({ low: step.low, high: step.high, bpm: step.bpm, texture: step.texture }, true);
+        applyState({ low: step.low, high: step.high, bpm: step.bpm, texture: step.texture, vib: step.vib }, true);
         if (step.ms) later(step.ms); else seq = null;
       }
     };
@@ -5425,9 +5504,21 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
 
   // Von außen: ein neuer Zustand beendet eine laufende Folge.
   function setMotion(req) {
+    // Handwechsel-Pause: was in der Pause ankommt, gilt erst danach (ein Stopp sofort)
+    if (state.pauseUntil && Date.now() < state.pauseUntil && !(req && req.texture === 'stop')) { state.pausedReq = { fn: () => setMotion(req) }; return; }
     cancelSequence();
     stopEase();
     applyState(req);
+  }
+  // kurze Pause ohne Bewegung (z. B. eine Figur hört auf, die andere fängt an) - danach weiter mit dem Letzten
+  function pauseFor(ms) {
+    if (!state.motion || (!state.motion.timer && !seq)) { state.pauseUntil = 0; return; }   // steht ohnehin - keine Pause nötig
+    const resumeReq = state.lastRawReq; cancelSequence(); stopEase();
+    clearTimeout(state.motion.timer); state.motion.timer = null; setMotionStatus(false);
+    state.pauseUntil = Date.now() + ms; state.pausedReq = resumeReq ? { fn: () => setMotion(resumeReq) } : null;
+    logEvent('msg', { role: 'system', text: `${label}: Handwechsel - ${(ms / 1000).toFixed(1)} s Pause` });
+    clearTimeout(state.pauseTimer);
+    state.pauseTimer = setTimeout(() => { state.pauseUntil = 0; const r = state.pausedReq; state.pausedReq = null; if (r) r.fn(); }, ms);
   }
 
   function applyState(req, instant) {
@@ -5484,7 +5575,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       bpm: Math.max(0, Math.min(MOTION_LIMITS.maxBpm, Math.round((req && req.bpm) || 0))),
       texture,
     };
-    m.target = { low, high, bpm, texture, tremorBpm: Math.round((req && req.bpm) || 0) };
+    m.target = { low, high, bpm, texture, tremorBpm: Math.round((req && (req.vib != null ? req.vib : req.bpm)) || 0) };
     m.texture = texture;
     logEvent('motion', { device: label, low: m.requested.low, high: m.requested.high, bpm: m.requested.bpm, texture });
 
@@ -5533,6 +5624,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     const m = state.motion;
     clearTimeout(m.timer);
     m.timer = null;
+    state.vibeLast = null;   // nächste Zeile schaltet die Vibration sofort aus
     m.current.bpm = 0;
     const { minPos, maxPos } = getSettings();
     sendMove(Math.round((minPos + maxPos) / 2), 600);
@@ -5580,6 +5672,19 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     const pos = m.goingUp ? c.high : c.low;
     m.goingUp = !m.goingUp;
 
+    // Zitterhub: der Hub läuft über den ganzen Bereich, darauf ein schnelles Zittern (z. B. Zunge während ihrer Hand).
+    // In kurzen Schritten im Verbindungstakt: Grundlage wandert dreieckig von unten nach oben und zurück, ± Zitterweite.
+    if (m.texture === 'zitterhub') {
+      const strokeMs = Math.max(400, Math.min(6000, 60000 / Math.max(6, c.bpm)));   // ganzer Hub (hin und zurück)
+      m.zhPhase = ((m.zhPhase || 0) + dt / strokeMs) % 1;
+      const tri = m.zhPhase < 0.5 ? m.zhPhase * 2 : 2 - m.zhPhase * 2;
+      const amp = Math.max(MOTION_LIMITS.tremorMinAmp, Math.min(MOTION_LIMITS.tremorMaxAmp, 25 + (m.target.tremorBpm || 120) * 0.25));
+      m.zhSign = -(m.zhSign || 1);
+      const p2 = c.low + (c.high - c.low) * tri + m.zhSign * amp / 2;
+      const ms = sendMove(Math.max(c.low - amp / 2, Math.min(c.high + amp / 2, p2)), fastGap, fastGap);
+      m.timer = setTimeout(tick, Math.max(fastGap, ms));
+      return;
+    }
     // Rampe: jeder Hub beginnt langsam und wird bis zum Umkehrpunkt immer
     // schneller. TCode kennt nur gleichförmige Fahrten - also wird der Hub in
     // gleich lange Zeitstücke zerlegt, deren Weg quadratisch wächst.
@@ -5616,9 +5721,11 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     setConnStatus(false);
     connect(true);
   }
-  return { setMotion, runSequence, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
+  return { setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
+try { const ti = document.getElementById('d1tint'); if (ti) ti.checked = localStorage.getItem('companion_tint') !== '0'; } catch (e) {}
+try { const vs = document.getElementById('d1vibe'); if (vs) vs.value = localStorage.getItem('companion_d1_vibe') || 'off'; } catch (e) {}
 const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, els.motionTrackFill, 'Gerät 1', 'd1');
 const device2 = createDevice(els.connectBtn2, els.bleStatus2, els.motionStatus2, els.motionTrackFill2, 'Gerät 2', 'd2');
 
@@ -7321,13 +7428,14 @@ function applyCue(num, cue) {
   const dev = num === 2 ? device2 : device1;
   if (!cue) return;
   if (cue.kind === 'seq') {
-    dev.runSequence(cue.steps);
+    dev.runSequence(tintSteps(cue.steps, num)); tintLog(num);
     logEvent('msg', { role: 'system', text: `Gerät ${num} Folge: ${cue.label}` });
     const sum = cueSummary(cue);
     if (sum) logMotionChoice(num, sum);
   } else {
-    dev.setMotion(cue.motion);
-    logMotionChoice(num, cue.motion);
+    const mo = tintMotion(cue.motion, num);
+    dev.setMotion(mo);
+    logMotionChoice(num, mo);
   }
 }
 
@@ -8323,6 +8431,72 @@ function wishFactor() {
   return Math.min(0.7, Math.max(0, (Date.now() - motionWish.rampStart) / 20000) * 0.7 + 0.15);
 }
 // Im Gerät angewendet (vor dem Hinhalte-Deckel, der Vorrang hat).
+// ---------- Färbung: wer spricht und was gerade passiert, spürt man am Gerät ----------
+// Die KI wählt die Bewegung; die App neigt sie zusätzlich leicht nach der Handschrift der sprechenden Figur
+// (bestimmt, zärtlich, neckend, drängend, folgsam) und nach der Handlung im Text (Mund, Hand, Reiten, …).
+const motionTint = { who: '', style: '', act: '', actAt: 0, logged: '' };
+const TINT_ACTS = [
+  ['erstmal', /(zum ersten mal|erstes mal|noch nie|ganz vorsichtig|vorsichtig ausprobieren|langsam herantasten|tastet sich)/],
+  ['hinten', /(von hinten|auf allen vieren|doggy|kniet vor dir und reckt|streckt dir (ihren|den) (po|hintern))/],
+  ['reiten', /(reitet|reite dich|ritt|auf dir (sitzt|sitzend)|setzt sich auf dich|lässt sich auf dich sinken|kreist (mit )?(ihrem|dem) becken|hüften kreisen)/],
+  ['mund', /(mund(?!winkel)|lippen|zunge|lutsch|saugt|saugen|bläst|blasen|leckt|lecken)/],
+  ['brust', /(brüste|busen|zwischen (ihren|meinen) brüsten)/],
+  ['hand', /(hand|hände|finger|faust|umschließt|umfasst|reibt|massiert)/],
+];
+const TINT_ACT_NAMES = { erstmal: 'zum ersten Mal', hinten: 'von hinten', reiten: 'Reiten', mund: 'Mund', brust: 'Brüste', hand: 'Hand' };
+const TINT_STYLE_NAMES = { control: 'bestimmt', tender: 'zärtlich', tease: 'neckend', urge: 'drängend', follow: 'folgsam' };
+function tintOn() { return localStorage.getItem('companion_tint') !== '0'; }
+function tintStyleOf(name) {
+  const c = (typeof characters !== 'undefined' ? characters : []).find(x => x.name === name && !x.isUser && !x.isNarrator); if (!c) return '';
+  const sc = deviceStyleScores(c), top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+  return top && top[1] >= 3 ? top[0] : '';
+}
+function setMotionTint(role, text) {
+  if (role && role !== 'narrator') { const st = tintStyleOf(role); if (st || motionTint.who !== role) { motionTint.who = role; motionTint.style = st; } }
+  const t = String(text || '').toLowerCase(); let best = null;
+  TINT_ACTS.forEach(([k, re]) => { const g = new RegExp(re.source, 'g'); let m, last = -1; while ((m = g.exec(t))) last = m.index; if (last >= 0 && (!best || last > best.i)) best = { k, i: last }; });
+  if (best) { motionTint.act = best.k; motionTint.actAt = Date.now(); }
+  else if (Date.now() - motionTint.actAt > 45000) motionTint.act = '';
+}
+function tintRange(low, high, bpm) {
+  let lo = low, hi = high, b = bpm, len = Math.max(40, hi - lo), mid = (lo + hi) / 2;
+  const act = motionTint.act && Date.now() - motionTint.actAt < 45000 ? motionTint.act : '';
+  switch (act) {
+    case 'mund': len = Math.max(140, len * 0.6); mid = Math.max(mid, 999 - len / 2 - (999 - hi) * 0.5); break;      // kürzer, an der Spitze
+    case 'hand': len = Math.max(len, 650); break;                                                                       // ganze Länge, gleichmäßig
+    case 'reiten': len = Math.max(200, len * 0.75); mid = Math.min(mid, 330); b *= 0.92; break;                         // tief unten (0 = ganz tief), etwas schwerer
+    case 'brust': len = Math.max(200, len * 0.75); b *= 0.9; break;                                                     // weich, gleitend
+    case 'hinten': len = Math.max(len, 600); b *= 1.06; break;                                                          // lang und kräftig
+    case 'erstmal': len = Math.max(140, len * 0.7); b *= 0.75; break;                                                    // zart, langsam
+  }
+  switch (motionTint.style) {
+    case 'control': len *= 1.1; b *= 0.92; break;
+    case 'tender': b *= 0.88; break;
+    case 'tease': len *= 0.85; mid += 40; break;
+    case 'urge': len *= 1.1; b *= 1.1; break;
+    case 'follow': b *= 0.95; break;
+  }
+  len = Math.min(999, len); mid = Math.max(len / 2, Math.min(999 - len / 2, mid));
+  return { low: Math.round(mid - len / 2), high: Math.round(mid + len / 2), bpm: Math.max(10, Math.round(b)) };
+}
+function tintLog(num) {
+  const act = motionTint.act && Date.now() - motionTint.actAt < 45000 ? motionTint.act : '';
+  const k = [motionTint.who, motionTint.style, act].join('|'); if (k === motionTint.logged || (!motionTint.style && !act)) return; motionTint.logged = k;
+  logEvent('msg', { role: 'system', text: `Gerät ${num} Färbung: ${[motionTint.style ? (motionTint.who + ' ' + TINT_STYLE_NAMES[motionTint.style]) : '', act ? TINT_ACT_NAMES[act] : ''].filter(Boolean).join(' · ')}` });
+}
+function tintMotion(req, num) {
+  if (!tintOn() || !req || req.muster) return req;
+  const tex = req.texture || 'smooth'; if (tex === 'stop' || tex === 'hold' || tex === 'tremor' || !Number.isFinite(req.low) || !Number.isFinite(req.high)) return req;
+  const r = tintRange(req.low, req.high, req.bpm || 60); tintLog(num || 1);
+  const out = Object.assign({}, req, r);
+  if (motionTint.style === 'tender' && tex === 'pulse') out.texture = 'smooth';
+  if (motionTint.act === 'hinten' && tex === 'smooth' && Math.random() < 0.5) out.texture = 'pulse';
+  return out;
+}
+function tintSteps(steps, num) {
+  if (!tintOn() || !Array.isArray(steps)) return steps;
+  return steps.map(st => st && st.type === 'osc' && st.texture !== 'tremor' ? Object.assign({}, st, tintRange(st.low, st.high, st.bpm || 60)) : st.type === 'pattern' ? Object.assign({}, st, { steps: tintSteps(st.steps, num) }) : st);
+}
 function wishRequest(req, limits) {
   const f = wishFactor();
   if (!f || !req) return req;
@@ -8549,8 +8723,8 @@ function hrCheckPattern() {
 // Auswertung Zusammenhänge aus - auch ohne „Entdecken", aus jeder Sitzung.
 let currentSpeaker = null, currentSpeakerAt = 0;
 function noteSpeaker(role) { currentSpeaker = role === 'narrator' ? 'Erzähler' : role; currentSpeakerAt = Date.now(); try { updateStage(role); } catch (e) {} }
-const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5 };
-const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend'];
+const TEX_CODES = { smooth: 1, pulse: 2, tremor: 3, hold: 4, stop: 0, accel: 5, zitterhub: 6 };
+const TEX_NAMES = ['steht', 'gleichmäßig', 'Pulse', 'Zittern', 'hält', 'beschleunigend', 'Zitterhub'];
 // Atemfrequenz aus der Herzfrequenzvariabilität (respiratorische Sinusarrhythmie):
 // RR-Abstände glätten, Trend abziehen, Nulldurchgänge zählen.
 function breathRate(t0, t1) {
@@ -9343,7 +9517,7 @@ function allowedTexturesFor(prefix) {
   const on = (p) => (localStorage.getItem(`companion_${prefix}_pat_${p}`) ?? 'true') === 'true';
   const list = ['smooth']; // always available - it's the baseline movement
   if (on('pulse')) list.push('pulse');
-  if (on('tremor')) list.push('tremor');
+  if (on('tremor')) list.push('tremor', 'zitterhub');   // Zitterhub: Hub über den Bereich mit Zittern darauf
   list.push('accel');
   return list;
 }
@@ -9355,9 +9529,11 @@ function allowedTexturesFor(prefix) {
 const MOTION_PRIORITY = `FÜR DIE BEWEGUNGSWERTE (Marker bzw. Werte - nicht für den gesprochenen Text) GILT ALS WICHTIGSTES: Die Bewegung passt genau zu dem, was in diesem Moment passiert - und sie verändert sich ständig. Der Spannungsbogen ist nur der grobe Rahmen; die Situation im Text geht immer vor.
 - STELLE aus dem Text, nach der Gerätebeschreibung: nur die Spitze = kurzer Hub ganz oben (etwa 720-950); tief, am Schaft, bis zum Ansatz = unten (etwa 50-450); ganz rein und raus = die ganze Länge (etwa 50-950).
 - TEMPO aus den Verben: streicheln, gleiten, erkunden = langsam; reiben, reiten, stoßen, pumpen = schnell; zittern, flattern, vibrieren = tremor; innehalten, festhalten, warten lassen = hold; ablassen, aufhören = stop.
-- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe). Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
+- ART: fließend = smooth, einzelne harte Stöße = pulse, feines Beben = tremor, Hub über die ganze Länge mit Zittern darauf (z. B. Zunge und Hand zugleich) = zitterhub, langsam anfangen und zum Umkehrpunkt hin immer schneller = accel (Rampe). Eine einzelne beschleunigende Fahrt: "zu 950 in 3s beschleunigend".
 - EINMALIGES bleibt einmalig: "einmal ganz hoch", "kurz innehalten", "dann zittern" sind Schritte einer Folge, kein Zustand, der sich wiederholt - wo das Format Folgen erlaubt, nutze sie.
-- VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.`;
+- VARIANZ: Zwei aufeinanderfolgende Abschnitte haben fast nie dieselben Werte. Wechsle Stelle, Hublänge, Tempo UND Art - nicht nur das Tempo in kleinen Schritten. Nutze die ganze Spannbreite, von ganz langsam und lang bis sehr schnell und kurz, dazu pulse, tremor und hold. Keine gleichförmigen Treppen.
+- JEDE HANDLUNG FÜHLT SICH EIGEN AN - man soll am Gerät spüren, was gerade passiert: Hand = gleichmäßig über die ganze Länge, mal fester (pulse), Griffwechsel mit kurzem Halten; Mund = eher kurz und weiter oben, Zunge = zittern_oben oder zitterhub, tief nehmen = langsam bis ganz unten; Reiten = tief unten, Tempo und Wellen bestimmt sie (welle, lange Hübe); zwischen den Brüsten = mittig, weich, gleichmäßig; von hinten = kräftig, pulse; Handwechsel = kurze Pause, dann fängt die andere in IHRER Art neu an.
+- NEUES AUSPROBIEREN braucht einen Bogen statt „immer schneller": schlägt eine Figur etwas Neues vor oder ist es das erste Mal (z. B. etwas Ungewohntes mit viel Öl), beginnt es behutsam - ganz langsam, kurz, an der Spitze, mit Nachfragen - und wird Stufe für Stufe tiefer und mutiger (treppe), erst wenn es gut ankommt kräftiger. Fesseln oder Kontrolle = lange Stillstände (hold) und plötzliche Einsätze; Klaps oder Peitsche = einzelne harte Stöße mit Pausen (stottern).`;
 
 const ARC_GUIDE = `
 Grober Ablauf über eine ganze Sitzung (Orientierung, kein starres Schema):
@@ -11328,6 +11504,8 @@ function versionFromCharacter(c, versionNumber) {
     emotional: !!c.emotional,
     styleExamples: c.styleExamples || '',
     signature: c.signature || '',
+    deviceStyle: c.deviceStyle || '',
+    core: c.core || '',
     replyLength: c.replyLength || 'mittel',
     temperature: typeof c.temperature === 'number' ? c.temperature : 0.8,
     voice: c.voice || '', elevenVoice: c.elevenVoice || '',
@@ -11556,6 +11734,34 @@ function userCharacter() { return characters.find(c => c.isUser) || null; }
 // Turns the checkboxes plus the free text into the sentence the model actually
 // reads. Keeping this in one place means the prompt phrasing stays uniform
 // across every character.
+// Handschrift am Gerät: jede Figur fühlt sich anders an - aus Eigenschaften und Beschreibung abgeleitet (überschreibbar)
+function deviceStyleScores(c) {
+  const tr = c.traits || [], tx = ((c.notes || '') + ' ' + (c.signature || '') + ' ' + (c.core || '')).toLowerCase(), has = (...k) => k.filter(x => tr.includes(x)).length;
+  return {
+    control: has('fuehrt', 'selbstbewusst', 'direkt', 'deutlich') * 2 + (/(dominant|streng|bestimm|kontroll|befiehl|herrin|lässt (dich )?warten|fessel|peitsch)/.test(tx) ? 3 : 0),
+    tender: has('warm', 'fuersorglich', 'ruhig', 'leise', 'zurueckhaltend') * 2 + (/(zärtlich|sanft|liebevoll|hingebungsvoll|langsam)/.test(tx) ? 3 : 0),
+    tease: has('verspielt', 'humorvoll', 'spannung', 'wechselt') * 2 + (/(neck|frech|spiel|reiz|kokett)/.test(tx) ? 3 : 0),
+    urge: has('ungeduldig', 'rivalitaet') * 2 + (/(wild|gierig|hungrig|unersättlich|drängt|schnell)/.test(tx) ? 3 : 0),
+    follow: has('folgt', 'zurueckhaltend') * 2 + (/(devot|gehorch|lässt sich führen|unterwürfig|schüchtern)/.test(tx) ? 3 : 0),
+  };
+}
+function deviceStyleAuto(c) {
+  const tr = c.traits || [], tx = ((c.notes || '') + ' ' + (c.signature || '')).toLowerCase(), has = (...k) => k.filter(x => tr.includes(x)).length;
+  const sc = {
+    control: has('fuehrt', 'selbstbewusst', 'direkt', 'deutlich') * 2 + (/(dominant|streng|bestimm|kontroll|befiehl|herrin|lässt (dich )?warten)/.test(tx) ? 3 : 0),
+    tender: has('warm', 'fuersorglich', 'ruhig', 'leise', 'zurueckhaltend') * 2 + (/(zärtlich|sanft|liebevoll|hingebungsvoll|langsam)/.test(tx) ? 3 : 0),
+    tease: has('verspielt', 'humorvoll', 'spannung', 'wechselt') * 2 + (/(neck|frech|spiel|reiz|kokett)/.test(tx) ? 3 : 0),
+    urge: has('ungeduldig', 'rivalitaet') * 2 + (/(wild|gierig|hungrig|unersättlich|drängt|schnell)/.test(tx) ? 3 : 0),
+  };
+  const order = Object.entries(sc).sort((a, b) => b[1] - a[1]), top = order[0][1] > 0 ? order[0][0] : 'tender', second = order[1][1] > 1 ? order[1][0] : null;
+  const S = {
+    control: 'bestimmt das Tempo selbst: lange, tiefe Hübe (tief_langsam, ganze_laenge), lässt warten (halbweg_anhalten, treppe), hört kurz vor dem Höhepunkt abrupt auf und macht erst auf ihr Wort weiter',
+    tender: 'ruhig und hingebungsvoll: atem, welle, ganze_laenge langsam, weiche Übergänge, baut sehr langsam auf',
+    tease: 'neckend: spitze_necken, locken, stottern, zittern_oben, ständige Tempowechsel und kleine Überraschungen',
+    urge: 'drängend und wild: steigern, rampe, zitterhub, schnelle volle Hübe, kaum Pausen',
+  };
+  return S[top] + (second ? '; dazu ein wenig ' + S[second].split(':')[0] : '');
+}
 function describeCharacter(c) {
   const parts = [];
   if (c.gender && c.gender !== 'offen') parts.push(`Geschlecht: ${GENDER_TEXT[c.gender] || c.gender}`);
@@ -11573,6 +11779,8 @@ function describeCharacter(c) {
   }).filter(Boolean);
   if (picked.length) parts.push(`Grobe Richtung (${picked.join('; ')}) - bei Widerspruch gilt die Beschreibung`);
   if (c.isUser && typeof intimatePhrase === 'function' && intimatePhrase(c)) parts.push(`Körperlich (die Figuren kennen ihn so und dürfen beiläufig, passend zu ihrem Charakter, darauf eingehen - Komplimente, Necken, Staunen): ${intimatePhrase(c)}`);
+  if (!c.isUser && !c.isNarrator && (c.core || '').trim()) parts.push(`CHARAKTERKERN (so ist sie wirklich - danach handelt, spricht und entscheidet sie; sie treibt die Geschichte aktiv in ihre Richtung, greift ihre Motive immer wieder auf und bringt ihre Vorlieben nach und nach ins Spiel: vorschlagen, Til fragen, behutsam ausprobieren, dann steigern): ${c.core.trim().replace(/\s*\n\s*/g, ' | ')}`);
+  if (!c.isUser && !c.isNarrator) parts.push(`HANDSCHRIFT AM GERÄT: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)} - führt SIE das Gerät, bewegt es sich so (Marker und Muster entsprechend wählen); andere Figuren haben ihre eigene Art, man soll am Gerät spüren, wer gerade dran ist`);
   if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt; beschreibt es eine Bewegung, gehört ein passender Marker dazu`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
@@ -13564,6 +13772,27 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       sigArea.placeholder = 'Etwas, woran man sie sofort erkennt: eine typische Bewegung, ein Satz, eine Geste. Z. B. „Hält oben inne, zählt leise bis drei und stößt dann dreimal hart nach unten."';
       sigArea.oninput = () => { c.signature = sigArea.value; };
       card.appendChild(sigArea);
+      const dsLabel = document.createElement('label');
+      dsLabel.textContent = 'Handschrift am Gerät';
+      card.appendChild(dsLabel);
+      const dsArea = document.createElement('textarea');
+      dsArea.value = c.deviceStyle || '';
+      dsArea.style.minHeight = '56px';
+      dsArea.placeholder = 'Leer = automatisch aus ihren Eigenschaften: ' + deviceStyleAuto(c);
+      dsArea.oninput = () => { c.deviceStyle = dsArea.value; };
+      card.appendChild(dsArea);
+      const coreLabel = document.createElement('label');
+      coreLabel.textContent = 'Charakterkern';
+      card.appendChild(coreLabel);
+      const coreArea = document.createElement('textarea');
+      coreArea.value = c.core || '';
+      coreArea.style.minHeight = '110px';
+      coreArea.placeholder = 'Motiv, Eigenheiten, Sprechweise, was sie von dir will, wie sie die Geschichte lenkt, wiederkehrende Motive, innere Spannung - oder unten „Charakter schärfen".';
+      coreArea.oninput = () => { c.core = coreArea.value; };
+      card.appendChild(coreArea);
+      const shBtn = document.createElement('button'); shBtn.type = 'button'; shBtn.className = 'btn-secondary'; shBtn.style.marginTop = '6px'; shBtn.textContent = '✨ Charakter schärfen';
+      shBtn.onclick = async () => { shBtn.disabled = true; shBtn.textContent = '✨ Denke mir ihren Kern aus …'; try { const core = await sharpenCharacter(c); if (core) { c.core = core; coreArea.value = core; } } catch (e) { addMsg('system', 'Charakter schärfen ging nicht: ' + e.message); } shBtn.disabled = false; shBtn.textContent = '✨ Charakter schärfen'; };
+      card.appendChild(shBtn);
     }
 
     // Das Gedächtnis gehört zur Figur, nicht zu einer Version: überarbeitet man
@@ -13937,6 +14166,8 @@ function sanitizeDraftCharacters(list) {
     emotional: c.emotional === undefined ? true : !!c.emotional,
     styleExamples: String(c.styleExamples || '').slice(0, 1200),
     signature: String(c.signature || '').slice(0, 500),
+    deviceStyle: String(c.deviceStyle || '').slice(0, 500),
+    core: String(c.core || '').slice(0, 2000),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
     temperature: clamp(c.temperature, 0.1, 1.3, 0.8),
     pitch: clamp(c.pitch, 0.5, 2, 1.0),
@@ -14489,6 +14720,8 @@ const IMPORT_FIELDS = [
   ['voiceDescription', /^stimmbeschreibung/],
   ['userStyle', /^so sollen die figuren mit mir reden$/],
   ['signature', /^(markenzeichen|signature( move)?|erkennungszeichen)/],
+  ['deviceStyle', /^(handschrift( am gerät)?|stil am gerät)/],
+  ['core', /^(charakterkern|kern)/],
 ];
 function parseFigureBlocks(text) {
   const blocks = String(text || '').split(/^\s*={2,}\s*FIGUR\s*={2,}\s*$/mi).slice(1);
@@ -14521,6 +14754,8 @@ function figureFromFields(f) {
     notes: f.notes || '',
     styleExamples: f.styleExamples || '',
     signature: f.signature || '',
+    deviceStyle: f.deviceStyle || '',
+    core: f.core || '',
     emotional: f.emotional === undefined ? true : yes(f.emotional),
     replyLength: /sehr/.test(len) ? 'sehrlang' : /lang/.test(len) ? 'lang' : /kurz/.test(len) ? 'kurz' : 'mittel',
     temperature: num(f.temperature),
@@ -14798,12 +15033,16 @@ const PATTERN_INFO = {
   steigern: 'Tempo zieht in Stufen bis zum Höhepunkt an',
   rampe: 'jeder Hub beginnt langsam und wird bis oben immer schneller',
   hochfahren: 'einmal langsam beschleunigend ganz nach oben, dann oben weiter',
+  zitterhub: 'Hub über die ganze Länge, dabei zittert es die ganze Zeit (wie Zunge und Hand zugleich)',
+  treppe: 'von der Spitze aus Stufe für Stufe tiefer, mit kurzen Pausen, bis zur ganzen Länge',
+  locken: 'necken an der Spitze, dann plötzlich ein paar ganze Hübe, wieder necken',
+  atem: 'ganz ruhige lange Hübe im Atemrhythmus',
 };
 
 function expandPattern(name, tempo) {
   const t = tempo === 'langsam' ? 0 : tempo === 'schnell' ? 2 : 1;
   const pick = (a, b, c) => [a, b, c][t];
-  const osc = (low, high, bpm, texture, ms) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0 });
+  const osc = (low, high, bpm, texture, ms, vib) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0, vib });
   const hold = (ms) => ({ type: 'hold', ms });
   const move = (to, ms, ease) => ({ type: 'move', to, ms, ease: !!ease });
   const b = pick(30, 55, 90);
@@ -14819,6 +15058,11 @@ function expandPattern(name, tempo) {
     steigern: () => [osc(200, 800, pick(20, 30, 45), 'smooth', 3000), osc(200, 800, pick(40, 60, 80), 'smooth', 3000), osc(250, 850, pick(60, 100, 130), 'smooth', 3000), osc(300, 900, pick(90, 140, 190), 'pulse')],
     rampe: () => [osc(50, 950, pick(18, 32, 55), 'accel')],
     hochfahren: () => [move(950, pick(4000, 2500, 1500), true), osc(700, 950, b)],
+    // neu (3.21)
+    zitterhub: () => [osc(60, 960, pick(24, 40, 65), 'zitterhub', 0, pick(120, 170, 220))],
+    treppe: () => [osc(650, 950, b, 'smooth', 2500), hold(500), osc(450, 950, b, 'smooth', 2500), hold(500), osc(250, 950, b, 'smooth', 2500), hold(500), osc(50, 950, b)],
+    locken: () => [osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70), 'smooth', 1500), osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70))],
+    atem: () => [osc(150, 850, pick(10, 14, 18), 'smooth')],
   };
   const key = String(name || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z_]/g, '');
   return patterns[key] ? patterns[key]() : null;
@@ -14844,13 +15088,14 @@ function applyMotionItem(num, item) {
   if (item.muster) {
     const steps = expandPattern(item.muster, item.tempo);
     if (steps) {
-      dev.runSequence(steps);
+      dev.runSequence(tintSteps(steps, num)); tintLog(num);
       logEvent('msg', { role: 'system', text: `Gerät ${num} ${patternLabel(item)}` });
       return;
     }
     logEvent('msg', { role: 'system', text: `Gerät ${num}: unbekanntes Muster "${item.muster}" - Bewegung läuft weiter wie bisher.` });
     return;
   }
+  item = tintMotion(item, num);
   dev.setMotion(item);
   logMotionChoice(num, item);
 }
@@ -14920,7 +15165,7 @@ function parseMotionStepLoose(raw) {
   }
   let step = parseMotionStep(t);
   if (step) return step;
-  const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop)/.test(all) ? all : bpm + ' smooth' + end);
+  const fixed = t.replace(/(@\s*\d{1,3})\s+[a-zäöüß]+(\s|$)/, (all, bpm, end) => /(smooth|pulse|tremor|accel|hold|stop|zitterhub)/.test(all) ? all : bpm + ' smooth' + end);
   if (fixed !== t && (step = parseMotionStep(fixed))) return step;
   const words = t.split(' ');
   for (let k = 1; k < words.length && k <= 3; k++) {
@@ -15016,7 +15261,7 @@ function stripMarkerDebris(line) {
   return String(line)
     // Bewegungsschritte, die ohne Klammern im Text gelandet sind:
     // "zu 100 in 1s | halten 2s", "pendeln 300-600@40 smooth 3s", "300-700@15"
-    .replace(/\b(zu \d{1,3} in [\d.,]+ ?s|halten [\d.,]+ ?s|pendeln \d{1,3}-\d{1,3}@\d{1,3}(?: [a-z]+)?(?: [\d.,]+ ?s)?|\d{1,3}-\d{1,3}@\d{1,3}(?: (?:smooth|pulse|tremor|hold|stop|accel))?)\b/gi, ' ')
+    .replace(/\b(zu \d{1,3} in [\d.,]+ ?s|halten [\d.,]+ ?s|pendeln \d{1,3}-\d{1,3}@\d{1,3}(?: [a-z]+)?(?: [\d.,]+ ?s)?|\d{1,3}-\d{1,3}@\d{1,3}(?: (?:smooth|pulse|tremor|hold|stop|accel|zitterhub))?)\b/gi, ' ')
     .replace(/\s\|\s/g, ' ')
     .replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
 }
@@ -15262,7 +15507,48 @@ function memoryBlock() {
   });
   if (!parts.length) return '';
   return '\n\nGEDÄCHTNIS - das ist früher geschehen und gilt weiter. Greift es auf, wo es passt, beiläufig und ohne es aufzuzählen:\n\n'
-    + parts.join('\n\n');
+    + parts.join('\n\n') + threadBlock() + memoryNudge();
+}
+// ---------- Handlungsfaden (Serie): je Besetzung, wo die Geschichte steht ----------
+function threadsAll() { try { return JSON.parse(localStorage.getItem('companion_threads') || '{}'); } catch (e) { return {}; } }
+function threadKey(figs) { return figs.map(c => c.figureId).filter(Boolean).sort().join('|'); }
+function saveThread(figs, f) {
+  const all = threadsAll(), k = threadKey(figs); if (!k) return;
+  all[k] = { stand: String(f.stand || '').slice(0, 400), offen: (Array.isArray(f.offen) ? f.offen : [f.offen]).filter(Boolean).map(x => String(x).slice(0, 160)).slice(0, 4), next: String(f.naechstes || '').slice(0, 200), names: figs.map(c => c.name), ids: figs.map(c => c.figureId), t: Date.now(), ep: ((all[k] || {}).ep || 0) + 1 };
+  const keys = Object.keys(all).sort((a, b) => all[b].t - all[a].t).slice(0, 30); const keep = {}; keys.forEach(x => keep[x] = all[x]);
+  safeSet('companion_threads', JSON.stringify(keep));
+}
+function threadFor(figs) {
+  const all = threadsAll(), k = threadKey(figs); if (all[k]) return all[k];
+  const ids = new Set(figs.map(c => c.figureId));
+  return Object.entries(all).map(([kk, v]) => ({ v, ov: kk.split('|').filter(x => ids.has(x)).length })).filter(x => x.ov > 0).sort((a, b) => b.ov - a.ov || b.v.t - a.v.t).map(x => x.v)[0] || null;
+}
+function threadBlock() {
+  try {
+    const figs = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId), th = threadFor(figs); if (!th || !th.stand) return '';
+    const n = (typeof history !== 'undefined' ? history : []).filter(m => m.role === 'assistant').length, early = n < 4;
+    const exact = threadKey(figs) === threadKey(th.names.map(nm => figs.find(c => c.name === nm) || { figureId: '?' }));
+    return `\n\nFORTSETZUNG (Folge ${th.ep + 1} - wie eine Serie)${exact ? '' : ' - nicht alle von damals sind dabei'}: Bisher: ${th.stand}${th.offen && th.offen.length ? ' Offene Fäden: ' + th.offen.join('; ') + '.' : ''}${th.next ? ' Vorgemerkt für dieses Mal: ' + th.next : ''}${early ? '\nJETZT, zu Beginn: Knüpft spürbar daran an (ein offener Faden, ein Versprechen, eine Anspielung) und führt es weiter - nicht nacherzählen, sondern weitermachen, als wäre kaum Zeit vergangen. Passt es nicht zur neuen Szene, genügt eine kurze Anspielung.' : '\nGreift offene Fäden auf, wenn es passt, und löst sie im Lauf der Zeit ein.'}`;
+  } catch (e) { return ''; }
+}
+// Erinnerungs-Impuls: zu Beginn einer Sitzung und etwa jede fünfte Antwort greift eine anwesende Figur
+// eine konkrete, länger nicht genutzte Erinnerung auf (vorher kamen Erinnerungen kaum je zur Sprache)
+const memNudge = { used: new Set(), lastN: -1, lastText: '' };
+function memoryNudge() {
+  try {
+    // nach Anzahl der Antworten in diesem Gespräch (der Aufbau der Anweisung kann mehrmals je Antwort laufen)
+    const n = (typeof history !== 'undefined' ? history : []).filter(m => m.role === 'assistant').length;
+    if (memNudge.lastN === n) return memNudge.lastText || '';
+    memNudge.lastN = n; memNudge.lastText = '';
+    if (!(n === 0 || n % 5 === 4)) return '';
+    const cands = [];
+    characters.filter(c => !c.isUser && !c.isNarrator && c.figureId).forEach(c => (figureMemory(c.figureId) || '').split('\n').map(l => l.replace(/^[-•*\s]+/, '').trim()).filter(l => l.length > 12 && !memNudge.used.has(l)).forEach(l => cands.push({ who: c.name, l })));
+    if (!cands.length) return '';
+    const pick = cands[Math.floor(Math.random() * Math.min(cands.length, 12)) + Math.max(0, cands.length - 12)] || cands[cands.length - 1];
+    memNudge.used.add(pick.l);
+    try { logEvent('msg', { role: 'system', text: `Erinnerungs-Impuls: ${pick.who} - ${pick.l.slice(0, 80)}` }); } catch (e) {}
+    return (memNudge.lastText = `\n\nERINNERUNGS-IMPULS (nur für diese Antwort): ${pick.who} greift diese Erinnerung konkret auf - als Anspielung, Necken, Frage oder Vergleich mit jetzt, in eigenen Worten, nicht als Bericht: „${pick.l}"`);
+  } catch (e) { return ''; }
 }
 
 function buildRememberPrompt(figures, transcript) {
@@ -15277,6 +15563,8 @@ Ich bin der Nutzer. ${me ? `Im Gespräch war ich die Figur ${me.name}; Zeilen vo
 
 2. "figuren" - für jede dieser Figuren (${figures.map(c => c.name).join(', ')}) aus IHRER Sicht: was zwischen ihr und mir geschehen ist, das Wichtigste in Kürze; welche anderen Figuren dabei waren und wie sie zu ihnen steht. Höchstens 8 Stichpunkte je Figur.
 
+3. "faden" - der Handlungsfaden dieser Besetzung wie bei einer Serie: {"stand": "wo die Geschichte gerade steht, 1-2 Sätze", "offen": ["offene Fäden: Versprechen, Wetten, angekündigte Pläne, ungelöste Spannungen - höchstens 4"], "naechstes": "womit es nächstes Mal weitergehen könnte - ein kleiner Haken, 1 Satz"}. Bisheriger Faden: ${(threadFor(figures) || {}).stand || '(neu)'}
+
 Arbeite das Neue in das Bestehende ein, statt es anzuhängen: Behalte Wichtiges, fasse Ähnliches zusammen, streiche, was durch das neue Gespräch überholt ist. Älteres darf knapper werden. Deutsch, sachlich, ohne Zahlen, Werte oder Marker.
 
 BISHERIGES PROFIL:
@@ -15289,7 +15577,7 @@ DAS GESPRÄCH:
 ${transcript}
 
 Antworte NUR mit JSON, ohne Markdown:
-{"profil": "- ...\\n- ...", "figuren": {${figureKeys}}}`;
+{"profil": "- ...\\n- ...", "figuren": {${figureKeys}}, "faden": {"stand": "...", "offen": ["..."], "naechstes": "..."}}`;
 }
 
 function memoryText(v) {
@@ -15333,6 +15621,7 @@ async function rememberConversation(opts) {
       if (text) { setFigureMemory(c.figureId, text); updated.push(c.name); }
     });
 
+    try { if (data.faden && typeof data.faden === 'object' && data.faden.stand) { saveThread(figures, data.faden); } } catch (e) {}
     if (els.sharedProfile) els.sharedProfile.value = globalProfile();
     // Eine Zeile statt des ganzen Gedächtnisses - das stand sonst bei jedem
     // "Erinnern" komplett im Protokoll.
@@ -15435,7 +15724,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${absentBlock()}${relationsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -15857,7 +16146,26 @@ function applyQuickTempo(wish) {
   });
 }
 
+// Mehrere Figuren: wie bei einem echten Dreier zwischen Erwachsenen - sie haben auch miteinander etwas
+function togetherBlock() {
+  const f = characters.filter(c => !c.isUser && !c.isNarrator); if (f.length < 2) return '';
+  return `\n\nMITEINANDER (${f.map(c => c.name.split(' ')[0]).join(', ')}): Ihr seid nicht nur meinetwegen da, ihr habt auch miteinander etwas - jede nach ihrem Charakter: frotzelt und scherzt, macht euch Komplimente, findet einander anziehend und zeigt es (Blicke, ein Kuss, eine Berührung), feuert euch gegenseitig an, sprecht euch ab („du oben, ich unten"), reizt euch mit kleiner Rivalität, spielt an euch selbst, während ihr der anderen zuseht, lacht über einen Patzer. Wechselt ihr euch bei mir ab, sagt es kurz an („Jetzt ich", „Rutsch rüber") - dann gibt es eine kleine Pause, bevor die andere anfängt. Ich bleibe der rote Faden, aber das Miteinander macht es lebendig - etwa jede zweite Antwort ein kleiner Moment zwischen euch.`;
+}
+function isHandover(t) {
+  return /(?:^|[^a-zäöüß])(jetzt bin ich dran|ich bin dran|jetzt ich|du bist dran|jetzt du|ich übernehme|übernimm\w*|lass mich (mal |jetzt )?(ran|übernehmen)|rutsch\w* (mal )?(rüber|zur seite)|mach\w* (ihr |mir |dir )?platz|lässt (ihn|dich) los|lässt los|wechsel\w*|tausch\w* (die )?(plätze|platz|rollen)|löst (sie|mich|dich) ab|abwechseln)/i.test(String(t || '').replace(/\[[^\]]*\]/g, ' '));
+}
+// Figuren ohne Charakterkern bekommen beim ersten Gespräch einmal im Hintergrund einen (wirkt ab der nächsten Antwort)
+const coreQueued = new Set();
+function ensureCores() {
+  try {
+    characters.filter(c => !c.isUser && !c.isNarrator && c.figureId && !(c.core || '').trim() && !coreQueued.has(c.figureId)).slice(0, 3).forEach(c => {
+      coreQueued.add(c.figureId); const f = getFigure(c.figureId); if (!f) return;
+      upgradeFigure(f, true).then(r => { if (r && r.changed && r.changed.includes('Charakterkern')) { characters = characters.map(x => x.figureId === f.id ? Object.assign(x, { core: (latestVersion(f) || {}).core || '' }) : x); logEvent('msg', { role: 'system', text: `Charakterkern für ${r.name} angelegt.` }); } }).catch(() => {});
+    });
+  } catch (e) {}
+}
 async function askEnsemble(userText, options) {
+  ensureCores();
   // Ohne Figur, die antworten kann, erfand das Modell eine - mit dem Namen aus
   // den Prompt-Beispielen, ohne Stimme und ohne Aussehen.
   if (!characters.some(c => !c.isUser && !c.isNarrator)) {
@@ -16120,7 +16428,10 @@ async function askEnsemble(userText, options) {
       if (i === pieces.length - 1) nearEnd();
       if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
       noteSpeaker(pieces[i].role);
+      try { setMotionTint(pieces[i].role, pieces[i].text); } catch (e) {}
       try { if (typeof avk2MaybeSwap === 'function') avk2MaybeSwap(pieces[i].role, pieces[i].text); } catch (e) {}
+      // Handwechsel: hört eine Figur auf und die andere fängt an, kurz keine Bewegung (einmal je Antwort)
+      try { if (!pieces.__hw && isHandover(pieces[i].text)) { pieces.__hw = true; const ms = 1200 + Math.round(Math.random() * 600); device1.pauseFor(ms); } } catch (e) {}
       if (inline && pieces[i].role === 'narrator' && !(pieces[i].cues && pieces[i].cues.length)) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
@@ -17708,6 +18019,29 @@ async function hiResUrl(v) {
 }
 function upgradeImg(img, v) { if (!img || !v || !v.imageKey) return; hiResUrl(v).then(u => { if (u) img.src = u; }); }
 
+// Charakter schärfen: aus allem, was über die Figur bekannt ist, einen kräftigen, eigenen Kern schreiben (überschreibt den alten)
+async function sharpenCharacter(c, hint) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  let mem = ''; try { mem = (typeof figureMemoryText === 'function' ? figureMemoryText(c.figureId) : '') || ''; } catch (e) {}
+  const sys = `Hier ist eine Figur aus einem erotischen Rollenspiel zwischen Erwachsenen (alle volljährig, alles einvernehmlich). Schreibe ihr einen KRÄFTIGEN, UNVERWECHSELBAREN Charakterkern, der zu allem Bisherigen passt und sie deutlich von anderen Figuren abhebt - keine Allerweltsfigur, keine Floskeln.${hint ? '\nRICHTUNG: ' + hint : ''}
+${describeCharacter(Object.assign({}, c, { core: '' }))}
+${mem ? 'Was sie mit Til schon erlebt hat:\n' + mem.slice(0, 1500) : ''}
+${(() => { const o = figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && v.name !== c.name && (v.core || '').trim()).slice(0, 8).map(v => `- ${v.name}: ${(v.core.match(/Motiv:[^\n]*/) || [''])[0]} ${(v.core.match(/Eigenheiten:[^\n]*/) || [''])[0]}`.slice(0, 220)); return o.length ? 'SO SIND DIE ANDEREN FIGUREN - sie soll sich deutlich davon unterscheiden (anderes Motiv, andere Eigenheiten, anderer Ton):\n' + o.join('\n') : ''; })()}
+
+Gib NUR Zeilen in genau diesem Format zurück (deutsch, je 1-2 Sätze):
+Motiv: …
+Eigenheiten: …; …; …
+Sprechweise: …
+Was sie von Til will: …
+Vorlieben und Fetische: … (was sie besonders reizt - z. B. Kontrolle, Fesseln, Peitsche, Rollenspiel, Öl, Zuschauen, Langsamkeit - und was sie mit Til einmal ausprobieren möchte; zu ihr passend, einvernehmlich)
+Wie sie die Geschichte lenkt: … (mit Spannungsbogen: sie baut auf, probiert Neues behutsam aus, steigert erst später)
+Wiederkehrende Motive: …
+Innere Spannung: …`;
+  const out = String(await callProvider(provider, sys, [{ role: 'user', content: 'Schreibe den Charakterkern.' }], 0.85, taskBudget('draft', 900), { task: 'draft' }) || '').trim();
+  const lines = out.split('\n').map(l => l.trim()).filter(l => /^(Motiv|Eigenheiten|Sprechweise|Was sie von Til will|Vorlieben und Fetische|Wie sie die Geschichte lenkt|Wiederkehrende Motive|Innere Spannung)\s*:/i.test(l));
+  if (lines.length < 4) throw new Error('Keine brauchbare Antwort vom Modell');
+  return lines.join('\n').slice(0, 2000);
+}
 // ======================= FIGUR AUF AKTUELLEN STAND =======================
 function optionsList(defs) { return defs.map(d => `"${d.k}": ${d.opts.map(o => '"' + o[0] + '"').join(' | ')}`).join('\n'); }
 async function upgradeFigure(figure, quiet) {
@@ -17718,6 +18052,7 @@ async function upgradeFigure(figure, quiet) {
   if (!v.isNarrator && !(v.signature || '').trim()) missing.push('signature');
   if (!(v.styleExamples || '').trim()) missing.push('styleExamples');
   if (!(v.voiceDescription || '').trim()) missing.push('voiceDescription');
+  if (!v.isNarrator && !(v.core || '').trim()) missing.push('core');
   if (!missing.length) return { name: v.name, changed: [] };
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Hier ist eine Figur aus einem erotischen Rollenspiel zwischen Erwachsenen. Ergänze NUR die fehlenden Felder, passend zu allem, was schon da ist - nichts Widersprüchliches erfinden.
@@ -17728,6 +18063,7 @@ Fehlend: ${missing.join(', ')}
 - "signature": ein Markenzeichen - eine typische Geste, Bewegung oder ein Satz, an dem man sie sofort erkennt (1 Satz).
 - "styleExamples": drei bis vier typische Sätze von ihr, je eine Zeile, in ihrer Sprechweise.
 - "voiceDescription": englische Stimmbeschreibung für ElevenLabs Voice Design (Alter, Akzent, Klangfarbe, Ausdruck; 1-2 Sätze).
+- "core": ihr Charakterkern als kurze Zeilen: Motiv (was sie antreibt); Eigenheiten (2-3 unverwechselbare Angewohnheiten); Sprechweise (Wortwahl, Rhythmus, Lieblingswörter); Was sie von Til will; Vorlieben und Fetische (was sie besonders reizt und mit Til einmal ausprobieren möchte); Wie sie die Geschichte lenkt (welche Wendungen sie anstößt); Wiederkehrende Motive (Rituale, Spiele, Sätze); Innere Spannung (was sie reizt oder unsicher macht). Kräftig und eigen, nicht beliebig - eine erwachsene Figur, alles einvernehmlich.
 - "phantom": Objekt mit Merkmalen, je Feld genau eine der erlaubten Optionen oder weglassen, wenn das Aussehen nichts dazu sagt:
 ${optionsList(PHANTOM_FIELDS)}
 Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
@@ -17742,6 +18078,7 @@ Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
   }
   if (missing.includes('signature') && j.signature) { c.signature = String(j.signature).slice(0, 400); changed.push('Markenzeichen'); }
   if (missing.includes('styleExamples') && j.styleExamples) { c.styleExamples = (Array.isArray(j.styleExamples) ? j.styleExamples.join('\n') : String(j.styleExamples)).slice(0, 1200); changed.push('Tonfall-Beispiele'); }
+  if (missing.includes('core') && j.core) { c.core = (typeof j.core === 'object' ? Object.entries(j.core).map(([k, x]) => k + ': ' + (Array.isArray(x) ? x.join('; ') : x)).join('\n') : String(j.core)).slice(0, 2000); changed.push('Charakterkern'); }
   if (missing.includes('voiceDescription') && j.voiceDescription) { c.voiceDescription = String(j.voiceDescription).slice(0, 500); changed.push('Stimmbeschreibung'); }
   if (changed.length) { storeCharacterVersion(c, true); saveArchive(); }
   return { name: v.name, changed };
@@ -17751,6 +18088,36 @@ Antworte NUR als JSON mit genau den fehlenden Schlüsseln.`;
 // (Geschlecht passend, möglichst noch nicht vergeben). Keine neue Stimme wird
 // erzeugt - das bleibt der Knopf im Editor.
 const voiceReadyBusy = new Set();
+function voiceUsage(exceptFigId) { const m = {}; figureArchive.forEach(x => { const v = latestVersion(x); if (v && v.elevenVoice && x.id !== exceptFigId) m[v.elevenVoice] = (m[v.elevenVoice] || 0) + 1; }); return m; }
+function voicePool(v) {
+  const want = v.gender === 'weiblich' ? 'female' : v.gender === 'maennlich' ? 'male' : '';
+  const g = vc => String(((vc.labels || {}).gender) || '').toLowerCase();
+  const pool = elevenVoiceCache.filter(vc => !want || g(vc) === want || (!g(vc) && new RegExp(want === 'female' ? 'frau|female|woman|weib' : 'mann|male|man\\b', 'i').test((vc.name || '') + ' ' + (vc.description || ''))));
+  return pool.length ? pool : elevenVoiceCache.slice();
+}
+function pickVoiceFor(v, pool, figId) {
+  pool = pool || voicePool(v); if (!pool.length) return null;
+  const use = voiceUsage(figId), age = +v.age || 30, wantAge = age < 30 ? /young/ : age > 42 ? /middle|old|mature/ : /young|middle/;
+  const score = vc => (use[vc.voice_id] || 0) * 10 - (wantAge.test(String((vc.labels || {}).age || '')) ? 1 : 0) + Math.random() * 0.5;
+  return pool.slice().sort((a, b) => score(a) - score(b))[0];
+}
+// Alle Figuren: doppelt vergebene Stimmen neu verteilen, damit möglichst jede anders klingt
+async function spreadVoices(btn) {
+  if (!apiKeyFor('companion_elevenKey')) { showToast('Erst den ElevenLabs-Schlüssel eintragen', true); return; }
+  if (!elevenVoiceCache.length) { try { await loadElevenVoices(true); } catch (e) {} }
+  if (!elevenVoiceCache.length) { showToast('Keine Stimmen im ElevenLabs-Konto gefunden', true); return; }
+  const figs = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
+  const byVoice = {}; figs.forEach(f => { const id = latestVersion(f).elevenVoice || '-'; (byVoice[id] = byVoice[id] || []).push(f); });
+  const dups = Object.entries(byVoice).filter(([id, l]) => id === '-' || l.length > 1).flatMap(([id, l]) => id === '-' ? l : l.slice(1));
+  if (!dups.length) { showToast('Jede Figur hat schon ihre eigene Stimme'); return; }
+  if (!confirm(`${dups.length} Figuren teilen sich eine Stimme mit einer anderen (oder haben keine). Neue Stimmen aus deinem Konto verteilen - unbenutzte zuerst?`)) return;
+  let n = 0;
+  for (const f of dups) { const v = latestVersion(f), pick = pickVoiceFor(v, voicePool(v), f.id); if (pick && pick.voice_id !== v.elevenVoice) { v.elevenVoice = pick.voice_id; n++; characters.forEach(ch => { if (ch.figureId === f.id) ch.elevenVoice = pick.voice_id; }); } }
+  saveArchive(); try { saveCharacters(); } catch (e) {}
+  const left = Object.values(voiceUsage()).filter(k => k > 1).length;
+  showToast(`${n} Figuren neu vertont${left ? ` - ${left} Stimmen sind noch doppelt: dein Konto hat zu wenige. In ElevenLabs aus der Stimmbibliothek welche hinzufügen oder im Editor eigene erzeugen` : ''}`, !!left);
+  logEvent('msg', { role: 'system', text: `Stimmen verteilt: ${n} neu, ${left} noch doppelt, ${elevenVoiceCache.length} Stimmen im Konto.` });
+}
 async function ensureVoiceReady(figureId) {
   if (voiceReadyBusy.has(figureId)) return;
   const f = getFigure(figureId); const v = f && latestVersion(f);
@@ -17781,8 +18148,7 @@ Antworte NUR mit der Beschreibung.`, [{ role: 'user', content: 'Gib die Beschrei
         const g = vc => String(((vc.labels || {}).gender) || '').toLowerCase();
         let pool = elevenVoiceCache.filter(vc => !want || g(vc) === want || (!g(vc) && new RegExp(want === 'female' ? 'frau|female|woman|weib' : 'mann|male|man\\b', 'i').test((vc.name || '') + ' ' + (vc.description || ''))));
         if (!pool.length) pool = elevenVoiceCache.slice();
-        const fresh = pool.filter(vc => !used.has(vc.voice_id));
-        const pick = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length ? fresh : pool).length)];
+        const pick = pickVoiceFor(cur, pool);   // unbenutzte zuerst, sonst die am seltensten vergebene (passendes Alter bevorzugt)
         if (pick) { cur.elevenVoice = pick.voice_id; done.push('Stimme „' + pick.name + '" (gewürfelt)'); }
       }
     }
@@ -18216,6 +18582,7 @@ function flipSwipe(card, f) {
   const back = document.createElement('div'); back.className = 'sw-back';
   back.innerHTML = `<div style="font-family:var(--font-display); font-size:28px; font-weight:600;">${esc(v.name)}</div>
     ${v.signature ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14.5px; line-height:1.5;">${esc(v.signature)}</div></div>` : ''}
+    ${!v.isUser && !v.isNarrator ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Handschrift am Gerät</div><div style="font-size:14.5px; line-height:1.5;">${esc((v.deviceStyle || '').trim() || deviceStyleAuto(v))}</div></div>` : ''}
     ${v.styleExamples ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">So spricht sie</div>${v.styleExamples.split('\n').filter(Boolean).slice(0, 3).map(l => `<div style="font-family:var(--font-display); font-style:italic; font-size:17px; margin:4px 0;">„${esc(l)}"</div>`).join('')}</div>` : ''}
     ${rel.length ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Was andere über sie sagen</div>${rel.map(r => `<div style="font-size:14px; margin:4px 0;">${esc(r)}</div>`).join('')}</div>` : ''}
     ${diary ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Aus ihrem Tagebuch</div><div style="font-size:14px; line-height:1.5; font-style:italic;">${esc(diary.text.slice(0, 300))}</div></div>` : ''}
@@ -19381,12 +19748,18 @@ async function makePitches(count) {
   const old = pitchesToday();
   const recent = old ? old.cards.slice(0, 15).map(c => c.title).filter(Boolean) : [];
   const zahl = ['eine', 'zwei', 'drei', 'vier', 'fünf'][count - 1];
+  // Mischen: wer zuletzt oft auf Karten war, rückt nach hinten - wer selten dran war, kommt nach vorn
+  let seen = {}; try { seen = JSON.parse(localStorage.getItem('companion_pitchCast') || '{}'); } catch (e) {}
+  const sel = pool.map(x => ({ x, w: (seen[x.v.name] || 0) + Math.random() * 1.5 })).sort((a, b) => a.w - b.w).slice(0, 10).map(o => o.x);
+  const coreBit = v => { const c = String(v.core || ''); const m = (c.match(/Motiv:[^\n|]*/) || [''])[0], vl = (c.match(/(Vorlieben[^:\n]*|Fetisch[^:\n]*):[^\n|]*/i) || [''])[0]; return (m || vl) ? ' | ' + [m, vl].filter(Boolean).join(' · ').slice(0, 220) : ''; };
+  const threads = Object.values(threadsAll()).filter(t => t && t.stand && (t.offen || []).length).sort((a, b) => b.t - a.t).slice(0, 3);
   const sys = `Deine Figuren haben sich für heute Abend etwas für Til ausgedacht - ${count === 1 ? 'einen neuen Vorschlag' : zahl + ' verschiedene Vorschläge'}, wie Karten zum Aussuchen. Erwachsene, erotisch, verführerisch.
-Figuren:
-${pool.slice(0, 14).map(x => '- ' + x.v.name + ': ' + figureGist(x.v)).join('\n')}
+Figuren (die oberen waren lange nicht mehr auf einer Karte - nehmt bevorzugt sie):
+${sel.map(x => '- ' + x.v.name + ': ' + figureGist(x.v) + coreBit(x.v)).join('\n')}
+${threads.length ? 'Offene Serien (eine Karte darf eine davon fortsetzen - dann genau diese Figuren und „Folge X" im Titel): ' + threads.map(t => t.names.join(' & ') + ' (Folge ' + (t.ep + 1) + '): ' + (t.next || t.offen[0])).join(' · ') : ''}
 ${Object.keys(R).length ? 'Beziehungen: ' + Object.entries(R).slice(0, 8).map(([k, r]) => k.replace('|', ' & ') + ': ' + r.text).join('; ') : ''}
 ${recent.length ? 'Diese Karten gab es schon - mach etwas anderes (anderer Ort, andere Stimmung, andere Figuren): ' + recent.join(' · ') : ''}
-Regeln: ${count === 1 ? 'ein frischer, überraschender Vorschlag' : 'deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen'}. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen). Genau ${count} Karte${count === 1 ? '' : 'n'}.
+Regeln: ${count === 1 ? 'ein frischer, überraschender Vorschlag' : 'deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen'}. Jede Figur höchstens auf einer Karte. Wählt Konstellationen mit Spannung: Gegensätze (die Zarte mit der Strengen, die Erfahrene mit der Neugierigen), zwei, die sich necken oder heimlich anziehend finden, eine, die eine andere zu etwas überredet. Lasst die Vorlieben und Motive der Figuren die Idee tragen - z. B. eine Figur will heute ihren Fetisch mit Til ausleben, oder sie will vorsichtig etwas zum ersten Mal ausprobieren (langsam, mit viel Gefühl, dann mutiger). Nicht nur „immer wilder": eine Karte darf auch eine kleine Geschichte mit Wendung sein. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen). Genau ${count} Karte${count === 1 ? '' : 'n'}.
 Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..."], "scene": "..."}]}`;
   let j = null;
   try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 1.0, taskBudget('draft', 600 + 400 * count), { task: 'draft' })); } catch (e) { addMsg('system', 'Karten: ' + e.message); return null; }
@@ -19394,6 +19767,8 @@ Antworte NUR als JSON: {"cards": [{"title": "...", "teaser": "...", "cast": ["..
   const batch = Date.now().toString(36);
   const fresh = ((j && j.cards) || []).slice(0, count).map((c, i) => ({ key: batch + '_' + i, batch, made: Date.now(), isNew: true, title: String(c.title || ''), teaser: String(c.teaser || ''), scene: String(c.scene || ''), cast: (c.cast || []).map(n => matchSpeakerName(n, names)).filter(Boolean) })).filter(c => c.scene && c.cast.length);
   if (!fresh.length) return null;
+  Object.keys(seen).forEach(k => seen[k] *= 0.85);   // langsam vergessen
+  fresh.forEach(c => c.cast.forEach(n => seen[n] = (seen[n] || 0) + 1)); safeSet('companion_pitchCast', JSON.stringify(seen));
   const rest = old ? old.cards.map(c => Object.assign(c, { isNew: false })) : [];
   const P = { day: dayKeyLocal(), set: 'deck', cards: fresh.concat(rest), refreshes: (old ? old.refreshes || 0 : 0) + 1 };
   pitchSave(P);
@@ -21205,6 +21580,66 @@ document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
+// ---------- Charakter-Karte: wie verschieden sind deine Figuren? ----------
+function charMapData() {
+  return figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator).map(x => {
+    const sc = deviceStyleScores(x.v), tot = Math.max(1, sc.control + sc.tender + sc.tease + sc.urge + sc.follow);
+    const wx = Math.max(-1, Math.min(1, (sc.urge + sc.tease * 0.6 - sc.tender) / Math.max(4, tot * 0.8)));   // zart ← → wild
+    const wy = Math.max(-1, Math.min(1, (sc.control - sc.follow - sc.tender * 0.3) / Math.max(4, tot * 0.8)));   // folgt ↓ ↑ führt
+    const top = Object.entries({ führend: sc.control, zärtlich: sc.tender, neckend: sc.tease, wild: sc.urge, hingebungsvoll: sc.follow }).sort((a, b) => b[1] - a[1])[0];
+    return Object.assign(x, { sc, x: wx, y: wy, top: top[1] > 0 ? top[0] : 'unbestimmt' });
+  });
+}
+function openCharMap() {
+  const D = charMapData(); if (!D.length) { showToast('Noch keine Figuren'); return; }
+  let pd = 0, n = 0; for (let i = 0; i < D.length; i++) for (let j = i + 1; j < D.length; j++) { pd += Math.hypot(D[i].x - D[j].x, D[i].y - D[j].y); n++; } const spread = n ? pd / n : 0;
+  const quad = { 'führend & wild': 0, 'führend & zart': 0, 'folgend & wild': 0, 'folgend & zart': 0 }; D.forEach(d => { quad[(d.y >= 0 ? 'führend' : 'folgend') + ' & ' + (d.x >= 0 ? 'wild' : 'zart')]++; });
+  const empty = Object.entries(quad).filter(([, k]) => !k).map(([q]) => q), verdict = spread < 0.35 ? 'eine Blase - viele ähneln sich' : spread < 0.7 ? 'gemischt' : 'ein wilder Mix';
+  const v = document.createElement('div'); v.id = 'charMap';
+  v.style.cssText = 'position:fixed; inset:0; z-index:3000; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 24px;';
+  const S = Math.min(window.innerWidth - 32, 420);
+  v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🗺️ Charakter-Karte</h2><button type="button" class="btn-secondary cm-x" style="width:44px; height:44px; padding:0;">✕</button></div>
+    <p class="hint" style="margin:6px 0 10px;">${D.length} Figuren · Verteilung: <b>${verdict}</b>${empty.length ? ' · leer: ' + empty.join(', ') : ''}</p>
+    <div class="cm-plot" style="position:relative; width:${S}px; height:${S}px; margin:0 auto; border:1px solid rgba(255,255,255,0.15); border-radius:14px; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);">
+      <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.12);"></div><div style="position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.12);"></div>
+      <span style="position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7;">führt</span><span style="position:absolute; bottom:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7;">lässt sich führen</span>
+      <span style="position:absolute; left:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7;">zart</span><span style="position:absolute; right:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7;">wild</span>
+    </div>
+    <div class="cm-list" style="margin-top:12px; font-size:13.5px; line-height:1.5;"></div>
+    <button type="button" class="btn-primary cm-sharp" style="width:100%; margin-top:12px;">✨ Ecken verstärken - jede Figur deutlicher in ihre Richtung</button>
+    <p class="hint" style="margin-top:6px;">Schreibt jeder Figur einen neuen Kern, der ihre Richtung verstärkt (zärtliche zärtlicher, führende bestimmter …) und sie von den anderen abhebt - mit Vorlieben, die die Handlung lenken. Alte Versionen bleiben erhalten.</p>`;
+  document.body.appendChild(v);
+  const plot = v.querySelector('.cm-plot'), used = [];
+  D.forEach(d => {
+    let px = (d.x * 0.42 + 0.5) * S, py = (0.5 - d.y * 0.42) * S;
+    for (let k = 0; k < 12 && used.some(([a, b]) => Math.hypot(a - px, b - py) < 30); k++) { px += (k % 2 ? 1 : -1) * 18; py += 10; }
+    used.push([px, py]);
+    const e = document.createElement('div'); e.title = d.v.name + ' - ' + d.top;
+    e.style.cssText = `position:absolute; left:${px - 18}px; top:${py - 18}px; width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${({ führend: '#d9b26b', zärtlich: '#f2a7c3', neckend: '#8fd3ff', wild: '#ff6a5a', hingebungsvoll: '#b9a6ff' })[d.top] || '#888'};`;
+    e.innerHTML = avaHtml(d.v.name, d.v.image); plot.appendChild(e);
+    const lb = document.createElement('div'); lb.textContent = d.v.name.split(' ')[0]; lb.style.cssText = `position:absolute; left:${px - 30}px; top:${py + 19}px; width:60px; text-align:center; font-size:10px; opacity:0.85; pointer-events:none;`; plot.appendChild(lb);
+  });
+  const groups = {}; D.forEach(d => (groups[d.top] = groups[d.top] || []).push(d.v.name.split(' ')[0]));
+  v.querySelector('.cm-list').innerHTML = Object.entries(groups).map(([k, ns]) => `<div><b>${esc(k)}</b> (${ns.length}): ${esc(ns.join(', '))}</div>`).join('');
+  v.querySelector('.cm-x').onclick = () => v.remove();
+  v.querySelector('.cm-sharp').onclick = async (ev) => {
+    const b = ev.currentTarget; if (!confirm(`Alle ${D.length} Figuren in ihre Richtung schärfen?`)) return; b.disabled = true; let ok = 0;
+    const DIR = { führend: 'Verstärke ihre führende, bestimmende Seite deutlich - sie gibt den Ton an, hat klare Regeln und eine Vorliebe für Kontrolle', zärtlich: 'Verstärke ihre zärtliche, hingebungsvolle Seite deutlich - langsam, innig, sehr aufmerksam', neckend: 'Verstärke ihre neckende, verspielte Seite deutlich - Spiele, Wetten, Überraschungen, freche Sprüche', wild: 'Verstärke ihre wilde, drängende Seite deutlich - ungeduldig, gierig, laut, sie will mehr', hingebungsvoll: 'Verstärke ihre hingebungsvolle Seite deutlich - sie lässt sich gern führen, genießt es, sich hinzugeben', unbestimmt: 'Gib ihr eine klare, eigene Richtung, die bei den anderen Figuren noch fehlt' + (empty.length ? ' (frei ist z. B.: ' + empty.join(', ') + ')' : '') };
+    for (let i = 0; i < D.length; i++) { b.textContent = `✨ Schärfe … ${i + 1}/${D.length}`; try { const c = characterFromVersion(D[i].f); const core = await sharpenCharacter(c, DIR[D[i].top]); if (core) { c.core = core; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === D[i].f.id ? Object.assign(x, { core }) : x); ok++; } } catch (err) {} }
+    showToast(`${ok} von ${D.length} Figuren geschärft`); v.remove(); openCharMap();
+  };
+}
+document.getElementById('sharpenAllBtn').onclick = async (e) => {
+  const btn = e.currentTarget, list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; });
+  if (!list.length || !confirm(`Allen ${list.length} Figuren einen neuen, kräftigeren Charakterkern geben? Sie werden dabei bewusst voneinander unterschieden. Der bisherige Kern wird ersetzt (alte Version bleibt in der Versionsliste).`)) return;
+  btn.disabled = true; let ok = 0;
+  for (let i = 0; i < list.length; i++) {
+    btn.textContent = `✨ Schärfe … ${i + 1}/${list.length}`;
+    try { const c = characterFromVersion(list[i]); const core = await sharpenCharacter(c); if (core) { c.core = core; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === list[i].id ? Object.assign(x, { core }) : x); ok++; } } catch (err) {}
+  }
+  btn.disabled = false; btn.textContent = '✨ Alle Charaktere schärfen';
+  showToast(`${ok} von ${list.length} Charakteren geschärft`); try { renderFigureList(); } catch (err) {}
+};
 document.getElementById('deriveAllBtn').onclick = (e) => deriveAllFromPortraits(e.currentTarget);
 // Galerien auffüllen: jede Figur (auch das Ich) bekommt Bilder, bis sie
 // mindestens 4 hat. Wer schon 4 hat, wird übersprungen - der Knopf fängt also
@@ -21330,7 +21765,9 @@ function noteSession(kind, title, figs) {
   try { safeSet('companion_lastSession', JSON.stringify({ kind, title, figs: figs || [], t: Date.now() })); } catch (e) {}
 }
 function lastSession() { try { return JSON.parse(localStorage.getItem('companion_lastSession') || 'null'); } catch (e) { return null; } }
+function playCounts() { try { return JSON.parse(localStorage.getItem('companion_playCount') || '{}'); } catch (e) { return {}; } }
 function noteRecent(key) {
+  try { const c = playCounts(); c[key] = { n: ((c[key] || {}).n || 0) + 1, t: Date.now() }; safeSet('companion_playCount', JSON.stringify(c)); } catch (e) {}
   try {
     const list = JSON.parse(localStorage.getItem('companion_recentGames') || '[]').filter(k => k !== key);
     list.unshift(key);
@@ -21614,6 +22051,22 @@ function renderHomeExtras() {
     card.onclick = () => { if (live) { switchMode('live'); updateSessionTitle(); } else info.go(); };
     cont.appendChild(card);
   }
+  // Nächste Folge: die zuletzt erzählte Besetzung mit ihrem offenen Faden wieder aufnehmen
+  try {
+    const all = threadsAll(), th = Object.values(all).filter(x => x.ids && x.ids.length && x.next).sort((a, b) => b.t - a.t)[0];
+    if (th && !live) {
+      const c2 = document.createElement('button'); c2.type = 'button'; c2.className = 'home-continue'; c2.style.marginTop = '8px';
+      c2.innerHTML = `<span class="hc-ic">🎬</span><span class="hc-tx"><span class="hc-lbl">Nächste Folge ${th.ep + 1}</span><b>${esc(th.names.map(n => n.split(' ')[0]).join(' & '))}</b><span>${esc(th.next)}</span></span><span class="hc-go">▶</span>`;
+      c2.onclick = () => {
+        switchMode('live');   // lädt die Live-Besetzung - danach ersetzen (wie beim Wechsel aus der Geschichte)
+        characters = characters.filter(c => c.isUser || c.isNarrator);
+        th.ids.forEach(id => { if (getFigure(id)) addFigureToCast(id); });
+        try { saveCharacters(); refreshCastViews(); } catch (e) {}
+        enterLive({ setup: true });
+      };
+      cont.appendChild(c2);
+    }
+  } catch (e) {}
   const rec = document.getElementById('homeRecent');
   rec.innerHTML = '';
   const keys = recentGames().filter(k => GAME_INFO[k] && k !== 'live').slice(0, 2);
@@ -21647,11 +22100,24 @@ showGames = function () {
   els.topbarWhere.textContent = ' · Spielen';
   const host = document.getElementById('playGroups');
   host.innerHTML = '';
+  // Deine Lieblinge oben (oft und kürzlich gespielt), alles andere eingeklappt unter „Alle Spiele" - nichts verschwindet
+  const all = PLAY_GROUPS.flatMap(([, keys]) => keys), pc = playCounts(), now = Date.now();
+  const score = k => { const e = pc[k]; if (!e) return 0; return e.n * Math.exp(-(now - e.t) / (30 * 864e5)) + (now - e.t < 7 * 864e5 ? 1 : 0); };
+  recentGames().forEach((k, i) => { if (!pc[k] && all.includes(k)) pc[k] = { n: 1, t: now - i * 864e5 }; });
+  const favs = all.filter(k => score(k) > 0).sort((a, b) => score(b) - score(a)).slice(0, 4);
+  if (favs.length) {
+    const h = document.createElement('div'); h.className = 'home-label play-group'; h.textContent = 'Deine Lieblinge';
+    const grid = document.createElement('div'); grid.className = 'home-tiles';
+    favs.forEach(k => { const t = gameTile(k); if (t) grid.appendChild(t); });
+    host.append(h, grid);
+  }
+  const box = favs.length ? document.createElement('details') : host;
+  if (favs.length) { box.className = 'play-all'; box.innerHTML = '<summary class="home-label play-group" style="cursor:pointer;">Alle Spiele ▾</summary>'; host.appendChild(box); try { box.open = localStorage.getItem('companion_playAllOpen') === 'true'; box.ontoggle = () => safeSet('companion_playAllOpen', box.open ? 'true' : 'false'); } catch (e) {} }
   PLAY_GROUPS.forEach(([title, keys]) => {
     const h = document.createElement('div'); h.className = 'home-label play-group'; h.textContent = title;
     const grid = document.createElement('div'); grid.className = 'home-tiles';
     keys.forEach(k => { const t = gameTile(k); if (t) grid.appendChild(t); });
-    host.append(h, grid);
+    box.append(h, grid);
   });
   const hint = document.createElement('p'); hint.className = 'hint'; hint.style.marginTop = '14px';
   hint.textContent = 'Entdecken misst nur noch, was sich live nicht lernen lässt - am besten die Stimmen. Alles andere lernt die App nebenbei, solange der Pulsgurt verbunden ist.';
@@ -22183,7 +22649,14 @@ function arHit(e) {
   const base = d.move(ar.level);
   const boost = 1 + ar.burstLevel * 0.14;
   let req = Object.assign({}, base, { bpm: Math.min(230, Math.round(base.bpm * boost)) });
-  if (ar.burstLevel >= 3 && Math.random() < 0.5) req.texture = ['pulse', 'tremor', 'accel'][Math.floor(Math.random() * 3)];
+  // Überlagern statt ersetzen: trifft ein Zittern (Zunge) auf einen laufenden Hub (Hand, Vollgas) oder umgekehrt,
+  // läuft der Hub über den ganzen Bereich weiter und zittert dabei (vorher sprang das Gerät in den kleinen Bereich)
+  const prev = stacked ? ar.curReq : null, isVib = r => r && (r.texture === 'tremor' || r.texture === 'zitterhub'), isStroke = r => r && r.texture !== 'tremor' && (r.high - r.low) >= 250;
+  if (prev && ((isVib(req) && (isStroke(prev) || prev.texture === 'zitterhub')) || (isStroke(req) && isVib(prev)))) {
+    const st = isStroke(req) ? req : prev, vb = isVib(req) ? req : prev;
+    req = { low: Math.min(st.low, vb.low), high: Math.max(st.high, vb.high), bpm: Math.min(200, Math.round(Math.max(st.bpm, 40) * boost)), texture: 'zitterhub', vib: Math.max(vb.vib || vb.bpm || 150, 150) };
+  } else if (ar.burstLevel >= 3 && Math.random() < 0.5) req.texture = ['pulse', 'tremor', 'accel'][Math.floor(Math.random() * 3)];
+  ar.curReq = req;
   const dur = Math.round(d.dur * (stacked ? 1 + ar.burstLevel * 0.35 : 1) * (1 + (ar.level - 1) * 0.06));
   ar.burstUntil = now + dur;
   ar.floats.push({ x: ar.player.x, y: ar.player.y - 40, text: d.name + (ar.burstLevel ? ` ×${ar.burstLevel + 1}` : ''), life: 1.4 });
@@ -27682,6 +28155,34 @@ async function avSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =====================================================================
 // ======================= 🧍 3D-BAUKASTEN: KÖRPER AUS DEN FIGUREN =======================
 // =====================================================================
@@ -29637,10 +30138,10 @@ const AVK_POSE_RX = [
   ['titsLie', /((du liegst|auf dem rücken|im liegen|zwischen deine(n)? beine)[^.!?]{0,80}(brüste|titten|busen))/i],
   ['doggy', /\b(doggy|von hinten|auf allen vieren|vierfüßler\w*|hündchen\w*|streckt (dir )?(ihren|den) (po|hintern|arsch) entgegen|nimm mich von hinten|nimmst mich von hinten|nimmt (sie|dich) von hinten)/i],
   ['carry', /\b(hebst (sie|mich) hoch|hebt (sie|dich|mich) hoch|trägst (sie|mich)|im stehen|auf (deinen|den) arm(en)?|(schlingt|schlinge|legt) (sie )?(ihre|die|meine) beine um (dich|deine hüfte|deine taille)|beine um deine (hüfte|taille)|gegen die wand)/i],
-  ['mission', /\b(missionar\w*|(liegt|legt sich|lege mich|liege) (auf den|auf dem) rücken|spreizt (ihre|die|meine) beine|zwischen (ihre|meine) (beine|schenkel)|du (liegst|kniest) (auf|über) (ihr|mir)|über ihr|auf ihr liegst|kniest (dich )?zwischen)/i],
+  ['mission', /\b(leg dich auf mich|komm auf mich|nimm mich von vorn\w*|missionar\w*|(liegt|legt sich|lege mich|liege) (auf den|auf dem) rücken|spreizt (ihre|die|meine) beine|zwischen (ihre|meine) (beine|schenkel)|du (liegst|kniest) (auf|über) (ihr|mir)|über ihr|auf ihr liegst|kniest (dich )?zwischen)/i],
   ['tits', /\b(titten\w*fick|tittenfick|zwischen (ihre|ihren|meine|meinen|deine|deinen|die) (brüste|titten)|zwischen den brüsten|mit (ihren|meinen) (brüsten|titten) (um|reib|massier|verwöhn)|busen\w* (um|reib))/i],
-  ['ride', /\b(reit\w*|setzt sich auf (dich|ihn|deinen)|auf dir|auf dich drauf|lässt sich (auf|in) |in (sich|mich) (hinein|rein)|cowgirl|auf deinem schoß|nimmt dich in sich|sinkt auf dich)/i],
-  ['blow', /\b(blas\w*|bläs\w*|lutsch\w*|in den mund|in ihren mund|in meinen mund|mit (den|ihren|meinen) lippen|leckt (an )?(dir|dich|deinem|deine|ihn|die spitze|die eichel)|zunge (um|an|über) (die eichel|die spitze|deinen|dich)|saugt|schluck\w*|deepthroat|tief in (ihren|den) hals)/i],
+  ['ride', /\b(reit\w*|setz\w* (mich|sich)( \S+){0,3} auf (dich|ihn|deinen|deinem)|setzt sich auf (dich|ihn|deinen)|auf dir|auf dich drauf|lässt sich (auf|in) |in (sich|mich) (hinein|rein)|cowgirl|auf deinem schoß|nimmt dich in sich|sinkt auf dich)/i],
+  ['blow', /\b(nehm\w* (dich|ihn)( \S+){0,2} in (den|meinen|ihren) mund|blas\w*|bläs\w*|lutsch\w*|in den mund|in ihren mund|in meinen mund|mit (den|ihren|meinen) lippen|leckt (an )?(dir|dich|deinem|deine|ihn|die spitze|die eichel)|zunge (um|an|über) (die eichel|die spitze|deinen|dich)|saugt|schluck\w*|deepthroat|tief in (ihren|den) hals)/i],
   ['hand', /\b(wichs\w*|mit der hand|in die hand|in ihre hand|in seine hand|ihre hand (um|an)|umfasst (dich|ihn|deinen)|massiert (dich|ihn|deinen schwanz)|streichelt (dich|ihn|deinen schwanz)|reibt (dich|ihn|deinen))/i],
 ];
 const AVK_HAND_RX = [
@@ -29651,13 +30152,17 @@ const AVK_HAND_RX = [
   ['whip', /\b(peitsch\w*|auspeitsch\w*|gerte|flogger|reitgerte)\b/i],
   ['slap', /\b(klaps\w*|schlägt|schlag(e|en|t)?|klatsch\w*|haut dir|gibt dir einen|ohrfeig\w*|spank\w*|versohl\w*)\b/i],
 ];
-function avkFromText(text) {
+function avkFromText(text, fromUser) {
   if (!text || !AVK.on) return;
   const tx = String(text);
-  if (AVK.poseMode === 'auto') {
-    const hit = AVK_POSE_RX.find(([, rx]) => rx.test(tx));
-    if (hit && hit[0] !== AVK.pose && performance.now() - AVK.poseAt > 20000 && (AVK.vrmMode || !/tits|doggy|Lie|mission|carry/.test(hit[0]))) avkSwitch(hit[0]);   // nicht bei jedem Satz umschalten (wirkte wie Zucken)
+  // Stellung folgt der Handlung - auch nach einer Auswahl im Menü (die gilt als Start, nicht als Sperre: vorher blieb die App
+  // danach für immer dabei). Dein eigener Wunsch („Reite mich") wirkt sofort, sonst frühestens alle 20 s (Menü-Wahl: 45 s).
+  {
+    const hit = AVK_POSE_RX.find(([, rx]) => rx.test(tx)), since = performance.now() - (AVK.poseAt || 0);
+    const wait = fromUser ? 2500 : AVK.poseMode === 'auto' ? 20000 : 45000;
+    if (hit && hit[0] !== AVK.pose && since > wait && (AVK.vrmMode || !/tits|doggy|Lie|mission|carry/.test(hit[0]))) { avkSwitch(hit[0]); try { logEvent('msg', { role: 'system', text: '3D: Stellung ' + hit[0] + (fromUser ? ' (dein Wunsch)' : ' (aus der Handlung)') }); } catch (e) {} }
   }
+  if (fromUser) return;
   // Kleidung nach dem Gespräch: ausziehen / anziehen (mit kleiner Bewegung)
   try { const sx = avkStripFromText(tx); if (sx) avkStripStart(sx.mode, sx.parts); } catch (e) {}
   const h = AVK_HAND_RX.find(([, rx]) => rx.test(tx));
@@ -29718,9 +30223,12 @@ function avkCamera(t) {
     const piv = new T.Vector3(0, 0, ch.z);
     const rel = pos.clone().sub(piv); rel.applyAxisAngle(new T.Vector3(0, 1, 0), AV.yaw); pos = piv.add(rel);
   }
+  // eigener Zoom (zwei Finger / Mausrad), je Kameraansicht gemerkt: außen rückt die Kamera vor/zurück, aus deinen Augen ändert sich das Sichtfeld
+  const zm = avZoomGet(AV.camMode), pov = AV.camMode === 0 && eye;
+  if (!pov && Math.abs(zm - 1) > 0.01) pos = at.clone().add(pos.clone().sub(at).multiplyScalar(zm));
   pos.y += Math.sin(t * 0.4) * 0.004;
   // aus deinen Augen etwas weiter (wie echtes Sehen), sonst normal; nahe Ebene klein, damit nichts abgeschnitten wird
-  const fov = AV.camMode === 0 && eye ? 64 : 50, near = AV.camMode === 0 && eye ? 0.085 : 0.05;   // aus seinen Augen: sein eigener Kopf liegt vor der nahen Ebene und bleibt unsichtbar
+  const fov = AV.camMode === 0 && eye ? Math.max(38, Math.min(100, 64 * zm)) : 50, near = AV.camMode === 0 && eye ? 0.085 : 0.05;   // aus seinen Augen: sein eigener Kopf liegt vor der nahen Ebene und bleibt unsichtbar
   if (cam.fov !== fov || cam.near !== near) { cam.fov = fov; cam.near = near; cam.updateProjectionMatrix(); }
   // weich nachführen: kleine Zitter aus Körper und Takt verschwinden, große Wechsel springen sofort
   const C = AVK.camS || (AVK.camS = { p: pos.clone(), a: at.clone(), t, m: AV.camMode });
@@ -30100,6 +30608,14 @@ function avkVrmRig(vrm, cal) {
     setHand(sd, fdir, pd);
     softFingers(sd, curl === undefined ? 0.2 : curl, st.t);
     thumb(sd, (curl || 0) > 0.9 ? 0.3 : Math.min(1, 0.25 + (curl || 0.2)));   // Faust: Daumen liegt an statt abzustehen
+    // Fingerspitzen nicht in ihrem eigenen Körper (Oberschenkel, Brust): dann Hand flacher, Daumen anlegen
+    if (typeof avkSurfQuery === 'function' && AVK.surf && !window.__noTipFix) {
+      let worst = null;
+      const tipIn = () => { worst = null; B(sd + 'Hand').updateWorldMatrix(true, true); for (const f of ['Thumb', 'Index', 'Middle', 'Ring', 'Little']) { const b = B(sd + f + 'Distal'); if (!b) continue; const pt = b.getWorldPosition(V()), q = avkSurfQuery(pt); if (!q || q.p.distanceTo(pt) > 0.12) continue; const d = pt.clone().sub(q.p).dot(q.n); if (d < -0.004 && (!worst || d < worst.d)) worst = { d, n: q.n.clone() }; } return !!worst; };
+      if (tipIn()) { softFingers(sd, (curl === undefined ? 0.2 : curl) * 0.3, st.t); thumb(sd, 0.15); if (tipIn()) { softFingers(sd, 0, st.t); thumb(sd, 0); }
+        // immer noch drin: ganze Hand entlang der Hautnormale heraus (einmal je Bild)
+        if (!st.tipLift && tipIn()) { st.tipLift = true; try { rest(sd, target.clone().addScaledVector(worst.n, -worst.d + 0.006), 0, palm); } finally { st.tipLift = false; } } }
+    }
   }
   // Fuß gestreckt und flach: Spann liegt auf der Unterlage, Zehen zeigen nach hinten (wie beim echten Knien)
   const footFlat = (sd, y) => {
@@ -30962,7 +31478,7 @@ async function avkVrmShow(figId) {
   // Was gesprochen wird, steuert Stellung und zweite Hand
   const orig = prepareSpeech;
   prepareSpeech = function (text) { try { avkFromText(text); } catch (e) {} return orig.apply(this, arguments); };
-  if (typeof addMsg === 'function') { const oa = addMsg; addMsg = function (role, text) { try { if (role !== 'user' && role !== 'system') avkFromText(text); } catch (e) {} return oa.apply(this, arguments); }; }
+  if (typeof addMsg === 'function') { const oa = addMsg; addMsg = function (role, text) { try { if (role !== 'system') avkFromText(text, role === 'user'); } catch (e) {} return oa.apply(this, arguments); }; }
   // Knopf: Stellung (Auto / Hand / Mund / Reiten)
   const v = avView();
   const b = document.createElement('button'); b.type = 'button'; b.id = 'av3dPose'; b.className = 'btn-secondary';
@@ -31527,8 +32043,16 @@ function avCardboardStop() {
   b.textContent = '🥽'; b.title = 'VR: Brille oder Handy-Halterung'; b.setAttribute('aria-label', b.title);
   b.onclick = async () => {
     if (!AVK.on || !AVK.me) { avHint('VR geht im Zimmer mit dir (⚙ → „Mich mit anzeigen")'); return; }
-    if (await avXrSupported()) { try { await avXrStart(); } catch (e) { avHint('VR ging nicht: ' + e.message); avkLog('VR-Fehler: ' + e.message); } return; }
-    if (!confirm('Keine VR-Brille gefunden.\n\nHandy-VR starten? Das Bild wird für beide Augen geteilt - Handy quer in eine Cardboard- oder VR-Halterung stecken und den Kopf drehen. Beenden: zweimal tippen.')) return;
+    // Handys melden oft WebXR, zeigen dann aber nichts Brauchbares (Tils Handy: „VR-Sitzung gestartet", aber kein Bild) -
+    // auf Handys daher direkt Handy-VR; echte Brillen (Quest, Pico …) nutzen WebXR, ohne Bild nach 3 s geht es auf Handy-VR
+    const headset = /OculusBrowser|Quest|Pico|Wolvic|VR\b/i.test(navigator.userAgent || ''), phone = !headset && matchMedia('(pointer: coarse)').matches;
+    if (!phone && await avXrSupported()) {
+      try { await avXrStart(); let frames = 0; const S = AVK.vr.sess; const cnt = () => { frames++; if (frames < 5 && AVK.vr.sess === S) S.requestAnimationFrame(cnt); }; try { S.requestAnimationFrame(cnt); } catch (e) {}
+        setTimeout(async () => { if (AVK.vr.sess === S && frames < 3) { avkLog('VR: keine Bilder von der Brille - wechsle auf Handy-VR'); try { await S.end(); } catch (e) {} try { await avCardboardStart(); } catch (e) {} } }, 3000);
+      } catch (e) { avHint('VR-Brille ging nicht - starte Handy-VR'); avkLog('VR-Fehler: ' + e.message); try { await avCardboardStart(); } catch (e2) { avkLog('Cardboard-Fehler: ' + e2.message); } }
+      return;
+    }
+    if (!phone && !confirm('Keine VR-Brille gefunden.\n\nHandy-VR starten? Das Bild wird für beide Augen geteilt - Handy quer in eine Cardboard- oder VR-Halterung stecken und den Kopf drehen. Beenden: zweimal tippen.')) return;
     try { await avCardboardStart(); } catch (e) { avHint('Handy-VR ging nicht: ' + e.message); avkLog('Cardboard-Fehler: ' + e.message); }
   };
   avkSideCol().appendChild(b);
@@ -32294,6 +32818,9 @@ function avkEdOpen(mode) {
       if (!AVK.me && !AVKE.meBusy) { AVKE.meBusy = true; avkEdMeRebuild().finally(() => { AVKE.meBusy = false; }); }
       const meSl = (k, label, min, max, step, val, fmt, apply) => { const w = document.createElement('label'); w.style.cssText = 'display:block; font-size:13px; margin-top:10px;'; w.innerHTML = `<span style="display:flex; justify-content:space-between;"><span>${label}</span><span class="v" style="color:rgba(255,255,255,0.6);">${fmt(val)}</span></span><input type="range" min="${min}" max="${max}" step="${step}" value="${val}" style="width:100%;">`; const inp = w.querySelector('input'); inp.oninput = () => { w.querySelector('.v').textContent = fmt(+inp.value); apply(+inp.value); }; return w; };
       const meChanged = () => { AVKE.dirty = true; clearTimeout(AVKE.meT); AVKE.meT = setTimeout(avkEdMeRebuild, 450); };
+      { const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'btn-primary'; gb.style.cssText = 'width:100%; margin-top:6px; padding:9px 12px; font-size:14px;'; gb.textContent = '🪄 Gestalte mich (aus meinem Profilbild)';
+        gb.onclick = async () => { gb.disabled = true; gb.textContent = '🪄 Ich schaue mir dein Bild an …'; try { const r = await avkMeFromImage(); avHint(r); await avkEdMeRebuild(); avkEdOpen('me'); } catch (e) { alert('Gestalten ging nicht: ' + e.message); gb.disabled = false; gb.textContent = '🪄 Gestalte mich (aus meinem Profilbild)'; } };
+        body.appendChild(gb); }
       body.appendChild(hint('Dein Körper - gilt für alle Figuren. Größe in cm, Figur und Muskeln wirken nach etwa einer halben Sekunde.'));
       body.appendChild(meSl('weight', 'Figur (schlank ↔ kräftig)', -1, 1, 0.02, pp.weight || 0, sign, v => { avkSetOverride('__me', 'params', 'weight', v); meChanged(); }));
       body.appendChild(meSl('muscle', 'Muskeln', -0.2, 1, 0.02, pp.muscle || 0, x => Math.round(x * 100), v => { avkSetOverride('__me', 'params', 'muscle', v); meChanged(); }));
@@ -33358,13 +33885,33 @@ function avk2Frame(dt, t) {
   AVK2.side = AVK2.side ? AVK2.side.lerp(want, Math.min(1, dt * 1.5)).normalize() : want;
   const bedY = AVK.room ? AVK.room.bed.position.y : 0;
   const spineDir = head.clone().sub(hip || chest); const lying = spineDir.lengthSq() > 1e-6 ? spineDir.normalize().y < 0.75 : chest.y - bedY < 0.4;;   // er liegt (oder lehnt): Wirbelsäule flacher als ~50°
-  AVK2.lean = (AVK2.lean || 0) + ((lying ? 0.95 : 0) - (AVK2.lean || 0)) * Math.min(1, dt * 2);
-  const pos = chest.clone().addScaledVector(AVK2.side, lying ? 0.33 : 0.42); pos.y = bedY;
+  // Plätze je Stellung (wie man zwei Partnerinnen üblicherweise anordnet) - die Nebenfigur tut etwas statt nur dazuknien
+  const mB = n => AV.vrm ? AV.vrm.humanoid.getNormalizedBoneNode(n) : null, mh = mB('head') ? mB('head').getWorldPosition(V()) : null, mhip = mB('hips') ? mB('hips').getWorldPosition(V()) : null;
+  const along = head.clone().sub(hip || chest).setY(0); if (along.lengthSq() < 1e-6) along.set(0, 0, 1); along.normalize();
+  const pov = AV.camMode === 0, ps = AVK.pose;
+  let base, face = chest, leanT = lying ? 0.95 : 0.1, handOk = true, look0 = head;
+  if (ps === 'ride' && !pov) { base = head.clone().addScaledVector(AVK2.side, 0.3).addScaledVector(along, -0.12); face = head; leanT = 1.05; }   // kniet an deinem Kopf, beugt sich zum Küssen herunter
+  else if (ps === 'ride') { base = chest.clone().lerp(hip || chest, 0.5).addScaledVector(AVK2.side, 0.5); leanT = 0.3; }   // aus deinen Augen: neben deiner Brust (nicht vor der Kamera)
+  else if (/Lie$/.test(ps)) { base = chest.clone().addScaledVector(AVK2.side, 0.33).addScaledVector(along, 0.05); face = head; leanT = 0.95; }   // neben deiner Brust, Gesicht zu deinem Hals
+  else if (ps === 'doggy' && mh && mhip) { const mf = mh.clone().sub(mhip).setY(0); if (mf.lengthSq() < 1e-6) mf.set(0, 0, 1); mf.normalize(); base = mh.clone().addScaledVector(mf, 0.55); face = mh; leanT = 0.35; handOk = false; look0 = mh; }   // kniet vor der Hauptfigur, Gesicht zu ihr
+  else if (ps === 'mission' && mh) { base = mh.clone().addScaledVector(AVK2.side, 0.38); face = mh; leanT = 0.6; handOk = false; look0 = mh; }   // neben ihrem Kopf
+  else if (ps === 'carry') { base = chest.clone().addScaledVector(AVK2.side, 0.65); leanT = 0; handOk = false; }
+  else base = chest.clone().addScaledVector(AVK2.side, lying ? 0.33 : 0.42);
+  // aus deinen Augen nie direkt vor der Kamera
+  if (pov && AV.camera) { const c = AV.camera.position, d = base.clone().sub(c).setY(0), L0 = d.length(); if (L0 < 0.5) base.add((L0 > 1e-3 ? d.multiplyScalar(1 / L0) : AVK2.side.clone()).multiplyScalar(0.5 - L0)); }
+  // Boden unter ihr: auf dem Bett oder - stehst du davor - auf deiner Fußhöhe (vorher schwebte sie dann in Betthöhe neben dir)
+  { const feet = Object.values(HB).filter(b => /^(foot|toe)/i.test(b.name)).map(b => b.getWorldPosition(V()).y); const footY = feet.length ? Math.min(...feet) : bedY; AVK2.ground = Math.min(bedY, footY - 0.02); }
+  base.y = AVK2.ground;
+  AVK2.pos = AVK2.pos && AVK2.posPose === ps ? AVK2.pos.lerp(base, Math.min(1, dt * 3)) : base.clone(); AVK2.posPose = ps;
+  AVK2.lean = (AVK2.lean || 0) + (leanT - (AVK2.lean || 0)) * Math.min(1, dt * 2); AVK2.handOk = handOk; AVK2.look0 = look0;
+  const pos = AVK2.pos.clone();
   vrm.scene.position.copy(pos);
-  const toHim = chest.clone().sub(pos).setY(0); vrm.scene.rotation.set(0, Math.atan2(toHim.x, toHim.z) + Math.PI, 0);
+  const toHim = face.clone().sub(pos).setY(0); vrm.scene.rotation.set(0, Math.atan2(toHim.x, toHim.z) + Math.PI, 0);
+  // aus deinen Augen: ihr Kopf (nach dem Vorbeugen) mindestens 0,6 m von der Kamera - sonst rückt sie weiter weg
+  if (pov && AV.camera) { vrm.scene.updateMatrixWorld(true); const hb = Bn('head'); if (hb) { const hp = hb.getWorldPosition(V()), c = AV.camera.position, d = hp.distanceTo(c); if (d < 0.6) { const dir = hp.clone().sub(c).setY(0); if (dir.lengthSq() < 1e-6) dir.copy(AVK2.side); dir.normalize(); const add = dir.multiplyScalar(0.6 - d + 0.05); AVK2.pos.add(add); vrm.scene.position.add(add); } } }
   vrm.scene.updateMatrixWorld(true);
   // Knie auf die Matratze
-  { const ys = ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot', 'leftToes', 'rightToes'].map(n => Bn(n)).filter(Boolean).map(b => b.getWorldPosition(V()).y); if (ys.length) vrm.scene.position.y += bedY - Math.min(...ys) + 0.035; }   // nicht in der Hauptfigur: kommen deren Beine/Körper ihrem Rumpf oder Kopf zu nah (z. B. beim Tragen), rückt sie nach außen
+  { const ys = ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot', 'leftToes', 'rightToes'].map(n => Bn(n)).filter(Boolean).map(b => b.getWorldPosition(V()).y); if (ys.length) vrm.scene.position.y += (AVK2.ground !== undefined ? AVK2.ground : bedY) - Math.min(...ys) + 0.035; }   // nicht in der Hauptfigur: kommen deren Beine/Körper ihrem Rumpf oder Kopf zu nah (z. B. beim Tragen), rückt sie nach außen
   if (AV.vrm) { const mb = ['leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot'].map(n => AV.vrm.humanoid.getNormalizedBoneNode(n)).filter(Boolean).map(b => b.getWorldPosition(V()));
     const sb = ['hips', 'spine', 'chest', 'neck', 'head'].map(n => Bn(n)).filter(Boolean).map(b => b.getWorldPosition(V()));
     let need = -1; for (const a of mb) for (const b of sb) need = Math.max(need, 0.14 - a.distanceTo(b));
@@ -33376,7 +33923,7 @@ function avk2Frame(dt, t) {
   // Blick: spricht sie selbst, schaut sie dich an - sonst die Sprecherin
   const mainName = (latestVersion(getFigure(AVK.figId) || { versions: [] }) || {}).name;
   const mineTalking = !!(AVK2.name && AV.speaker === AVK2.name && typeof someoneSpeaking === 'function' && someoneSpeaking());
-  const lookAt = !mineTalking && AV.speaker === mainName && AV.vrm ? AV.vrm.humanoid.getNormalizedBoneNode('head').getWorldPosition(V()) : head;
+  const lookAt = !mineTalking && AV.speaker === mainName && AV.vrm ? AV.vrm.humanoid.getNormalizedBoneNode('head').getWorldPosition(V()) : mineTalking ? head : (AVK2.look0 || head);
   AVK2.look.position.lerp(lookAt, Math.min(1, dt * 4));
   const hd = Bn('head'); if (hd) { hd.updateWorldMatrix(true, false); const lp = hd.parent.worldToLocal(AVK2.look.position.clone()), yaw = Math.atan2(lp.x, lp.z) * k0; hd.rotation.y = Math.max(-0.6, Math.min(0.6, yaw * 0.6)); hd.rotation.x = 0.1; }
   // Mimik
@@ -33409,7 +33956,7 @@ function avk2Hand(vrm, Bn, chest, head, dt, tt) {
   // Handgelenk: über der Haut, Handballen zurück, damit die Handfläche aufliegt
   const toT = tgt.clone().sub(S); const fdir = toT.clone().sub(n.clone().multiplyScalar(toT.dot(n))).normalize();
   const W = tgt.clone().addScaledVector(n, 0.035).addScaledVector(fdir, -0.06);
-  const reach = S.distanceTo(W) < (a + b) * 0.96; AVK2.dbg = { d: +S.distanceTo(W).toFixed(2), ab: +(a + b).toFixed(2), dy: +(S.y - W.y).toFixed(2) };
+  const reach = AVK2.handOk !== false && S.distanceTo(W) < (a + b) * 0.96; AVK2.dbg = { d: +S.distanceTo(W).toFixed(2), ab: +(a + b).toFixed(2), dy: +(S.y - W.y).toFixed(2) };
   AVK2.handW = Math.max(0, Math.min(1, (AVK2.handW || 0) + (reach ? dt / 0.8 : -dt / 0.5)));
   const w = AVK2.handW * AVK2.handW * (3 - 2 * AVK2.handW); if (w < 0.01) return;
   const Wt = W0.clone().lerp(W, w), d = Math.min(S.distanceTo(Wt), (a + b) * 0.999), dir = Wt.clone().sub(S).normalize();
@@ -33469,6 +34016,54 @@ async function avk2MaybeSwap(role, text) {
     avkLog('Rollentausch: ' + (AVK2.name || '?') + ' übernimmt');
   } catch (e) { avkLog('Rollentausch: ' + e.message); }
   finally { if (f) setTimeout(() => { f.style.opacity = '0'; }, 80); AVK2.swapping = false; }
+}
+
+// ---------- Zoom mit zwei Fingern / Mausrad ----------
+function avZoomAll() { try { return JSON.parse(localStorage.getItem('companion_av3dZoom') || '{}'); } catch (e) { return {}; } }
+function avZoomGet(m) { const z = +avZoomAll()[m]; return z > 0 ? z : 1; }
+function avZoomSet(m, z) { const a = avZoomAll(); a[m] = Math.max(0.55, Math.min(2.2, z)); safeSet('companion_av3dZoom', JSON.stringify(a)); AVK.camS = null; }
+function avkZoomBind() {
+  const cv = document.getElementById('av3dCanvas'); if (!cv || cv.__zoomBound) return; cv.__zoomBound = true;
+  cv.style.touchAction = 'none';
+  const pts = new Map(); let pinch = null;
+  const dist = () => { const a = [...pts.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); };
+  cv.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { pinch = { d: dist(), z: avZoomGet(AV.camMode), yaw: AV.yaw }; } }, true);
+  cv.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size >= 2) { e.stopImmediatePropagation(); AV.yaw = pinch.yaw; const d = dist(); if (d > 10) { const z = pinch.z * pinch.d / d; avZoomSet(AV.camMode, z); avHint('Zoom ' + Math.round(100 / avZoomGet(AV.camMode)) + ' %'); } }
+  }, true);
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => cv.addEventListener(n, up, true));
+  cv.addEventListener('wheel', e => { e.preventDefault(); avZoomSet(AV.camMode, avZoomGet(AV.camMode) * Math.exp(e.deltaY * 0.0012)); avHint('Zoom ' + Math.round(100 / avZoomGet(AV.camMode)) + ' %'); }, { passive: false });
+  // Doppeltippen: Zoom zurücksetzen
+  let lastTap = 0; cv.addEventListener('pointerup', e => { const n = performance.now(); if (n - lastTap < 300 && pts.size === 0) { avZoomSet(AV.camMode, 1); avHint('Zoom zurückgesetzt'); } lastTap = n; });
+}
+setInterval(() => { try { if (AV.open) avkZoomBind(); } catch (e) {} }, 1000);
+
+// ---------- „Gestalte mich": dein Körper aus deinem Profilbild ----------
+async function avkMeFromImage() {
+  const me = typeof archiveMeFigure === 'function' ? archiveMeFigure() : null, v = me ? latestVersion(me) : null;
+  if (!v) throw new Error('Lege zuerst dein Profil an (Ich → Profil)');
+  const url = v.imageKey ? await loadFullImage(v.imageKey).catch(() => null) : (v.image || null);
+  const st = avkStore(); delete st.__me; safeSet('companion_body3d', JSON.stringify(st));   // frisch ableiten statt alter Regler
+  if (!url) return 'Kein Profilbild - aus deiner Beschreibung abgeleitet';
+  const sys = `Du bekommst ein Bild eines erwachsenen Mannes (der Nutzer selbst). Lies sein Aussehen ab und antworte NUR als JSON:
+{"build":"slim|average|athletic|muscular|heavy","age":30,"skin":"pale|fair|olive|tan|brown|dark","hair":"platinum blonde|golden blonde|dark blonde|light brown|chestnut brown|black|auburn|red|silver|bald","eyes":"blue|green|brown|grey"}
+Schätze nur, was zu sehen ist; ist etwas nicht erkennbar, lass das Feld weg.`;
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Hier das Bild.', images: [url] }], 0.2, taskBudget('vision', 300), { task: 'vision' });
+  const j = parseJsonLoose(raw) || {};
+  if (!j.build && !j.skin && !j.hair) throw new Error('Das Bild-Modell hat nicht geantwortet (Einstellungen → Modelle je Aufgabe → „Bilder verstehen")');
+  const B = { slim: [-0.5, 0], average: [0, 0.1], athletic: [-0.15, 0.5], muscular: [0, 0.85], heavy: [0.7, 0.1] }[j.build];
+  if (B) { avkSetOverride('__me', 'params', 'weight', B[0]); avkSetOverride('__me', 'params', 'muscle', B[1]); }
+  if (+j.age >= 18) avkSetOverride('__me', 'params', 'older', Math.max(0.04, Math.min(0.7, (+j.age - 25) / 65)));
+  const SK = { pale: 'pale porcelain skin', fair: 'fair skin', olive: 'olive skin', tan: 'sun-tanned skin', brown: 'brown skin', dark: 'dark skin' }[j.skin];
+  if (SK && AVK_SKIN[SK]) { avkSetOverride('__me', 'look', 'skin', AVK_SKIN[SK]); avkSetOverride('__me', 'look', 'nipples', /brown|dark/.test(SK) ? '#3e2218' : '#a8705e'); }
+  const H = { 'platinum blonde': 'platinum blonde', 'golden blonde': 'golden blonde', 'dark blonde': 'dark blonde', 'light brown': 'light brown hair', 'chestnut brown': 'chestnut brown hair', black: 'black hair', auburn: 'auburn hair', red: 'fiery red hair', silver: 'silver hair' }[j.hair];
+  if (j.hair === 'bald') avkSetOverride('__me', 'hair', 'bald', true); else if (H && AVK_HAIR[H]) { avkSetOverride('__me', 'hair', 'color', AVK_HAIR[H]); avkSetOverride('__me', 'hair', 'bald', false); }
+  const EY = { blue: '#3f78b8', green: '#4c8a4a', brown: '#5a3a1e', grey: '#7a8088' }[j.eyes]; if (EY) avkSetOverride('__me', 'look', 'iris', EY);
+  try { logEvent('msg', { role: 'system', text: `3D: Gestalte mich - ${[j.build, j.age && j.age + ' J.', j.skin, j.hair, j.eyes].filter(Boolean).join(', ')}` }); } catch (e) {}
+  return 'Aus deinem Bild: ' + [{ slim: 'schlank', average: 'normal', athletic: 'sportlich', muscular: 'muskulös', heavy: 'kräftig' }[j.build], j.hair === 'bald' ? 'Glatze' : null].filter(Boolean).join(', ') + ' - mit den Reglern feinjustieren';
 }
 
 {
