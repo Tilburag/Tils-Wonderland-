@@ -1625,11 +1625,11 @@
           <li>Auf dem zweiten Gerät dasselbe eintragen (gleiches Kennwort). Beim ersten Abgleich holt es sich alles vom ersten Gerät.</li>
         </ol></details>
       <label for="syncRepo">Repository</label><input type="text" id="syncRepo" placeholder="dein-name/notizen-daten" autocomplete="off">
-      <label for="syncToken">GitHub-Token</label><input type="password" id="syncToken" placeholder="github_pat_…" autocomplete="off">
-      <label for="syncPass">Abgleich-Kennwort</label><input type="password" id="syncPass" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="new-password">
+      <label for="syncToken">GitHub-Token</label><input type="text" id="syncToken" name="nz-sync-a" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
+      <label for="syncPass">Abgleich-Kennwort</label><input type="text" id="syncPass" name="nz-sync-b" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc;">
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="syncImages" style="width:auto;"><span style="font-size:13.5px;">Bilder mit abgleichen (beim ersten Mal dauert das eine Weile)</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0 0;"><input type="checkbox" id="syncOnBox" style="width:auto;"><span style="font-size:13.5px;"><b>Abgleich an</b></span></label>
-      <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button></div>
+      <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button><button class="btn-secondary" id="syncResetBtn" type="button" title="Daten auf GitHub verwerfen und von diesem Gerät neu hochladen">♻️ Neu anlegen</button></div>
       <p class="hint" id="syncStatus" style="margin-top:6px;"></p>
     </details>
     <details class="subsection">
@@ -3702,8 +3702,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.52';
+const APP_VERSION = '3.53';
 const CHANGELOG = [
+  { v: '3.53', date: '2026-10-24', items: [
+    '🔄 Abgleich: Dateien werden jetzt auf dem sicheren Weg von GitHub geholt (der bisherige Weg lieferte offenbar nicht die Datei selbst - daher „Entschlüsseln ging nicht")',
+    '🔄 Prüfdatei: sagt sofort und eindeutig, ob das Kennwort zu den Daten passt; kaputte Einzelbilder werden übersprungen statt alles abzubrechen',
+    '🔄 Neuer Knopf „♻️ Neu anlegen": verwirft die Abgleich-Daten auf GitHub und legt sie vom aktuellen Gerät neu an',
+    '🔄 Token- und Kennwortfeld nehmen nur noch, was du selbst tippst oder einfügst - der Browser kann dort nichts mehr automatisch eintragen',
+  ] },
   { v: '3.52', date: '2026-10-24', items: [
     '🔄 Geräte-Abgleich hat jetzt eine eigene Zeile in den Einstellungen (war vorher versteckt, nur über die Suche „Abgleich“ zu finden)',
   ] },
@@ -4932,9 +4938,17 @@ async function ghApi(path, opts) {
   if (!res.ok) throw new Error('GitHub ' + res.status + ': ' + (await res.text()).slice(0, 120));
   return res;
 }
-async function ghGet(path) {   // → ArrayBuffer oder null; merkt sich die sha
-  const meta = await ghApi(path); if (!meta) return null; const j = await meta.json(); sync.shas[path] = j.sha;
-  const raw = await ghApi(path, { accept: 'application/vnd.github.raw' }); return raw ? await raw.arrayBuffer() : null;
+function b64ToBytes(b64) { const bin = atob(String(b64 || '').replace(/\s/g, '')); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+async function ghGet(path) {   // → ArrayBuffer oder null; merkt sich die sha. Ohne „raw"-Abruf: Inhalt kommt base64 im JSON, große Dateien über die Blob-Schnittstelle
+  const meta = await ghApi(path); if (!meta) return null; const j = await meta.json();
+  if (!j || Array.isArray(j) || !j.sha) throw new Error('GitHub lieferte für ' + path + ' keine Datei');
+  sync.shas[path] = j.sha;
+  if (j.encoding === 'base64' && j.content) return b64ToBytes(j.content).buffer;
+  if (!j.size) return new ArrayBuffer(0);
+  const c = syncCfg();
+  const res = await fetch(`https://api.github.com/repos/${c.repo}/git/blobs/${j.sha}`, { headers: { Authorization: 'Bearer ' + c.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, cache: 'no-store' });
+  if (!res.ok) throw new Error('GitHub ' + res.status + ' beim Laden von ' + path);
+  const b = await res.json(); return b64ToBytes(b.content).buffer;
 }
 async function ghPut(path, bytes, msg) {
   const b64 = await blobToBase64(new Blob([bytes]));
@@ -4942,15 +4956,35 @@ async function ghPut(path, bytes, msg) {
   const res = await ghApi(path, { method: 'PUT', body: Object.assign({ message: msg || 'Abgleich', content: b64 }, sync.shas[path] ? { sha: sync.shas[path] } : {}) });
   const j = await res.json(); sync.shas[path] = j.content && j.content.sha;
 }
+const SYNC_CHECK = 'notizen-abgleich-ok';
 async function syncKey() {
   const c = syncCfg(); if (sync.key && sync.keyFor === c.repo + c.pass) return sync.key;
-  let saltBuf = await ghGet('salt.bin');
-  if (!saltBuf) { const salt = crypto.getRandomValues(new Uint8Array(16)); await ghPut('salt.bin', salt, 'Abgleich eingerichtet'); saltBuf = salt.buffer; }
-  sync.key = await deriveBackupKey(c.pass, new Uint8Array(saltBuf)); sync.keyFor = c.repo + c.pass; return sync.key;
+  let saltBuf = await ghGet('salt.bin'), fresh = false;
+  if (!saltBuf) { const salt = crypto.getRandomValues(new Uint8Array(16)); await ghPut('salt.bin', salt, 'Abgleich eingerichtet'); saltBuf = salt.buffer; fresh = true; }
+  const key = await deriveBackupKey(c.pass, new Uint8Array(saltBuf));
+  // Prüfdatei: zeigt sofort, ob das Kennwort zu den Daten auf GitHub passt
+  const chk = fresh ? null : await ghGet('check.bin');
+  if (chk) {
+    const b = new Uint8Array(chk); let ok = false;
+    try { ok = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, key, b.slice(12))) === SYNC_CHECK; } catch (e) {}
+    if (!ok) { sync.key = null; const e = new Error('Das Abgleich-Kennwort passt nicht zu den Daten auf GitHub. Gib hier das Kennwort ein, mit dem du den Abgleich zuerst eingerichtet hast - oder tippe auf „Neu anlegen".'); e.wrongPass = true; throw e; }
+  } else {
+    const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(SYNC_CHECK)));
+    const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); await ghPut('check.bin', out, 'Abgleich-Prüfung');
+  }
+  sync.key = key; sync.keyFor = c.repo + c.pass; return sync.key;
 }
 async function syncEnc(bytes) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await syncKey(), bytes)); const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); return out; }
-async function syncDec(buf) { const b = new Uint8Array(buf); try { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await syncKey(), b.slice(12))); } catch (e) { throw new Error('Entschlüsseln ging nicht - ist das Abgleich-Kennwort auf beiden Geräten gleich?'); } }
-const syncJson = async (path) => { const b = await ghGet(path); return b ? JSON.parse(new TextDecoder().decode(await syncDec(b))) : null; };
+async function syncDecRaw(buf) { const b = new Uint8Array(buf); if (b.length < 29) throw new Error('kurz'); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await syncKey(), b.slice(12))); }
+async function syncDec(buf, path) {
+  try { return await syncDecRaw(buf); } catch (e) {
+    if (e.wrongPass) throw e;
+    // GitHub liefert direkt nach dem Schreiben manchmal kurz noch einen alten Stand - einmal neu holen
+    if (path) { await new Promise(r => setTimeout(r, 2500)); const again = await ghGet(path); if (again) { try { return await syncDecRaw(again); } catch (e2) { if (e2.wrongPass) throw e2; } } else return null; }
+    const er = new Error('Datei „' + (path || '?') + '" ließ sich nicht entschlüsseln (' + new Uint8Array(buf).length + ' Byte)'); er.badFile = path; throw er;
+  }
+}
+const syncJson = async (path) => { const b = await ghGet(path); if (!b) return null; const d = await syncDec(b, path); return d ? JSON.parse(new TextDecoder().decode(d)) : null; };
 const syncPutJson = async (path, obj, msg) => ghPut(path, await syncEnc(new TextEncoder().encode(JSON.stringify(obj))), msg);
 async function sha256hex(s) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function syncNow(reason) {
@@ -4958,6 +4992,7 @@ async function syncNow(reason) {
   sync.busy = true; const t0 = Date.now(); let applied = 0, pushed = 0;
   try {
     syncSetStatus('Abgleich läuft …');
+    await syncKey();
     // 1. Einstellungen und Figuren: je Schlüssel das Neuere
     const remote = await syncJson('core.bin');
     const times = syncTimes(), dels = syncDels(), firstHere = !localStorage.getItem('companion_syncDone');
@@ -4987,14 +5022,14 @@ async function syncNow(reason) {
     if (pushed || !remote) { await syncPutJson('core.bin', Object.assign(merged, { stories, ws, t: Date.now() }), 'Abgleich ' + new Date().toISOString().slice(0, 16)); }
     localStorage.setItem('companion_syncDone', '1');
     // 3. Bilder: jedes einzeln, verschlüsselt, nur was fehlt oder neuer ist (höchstens 30 je Durchgang)
-    let imgUp = 0, imgDown = 0, imgLeft = 0;
+    let imgUp = 0, imgDown = 0, imgLeft = 0, imgBad = 0;
     if (syncCfg().images) {
       const man = (await syncJson('images.bin')) || {}; const it = syncImgTimes(); let manChanged = false, budget = 30;
       const keys = await dbKeys(STORE_IMAGES).catch(() => []);
       const localSet = new Set(keys);
       for (const [hk, m] of Object.entries(man)) {
         if (budget <= 0) { imgLeft++; continue; }
-        if (!localSet.has(m.k) || (m.t > (it[m.k] || 0) && m.t > 1)) { const b = await ghGet('img/' + hk + '.bin'); if (b) { const dec = await syncDec(b); window.__syncApplying = true; await dbPut(STORE_IMAGES, m.k, new Blob([dec], { type: m.type || 'image/jpeg' })); window.__syncApplying = false; it[m.k] = m.t; imgDown++; budget--; } }
+        if (!localSet.has(m.k) || (m.t > (it[m.k] || 0) && m.t > 1)) { const b = await ghGet('img/' + hk + '.bin'); if (b) { let dec = null; try { dec = await syncDec(b, 'img/' + hk + '.bin'); } catch (er) { if (er.wrongPass) throw er; imgBad++; continue; } if (!dec) continue; window.__syncApplying = true; await dbPut(STORE_IMAGES, m.k, new Blob([dec], { type: m.type || 'image/jpeg' })); window.__syncApplying = false; it[m.k] = m.t; imgDown++; budget--; } }
       }
       for (const k of keys) {
         const hk = await sha256hex(String(k)), m = man[hk], lt = it[k] || 1;
@@ -5010,7 +5045,7 @@ async function syncNow(reason) {
     }
     sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
     syncSetStatus(`Abgeglichen ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}: ${applied ? applied + ' vom anderen Gerät übernommen, ' : ''}${pushed ? 'eigene Änderungen hochgeladen, ' : ''}${imgUp || imgDown ? `Bilder ↑${imgUp} ↓${imgDown}${imgLeft ? ' (weitere folgen)' : ''}, ` : ''}${((Date.now() - t0) / 1000).toFixed(1)} s`.replace(/, ([\d.]+ s)$/, ' · $1'));
-    logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}` });
+    logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}${imgBad ? ' (' + imgBad + ' kaputt übersprungen)' : ''}` });
     if (applied) { if (!inSession()) { showToast('🔄 Neue Daten vom anderen Gerät - die App lädt kurz neu'); setTimeout(() => location.reload(), 1500); } else { sync.pendingReload = true; showToast('🔄 Neue Daten vom anderen Gerät - werden nach der Sitzung geladen'); } }
   } catch (e) { syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
   finally { sync.busy = false; }
@@ -5021,12 +5056,31 @@ document.addEventListener('visibilitychange', () => { try { if (syncOn()) syncNo
 setInterval(() => { try { if (!syncOn()) return; if (sync.pendingReload && !inSession()) { sync.pendingReload = false; location.reload(); return; } if ((window.__syncDirtyAt || 0) > sync.lastAt || Date.now() - sync.lastAt > 300000) syncNow('laufend'); } catch (e) {} }, 60000);
 window.addEventListener('online', () => { try { syncNow('Netz zurück'); } catch (e) {} });
 function syncUiInit() {
+  syncUiInit.mask = () => { const c = syncCfg(), g = id => document.getElementById(id); g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; };
   const g = id => document.getElementById(id); if (!g('syncRepo')) return;
   const c = syncCfg(); g('syncRepo').value = c.repo; g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; g('syncImages').checked = c.images; g('syncOnBox').checked = localStorage.getItem('companion_syncOn') === '1';
   const last = +localStorage.getItem('companion_syncLastAt') || 0; syncSetStatus(sync.status || (last ? 'Zuletzt abgeglichen: ' + new Date(last).toLocaleString('de-DE') : 'Noch nicht eingerichtet'));
   g('syncRepo').onchange = () => safeSet('companion_syncRepo', g('syncRepo').value.trim());
-  g('syncToken').onchange = () => { const v = g('syncToken').value.trim(); if (v && !v.startsWith('••')) safeSet('companion_syncToken', v); };
-  g('syncPass').onchange = () => { const v = g('syncPass').value; if (v && !v.startsWith('••')) { if (v.length < 8) { showToast('Kennwort: mindestens 8 Zeichen', true); return; } safeSet('companion_syncPass', v); sync.key = null; } };
+  // Nur übernehmen, was du selbst getippt oder eingefügt hast - kein automatisches Ausfüllen durch den Browser
+  ['syncToken', 'syncPass'].forEach(id => { const el = g(id); el.dataset.typed = ''; ['keydown', 'paste', 'beforeinput'].forEach(ev => el.addEventListener(ev, (e) => { if (e.isTrusted && !(e.type === 'beforeinput' && /^insertReplacementText$/.test(e.inputType || ''))) el.dataset.typed = '1'; })); el.addEventListener('focus', () => { if (el.value.startsWith('••')) el.select(); }); });
+  g('syncToken').onchange = () => { const el = g('syncToken'), v = el.value.trim(); if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { safeSet('companion_syncToken', v); showToast('Token gespeichert'); } syncUiInit.mask(); };
+  g('syncPass').onchange = () => { const el = g('syncPass'), v = el.value; if (!el.dataset.typed) { syncUiInit.mask(); return; } el.dataset.typed = ''; if (v && !v.startsWith('••')) { if (v.length < 8) { showToast('Kennwort: mindestens 8 Zeichen', true); return; } safeSet('companion_syncPass', v); sync.key = null; showToast('Abgleich-Kennwort gespeichert'); } syncUiInit.mask(); };
+  g('syncResetBtn').onclick = async () => {
+    if (!syncOn()) { showToast('Erst Repository, Token und Kennwort eintragen und „Abgleich an" setzen', true); return; }
+    if (!confirm('Die Abgleich-Daten auf GitHub werden verworfen und mit dem Stand DIESES Geräts und dem jetzigen Kennwort neu angelegt. Auf dem anderen Gerät danach dasselbe Kennwort eintragen. Weiter?')) return;
+    if (sync.busy) { showToast('Abgleich läuft gerade - gleich nochmal', true); return; }
+    sync.busy = true; syncSetStatus('Lege neu an …');
+    try {
+      const c = syncCfg();
+      for (const path of ['check.bin', 'core.bin', 'images.bin', 'salt.bin']) {
+        const m = await ghApi(path); if (!m) continue; const j = await m.json();
+        await ghApi(path, { method: 'DELETE', body: { message: 'Abgleich neu angelegt', sha: j.sha } });
+      }
+      sync.key = null; sync.keyFor = ''; sync.shas = {};
+      localStorage.removeItem('companion_syncDone'); localStorage.removeItem('syncmeta_img');
+    } catch (e) { sync.busy = false; syncSetStatus('Neu anlegen ging nicht: ' + e.message, true); return; }
+    sync.busy = false; await syncNow('neu angelegt');
+  };
   g('syncImages').onchange = () => safeSet('companion_syncImages', g('syncImages').checked ? '1' : '0');
   g('syncOnBox').onchange = () => { safeSet('companion_syncOn', g('syncOnBox').checked ? '1' : '0'); if (g('syncOnBox').checked) syncNow('eingeschaltet'); };
   g('syncNowBtn').onclick = () => { if (!syncOn()) { showToast('Erst Repository, Token und Kennwort eintragen und „Abgleich an" setzen', true); return; } syncNow('von Hand'); };
@@ -29548,6 +29602,8 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
 
 
 
