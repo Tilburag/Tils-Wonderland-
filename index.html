@@ -1756,6 +1756,7 @@
         <button class="btn-secondary" id="liveAddBtn" type="button">Hinzufügen</button>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="conductorOn" style="width:auto;" onchange="safeSet('companion_conductor', this.checked ? '1' : '0')"><span style="font-size:13.5px;">🎼 Dirigent: holt passende Figuren dazu und schickt andere hinaus - je nachdem, was du dir wünschst und wie die Szene läuft</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:10px 0 0;"><input type="checkbox" id="bgAudioOn" style="width:auto;" onchange="safeSet('companion_bgAudio', this.checked ? '1' : '0')"><span style="font-size:13.5px;">📱 Bei ausgeschaltetem Bildschirm weitersprechen (wie eine Hörbuch-App, mit Pause/Weiter auf dem Sperrbildschirm)</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:10px 0 0;"><input type="checkbox" id="guidedOn" style="width:auto;" onchange="safeSet('companion_guided', this.checked ? '1' : '0')"><span style="font-size:13.5px;">🌙 Abend führen: erst ankommen und reden, während du die Geräte anschließt - die Figuren begleiten dich dabei - dann Vorspiel, Spiel, Finale und Nachglühen</span></label>
       <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0 26px;"><span class="hint" style="margin:0;">Dauer etwa</span><select id="guidedMin" style="width:auto;" onchange="safeSet('companion_guidedMin', this.value)"><option value="30">30 Minuten</option><option value="45">45 Minuten</option><option value="60">1 Stunde</option><option value="90">1,5 Stunden</option></select></div>
       <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0 26px;"><span class="hint" style="margin:0;">höchstens</span><select id="conductorMax" style="width:auto;" onchange="safeSet('companion_conductorMax', this.value)"><option value="1">1 Figur</option><option value="2">2 Figuren</option><option value="3">3 Figuren</option><option value="4">4 Figuren</option></select><span class="hint" style="margin:0;">gleichzeitig</span></div>
@@ -3673,8 +3674,23 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.44';
+const APP_VERSION = '3.47';
 const CHANGELOG = [
+  { v: '3.47', date: '2026-10-24', items: [
+    '📱 Weitersprechen bei ausgeschaltetem Bildschirm (Live, standardmäßig an): Hörspiel, geführter Abend und Selbstlauf laufen weiter wie bei einer Hörbuch-App - ein unhörbar leises Rauschen hält die Seite wach; auf dem Sperrbildschirm stehen Titel und Figuren, mit Pause und Weiter',
+    'Der Edge läuft bei ausgeschaltetem Bildschirm weiter, solange die Sitzung läuft (vorher ging er aus Sicherheit sofort aus); Pause auf dem Sperrbildschirm hält Stimmen und Geräte an',
+  ] },
+  { v: '3.46', date: '2026-10-24', items: [
+    'Raumkarte und Abend-Schild sitzen etwas tiefer und verdecken die Anzeige oben nicht mehr',
+    '🎧 Hörspiel (Startseite): du bist mitten in einer Geschichte, die einfach weiterläuft - Schlossintrige, Raumschiff, Noir, Insel, Fantasy, Roadtrip, Theater, Berghütte oder „Überrasch mich"; zwei Figuren, die sich reiben oder etwas miteinander haben, erzählen und erleben sie miteinander, mit Raumklang und Geräuschkulisse',
+    'Du musst nichts sagen - es geht immer weiter; sagst du etwas, folgt die Geschichte deiner Richtung und läuft danach von selbst weiter; der Dirigent darf Figuren dazuholen, wenn die Handlung es will',
+    'Wird es sinnlich, laden dich die Figuren ein: „🔥 Einsteigen" leuchtet (das Handy vibriert kurz) - dann dreht sich alles um dich, auch mit Gerät; „📖 Zurück zur Geschichte" erzählt weiter. Vorher bewegt sich das Gerät nicht',
+  ] },
+  { v: '3.45', date: '2026-10-24', items: [
+    'Geführter Abend und Abendbegleitung laufen jetzt von selbst: nach dem Start und nach jeder deiner Antworten geht es automatisch weiter, ohne „Automatik" zu drücken; nur „Stopp" hält an, bis du wieder etwas sagst',
+    'Beim Ankommen plaudern die Figuren weiter, während du dich vorbereitest - mit kleinen Pausen dazwischen, damit du in Ruhe anschließen oder antworten kannst; keine Bewegung, bis du „bereit" sagst',
+    'Fehler behoben: im Selbstlauf wurde ein bestätigtes „bereit" bei jedem Schritt wieder zurückgesetzt',
+  ] },
   { v: '3.44', date: '2026-10-24', items: [
     '🌙 Geführter Abend (Live, unter „Wer spricht mit", Dauer 30 min bis 1,5 h): erst Ankommen - die Figuren plaudern und begleiten dich Schritt für Schritt beim Vorbereiten (Stroker verbinden, Edge, Pulsgurt, hinlegen, Kopfhörer, Licht); sie merken selbst, wenn etwas verbunden wird, und reagieren darauf; erst nach deinem „bereit" geht es los',
     'Danach Vorspiel → Spiel → Finale, zeitlich so eingeteilt, dass der Abend in der gewählten Dauer bleibt; sagst du, dass du gekommen bist, folgt das Nachglühen (Gerät klingt aus, Zärtlichkeit, Vorfreude aufs nächste Mal) und eine Abschlusskarte „Was heute war"',
@@ -5886,6 +5902,7 @@ try { const ef = document.getElementById('edgeFollow'); if (ef) ef.value = local
 try { const es = document.getElementById('edgeStrength'); if (es) es.value = localStorage.getItem('companion_edgeStrength') || '70'; const ew = document.getElementById('edgeSwap'); if (ew) ew.checked = localStorage.getItem('companion_edgeSwap') === '1'; } catch (e) {}
 try { const rm = document.getElementById('roomMapOn'); if (rm) rm.checked = localStorage.getItem('companion_roomMap') !== '0'; } catch (e) {}
 try { const tp = document.getElementById('toyPrefsOn'); if (tp) tp.checked = localStorage.getItem('companion_toyPrefs') === '1'; } catch (e) {}
+try { const ba = document.getElementById('bgAudioOn'); if (ba) ba.checked = bgAudioWanted(); } catch (e) {}
 try { const go = document.getElementById('guidedOn'); if (go) go.checked = localStorage.getItem('companion_guided') === '1'; const gm = document.getElementById('guidedMin'); if (gm) gm.value = localStorage.getItem('companion_guidedMin') || '60'; } catch (e) {}
 try { const co = document.getElementById('conductorOn'); if (co) co.checked = conductorOn(); const cm = document.getElementById('conductorMax'); if (cm) cm.value = String(conductorMax()); } catch (e) {}
 try { const ts = document.getElementById('twistSel'); if (ts) ts.value = twistSetting(); const lv = document.getElementById('lively'); if (lv) lv.checked = localStorage.getItem('companion_lively') !== '0'; } catch (e) {}
@@ -5910,6 +5927,7 @@ els.stopBtn.onclick = () => {
   // Stopp beendet auch den Selbstlauf - vorher erzeugte er nach dem Stopp
   // einfach die nächste Fortsetzung.
   if (typeof autoPlaying !== 'undefined' && autoPlaying) { autoPlaying = false; setAutoStatus(false); }
+  try { guided.userStopped = true; hsp.userStopped = true; } catch (e) {}
   chainEpoch += 1;
   if (typeof abortAllRequests === 'function') abortAllRequests();
   playbackGeneration += 1;
@@ -6536,7 +6554,8 @@ function sendTypedMessage() {
     setStoryStatus('Im Geschichtenmodus wird nicht geantwortet - zum Mitreden auf „Live" wechseln.');
     return;
   }
-  autoPlaying = false; setAutoStatus(false); // typing also interrupts auto-continue
+  autoPlaying = false; setAutoStatus(false); // typing also interrupts auto-continue (im geführten Abend geht es nach der Antwort von selbst weiter)
+  try { guided.userStopped = false; hsp.userStopped = false; } catch (e) {}
   // Typing mid-call is fine, but the microphone has to be closed for it -
   // otherwise the reply to the typed message gets transcribed as input.
   const inCall = typeof callActive !== 'undefined' && callActive;
@@ -7598,6 +7617,7 @@ function applyCue(num, cue) {
   const dev = num === 2 ? device2 : device1;
   if (!cue) return;
   if (cue.kind === 'edge') { if (edgeCommand(cue.inner)) logEvent('msg', { role: 'system', text: 'Edge: ' + cue.inner }); return; }
+  if (cue.kind === 'invite') { try { hsInvite(); } catch (e) {} return; }
   const isSig = cue.kind === 'seq' && /sigref|duettref/.test(JSON.stringify(cue.steps || []));
   if (!isSig && sigLocked(num, cue.kind !== 'seq' && cue.motion && cue.motion.texture === 'stop', cue.label)) return;
   if (cue.kind === 'seq') {
@@ -11568,7 +11588,15 @@ async function runAutoLoop() {
     autoStepCount += 1;
     // Im Spiel steht der Spielstand direkt in der Anweisung für diese Antwort -
     // nur im Systemtext ging er unter, die Figuren wussten nichts vom Duell.
-    const prompt = gameTurnPrompt() || AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)];
+    const arriving = typeof guidedOn === 'function' && guidedOn() && guidedPhase() === 'ankommen';
+    if (arriving && autoStepCount > 1) {
+      // beim Ankommen Luft lassen: erst ausreden lassen, dann eine kleine Pause, damit Til sich vorbereiten oder antworten kann
+      while (activeReplies > 0 && autoPlaying && myLoop === autoLoopToken) await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 9000 + Math.random() * 6000));
+      if (!autoPlaying || myLoop !== autoLoopToken) break;
+    }
+    const hsOn = typeof hsp !== 'undefined' && hsp.active && !hsp.joined;
+    const prompt = gameTurnPrompt() || (hsOn ? HS_PROMPTS[Math.floor(Math.random() * HS_PROMPTS.length)] : arriving ? GUIDED_ARRIVE_PROMPTS[Math.floor(Math.random() * GUIDED_ARRIVE_PROMPTS.length)] : AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)]);
     // Die nächste Fortsetzung startet, sobald der letzte Abschnitt der
     // laufenden zu sprechen beginnt - sie entsteht im Hintergrund und folgt
     // ohne lange Pause. Vorher wurde erst nach dem letzten Wort angefragt.
@@ -15485,7 +15513,7 @@ function edgeFollowLevels(dt) {
     if (ov.kind === 'sturm') { edge.st = (edge.st && Math.random() > 0.25) ? edge.st : [8 + Math.random() * 12, 8 + Math.random() * 12]; return [edge.st[0] * k, edge.st[1] * k]; }
     if (ov.kind === 'echo') { const ph = (e / 0.9) % 1; return [ph > 0.45 && ph < 0.75 ? 18 * k : 3, ph < 0.3 ? 18 * k : 3]; } }
   if (edge.override && Date.now() >= edge.override.until) edge.override = null;
-  if (document.hidden) return [0, 0];
+  if (document.hidden && !(bgAudioWanted() && bgSessionActive())) return [0, 0];
   if (!info || !info.running || info.texture === 'stop') return [0, 0];
   const L = Math.max(0, Math.min(1, info.level));
   edge.phase = (edge.phase + dt * Math.max(0, info.bpm) / 60) % 1;   // Takt der Hübe nachbilden
@@ -15504,7 +15532,7 @@ function edgeFollowLevels(dt) {
   return [head, arm];
 }
 setInterval(() => { try { if (!edgeConnected() && !document.getElementById('edgeM1')) return; const now = Date.now(), dt = edge.t ? (now - edge.t) / 1000 : 0.15; edge.t = now; const [a, b] = edgeFollowLevels(dt); edgeSend(a, b); } catch (e) {} }, 150);
-document.addEventListener('visibilitychange', () => { if (document.hidden && edgeConnected()) edgeSend(0, 0, true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && edgeConnected() && !(bgAudioWanted() && bgSessionActive())) edgeSend(0, 0, true); });
 async function edgeTest() {
   if (!edgeConnected()) { showToast('Edge ist nicht verbunden', true); return; }
   const k = (+localStorage.getItem('companion_edgeStrength') || 70) / 100;
@@ -15568,10 +15596,22 @@ setInterval(() => {
     guidedChip(ph);
   } catch (e) {}
 }, 1000);
+// Im geführten Abend läuft alles von selbst weiter - auch nach deiner Antwort; nur „Stopp" hält an, bis du wieder etwas sagst
+function guidedResumeAuto() {
+  if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying || game.running) return;
+  if (guidedPhase() === 'nachglühen' && guided.afterN >= 0 && replyCount() - guided.afterN >= 3) return;   // Abschluss steht an
+  clearTimeout(guided.resumeT);
+  guided.resumeT = setTimeout(() => { if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 1200);
+}
+const GUIDED_ARRIVE_PROMPTS = [
+  '(Til bereitet sich noch vor. Plaudert weiter mit ihm - kurz und unterhaltsam: ein neues Thema, eine kleine Geschichte, ein Kompliment, eine neckische Frage. Erinnert ihn höchstens beiläufig an den nächsten Schritt. Keine Bewegung.)',
+  '(Til ist noch nicht ganz bereit. Unterhaltet ihn: erzählt etwas von euch, neckt euch gegenseitig, macht ihm Vorfreude auf heute. Kurz halten.)',
+  '(Er braucht noch einen Moment. Stimmt ihn ein - mit Worten, Andeutungen, einer kleinen Fantasie, was gleich passieren könnte. Kurz.)',
+];
 function guidedChip(ph) {
   let el = document.getElementById('guidedChip');
   if (!guidedOn() || !inSession() || !ph) { if (el) el.style.display = 'none'; return; }
-  if (!el) { el = document.createElement('div'); el.id = 'guidedChip'; el.style.cssText = 'position:fixed; left:10px; top:calc(env(safe-area-inset-top,0px) + 64px); z-index:1500; background:rgba(15,9,12,0.78); border:1px solid rgba(217,178,107,0.35); border-radius:14px; padding:5px 10px; font-size:12px; color:#fff; pointer-events:none;'; document.body.appendChild(el); }
+  if (!el) { el = document.createElement('div'); el.id = 'guidedChip'; el.style.cssText = 'position:fixed; left:10px; top:calc(env(safe-area-inset-top,0px) + 150px); z-index:1500; background:rgba(15,9,12,0.78); border:1px solid rgba(217,178,107,0.35); border-radius:14px; padding:5px 10px; font-size:12px; color:#fff; pointer-events:none;'; document.body.appendChild(el); }
   el.style.display = '';
   const name = { ankommen: 'Ankommen', vorspiel: 'Vorspiel', spiel: 'Spiel', finale: 'Finale', 'nachglühen': 'Nachglühen' }[ph];
   el.textContent = `🌙 ${name}${ph === 'ankommen' ? ' · ' + (guidedDevKey() ? '✓ ' + guidedDevKey().replace('g1', 'Stroker').replace('g2', 'Gerät 2').replace('edge', 'Edge').replace('puls', 'Puls') : 'noch nichts verbunden') : ph !== 'nachglühen' ? ' · noch ' + guidedRemainMin() + ' min' : ''}`;
@@ -15650,13 +15690,123 @@ function hostChips() {
   el.innerHTML = host.cards.map((c, i) => `<button type="button" class="btn-secondary" data-i="${i}" style="flex:0 0 auto; max-width:72%; height:auto; padding:8px 12px; font-size:13px; text-align:left; background:rgba(20,12,16,0.92); white-space:normal;"><b>${i + 1}. ${esc(c.title)}</b><br><span style="opacity:0.75;">${esc(c.cast.map(n => n.split(' ')[0]).join(' & '))}</span></button>`).join('');
   el.querySelectorAll('button').forEach(b => b.onclick = () => hostChoose(+b.dataset.i));
 }
+// ---------- 🎧 Hörspiel: mitten in einer Geschichte, die einfach weiterläuft ----------
+const HS_WORLDS = [
+  ['🏰', 'Schlossintrige', 'Ein Maskenball in einem alten Schloss, Intrigen, Geheimgänge, ein verbotener Brief'],
+  ['🚀', 'Raumschiff', 'An Bord eines Forschungsschiffs weit draußen - ein Signal, ein Defekt, zu wenig Platz in den Kabinen'],
+  ['🕵️', 'Noir', 'Regnerische Großstadt 1947, eine Bar, ein verschwundener Ring, alle haben etwas zu verbergen'],
+  ['🏝️', 'Insel', 'Gestrandet auf einer warmen Insel nach einem Sturm, Dschungel, eine verlassene Villa'],
+  ['🧙', 'Fantasy', 'Eine Taverne am Rand eines verzauberten Waldes, ein Auftrag, eine Wette, Magie mit Nebenwirkungen'],
+  ['🚗', 'Roadtrip', 'Ein alter Wagen, eine lange Straße durch die Nacht, Motels, Umwege, Geständnisse'],
+  ['🎭', 'Theater', 'Hinter den Kulissen einer Premiere - Lampenfieber, Rivalinnen, eine Garderobe mit abschließbarer Tür'],
+  ['❄️', 'Hütte', 'Eingeschneit in einer Berghütte, Kaminfeuer, der Strom fällt aus, Geschichten im Dunkeln'],
+];
+const hsp = { active: false, joined: false, world: null, userStopped: false, invitedAt: 0 };
+const HS_PROMPTS = [
+  '(Erzählt die Geschichte weiter - die nächste kleine Szene: etwas passiert, jemand reagiert, die Welt ist hörbar. Kurz halten.)',
+  '(Weiter im Hörspiel: bringt die Handlung einen Schritt voran, mit Spannung und einem kleinen Cliffhanger am Ende.)',
+  '(Lasst die Geschichte weiterlaufen: Dialog zwischen euch, ein Ereignis, eine Entscheidung. Til ist dabei, muss aber nichts sagen.)',
+];
+function hsHold() { return hsp.active && !hsp.joined && currentMode === 'live'; }
+function hsBlock() {
+  if (!hsp.active || currentMode !== 'live') return '';
+  if (hsp.joined) return `\n\nHÖRSPIEL - TIL IST EINGESTIEGEN: Jetzt dreht sich alles um ihn (die normalen Regeln oben gelten wieder, auch die Bewegung), aber ihr bleibt in der Welt der Geschichte (${hsp.world ? hsp.world[1] : 'wie bisher'}) - Ort, Stimmung und das bisher Erlebte bleiben. Ist der Moment vorbei, kann die Geschichte weitergehen.`;
+  return `\n\nHÖRSPIEL (hat Vorrang vor „Wer im Mittelpunkt steht" oben): Ihr erzählt und erlebt gemeinsam eine fortlaufende Geschichte wie in einem Hörspiel - Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}. Til ist mittendrin, als Begleiter in dieser Welt, muss aber nichts sagen: Ihr redet vor allem MITEINANDER, handelt, erkundet, streitet, flirtet, erlebt etwas. Macht die Welt hörbar (Geräusche, Wetter, Orte, Schritte, Stimmen von Nebenfiguren werden beschrieben, sprechen aber nicht selbst). Jede Antwort bringt die Handlung ein Stück weiter, mit Spannung und kleinen Cliffhangern; jede Figur bleibt in ihrem Charakter und bringt die Geschichte in ihre Richtung. Ab und zu wendet sich eine an Til (eine Frage, ein Blick, eine Hand) - er kann antworten oder die Richtung vorgeben, dann folgt die Geschichte ihm. Gelegentlich - nicht ständig - knistert es, und die Handlung wird sinnlich: dann ladet ihr Til ein, einzusteigen, und setzt dafür den Marker <<einladung>>. Bis er einsteigt, keine Gerätebewegung.`;
+}
+function hsResume() {
+  if (!hsp.active || hsp.userStopped || autoPlaying || !inSession() || currentMode !== 'live' || game.running) return;
+  clearTimeout(hsp.resumeT); hsp.resumeT = setTimeout(() => { if (!hsp.active || hsp.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 900);
+}
+function hsChips() {
+  let el = document.getElementById('hsChips');
+  if (!hsp.active || !inSession() || currentMode !== 'live') { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'hsChips'; el.style.cssText = 'position:fixed; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 132px); z-index:1600; display:flex; gap:6px;'; document.body.appendChild(el); }
+  const invited = !hsp.joined && Date.now() - hsp.invitedAt < 120000;
+  const html = hsp.joined ? '<button type="button" class="btn-secondary hs-back" style="height:38px; padding:0 12px; font-size:13px; background:rgba(20,12,16,0.92);">📖 Zurück zur Geschichte</button>'
+    : `<button type="button" class="${invited ? 'btn-primary' : 'btn-secondary'} hs-join" style="height:38px; padding:0 12px; font-size:13px;${invited ? ' box-shadow:0 0 18px rgba(255,90,120,0.6);' : ' background:rgba(20,12,16,0.92);'}">🔥 Einsteigen</button>`;
+  if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; const j = el.querySelector('.hs-join'), bk = el.querySelector('.hs-back'); if (j) j.onclick = () => hsJoin(true); if (bk) bk.onclick = () => hsJoin(false); }
+}
+function hsInvite() { if (!hsp.active || hsp.joined) return; hsp.invitedAt = Date.now(); logEvent('msg', { role: 'system', text: '🎧 Einladung: die Geschichte wird sinnlich - „🔥 Einsteigen" leuchtet' }); try { navigator.vibrate && navigator.vibrate([40, 60, 40]); } catch (e) {} hsChips(); }
+function hsJoin(on) {
+  hsp.joined = on; hsChips();
+  logEvent('msg', { role: 'system', text: on ? '🎧 Til steigt ein' : '🎧 zurück zur Geschichte' });
+  if (on && device1.isConnected() && typeof readyGate !== 'undefined') readyGate = 'ready';
+  if (!on) { [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} }); try { edgeSend(0, 0, true); } catch (e) {} }
+  autoPlaying = false; setAutoStatus(false); hsp.userStopped = false;
+  askActive(on ? '(Ich steige ein - ich bin jetzt ganz bei euch.)' : '(Erzählt die Geschichte weiter - wo waren wir?)');
+}
+function startHoerspiel(world) {
+  const pool = surprisePool(); if (!pool.length) { showToast('Erst ein paar Figuren anlegen', true); return; }
+  // zwei, die sich reiben oder etwas miteinander haben - aus Beziehungen oder den größten Gegensätzen
+  let pair = null; const rl = relList(); if (rl.length && Math.random() < 0.6) { const x = rl[Math.floor(Math.random() * rl.length)]; pair = [x.fa, x.fb]; }
+  if (!pair) { try { const D = charMapData().filter(d => d.ai); if (D.length >= 3) { const far = cmSimilarity(D).far; const p = far[Math.floor(Math.random() * far.length)]; pair = [p.a.f, p.b.f]; } } catch (e) {} }
+  if (!pair) { const sh = pool.slice().sort(() => Math.random() - 0.5); pair = [sh[0].f, (sh[1] || sh[0]).f]; }
+  hsp.world = world || HS_WORLDS[Math.floor(Math.random() * HS_WORLDS.length)]; hsp.active = true; hsp.joined = false; hsp.userStopped = false; hsp.invitedAt = 0; hsp.startedAt = Date.now();
+  safeSet('companion_guided', '0'); safeSet('companion_conductor', '1');
+  const meFig = archiveMeFigure(); switchMode('live'); history = [];
+  characters = [meFig ? characterFromVersion(meFig) : null].concat(pair.filter((f, i, a) => a.indexOf(f) === i).map(f => characterFromVersion(f))).filter(Boolean); saveCharacters();
+  safeSet('companion_sceneDesc', `${hsp.world[1]}: ${hsp.world[2]}. Til ist mitten in dieser Geschichte dabei.`);
+  try { renderLivePanel(); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `🎧 Hörspiel: ${hsp.world[1]} mit ${aiCast().map(c => c.name).join(' & ')}` });
+  try { localStorage.setItem('companion_spatial', 'true'); } catch (e) {}
+  try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
+}
+function openHoerspielPicker() {
+  const v = document.createElement('div'); v.id = 'hsPick';
+  v.style.cssText = 'position:fixed; inset:0; z-index:3000; background:rgba(8,5,7,0.94); color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 18px) 16px 24px;';
+  v.innerHTML = `<div style="display:flex; align-items:center;"><h2 style="flex:1; margin:0; font-size:24px;">🎧 Hörspiel</h2><button type="button" class="btn-secondary hp-x" style="width:44px; height:44px; padding:0;">✕</button></div>
+    <p class="hint" style="margin:6px 0 14px;">Du bist mitten in einer Geschichte, die einfach weiterläuft - die Figuren erzählen und erleben sie miteinander, mit Raumklang (Kopfhörer!). Du kannst zuhören, mitreden oder die Richtung vorgeben. Wird es sinnlich, leuchtet „🔥 Einsteigen". Den Bildschirm kannst du ausschalten - es spricht weiter, Pause und Weiter gehen über den Sperrbildschirm.</p>
+    <button type="button" class="btn-primary hp-r" style="width:100%; margin-bottom:12px;">🎲 Überrasch mich</button>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">${HS_WORLDS.map((w, i) => `<button type="button" class="btn-secondary hp-w" data-i="${i}" style="height:auto; padding:12px; text-align:left;"><div style="font-size:22px;">${w[0]}</div><b>${esc(w[1])}</b><div style="font-size:12px; opacity:0.7; margin-top:2px;">${esc(w[2]).slice(0, 70)}…</div></button>`).join('')}</div>`;
+  document.body.appendChild(v);
+  v.querySelector('.hp-x').onclick = () => v.remove();
+  v.querySelector('.hp-r').onclick = () => { v.remove(); startHoerspiel(); };
+  v.querySelectorAll('.hp-w').forEach(b => b.onclick = () => { v.remove(); startHoerspiel(HS_WORLDS[+b.dataset.i]); });
+}
+setInterval(() => { try { if (hsp.active && !inSession() && Date.now() - (hsp.startedAt || 0) > 5000) { hsp.active = false; } hsChips(); } catch (e) {} }, 700);
+// ---------- 📱 Weitersprechen bei ausgeschaltetem Bildschirm (wie eine Hörbuch-App) ----------
+// Chrome bremst Seiten im Hintergrund stark aus - außer sie spielen hörbar etwas ab. Ein ganz leises Rauschen
+// (unhörbar unter allem anderen) hält die Seite „hörbar", damit Stimmen, Selbstlauf und Gerät weiterlaufen.
+// Dazu Sperrbildschirm-Steuerung (Pause/Weiter) über die Media Session - wie bei einer Hörbuch-App.
+const bgAudio = { el: null, url: null, on: false };
+function bgAudioWanted() { return localStorage.getItem('companion_bgAudio') !== '0'; }
+function bgNoiseUrl() {
+  if (bgAudio.url) return bgAudio.url;
+  const sr = 8000, n = sr * 6, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  let last = 0; for (let i = 0; i < n; i++) { last = last * 0.97 + (Math.random() * 2 - 1) * 0.03; v.setInt16(44 + i * 2, Math.round(last * 40), true); }   // etwa -60 dB, braunes Rauschen
+  bgAudio.url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })); return bgAudio.url;
+}
+function bgSessionActive() { return inSession() && currentMode === 'live' && ((typeof hsp !== 'undefined' && hsp.active) || guidedOn() || autoPlaying || activeReplies > 0); }
+function bgAudioTick() {
+  const want = bgAudioWanted() && bgSessionActive();
+  if (want && !bgAudio.on) {
+    try { if (!bgAudio.el) { bgAudio.el = new Audio(bgNoiseUrl()); bgAudio.el.loop = true; bgAudio.el.volume = 1; } bgAudio.el.play().then(() => { bgAudio.on = true; logEvent('msg', { role: 'system', text: '📱 Hintergrund-Wiedergabe an - spricht auch bei ausgeschaltetem Bildschirm weiter' }); }).catch(() => {}); } catch (e) {}
+  } else if (!want && bgAudio.on && !inSession()) { try { bgAudio.el.pause(); } catch (e) {} bgAudio.on = false; }
+  if ('mediaSession' in navigator && want) {
+    try {
+      const cast = aiCharacters().filter(c => !c.isNarrator).map(c => c.name.split(' ')[0]).join(' & ');
+      const title = typeof hsp !== 'undefined' && hsp.active && hsp.world ? `Hörspiel · ${hsp.world[1]}` : guidedOn() ? `Abend · ${guidedPhase() || ''}` : 'Live-Gespräch';
+      if (!navigator.mediaSession.metadata || navigator.mediaSession.metadata.title !== title || navigator.mediaSession.metadata.artist !== cast) navigator.mediaSession.metadata = new MediaMetadata({ title, artist: cast || 'Notizen', album: 'Notizen' });
+      navigator.mediaSession.playbackState = autoPlaying || activeReplies > 0 ? 'playing' : 'paused';
+      if (!bgAudio.handlers) {
+        bgAudio.handlers = true;
+        navigator.mediaSession.setActionHandler('pause', () => { autoPlaying = false; setAutoStatus(false); try { guided.userStopped = true; hsp.userStopped = true; } catch (e) {} try { if (currentElevenAudio) currentElevenAudio.pause(); } catch (e) {} [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} }); navigator.mediaSession.playbackState = 'paused'; logEvent('msg', { role: 'system', text: '⏸ Pause über den Sperrbildschirm' }); });
+        navigator.mediaSession.setActionHandler('play', () => { try { guided.userStopped = false; hsp.userStopped = false; } catch (e) {} try { if (currentElevenAudio && currentElevenAudio.paused) currentElevenAudio.play(); } catch (e) {} if (!autoPlaying) { autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); } navigator.mediaSession.playbackState = 'playing'; logEvent('msg', { role: 'system', text: '▶ Weiter über den Sperrbildschirm' }); });
+        try { navigator.mediaSession.setActionHandler('nexttrack', () => { if (!autoPlaying) { autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); } }); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+}
+setInterval(() => { try { bgAudioTick(); } catch (e) {} }, 1500);
 // ---------- Raumkarte: wo sitzt wer, wer spricht, wer führt gerade das Gerät ----------
 function roomMapTick() {
   let el = document.getElementById('roomMap');
   const show = inSession() && currentMode === 'live' && spatialEnabled() && localStorage.getItem('companion_roomMap') !== '0' && aiCharacters().filter(c => !c.isNarrator).length >= 1;
   if (!show) { if (el) el.style.display = 'none'; return; }
   if (!el) { el = document.createElement('div'); el.id = 'roomMap'; el.title = 'Raumkarte - antippen zum Ausblenden';
-    el.style.cssText = 'position:fixed; right:10px; top:calc(env(safe-area-inset-top,0px) + 64px); width:112px; height:112px; border-radius:50%; background:rgba(15,9,12,0.72); border:1px solid rgba(255,255,255,0.14); z-index:1500; pointer-events:auto;';
+    el.style.cssText = 'position:fixed; right:22px; top:calc(env(safe-area-inset-top,0px) + 150px); width:112px; height:112px; transform:scale(0.86); transform-origin:top right; border-radius:50%; background:rgba(15,9,12,0.72); border:1px solid rgba(255,255,255,0.14); z-index:1500; pointer-events:auto;';
     el.onclick = () => { safeSet('companion_roomMap', '0'); el.style.display = 'none'; showToast('Raumkarte aus - unter Gerät 1 wieder einschaltbar'); };
     document.body.appendChild(el); }
   el.style.display = '';
@@ -15778,6 +15928,7 @@ function parseMotionStepLoose(raw) {
 
 function parseMotionCue(content) {
   if (/^\s*edge\b/i.test(String(content))) return { kind: 'edge', inner: String(content).trim(), label: String(content).trim() };
+  if (/^\s*(einladung|einsteigen)\s*$/i.test(String(content))) return { kind: 'invite', label: 'einladung' };
   const parts = String(content).split(/\s*[|;]\s*/).filter(Boolean).slice(0, SEQ_MAX_STEPS);
   let steps = parts.map(parseMotionStepLoose);
   const failed = parts.filter((p, k) => !steps[k]);
@@ -16160,7 +16311,8 @@ function twistSetting() { return localStorage.getItem('companion_twists') || 'mi
 function twistBlock() {
   try {
     const mode = twistSetting(); if (mode === 'aus') return '';
-    if (typeof guidedOn === 'function' && guidedOn() && /ankommen|nachglühen/.test(guidedPhase())) return '';   // beim Ankommen und Nachglühen keine Wendungen
+    if (typeof guidedOn === 'function' && guidedOn() && /ankommen|nachglühen/.test(guidedPhase())) return '';
+    if (typeof hsp !== 'undefined' && hsp.active && !hsp.joined) return '';   // beim Ankommen und Nachglühen keine Wendungen
     const n = (typeof history !== 'undefined' ? history : []).filter(m => m.role === 'assistant').length;
     if (n < 2) { twistState.used.clear(); twistState.nextAt = mode === 'oft' ? 4 + Math.floor(Math.random() * 2) : mode === 'selten' ? 9 + Math.floor(Math.random() * 4) : 5 + Math.floor(Math.random() * 3); }
     if (twistState.lastN === n) return twistState.lastText || '';
@@ -16374,7 +16526,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${twistBlock()}${conductorBlock()}${edgeBlock()}${guidedBlock()}${hostBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${twistBlock()}${conductorBlock()}${edgeBlock()}${guidedBlock()}${hostBlock()}${hsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -16616,6 +16768,7 @@ function timeBlock() {
 }
 
 function placeRule() {
+  if (typeof hsp !== 'undefined' && hsp.active && !hsp.joined) return 'Die Geschichte darf sich frei bewegen: neue Orte, Ereignisse, Nebenfiguren (die nur beschrieben werden, nicht selbst sprechen) - alles, was die Handlung lebendig macht.';
   if (introPhase(sceneStep)) {
     return 'Es spielen nur die oben genannten Figuren mit - keine neuen. Ein Ortswechsel ist erlaubt, wenn er sich aus dem Gespräch ergibt; beschreibe dann kurz den neuen Ort. Der Fokus liegt auf dem Gespräch und der wachsenden Spannung zwischen uns, nicht auf Körperlichem.';
   }
@@ -16874,11 +17027,15 @@ async function askEnsemble(userText, options) {
       // Selbstlauf gibt die Bewegung nie frei: Vorher lief das Gerät los, ohne
       // dass ich je "bereit" gesagt hatte. Die Figur fragt (bzw. wartet), und
       // der Selbstlauf hält nach dieser Antwort an, bis ich antworte.
-      readyGate = 'asking';
-      if (typeof autoPlaying !== 'undefined' && autoPlaying) {
-        autoPlaying = false;
-        setAutoStatus(false);
-        addMsg('system', 'Selbstlauf angehalten - die Figur wartet auf dein „bereit".');
+      // Einmal bestätigt, bleibt es dabei (vorher setzte jeder Selbstlauf-Schritt die Freigabe wieder zurück).
+      // Im geführten Abend läuft das Gespräch beim Ankommen einfach weiter - nur ohne Bewegung.
+      if (readyGate !== 'ready') {
+        readyGate = 'asking';
+        if (typeof autoPlaying !== 'undefined' && autoPlaying && !guidedOn() && !(typeof hsp !== 'undefined' && hsp.active)) {
+          autoPlaying = false;
+          setAutoStatus(false);
+          addMsg('system', 'Selbstlauf angehalten - die Figur wartet auf dein „bereit".');
+        }
       }
     } else if (readyGate === 'asking' && (forceReadyNext || saysReady(userText))) {
       readyGate = 'ready';
@@ -16890,7 +17047,7 @@ async function askEnsemble(userText, options) {
   }
   forceReadyNext = false;
   updateReadyButton();
-  const holdNow = introNow || readyHoldActive();
+  const holdNow = introNow || readyHoldActive() || (typeof hsHold === 'function' && hsHold());
   if (userText && !(options && (options.autoStep || options.silent))) applyQuickTempo(quickTempoWish(userText));
 
   // Unter dem Namen meiner Figur, damit das Modell weiß, wer da spricht -
@@ -17122,6 +17279,8 @@ async function askEnsemble(userText, options) {
     }
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
     try { conductorAfterReply(); } catch (e) {}
+    try { guidedResumeAuto(); } catch (e) {}
+    try { hsResume(); } catch (e) {}
     return true;
   } catch (err) {
     if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
@@ -23304,6 +23463,11 @@ function renderHomeExtras() {
       }
     }
   } catch (e) {}
+  try {
+    if (!live) { const c4 = document.createElement('button'); c4.type = 'button'; c4.className = 'home-continue'; c4.style.marginTop = '8px';
+      c4.innerHTML = `<span class="hc-ic">🎧</span><span class="hc-tx"><span class="hc-lbl">Hörspiel</span><b>Mitten in einer Geschichte</b><span>die Figuren erzählen und erleben - du hörst zu, lenkst oder steigst ein</span></span><span class="hc-go">▶</span>`;
+      c4.onclick = openHoerspielPicker; cont.appendChild(c4); }
+  } catch (e) {}
   const rec = document.getElementById('homeRecent');
   rec.innerHTML = '';
   const keys = recentGames().filter(k => GAME_INFO[k] && k !== 'live').slice(0, 2);
@@ -29041,6 +29205,13 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
 
 
 
