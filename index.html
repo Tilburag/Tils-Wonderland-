@@ -3702,8 +3702,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.51';
+const APP_VERSION = '3.52';
 const CHANGELOG = [
+  { v: '3.52', date: '2026-10-24', items: [
+    '🔄 Geräte-Abgleich hat jetzt eine eigene Zeile in den Einstellungen (war vorher versteckt, nur über die Suche „Abgleich“ zu finden)',
+  ] },
   { v: '3.51', date: '2026-10-24', items: [
     '🔄 Geräte-Abgleich (Einstellungen): Handy und Tablet bleiben von selbst gleich - Figuren, Einstellungen, Beziehungen, Gedächtnis, Geschichten, Werkstattbuch und Bilder; abgeglichen wird beim Öffnen, beim Zurückkommen, beim Verlassen und jede Minute bei Änderungen, je Eintrag gewinnt das Neuere',
     'Sicher: läuft über dein eigenes privates GitHub-Repository mit einem Token, der nur dieses eine Repository darf; alles wird vorher mit deinem Abgleich-Kennwort verschlüsselt (AES-256-GCM, Schlüssel per PBKDF2) - auf GitHub liegen nur Zufallsbytes, das Kennwort verlässt nie dein Gerät',
@@ -23932,6 +23935,7 @@ const SETTINGS_GROUPS = [
   { key: 'voice', icon: '🎙', title: 'Stimme & Klang', match: /^(Stimme & Sprachausgabe|Klang & Atmosphäre)/ },
   { key: 'ai', icon: '🖼', title: 'KI & Bilder', match: /^(KI-Anbieter|Bilder)/, extra: true },
   { key: 'safe', icon: '🔒', title: 'Schutz & Sicherung', match: /(Sperre \(PIN\)|^Sicherung)/ },
+  { key: 'sync', icon: '🔄', title: 'Geräte-Abgleich', match: /Geräte-Abgleich/ },
   { key: 'view', icon: '◐', title: 'Anzeige', match: /^Anzeige/ },
 ];
 function settingsSections() { return [...document.querySelectorAll('#setupPanel > details.subsection')]; }
@@ -23942,6 +23946,7 @@ function groupSub(key) {
     if (key === 'voice') { const src = localStorage.getItem('companion_ttsSource') || 'browser'; return `${src === 'elevenlabs' ? 'ElevenLabs' : 'Android-Stimme'} · Raumklang ${spatialEnabled() ? 'an' : 'aus'} · Körpergeräusche ${micSenseEnabled() ? 'an' : 'aus'}`; }
     if (key === 'ai') { const m = localStorage.getItem('companion_model_venice') || localStorage.getItem('companion_veniceModel') || ''; return `${(localStorage.getItem('companion_llmProvider') || 'venice')}${m ? ' · ' + m : ''} · Bilder ${refModel()}`; }
     if (key === 'safe') return `PIN ${pinIsSet() ? 'an' : 'aus'} · Sicherung exportieren und einspielen`;
+    if (key === 'sync') { if (localStorage.getItem('companion_syncOn') !== '1') return 'Handy ↔ Tablet gleich halten · noch aus'; const l = +localStorage.getItem('companion_syncLastAt') || 0; return 'an' + (l ? ' · zuletzt ' + new Date(l).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ' · noch kein Abgleich'); }
     if (key === 'view') return 'Bühne, Balken, Untertitel';
   } catch (e) {}
   return '';
@@ -29543,6 +29548,7 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
 
 
 
