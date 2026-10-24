@@ -3638,8 +3638,19 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.28';
+const APP_VERSION = '3.30';
 const CHANGELOG = [
+  { v: '3.30', date: '2026-10-24', items: [
+    'Charakter-Karte mit fünf Ansichten: Dynamik (zart↔wild, folgt↔führt), Ton & Nähe (ernst↔verspielt, kühl↔gefühlvoll), Spielart (klassisch↔Fetisch, neugierig↔erfahren), Worte & Tempo (leise↔laut & derb, geduldig↔ungeduldig) und Ähnlichkeit',
+    'Ähnlichkeit legt alle acht Merkmale zusammen: Grüppchen in Farbe, „Fast Doppelgänger" und „Größte Gegensätze" - Ecken verstärken zieht dort gezielt die Doppelgänger auseinander',
+    'In den anderen Ansichten verstärkt der Knopf die Figuren genau in deren Richtung (z. B. „verspielt und gefühlvoll"); Figur antippen zeigt ihr ganzes Profil',
+    'Karten des Abends nutzen die größten Gegensätze der Karte als spannende Paare',
+  ] },
+  { v: '3.29', date: '2026-10-24', items: [
+    'Charakter-Karte: die KI liest jetzt den ganzen Text jeder Figur (Häkchen, Notizen, Signatur, Kern, Handschrift) und setzt alle im Vergleich zueinander auf die Achsen - erkennt Umschreibungen und Verneinungen, die die Stichwortsuche verpasst hat',
+    'Figur auf der Karte antippen zeigt die Begründung; „Begründungen" listet alle mit Werten; „neu einschätzen" rechnet alles frisch. Eingeschätzt wird nur einmal je Figurenstand - nach einer Änderung automatisch neu',
+    'Die Einschätzung bestimmt auch die Handschrift am Gerät und die Färbung der Bewegung',
+  ] },
   { v: '3.28', date: '2026-10-24', items: [
     'Am Gerät spürt man, wer spricht: die Bewegung neigt sich nach der Art der Figur - bestimmt (länger, ruhiger), zärtlich (langsamer, nie stoßend), neckend (kürzer, weiter oben), drängend (schneller, länger)',
     'Und was gerade passiert: Mund = kürzer an der Spitze, Hand = über die ganze Länge, Reiten = tief unten und schwerer, Brüste = weich gleitend, von hinten = lang und kräftig, „zum ersten Mal" = zart und langsam - erkannt aus dem Text, auch aus der Erzählerin',
@@ -8448,6 +8459,7 @@ const TINT_STYLE_NAMES = { control: 'bestimmt', tender: 'zärtlich', tease: 'nec
 function tintOn() { return localStorage.getItem('companion_tint') !== '0'; }
 function tintStyleOf(name) {
   const c = (typeof characters !== 'undefined' ? characters : []).find(x => x.name === name && !x.isUser && !x.isNarrator); if (!c) return '';
+  const ax = axesFor(c); if (ax && AXIS_TYPE_KEY[ax.top]) return AXIS_TYPE_KEY[ax.top];
   const sc = deviceStyleScores(c), top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
   return top && top[1] >= 3 ? top[0] : '';
 }
@@ -11753,6 +11765,8 @@ function deviceStyleAuto(c) {
     tease: has('verspielt', 'humorvoll', 'spannung', 'wechselt') * 2 + (/(neck|frech|spiel|reiz|kokett)/.test(tx) ? 3 : 0),
     urge: has('ungeduldig', 'rivalitaet') * 2 + (/(wild|gierig|hungrig|unersättlich|drängt|schnell)/.test(tx) ? 3 : 0),
   };
+  const ax = (typeof axesFor === 'function') ? axesFor(c) : null;
+  if (ax && AXIS_TYPE_KEY[ax.top] && AXIS_TYPE_KEY[ax.top] !== 'follow') sc[AXIS_TYPE_KEY[ax.top]] = 99;   // KI-Einschätzung aus dem ganzen Text hat Vorrang
   const order = Object.entries(sc).sort((a, b) => b[1] - a[1]), top = order[0][1] > 0 ? order[0][0] : 'tender', second = order[1][1] > 1 ? order[1][0] : null;
   const S = {
     control: 'bestimmt das Tempo selbst: lange, tiefe Hübe (tief_langsam, ganze_laenge), lässt warten (halbweg_anhalten, treppe), hört kurz vor dem Höhepunkt abrupt auf und macht erst auf ihr Wort weiter',
@@ -19756,7 +19770,7 @@ async function makePitches(count) {
   const sys = `Deine Figuren haben sich für heute Abend etwas für Til ausgedacht - ${count === 1 ? 'einen neuen Vorschlag' : zahl + ' verschiedene Vorschläge'}, wie Karten zum Aussuchen. Erwachsene, erotisch, verführerisch.
 Figuren (die oberen waren lange nicht mehr auf einer Karte - nehmt bevorzugt sie):
 ${sel.map(x => '- ' + x.v.name + ': ' + figureGist(x.v) + coreBit(x.v)).join('\n')}
-${threads.length ? 'Offene Serien (eine Karte darf eine davon fortsetzen - dann genau diese Figuren und „Folge X" im Titel): ' + threads.map(t => t.names.join(' & ') + ' (Folge ' + (t.ep + 1) + '): ' + (t.next || t.offen[0])).join(' · ') : ''}
+${(() => { const o = cmOpposites(3); return o.length ? 'Laut Charakter-Karte die größten Gegensätze (ergeben spannende Paare): ' + o.join(' · ') + '\n' : ''; })()}${threads.length ? 'Offene Serien (eine Karte darf eine davon fortsetzen - dann genau diese Figuren und „Folge X" im Titel): ' + threads.map(t => t.names.join(' & ') + ' (Folge ' + (t.ep + 1) + '): ' + (t.next || t.offen[0])).join(' · ') : ''}
 ${Object.keys(R).length ? 'Beziehungen: ' + Object.entries(R).slice(0, 8).map(([k, r]) => k.replace('|', ' & ') + ': ' + r.text).join('; ') : ''}
 ${recent.length ? 'Diese Karten gab es schon - mach etwas anderes (anderer Ort, andere Stimmung, andere Figuren): ' + recent.join(' · ') : ''}
 Regeln: ${count === 1 ? 'ein frischer, überraschender Vorschlag' : 'deutlich verschiedene Vorschläge - verschiedene Orte (von Fantasy bis Alltag, von zärtlich bis SM), verschiedene Konstellationen (allein, zu zweit, zu dritt), verschiedene Stimmungen'}. Jede Figur höchstens auf einer Karte. Wählt Konstellationen mit Spannung: Gegensätze (die Zarte mit der Strengen, die Erfahrene mit der Neugierigen), zwei, die sich necken oder heimlich anziehend finden, eine, die eine andere zu etwas überredet. Lasst die Vorlieben und Motive der Figuren die Idee tragen - z. B. eine Figur will heute ihren Fetisch mit Til ausleben, oder sie will vorsichtig etwas zum ersten Mal ausprobieren (langsam, mit viel Gefühl, dann mutiger). Nicht nur „immer wilder": eine Karte darf auch eine kleine Geschichte mit Wendung sein. Jede Karte: "title" (2-5 Wörter), "teaser" (ein verführerischer Satz, den eine der Figuren zu Til sagt, mit Namen davor), "cast" (Namen aus der Liste, 1-3), "scene" (3 Sätze Szenenbeschreibung für das Rollenspiel, Til mit „du" ansprechen). Genau ${count} Karte${count === 1 ? '' : 'n'}.
@@ -21581,52 +21595,188 @@ document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
 document.getElementById('upgradeAllBtn').onclick = (e) => upgradeAllFigures(e.currentTarget);
 // ---------- Charakter-Karte: wie verschieden sind deine Figuren? ----------
+// ---------- KI-Einschätzung der Figuren (zart↔wild, folgt↔führt) aus dem ganzen Text ----------
+// Die Schlüsselwortzählung erkannte weder Verneinungen noch Umschreibungen; jetzt liest die KI Häkchen, Notizen,
+// Signatur, Kern und Handschrift jeder Figur und setzt sie im Vergleich zu den anderen auf die Karte.
+// Gespeichert je Figur mit einem Fingerabdruck des Textes - geändert wird erst neu eingeschätzt, wenn sich die Figur ändert.
+const AXIS_TYPE_KEY = { 'führend': 'control', 'zärtlich': 'tender', 'neckend': 'tease', 'wild': 'urge', 'hingebungsvoll': 'follow' };
+function axesAll() { try { return JSON.parse(localStorage.getItem('companion_axes') || '{}'); } catch (e) { return {}; } }
+function figText(c) {
+  const tr = TRAIT_GROUPS.flatMap(g => g.traits.filter(([id]) => (c.traits || []).includes(id)).map(([, t]) => t)).join(', ');
+  return [tr && 'Eigenschaften: ' + tr, c.notes && 'Notizen: ' + c.notes, c.signature && 'Signatur: ' + c.signature, c.core && 'Kern: ' + c.core, c.deviceStyle && 'Am Gerät: ' + c.deviceStyle].filter(Boolean).join('\n').replace(/\s+\n/g, '\n');
+}
+function figSig(c) { const t = (c.name || '') + '|' + figText(c); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function axesFor(c) {
+  const all = axesAll(), sig = figSig(c);
+  const e = (c.figureId && all[c.figureId]) || Object.values(all).find(x => x.name === c.name);
+  return e && e.sig === sig && e.d ? e : null;
+}
+async function rateFigures(list, onStep) {
+  // list: [{ f, v }]; in Blöcken zu 10 - alle eines Blocks sieht die KI zusammen, damit sie vergleicht
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic', all = axesAll(); let ok = 0;
+  const others = figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator);
+  for (let i = 0; i < list.length; i += 10) {
+    const chunk = list.slice(i, i + 10); if (onStep) onStep(i, list.length);
+    const sys = `Du schätzt Figuren einer privaten, erwachsenen Rollenspiel-App ein: wie verhält sich jede in intimen Szenen mit Til? Lies den GANZEN Text jeder Figur - auch Umschreibungen ("lässt dich zappeln, bis du bettelst" = führend) und Verneinungen ("gar nicht streng" = nicht streng). Häkchen-Eigenschaften zählen, aber der Fließtext wiegt schwerer.
+Acht Merkmale, jeweils -100 bis 100 (0 = ausgewogen oder nicht erkennbar):
+${Object.entries(CM_DIMS).map(([k, d]) => `- "${k}": -100 = ${d[2]} · 100 = ${d[3]}`).join('\n')}
+"typ": das, was sie am stärksten ausmacht - genau eines von: führend, zärtlich, neckend, wild, hingebungsvoll.
+"warum": ein kurzer Satz mit dem entscheidenden Detail aus ihrem Text.
+Vergleiche die Figuren untereinander und nutze die Skala ehrlich: wer sich wirklich ähnelt, liegt nah beieinander; wer sich unterscheidet, deutlich auseinander. Nicht alle in die Mitte setzen.
+${others.length > chunk.length ? 'Zum Vergleich gibt es außerdem: ' + others.filter(o => !chunk.some(x => x.v.name === o.name)).map(o => o.name).join(', ') + '.\n' : ''}
+FIGUREN:
+${chunk.map(x => '### ' + x.v.name + '\n' + (figText(x.v) || '(kaum beschrieben)').slice(0, 1600)).join('\n\n')}
+
+Antworte NUR als JSON: {"figuren": [{"name": "...", ${Object.keys(CM_DIMS).map(k => `"${k}": 0`).join(', ')}, "typ": "...", "warum": "..."}]}`;
+    let j = null;
+    try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.3, taskBudget('draft', 300 + 200 * chunk.length), { task: 'draft' })); } catch (e) { logEvent('msg', { role: 'system', text: 'Figuren einschätzen: ' + e.message }); continue; }
+    const names = chunk.map(x => x.v.name);
+    ((j && j.figuren) || []).forEach(r => {
+      const nm = matchSpeakerName(r.name, names), x = chunk.find(c => c.v.name === nm); if (!x) return;
+      const cl = n => Math.max(-1, Math.min(1, (Number(n) || 0) / 100)), typ = AXIS_TYPE_KEY[String(r.typ || '').toLowerCase()] ? String(r.typ).toLowerCase() : null;
+      const d = {}; Object.keys(CM_DIMS).forEach(k => d[k] = cl(r[k]));
+      all[x.f.id] = { name: x.v.name, sig: figSig(x.v), d, top: typ || 'unbestimmt', why: String(r.warum || '').slice(0, 200), t: Date.now() }; ok++;
+    });
+    safeSet('companion_axes', JSON.stringify(all));
+  }
+  if (ok) logEvent('msg', { role: 'system', text: `Figuren eingeschätzt (KI): ${ok} - ` + list.map(x => { const e = all[x.f.id]; return e ? `${x.v.name} ${e.top} (` + Object.keys(CM_DIMS).map(k => k + ' ' + Math.round(e.d[k] * 100)).join(', ') + ')' : ''; }).filter(Boolean).join('; ') });
+  return ok;
+}
+const CM_DIMS = {
+  wild: ['zart', 'wild', 'sehr zart, langsam, innig', 'sehr wild, drängend, hart, gierig'],
+  fuehrt: ['lässt sich führen', 'führt', 'lässt sich führen, hingebungsvoll, devot', 'führt, bestimmt, dominant'],
+  verspielt: ['ernst', 'verspielt', 'ernst, intensiv, kaum Scherze', 'verspielt, frech, albern, neckt ständig'],
+  gefuehl: ['kühl', 'gefühlvoll', 'kühl, distanziert, eher körperlich', 'gefühlvoll, anhänglich, sucht Nähe und Bindung'],
+  erfahren: ['neugierig', 'erfahren', 'unerfahren, neugierig, staunt, probiert zum ersten Mal', 'sehr erfahren, abgebrüht, weiß genau, was sie will'],
+  kink: ['klassisch', 'Fetisch', 'klassisch, ohne besondere Vorlieben', 'ausgeprägte Fetische/Kinks, die die Handlung prägen'],
+  laut: ['leise', 'laut & derb', 'leise, flüsternd, wenige Worte', 'laut, redselig, derbe Worte, Dirty Talk'],
+  ungeduldig: ['geduldig', 'ungeduldig', 'sehr geduldig, zögert gern hinaus', 'ungeduldig, will sofort mehr'],
+};
+const CM_VIEWS = [
+  { id: 'dyn', name: 'Dynamik', x: 'wild', y: 'fuehrt' },
+  { id: 'ton', name: 'Ton & Nähe', x: 'verspielt', y: 'gefuehl' },
+  { id: 'spiel', name: 'Spielart', x: 'kink', y: 'erfahren' },
+  { id: 'worte', name: 'Worte & Tempo', x: 'laut', y: 'ungeduldig' },
+  { id: 'sim', name: 'Ähnlichkeit' },
+];
+const CM_COLORS = { führend: '#d9b26b', zärtlich: '#f2a7c3', neckend: '#8fd3ff', wild: '#ff6a5a', hingebungsvoll: '#b9a6ff' };
 function charMapData() {
   return figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator).map(x => {
+    const ax = axesFor(Object.assign({ figureId: x.f.id }, x.v));
+    if (ax) return Object.assign(x, { d: ax.d, x: ax.d.wild, y: ax.d.fuehrt, top: ax.top, why: ax.why, ai: true });
     const sc = deviceStyleScores(x.v), tot = Math.max(1, sc.control + sc.tender + sc.tease + sc.urge + sc.follow);
     const wx = Math.max(-1, Math.min(1, (sc.urge + sc.tease * 0.6 - sc.tender) / Math.max(4, tot * 0.8)));   // zart ← → wild
     const wy = Math.max(-1, Math.min(1, (sc.control - sc.follow - sc.tender * 0.3) / Math.max(4, tot * 0.8)));   // folgt ↓ ↑ führt
     const top = Object.entries({ führend: sc.control, zärtlich: sc.tender, neckend: sc.tease, wild: sc.urge, hingebungsvoll: sc.follow }).sort((a, b) => b[1] - a[1])[0];
-    return Object.assign(x, { sc, x: wx, y: wy, top: top[1] > 0 ? top[0] : 'unbestimmt' });
+    const d = {}; Object.keys(CM_DIMS).forEach(k => d[k] = 0); d.wild = wx; d.fuehrt = wy; d.verspielt = Math.min(1, sc.tease / 6); d.ungeduldig = Math.min(1, sc.urge / 6);
+    return Object.assign(x, { sc, d, x: wx, y: wy, top: top[1] > 0 ? top[0] : 'unbestimmt' });
   });
 }
-function openCharMap() {
+const cmDist = (a, b) => Math.sqrt(Object.keys(CM_DIMS).reduce((t, k) => t + Math.pow((a.d[k] || 0) - (b.d[k] || 0), 2), 0));
+// Ähnlichkeit: alle Merkmale auf zwei Hauptachsen gebracht (PCA), Grüppchen nach Abstand, nächste Paare und größte Gegensätze
+function cmSimilarity(D) {
+  const K = Object.keys(CM_DIMS), n = D.length, mean = K.map(k => D.reduce((t, d) => t + (d.d[k] || 0), 0) / Math.max(1, n));
+  const X = D.map(d => K.map((k, i) => (d.d[k] || 0) - mean[i]));
+  const cov = K.map((_, a) => K.map((__, b) => X.reduce((t, r) => t + r[a] * r[b], 0) / Math.max(1, n - 1)));
+  const eig = (M, not) => { let v = K.map((_, i) => Math.sin(i + 1.3)); for (let it = 0; it < 80; it++) { let w = M.map(r => r.reduce((t, x, j) => t + x * v[j], 0)); if (not) { const dot = w.reduce((t, x, j) => t + x * not[j], 0); w = w.map((x, j) => x - dot * not[j]); } const nr = Math.hypot(...w) || 1; v = w.map(x => x / nr); } return v; };
+  const e1 = eig(cov), e2 = eig(cov, e1), P = X.map(r => [r.reduce((t, x, j) => t + x * e1[j], 0), r.reduce((t, x, j) => t + x * e2[j], 0)]);
+  const mx = Math.max(0.01, ...P.map(p => Math.max(Math.abs(p[0]), Math.abs(p[1]))));
+  const axName = e => { const o = K.map((k, j) => [k, e[j]]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 2); return [o.map(([k, w]) => CM_DIMS[k][w < 0 ? 1 : 0]).join(', '), o.map(([k, w]) => CM_DIMS[k][w < 0 ? 0 : 1]).join(', ')]; };
+  const pairs = []; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pairs.push({ a: D[i], b: D[j], dist: cmDist(D[i], D[j]) });
+  const avg = pairs.reduce((t, p) => t + p.dist, 0) / Math.max(1, pairs.length);
+  // Grüppchen: Single-Link, wer näher als die Hälfte des Durchschnitts liegt, gehört zusammen
+  const g = D.map((_, i) => i), root = i => g[i] === i ? i : (g[i] = root(g[i]));
+  pairs.filter(p => p.dist < avg * 0.5).forEach(p => { g[root(D.indexOf(p.a))] = root(D.indexOf(p.b)); });
+  const cl = {}; D.forEach((d, i) => (cl[root(i)] = cl[root(i)] || []).push(d));
+  const clusters = Object.values(cl).filter(c => c.length > 1).map(c => ({ members: c, share: K.map(k => [k, c.reduce((t, d) => t + (d.d[k] || 0), 0) / c.length]).filter(([, m]) => Math.abs(m) >= 0.4).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).map(([k, m]) => CM_DIMS[k][m < 0 ? 0 : 1]) }));
+  const sorted = pairs.slice().sort((a, b) => a.dist - b.dist);
+  return { pos: P.map(p => [p[0] / mx, p[1] / mx]), axX: axName(e1), axY: axName(e2), clusters, close: sorted.filter(p => p.dist < avg * 0.6).slice(0, 3), far: sorted.slice(-3).reverse(), avg };
+}
+// Für die Karten des Abends: die spannendsten Gegensätze unter den eingeschätzten Figuren
+function cmOpposites(k) {
+  try { const D = charMapData().filter(d => d.ai); if (D.length < 3) return []; return cmSimilarity(D).far.slice(0, k || 3).map(p => p.a.v.name + ' & ' + p.b.v.name); } catch (e) { return []; }
+}
+function openCharMap(noRate, viewId) {
   const D = charMapData(); if (!D.length) { showToast('Noch keine Figuren'); return; }
-  let pd = 0, n = 0; for (let i = 0; i < D.length; i++) for (let j = i + 1; j < D.length; j++) { pd += Math.hypot(D[i].x - D[j].x, D[i].y - D[j].y); n++; } const spread = n ? pd / n : 0;
-  const quad = { 'führend & wild': 0, 'führend & zart': 0, 'folgend & wild': 0, 'folgend & zart': 0 }; D.forEach(d => { quad[(d.y >= 0 ? 'führend' : 'folgend') + ' & ' + (d.x >= 0 ? 'wild' : 'zart')]++; });
-  const empty = Object.entries(quad).filter(([, k]) => !k).map(([q]) => q), verdict = spread < 0.35 ? 'eine Blase - viele ähneln sich' : spread < 0.7 ? 'gemischt' : 'ein wilder Mix';
+  let vid = viewId || localStorage.getItem('companion_cmView') || 'dyn'; if (!CM_VIEWS.some(w => w.id === vid)) vid = 'dyn';
+  const VW = CM_VIEWS.find(w => w.id === vid), anyAi = D.some(d => d.ai);
+  const sim = vid === 'sim' ? cmSimilarity(D) : null;
+  const P = D.map((d, i) => sim ? sim.pos[i] : [d.d[VW.x] || 0, d.d[VW.y] || 0]);
+  const L = sim ? { l: sim.axX[0], r: sim.axX[1], b: sim.axY[0], t: sim.axY[1] } : { l: CM_DIMS[VW.x][0], r: CM_DIMS[VW.x][1], b: CM_DIMS[VW.y][0], t: CM_DIMS[VW.y][1] };
+  let pd = 0, n = 0; for (let i = 0; i < D.length; i++) for (let j = i + 1; j < D.length; j++) { pd += Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]); n++; } const spread = n ? pd / n : 0;
+  const quad = {}; [[L.t, L.r], [L.t, L.l], [L.b, L.r], [L.b, L.l]].forEach(([a, b]) => quad[a + ' & ' + b] = []);
+  D.forEach((d, i) => quad[(P[i][1] >= 0 ? L.t : L.b) + ' & ' + (P[i][0] >= 0 ? L.r : L.l)].push(d.v.name.split(' ')[0]));
+  const empty = sim ? [] : Object.entries(quad).filter(([, k]) => !k.length).map(([q]) => q), verdict = spread < 0.35 ? 'eine Blase - viele ähneln sich' : spread < 0.7 ? 'gemischt' : 'ein wilder Mix';
+  const old = document.getElementById('charMap'), keepScroll = old ? old.scrollTop : 0; if (old) old.remove();
   const v = document.createElement('div'); v.id = 'charMap';
   v.style.cssText = 'position:fixed; inset:0; z-index:3000; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 24px;';
   const S = Math.min(window.innerWidth - 32, 420);
+  const tab = w => `<button type="button" class="cm-tab" data-v="${w.id}" style="flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; font-size:13px; border:1px solid ${w.id === vid ? 'var(--gold)' : 'rgba(255,255,255,0.18)'}; background:${w.id === vid ? 'rgba(217,178,107,0.18)' : 'transparent'}; color:#fff;${!anyAi && w.id !== 'dyn' ? ' opacity:0.45;' : ''}">${w.name}</button>`;
   v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🗺️ Charakter-Karte</h2><button type="button" class="btn-secondary cm-x" style="width:44px; height:44px; padding:0;">✕</button></div>
-    <p class="hint" style="margin:6px 0 10px;">${D.length} Figuren · Verteilung: <b>${verdict}</b>${empty.length ? ' · leer: ' + empty.join(', ') : ''}</p>
+    <div style="display:flex; gap:6px; overflow-x:auto; margin:10px -16px 6px; padding:0 16px 4px; scrollbar-width:none;">${CM_VIEWS.map(tab).join('')}</div>
+    <p class="hint" style="margin:6px 0 4px;">${D.length} Figuren · ${sim ? 'alle acht Merkmale zusammen - nah = ähnlich' : `Verteilung: <b>${verdict}</b>${empty.length ? ' · leer: ' + empty.join(', ') : ''}`}</p>
+    <p class="hint cm-status" style="margin:0 0 10px;">${D.every(d => d.ai) ? 'Eingeschätzt von der KI aus dem ganzen Text jeder Figur · Figur antippen für Details · <a href="#" class="cm-redo" style="color:var(--gold);">neu einschätzen</a>' : anyAi ? 'Teils von der KI eingeschätzt, teils nur nach Stichwörtern (gestrichelt)' : 'Vorläufig nach Stichwörtern (gestrichelt) - die anderen Ansichten brauchen die KI-Einschätzung'}</p>
     <div class="cm-plot" style="position:relative; width:${S}px; height:${S}px; margin:0 auto; border:1px solid rgba(255,255,255,0.15); border-radius:14px; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);">
       <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.12);"></div><div style="position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.12);"></div>
-      <span style="position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7;">führt</span><span style="position:absolute; bottom:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7;">lässt sich führen</span>
-      <span style="position:absolute; left:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7;">zart</span><span style="position:absolute; right:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7;">wild</span>
+      <span style="position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7; white-space:nowrap;">${esc(L.t)}</span><span style="position:absolute; bottom:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7; white-space:nowrap;">${esc(L.b)}</span>
+      <span style="position:absolute; left:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7; max-width:30%;">${esc(L.l)}</span><span style="position:absolute; right:6px; top:50%; transform:translateY(-120%); font-size:11px; opacity:0.7; max-width:30%; text-align:right;">${esc(L.r)}</span>
     </div>
     <div class="cm-list" style="margin-top:12px; font-size:13.5px; line-height:1.5;"></div>
-    <button type="button" class="btn-primary cm-sharp" style="width:100%; margin-top:12px;">✨ Ecken verstärken - jede Figur deutlicher in ihre Richtung</button>
-    <p class="hint" style="margin-top:6px;">Schreibt jeder Figur einen neuen Kern, der ihre Richtung verstärkt (zärtliche zärtlicher, führende bestimmter …) und sie von den anderen abhebt - mit Vorlieben, die die Handlung lenken. Alte Versionen bleiben erhalten.</p>`;
-  document.body.appendChild(v);
+    <button type="button" class="btn-primary cm-sharp" style="width:100%; margin-top:12px;">✨ Ecken verstärken${sim ? ' - Doppelgänger auseinanderziehen' : ' - jede Figur deutlicher in ihre Richtung'}</button>
+    <p class="hint" style="margin-top:6px;">${sim ? 'Schärft die Figuren, die sich zu sehr ähneln, so dass sie sich deutlich voneinander abheben.' : `Schärft jede Figur in ihre Richtung ${vid === 'dyn' ? '(zärtliche zärtlicher, führende bestimmter …)' : 'in dieser Ansicht (' + esc(L.l + ' / ' + L.r + ', ' + L.b + ' / ' + L.t) + ')'} und hebt sie von den anderen ab.`} Alte Versionen bleiben erhalten.</p>`;
+  document.body.appendChild(v); v.scrollTop = keepScroll;
+  v.querySelectorAll('.cm-tab').forEach(b => b.onclick = () => { if (!anyAi && b.dataset.v !== 'dyn') { showToast('Diese Ansicht braucht die KI-Einschätzung - KI-Schlüssel prüfen und „neu einschätzen"'); return; } safeSet('companion_cmView', b.dataset.v); openCharMap(true, b.dataset.v); });
+  const clusterOf = new Map(); if (sim) sim.clusters.forEach((c, k) => c.members.forEach(d => clusterOf.set(d, k)));
+  const CL = ['#ffcf5a', '#7ee0b0', '#ff8fb3', '#8fb8ff', '#d39bff', '#ffa86b'];
   const plot = v.querySelector('.cm-plot'), used = [];
-  D.forEach(d => {
-    let px = (d.x * 0.42 + 0.5) * S, py = (0.5 - d.y * 0.42) * S;
+  D.forEach((d, i) => {
+    let px = (P[i][0] * 0.42 + 0.5) * S, py = (0.5 - P[i][1] * 0.42) * S;
     for (let k = 0; k < 12 && used.some(([a, b]) => Math.hypot(a - px, b - py) < 30); k++) { px += (k % 2 ? 1 : -1) * 18; py += 10; }
     used.push([px, py]);
+    const col = sim ? (clusterOf.has(d) ? CL[clusterOf.get(d) % CL.length] : '#777') : (CM_COLORS[d.top] || '#888');
     const e = document.createElement('div'); e.title = d.v.name + ' - ' + d.top;
-    e.style.cssText = `position:absolute; left:${px - 18}px; top:${py - 18}px; width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${({ führend: '#d9b26b', zärtlich: '#f2a7c3', neckend: '#8fd3ff', wild: '#ff6a5a', hingebungsvoll: '#b9a6ff' })[d.top] || '#888'};`;
+    const prof = d.ai ? ' · ' + Object.keys(CM_DIMS).map(k => `${CM_DIMS[k][d.d[k] < 0 ? 0 : 1]} ${Math.abs(Math.round(d.d[k] * 100))}`).filter((_, j) => Math.abs(d.d[Object.keys(CM_DIMS)[j]]) >= 0.35).join(', ') : '';
+    e.onclick = () => showToast(d.v.name + ' - ' + d.top + (d.why ? ': ' + d.why : ' (nur nach Stichwörtern)') + prof);
+    e.style.cssText = `cursor:pointer; position:absolute; left:${px - 18}px; top:${py - 18}px; width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px ${d.ai ? 'solid' : 'dashed'} ${col};`;
     e.innerHTML = avaHtml(d.v.name, d.v.image); plot.appendChild(e);
     const lb = document.createElement('div'); lb.textContent = d.v.name.split(' ')[0]; lb.style.cssText = `position:absolute; left:${px - 30}px; top:${py + 19}px; width:60px; text-align:center; font-size:10px; opacity:0.85; pointer-events:none;`; plot.appendChild(lb);
   });
-  const groups = {}; D.forEach(d => (groups[d.top] = groups[d.top] || []).push(d.v.name.split(' ')[0]));
-  v.querySelector('.cm-list').innerHTML = Object.entries(groups).map(([k, ns]) => `<div><b>${esc(k)}</b> (${ns.length}): ${esc(ns.join(', '))}</div>`).join('');
+  const nm = d => esc(d.v.name.split(' ')[0]);
+  let html = '';
+  if (sim) {
+    html += sim.clusters.length ? sim.clusters.map((c, k) => `<div><span style="color:${CL[k % CL.length]};">●</span> <b>${c.members.map(nm).join(', ')}</b>${c.share.length ? ' - alle ' + esc(c.share.join(', ')) : ''}</div>`).join('') : '<div>Keine Grüppchen - jede Figur steht für sich. 👍</div>';
+    if (sim.close.length) html += `<div style="margin-top:8px;"><b>Fast Doppelgänger:</b> ${sim.close.map(p => nm(p.a) + ' & ' + nm(p.b)).join(' · ')}</div>`;
+    html += `<div style="margin-top:4px;"><b>Größte Gegensätze</b> (spannend zusammen): ${sim.far.map(p => nm(p.a) + ' & ' + nm(p.b)).join(' · ')}</div>`;
+  } else if (vid === 'dyn') {
+    const groups = {}; D.forEach(d => (groups[d.top] = groups[d.top] || []).push(nm(d)));
+    html = Object.entries(groups).map(([k, ns]) => `<div><b>${esc(k)}</b> (${ns.length}): ${ns.join(', ')}</div>`).join('');
+  } else {
+    html = Object.entries(quad).map(([q, ns]) => `<div><b>${esc(q)}</b> (${ns.length}): ${ns.length ? esc(ns.join(', ')) : '<i style="opacity:0.6;">niemand</i>'}</div>`).join('');
+  }
+  if (D.some(d => d.why)) html += `<details style="margin-top:8px;"><summary style="cursor:pointer;">Begründungen</summary>${D.filter(d => d.why).map(d => `<div style="margin-top:4px;"><b>${nm(d)}</b>${sim ? '' : ` (${esc(CM_DIMS[sim ? 'wild' : VW.x][1])} ${Math.round((d.d[VW ? VW.x : 'wild'] || 0) * 100)}, ${esc(CM_DIMS[VW.y][1])} ${Math.round((d.d[VW.y] || 0) * 100)})`}: ${esc(d.why)}</div>`).join('')}</details>`;
+  v.querySelector('.cm-list').innerHTML = html;
   v.querySelector('.cm-x').onclick = () => v.remove();
+  const rerate = async (list) => {
+    const st = v.querySelector('.cm-status'); st.textContent = `KI liest ${list.length} Figur${list.length === 1 ? '' : 'en'} …`;
+    const ok = await rateFigures(list, (i, n) => { st.textContent = `KI liest Figuren … ${Math.min(n, i + 10)}/${n}`; });
+    if (!document.body.contains(v)) return;
+    if (ok) openCharMap(true, vid); else st.textContent = 'KI nicht erreichbar - Anzeige nach Stichwörtern';
+  };
+  const redo = v.querySelector('.cm-redo'); if (redo) redo.onclick = (ev) => { ev.preventDefault(); rerate(D.map(d => ({ f: d.f, v: d.v }))); };
+  const stale = D.filter(d => !d.ai).map(d => ({ f: d.f, v: d.v }));
+  if (stale.length && !noRate) rerate(stale);
   v.querySelector('.cm-sharp').onclick = async (ev) => {
-    const b = ev.currentTarget; if (!confirm(`Alle ${D.length} Figuren in ihre Richtung schärfen?`)) return; b.disabled = true; let ok = 0;
     const DIR = { führend: 'Verstärke ihre führende, bestimmende Seite deutlich - sie gibt den Ton an, hat klare Regeln und eine Vorliebe für Kontrolle', zärtlich: 'Verstärke ihre zärtliche, hingebungsvolle Seite deutlich - langsam, innig, sehr aufmerksam', neckend: 'Verstärke ihre neckende, verspielte Seite deutlich - Spiele, Wetten, Überraschungen, freche Sprüche', wild: 'Verstärke ihre wilde, drängende Seite deutlich - ungeduldig, gierig, laut, sie will mehr', hingebungsvoll: 'Verstärke ihre hingebungsvolle Seite deutlich - sie lässt sich gern führen, genießt es, sich hinzugeben', unbestimmt: 'Gib ihr eine klare, eigene Richtung, die bei den anderen Figuren noch fehlt' + (empty.length ? ' (frei ist z. B.: ' + empty.join(', ') + ')' : '') };
-    for (let i = 0; i < D.length; i++) { b.textContent = `✨ Schärfe … ${i + 1}/${D.length}`; try { const c = characterFromVersion(D[i].f); const core = await sharpenCharacter(c, DIR[D[i].top]); if (core) { c.core = core; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === D[i].f.id ? Object.assign(x, { core }) : x); ok++; } } catch (err) {} }
-    showToast(`${ok} von ${D.length} Figuren geschärft`); v.remove(); openCharMap();
+    let todo;
+    if (sim) {
+      const set = new Set(); sim.close.forEach(p => set.add(p.b)); sim.clusters.forEach(c => c.members.slice(1).forEach(d => set.add(d)));
+      todo = [...set].map(d => { const twin = D.filter(o => o !== d).sort((a, b) => cmDist(a, d) - cmDist(b, d))[0]; const diff = Object.keys(CM_DIMS).filter(k => Math.abs(twin.d[k] || 0) >= 0.3).slice(0, 3).map(k => CM_DIMS[k][(twin.d[k] || 0) < 0 ? 1 : 0]); return { d, hint: `Sie ähnelt ${twin.v.name} zu sehr. Mach sie deutlich anders${diff.length ? ' - eher ' + diff.join(', ') : ''}, mit eigenem Motiv und eigenen Vorlieben, ohne ihren Grundton zu verlieren` }; });
+      if (!todo.length) { showToast('Keine Doppelgänger - nichts zu tun'); return; }
+    } else if (vid === 'dyn') todo = D.map(d => ({ d, hint: DIR[d.top] }));
+    else todo = D.map(d => { const sx = (d.d[VW.x] || 0), sy = (d.d[VW.y] || 0), parts = [Math.abs(sx) >= 0.2 ? CM_DIMS[VW.x][sx < 0 ? 0 : 1] : '', Math.abs(sy) >= 0.2 ? CM_DIMS[VW.y][sy < 0 ? 0 : 1] : ''].filter(Boolean); return { d, hint: parts.length ? `Verstärke deutlich, dass sie ${parts.join(' und ')} ist - spürbar in Sprache, Handlung und Vorlieben` : DIR.unbestimmt }; });
+    const b = ev.currentTarget; if (!confirm(`${todo.length} Figur${todo.length === 1 ? '' : 'en'} schärfen?\n\n` + todo.map(t => '• ' + t.d.v.name).join('\n'))) return; b.disabled = true; let ok = 0;
+    for (let i = 0; i < todo.length; i++) { b.textContent = `✨ Schärfe … ${i + 1}/${todo.length}`; const f = todo[i].d.f; try { const c = characterFromVersion(f); const core = await sharpenCharacter(c, todo[i].hint); if (core) { c.core = core; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, { core }) : x); ok++; } } catch (err) {} }
+    showToast(`${ok} von ${todo.length} Figuren geschärft`); openCharMap(false, vid);
   };
 }
 document.getElementById('sharpenAllBtn').onclick = async (e) => {
@@ -27804,6 +27954,10 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
 
 
 
