@@ -1908,6 +1908,7 @@
       </div>
       <div style="display:flex; gap:8px; margin:0 0 10px;">
         <button class="btn-secondary" id="sharpenAllBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">✨ Alle Charaktere schärfen</button>
+        <button class="btn-secondary" id="movesBtn" type="button" style="flex:1; min-width:0; height:42px; padding:0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="openMoves()">🎛️ Bewegungsmuster</button>
       </div>
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px 0;">
         <input type="checkbox" id="autoPortfolio" style="width:auto;">
@@ -3702,8 +3703,21 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.56';
+const APP_VERSION = '3.59';
 const CHANGELOG = [
+  { v: '3.59', date: '2026-10-24', items: [
+    '💋 Markenzeichen am Gerät sind jetzt kurze, prägnante Motive (4-10 Sekunden statt 15-35) - wie ein Klingelton, den man nach einmal Spüren wiedererkennt. „Alle auf aktuellen Stand" erneuert die Bewegungen aller Figuren',
+    '🗣 Zu jedem Markenzeichen gehören 2-3 kurze Sätze oder Laute der Figur, genau an der passenden Stelle der Bewegung (beim Stillstand ein Flüstern, beim Stoß ein Wort) - in ihrer Stimme; im Gespräch kennt sie ihre Worte und wandelt sie ab',
+    '👆 Durchwischen: Häkchen „🎛️ Markenzeichen spüren" - an, dann startet das Markenzeichen mit ihren Worten auf jeder Karte von selbst; ▶ daneben spielt es sofort; beim Weiterwischen stoppt das alte',
+  ] },
+  { v: '3.58', date: '2026-10-24', items: [
+    '🔄 Abgleich robuster: jede Datei trägt ihr eigenes Salz - zwei Geräte können sich beim gleichzeitigen Einrichten nicht mehr gegenseitig aussperren (das war der Grund für „Kennwort passt nicht" trotz gleichem Fingerabdruck); alte Daten werden weiter gelesen',
+    '🔌 Lovense Edge 2 steht jetzt unter Einstellungen → Verbindungen (war versteckt); Abschnitte ohne Gruppe landen künftig unter „Weitere" statt zu verschwinden',
+  ] },
+  { v: '3.57', date: '2026-10-24', items: [
+    '🎛️ Neue Übersicht „Bewegungsmuster" (unter Figuren und in den Einstellungen): alle 24 Muster des Wortschatzes, die Markenzeichen-Bewegungen aller Figuren und die 14 Edge-Muster - jeweils als Kurve, mit Tempo langsam/mittel/schnell, Ablauf in Worten, Vorschau mit wandernder Hülse und Test am Gerät; durchklicken mit ‹ › oder Wischen',
+    '🧩 Reiter „Lücken": Tabelle Bereich × Art (Spitze, Mitte, tief unten, ganze Länge × gleichmäßig, Stöße, Zittern, Aufbau, Pausen, Wechsel) - zeigt, welche Kombinationen noch kein fertiges Muster haben',
+  ] },
   { v: '3.56', date: '2026-10-24', items: [
     '🔄 Abgleich: unter dem Kennwort steht ein Fingerabdruck (z. B. „A1B2C3 · 12 Zeichen“) - auf beiden Geräten muss er gleich sein; Leerzeichen am Rand und unterschiedliche Tastatur-Zeichenformen werden jetzt ausgeglichen',
   ] },
@@ -4968,30 +4982,56 @@ async function ghPut(path, bytes, msg) {
 const SYNC_CHECK = 'notizen-abgleich-ok';
 function syncNormPass(p) { return String(p || '').normalize('NFC').trim(); }
 async function syncPassPrint() { const p = syncCfg().pass; if (!p) return 'kein Kennwort'; const n = syncNormPass(p); const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(n)); const hex = [...new Uint8Array(h).slice(0, 3)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase(); return 'Fingerabdruck ' + hex + ' · ' + [...n].length + ' Zeichen' + (n !== p ? ' (Leerzeichen am Rand ignoriert)' : '') + (/[^\x20-\x7e]/.test(n) ? ' · enthält Sonderzeichen' : ''); }
-async function syncShowPrint() { const el = document.getElementById('syncPassPrint'); if (el) el.textContent = (await syncPassPrint()) + (sync.saltHex ? ' · Salz ' + sync.saltHex : ''); }
+async function syncShowPrint() { const el = document.getElementById('syncPassPrint'); if (el) el.textContent = await syncPassPrint(); }
+// Dateiformat 2: "NZ2\0" + eigenes Salz (16) + IV (12) + Daten. Jede Datei trägt ihr Salz selbst - so können
+// sich zwei Geräte nie mehr über ein gemeinsames Salz „verheddern" (gleichzeitiges Einrichten, verzögertes GitHub).
+const SYNC_MAGIC = [0x4e, 0x5a, 0x32, 0x00];
+const syncKeys = { pass: null, map: new Map(), legacy: null };
+const syncHex = b => [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+function syncLocalSalt() {
+  let h = localStorage.getItem('syncmeta_salt') || '';
+  if (!/^[0-9a-f]{32}$/.test(h)) { h = syncHex(crypto.getRandomValues(new Uint8Array(16))); try { localStorage.setItem('syncmeta_salt', h); } catch (e) {} }
+  return new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
+}
+async function syncKeyFor(salt, raw) {
+  const c = syncCfg(); if (syncKeys.pass !== c.pass) { syncKeys.pass = c.pass; syncKeys.map.clear(); syncKeys.legacy = null; }
+  const id = syncHex(salt) + (raw ? 'r' : ''); if (!syncKeys.map.has(id)) syncKeys.map.set(id, deriveBackupKey(raw ? c.pass : syncNormPass(c.pass), salt));
+  return syncKeys.map.get(id);
+}
+async function syncLegacyKeys() {   // alte Dateien (vor 3.58): gemeinsames salt.bin
+  if (syncKeys.legacy) return syncKeys.legacy;
+  const sb = await ghGet('salt.bin'); if (!sb) return (syncKeys.legacy = []);
+  const salt = new Uint8Array(sb), c = syncCfg();
+  syncKeys.legacy = [await syncKeyFor(salt)].concat(syncNormPass(c.pass) !== c.pass ? [await syncKeyFor(salt, true)] : []);
+  return syncKeys.legacy;
+}
+const isV2 = b => b.length > 32 && SYNC_MAGIC.every((x, i) => b[i] === x);
+async function syncDecRaw(buf) {
+  const b = new Uint8Array(buf); if (b.length < 29) throw new Error('kurz');
+  if (isV2(b)) { const key = await syncKeyFor(b.slice(4, 20)); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(20, 32) }, key, b.slice(32))); }
+  for (const key of await syncLegacyKeys()) { try { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, key, b.slice(12))); } catch (e) {} }
+  throw new Error('passt nicht');
+}
+async function syncEncRaw(bytes) {
+  const salt = syncLocalSalt(), iv = crypto.getRandomValues(new Uint8Array(12)), key = await syncKeyFor(salt);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
+  const out = new Uint8Array(32 + ct.length); out.set(SYNC_MAGIC, 0); out.set(salt, 4); out.set(iv, 20); out.set(ct, 32); return out;
+}
+// Einmal je Sitzung: passt das Kennwort zu den Daten auf GitHub?
 async function syncKey() {
   const c = syncCfg(); if (sync.key && sync.keyFor === c.repo + c.pass) return sync.key;
-  let saltBuf = await ghGet('salt.bin'), fresh = false;
-  if (!saltBuf) { const salt = crypto.getRandomValues(new Uint8Array(16)); await ghPut('salt.bin', salt, 'Abgleich eingerichtet'); saltBuf = salt.buffer; fresh = true; }
-  sync.saltHex = [...new Uint8Array(saltBuf).slice(0, 3)].map(x => x.toString(16).padStart(2, '0')).join('');
-  const norm = syncNormPass(c.pass);
-  let key = await deriveBackupKey(norm, new Uint8Array(saltBuf));
-  // Prüfdatei: zeigt sofort, ob das Kennwort zu den Daten auf GitHub passt
-  const chk = fresh ? null : await ghGet('check.bin');
-  if (chk) {
-    const b = new Uint8Array(chk); let ok = false;
-    const tryKey = async (k) => { try { return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, k, b.slice(12))) === SYNC_CHECK; } catch (e) { return false; } };
-    ok = await tryKey(key);
-    if (!ok && norm !== c.pass) { const k2 = await deriveBackupKey(c.pass, new Uint8Array(saltBuf)); if (await tryKey(k2)) { key = k2; ok = true; } }   // ältere Daten mit ungeglättetem Kennwort
-    if (!ok) { sync.key = null; const e = new Error('Das Abgleich-Kennwort passt nicht zu den Daten auf GitHub (hier: ' + await syncPassPrint() + ', Salz ' + sync.saltHex + '). Vergleich das mit dem anderen Gerät. Gib hier das Kennwort ein, mit dem du den Abgleich zuerst eingerichtet hast - oder tippe auf „Neu anlegen".'); e.wrongPass = true; throw e; }
-  } else {
-    const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(SYNC_CHECK)));
-    const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); await ghPut('check.bin', out, 'Abgleich-Prüfung');
+  sync.saltHex = syncHex(syncLocalSalt().slice(0, 3));
+  const chk = await ghGet('check.bin');
+  let ok = !chk;
+  if (chk) { try { ok = new TextDecoder().decode(await syncDecRaw(chk)) === SYNC_CHECK; } catch (e) { ok = false; } }
+  if (chk && !ok) {   // Prüfdatei kaputt oder aus einem halben Versuch? Wenn die Hauptdatei sich öffnen lässt, passt das Kennwort trotzdem
+    const core = await ghGet('core.bin'); if (core) { try { await syncDecRaw(core); ok = true; } catch (e) {} }
   }
-  sync.key = key; sync.keyFor = c.repo + c.pass; return sync.key;
+  if (!ok) { sync.key = null; const e = new Error('Das Abgleich-Kennwort passt nicht zu den Daten auf GitHub (hier: ' + await syncPassPrint() + '). Vergleich das mit dem anderen Gerät. Ist es auf beiden gleich, tipp auf EINEM Gerät auf „♻️ Neu anlegen" und danach auf dem anderen auf „Jetzt abgleichen".'); e.wrongPass = true; throw e; }
+  if (!chk || !isV2(new Uint8Array(chk))) await ghPut('check.bin', await syncEncRaw(new TextEncoder().encode(SYNC_CHECK)), 'Abgleich-Prüfung');
+  sync.key = true; sync.keyFor = c.repo + c.pass; return sync.key;
 }
-async function syncEnc(bytes) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await syncKey(), bytes)); const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); return out; }
-async function syncDecRaw(buf) { const b = new Uint8Array(buf); if (b.length < 29) throw new Error('kurz'); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await syncKey(), b.slice(12))); }
+async function syncEnc(bytes) { await syncKey(); return syncEncRaw(bytes); }
 async function syncDec(buf, path) {
   try { return await syncDecRaw(buf); } catch (e) {
     if (e.wrongPass) throw e;
@@ -5094,7 +5134,7 @@ function syncUiInit() {
         const m = await ghApi(path); if (!m) continue; const j = await m.json();
         await ghApi(path, { method: 'DELETE', body: { message: 'Abgleich neu angelegt', sha: j.sha } });
       }
-      sync.key = null; sync.keyFor = ''; sync.shas = {};
+      sync.key = null; sync.keyFor = ''; sync.shas = {}; syncKeys.legacy = null;
       localStorage.removeItem('companion_syncDone'); localStorage.removeItem('syncmeta_img');
     } catch (e) { sync.busy = false; syncSetStatus('Neu anlegen ging nicht: ' + e.message, true); return; }
     sync.busy = false; await syncNow('neu angelegt');
@@ -12058,6 +12098,7 @@ function versionFromCharacter(c, versionNumber) {
     signature: c.signature || '',
     deviceStyle: c.deviceStyle || '',
     sigMotion: c.sigMotion || '',
+    sigWords: c.sigWords || '',
     toyPref: c.toyPref || '',
     toyWish: c.toyWish || '',
     core: c.core || '',
@@ -12357,7 +12398,7 @@ function describeCharacter(c) {
   if (!c.isUser && !c.isNarrator && (c.core || '').trim()) parts.push(`CHARAKTERKERN (so ist sie wirklich - danach handelt, spricht und entscheidet sie; sie treibt die Geschichte aktiv in ihre Richtung, greift ihre Motive immer wieder auf und bringt ihre Vorlieben nach und nach ins Spiel: vorschlagen, Til fragen, behutsam ausprobieren, dann steigern): ${c.core.trim().replace(/\s*\n\s*/g, ' | ')}`);
   if (!c.isUser && !c.isNarrator) parts.push(`HANDSCHRIFT AM GERÄT: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)} - führt SIE das Gerät, bewegt es sich so (Marker und Muster entsprechend wählen); andere Figuren haben ihre eigene Art, man soll am Gerät spüren, wer gerade dran ist`);
   if (!c.isUser && !c.isNarrator && localStorage.getItem('companion_toyPrefs') === '1' && (c.toyPref || (c.toyWish || '').trim())) parts.push(toyPrefText(c));
-  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt - aber erst, wenn es schon körperlich zur Sache geht, nicht beim Plaudern oder in den ersten Antworten. Nie ankündigen („hier kommt mein Markenzeichen") - es ergibt sich aus der Situation, die sie dafür herbeiführt (ein kurzes Zögern, ein Blick, ein geflüsterter Satz), und ist dann einfach DA. ${parseSigMotion(c.sigMotion) ? `Setzt sie es ein, schreibe genau an den Anfang den Marker <<markenzeichen>> - das Gerät spielt dann ihre Signatur-Folge (${Math.round(parseSigMotion(c.sigMotion).reduce((t, x) => t + (x.ms || 0), 0) / 1000)} s), und andere Marker warten so lange. Ablauf: ${sigMotionHuman(parseSigMotion(c.sigMotion))}. Ihre Worte und Handlungen in diesem Abschnitt folgen genau diesem Ablauf (beim Stillstand das Zögern oder ein Flüstern, bei den harten Stößen das, was sie dazu sagt) - in ihrem eigenen Ton, gern jedes Mal etwas anders kommentiert. Den Ablauf selbst NIE hinschreiben oder aufzählen (keine Sekunden, Zahlen, Positionen, Schritte) - das Gerät spielt ihn, sie lebt ihn nur` : 'beschreibt es eine Bewegung, gehört ein passender Marker dazu'}`);
+  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt - aber erst, wenn es schon körperlich zur Sache geht, nicht beim Plaudern oder in den ersten Antworten. Nie ankündigen („hier kommt mein Markenzeichen") - es ergibt sich aus der Situation, die sie dafür herbeiführt (ein kurzes Zögern, ein Blick, ein geflüsterter Satz), und ist dann einfach DA. ${parseSigMotion(c.sigMotion) ? `Setzt sie es ein, schreibe genau an den Anfang den Marker <<markenzeichen>> - das Gerät spielt dann ihre Signatur-Folge (${Math.round(parseSigMotion(c.sigMotion).reduce((t, x) => t + (x.ms || 0), 0) / 1000)} s), und andere Marker warten so lange. Ablauf: ${sigMotionHuman(parseSigMotion(c.sigMotion))}. Ihre Worte und Handlungen in diesem Abschnitt folgen genau diesem Ablauf (beim Stillstand das Zögern oder ein Flüstern, bei den harten Stößen das, was sie dazu sagt) - in ihrem eigenen Ton, gern jedes Mal etwas anders kommentiert. Den Ablauf selbst NIE hinschreiben oder aufzählen (keine Sekunden, Zahlen, Positionen, Schritte) - das Gerät spielt ihn, sie lebt ihn nur${sigWordsOf(c).length ? `. Ihre typischen Worte dabei (gern abgewandelt, nicht jedes Mal wörtlich): ${sigWordsOf(c).map(w => '„' + w.x + '"').join(' … ')}` : ''}` : 'beschreibt es eine Bewegung, gehört ein passender Marker dazu'}`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
@@ -14355,13 +14396,13 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       const smOk = document.createElement('div'); smOk.className = 'hint'; smOk.style.margin = '2px 0 0';
       const smCheck = () => { const st = parseSigMotion(smArea.value); smOk.textContent = !smArea.value.trim() ? 'Leer - die KI wählt dann frei passend zum Markenzeichen.' : st ? `✓ gültig · ${st.length} Schritte · ${(st.reduce((t, x) => t + (x.ms || 0), 0) / 1000).toFixed(1)} s` : '✗ so nicht lesbar - Schritte mit | trennen, zusammen 1,5-45 s'; };
       smArea.oninput = () => { c.sigMotion = smArea.value; smCheck(); }; smCheck();
-      sigBtn.onclick = async () => { sigBtn.disabled = true; sigBtn.textContent = '💋 Denke mir eins aus …'; try { const r = await freshSignature(c, otherSignatures(c.figureId)); c.signature = r.signature; sigArea.value = r.signature; c.sigMotion = r.motion; smArea.value = r.motion; smCheck(); } catch (e) { addMsg('system', 'Markenzeichen ging nicht: ' + e.message); } sigBtn.disabled = false; sigBtn.textContent = '💋 Neues Markenzeichen'; };
+      sigBtn.onclick = async () => { sigBtn.disabled = true; sigBtn.textContent = '💋 Denke mir eins aus …'; try { const r = await freshSignature(c, otherSignatures(c.figureId)); c.signature = r.signature; sigArea.value = r.signature; c.sigMotion = r.motion; c.sigWords = r.words || ''; smArea.value = r.motion; smCheck(); } catch (e) { addMsg('system', 'Markenzeichen ging nicht: ' + e.message); } sigBtn.disabled = false; sigBtn.textContent = '💋 Neues Markenzeichen'; };
       card.appendChild(sigBtn);
       card.appendChild(smLabel); card.appendChild(smArea); card.appendChild(smOk);
       const smRow = document.createElement('div'); smRow.style.cssText = 'display:flex; gap:8px; margin:6px 0 4px; flex-wrap:wrap;';
       const smTest = document.createElement('button'); smTest.type = 'button'; smTest.className = 'btn-secondary'; smTest.style.cssText = 'height:40px; padding:0 14px; width:auto;'; smTest.textContent = '▶ Am Gerät spüren'; smTest.onclick = () => playSigMotion(c);
       const smGen = document.createElement('button'); smGen.type = 'button'; smGen.className = 'btn-secondary'; smGen.style.cssText = 'height:40px; padding:0 14px; width:auto;'; smGen.textContent = '🎛️ Aus Markenzeichen ableiten';
-      smGen.onclick = async () => { if (!(c.signature || '').trim()) { showToast('Erst ein Markenzeichen eintragen', true); return; } smGen.disabled = true; smGen.textContent = '🎛️ …'; try { const m = await sigMotionFor(c); c.sigMotion = m; smArea.value = m; smCheck(); } catch (e) { addMsg('system', 'Bewegung ableiten ging nicht: ' + e.message); } smGen.disabled = false; smGen.textContent = '🎛️ Aus Markenzeichen ableiten'; };
+      smGen.onclick = async () => { if (!(c.signature || '').trim()) { showToast('Erst ein Markenzeichen eintragen', true); return; } smGen.disabled = true; smGen.textContent = '🎛️ …'; try { const m = await sigMotionFor(c); c.sigMotion = m; c.sigWords = sigMotionFor.lastWords || ''; smArea.value = m; smCheck(); } catch (e) { addMsg('system', 'Bewegung ableiten ging nicht: ' + e.message); } smGen.disabled = false; smGen.textContent = '🎛️ Aus Markenzeichen ableiten'; };
       smRow.appendChild(smTest); smRow.appendChild(smGen); card.appendChild(smRow);
       if (localStorage.getItem('companion_toyPrefs') === '1') {
         const tyLabel = document.createElement('label'); tyLabel.textContent = 'Spielzeug-Wunsch'; card.appendChild(tyLabel);
@@ -14765,6 +14806,7 @@ function sanitizeDraftCharacters(list) {
     signature: String(c.signature || '').slice(0, 500),
     deviceStyle: String(c.deviceStyle || '').slice(0, 500),
     sigMotion: String(c.sigMotion || '').slice(0, 500),
+    sigWords: String(c.sigWords || '').slice(0, 600),
     toyPref: ['', 'g1', 'g2', 'beide', 'edge', 'g1edge'].includes(c.toyPref) ? c.toyPref : '',
     toyWish: String(c.toyWish || '').slice(0, 120),
     core: String(c.core || '').slice(0, 2000),
@@ -14883,7 +14925,7 @@ function speakWithBrowser(text, v) {
 function introSigDemo(v, audio) {
   if (localStorage.getItem('companion_swipeSig') === '0' || !parseSigMotion(v.sigMotion)) return;
   if (!device1.isConnected()) { if (!introSigDemo.told) { introSigDemo.told = true; showToast('🎛️ Gerät 1 ist nicht verbunden - das Markenzeichen am Gerät wird beim Vorstellen nur vorgeführt, wenn es verbunden ist'); } return; }
-  const go = () => { try { playSigMotion(v, true); } catch (e) {} };
+  const go = () => { try { playSigMoment(v, v.figureId, { quiet: true, noWords: true }); } catch (e) {} };
   if (audio) { const at = () => { const d = isFinite(audio.duration) ? audio.duration : 8; setTimeout(() => { if (!audio.paused && previewAudio === audio) go(); }, Math.max(1200, d * 450)); }; if (audio.readyState >= 1) at(); else audio.addEventListener('loadedmetadata', at, { once: true }); audio.addEventListener('pause', () => { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} }, { once: true }); }
   else setTimeout(go, 3500);
 }
@@ -15365,6 +15407,7 @@ function figureFromFields(f) {
     signature: f.signature || '',
     deviceStyle: f.deviceStyle || '',
     sigMotion: f.sigMotion || '',
+    sigWords: f.sigWords || '',
     toyPref: f.toyPref || '',
     toyWish: f.toyWish || '',
     core: f.core || '',
@@ -19442,10 +19485,11 @@ So soll es sein:
 - und ein Rhythmus, den man am Gerät spürt (z. B. Pause - Zählen - drei harte Stöße, ganz langsames Herausziehen bis zur Spitze, Zittern oben, Kreisen) - so beschrieben, dass die Bewegung eindeutig ist
 - abgeleitet aus ihrem Charakter, ihrem Motiv und ihren Vorlieben/Fetischen; unverwechselbar und deutlich anders als die Markenzeichen der anderen
 1-2 Sätze, höchstens 320 Zeichen, in der dritten Person ("Sie ...").
-Dazu "geraet": genau diese Bewegung als Folge für das Gerät - eine kleine Szene mit Dramaturgie: Auftakt (Zögern, Necken, Stillhalten), Aufbau, eine Überraschung oder Wendung, Höhepunkt, kurzer Ausklang. 6-12 Schritte durch | getrennt, zusammen 15-35 Sekunden. ${SIG_MOTION_SYNTAX}
+Dazu "geraet": genau diese Bewegung als Folge für das Gerät - ${SIG_SHAPE} ${SIG_MOTION_SYNTAX}
+${SIG_WORDS_ASK}
 ${describeCharacter(c)}
 ${othersSigs.length ? 'MARKENZEICHEN DER ANDEREN (nichts davon wiederholen, auch nicht ähnlich):\n' + othersSigs.map(x => '- ' + x).join('\n') : ''}
-Antworte NUR als JSON: {"signature": "...", "geraet": "..."}`;
+Antworte NUR als JSON: {"signature": "...", "geraet": "...", "worte": [{"bei": 0, "text": "..."}]}`;
   let j = null, sig = '', why = 'keine brauchbare Antwort';
   for (let k = 0; k < 3 && !sig; k++) {
     let raw = ''; try { raw = String(await callProvider(provider, sys + (k ? '\nNur das JSON-Objekt, nichts davor oder danach.' : ''), [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(900, taskBudget('draft', 900)), { task: 'draft' }) || ''); } catch (e) { why = e.message; continue; }
@@ -19457,10 +19501,19 @@ Antworte NUR als JSON: {"signature": "...", "geraet": "..."}`;
     sig = cand;
   }
   if (!sig) throw new Error(why);
-  let motion = j && j.geraet && parseSigMotion(j.geraet) ? String(j.geraet).trim() : '';
-  if (!motion) { try { motion = await sigMotionFor(Object.assign({}, c, { signature: sig })); } catch (e) {} }
-  return { signature: sig.slice(0, 400), motion: motion.slice(0, 500) };
+  let motion = j && j.geraet && parseSigMotion(j.geraet) && sigShort(j.geraet) ? String(j.geraet).trim() : '', words = motion ? sigWordsFrom(j.worte, parseSigMotion(motion)) : '';
+  if (!motion) { try { motion = await sigMotionFor(Object.assign({}, c, { signature: sig })); words = sigMotionFor.lastWords || ''; } catch (e) {} }
+  return { signature: sig.slice(0, 400), motion: motion.slice(0, 500), words };
 }
+const SIG_SHAPE = 'KEINE lange Abfolge, sondern ein MOTIV wie ein Klingelton: 3-6 Schritte durch | getrennt, zusammen nur 4-10 Sekunden. Prägnant und sofort wiedererkennbar - ein eigener Rhythmus oder eine eigene Geste, die sich deutlich von gewöhnlichen Hüben abhebt (z. B. dreimal kurz an der Spitze, eine Sekunde Stille, ein einziger langer Zug bis ganz unten). Lieber ein kurzes Motiv, das man nach einmal Spüren wiedererkennt, als eine Geschichte. Das Beispiel unten zeigt nur die Schreibweise - deins ist viel kürzer.';
+const SIG_WORDS_ASK = 'Dazu "worte": 2-3 ganz kurze Sätze oder Laute, die SIE genau dabei sagt (je höchstens 6 Wörter, ihr Ton, Deutsch, du-Form an Til), jeweils mit "bei" = Sekunde im Ablauf, an der sie fällt - passend zum Moment der Bewegung (beim Stillstand ein Flüstern, beim harten Stoß ein Wort, am Ende ein Laut oder ihr Satz). Keine Regieanweisungen, nur gesprochene Worte.';
+function sigShort(m) { const st = parseSigMotion(m); return !!st && st.reduce((t, x) => t + (x.ms || 0), 0) <= 13000; }
+function sigWordsFrom(arr, steps) {
+  if (!Array.isArray(arr) || !steps) return ''; const total = steps.reduce((t, x) => t + (x.ms || 0), 0);
+  const w = arr.map(x => ({ t: Math.round(Math.max(0, Math.min(total - 600, parseFloat(String(x && (x.bei ?? x.t ?? 0)).replace(',', '.')) * 1000 || 0))), x: String(x && (x.text || x.x) || '').replace(/\*[^*]*\*|\([^)]*\)/g, '').trim().slice(0, 70) })).filter(x => x.x).slice(0, 4).sort((a, b) => a.t - b.t);
+  return w.length ? JSON.stringify(w) : '';
+}
+function sigWordsOf(v) { try { const w = JSON.parse(v && v.sigWords || '[]'); return Array.isArray(w) ? w.filter(x => x && x.x) : []; } catch (e) { return []; } }
 const SIG_MOTION_SYNTAX = `Positionen 0 = ganz tief, 999 = ganz an der Spitze. Schritte: "zu 950 in 1,5s" (fahren), "halten 1s" (stillhalten), "pendeln 100-900@60 3s" (Hübe von-bis @ Takt pro Minute, Dauer), "stoßen 100-900@150 2s" (stoßend), "zittern 880-960@200 2s" (zittern), "rampe 100-950@40-180 4s" (immer schneller), oder ein Muster mit Dauer: ${Object.keys(PATTERN_INFO).filter(k => k !== 'markenzeichen').join(', ')} (z. B. "spitze_necken mittel 3s"). Beispiel: "zu 980 in 3s | halten 2s | spitze_necken langsam 4s | halten 1,5s | stoßen 100-980@150 3s | halten 1s | zittern 900-980@200 2s | rampe 100-950@40-170 6s | pendeln 600-950@30 5s"`;
 async function sigMotionFor(c) {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
@@ -19468,9 +19521,12 @@ async function sigMotionFor(c) {
 Figur: ${c.name}
 Markenzeichen: ${c.signature}
 Art am Gerät: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)}
-Eine kleine Szene mit Dramaturgie: Auftakt (Zögern, Necken, Stillhalten), Aufbau, eine Überraschung oder Wendung, Höhepunkt, kurzer Ausklang. 6-12 Schritte durch | getrennt, zusammen 15-35 Sekunden. ${SIG_MOTION_SYNTAX}
-Antworte NUR als JSON: {"geraet": "..."}`;
-  for (let k = 0; k < 2; k++) { const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.6, Math.max(400, taskBudget('draft', 400)), { task: 'draft' })); const m = j && String(j.geraet || '').trim(); if (m && parseSigMotion(m)) return m; }
+${SIG_SHAPE} ${SIG_MOTION_SYNTAX}
+${SIG_WORDS_ASK}
+Antworte NUR als JSON: {"geraet": "...", "worte": [{"bei": 0, "text": "..."}]}`;
+  let fallback = null; sigMotionFor.lastWords = '';
+  for (let k = 0; k < 3; k++) { const j = parseJsonLoose(await callProvider(provider, sys + (k ? '\nWICHTIG: höchstens 10 Sekunden insgesamt, 3-6 Schritte.' : ''), [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.6, Math.max(500, taskBudget('draft', 500)), { task: 'draft' })); const m = j && String(j.geraet || '').trim(); if (m && parseSigMotion(m)) { const w = sigWordsFrom(j.worte, parseSigMotion(m)); if (sigShort(m)) { sigMotionFor.lastWords = w; return m; } if (!fallback) fallback = [m, w]; } }
+  if (fallback) { sigMotionFor.lastWords = fallback[1]; return fallback[0]; }
   throw new Error('keine gültige Bewegungsfolge');
 }
 function playSigMotion(c, quiet) {
@@ -19478,6 +19534,40 @@ function playSigMotion(c, quiet) {
   if (!device1.isConnected()) { if (!quiet) showToast('Gerät 1 ist nicht verbunden', true); return false; }
   device1.runSequence(steps.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät vorgeführt: ${c.name} - ${c.sigMotion}` });
   sigBar(c.name, steps); return true;
+}
+// Markenzeichen-Moment: Bewegung am Gerät + ihre Worte genau an den passenden Stellen (Vorstellen, Durchwischen, Übersicht)
+const sigMoment = { token: 0, audios: [], timers: [] };
+function stopSigMoment(stopDevice) {
+  sigMoment.token++; sigMoment.timers.forEach(clearTimeout); sigMoment.timers = [];
+  sigMoment.audios.forEach(a => { try { a.pause(); } catch (e) {} }); sigMoment.audios = [];
+  try { speechSynthesis.cancel(); } catch (e) {}
+  if (stopDevice && sigBarEl && document.body.contains(sigBarEl)) { try { if (device1.isConnected()) device1.runSequence([{ type: 'stop' }]); } catch (e) {} sigBarEl.remove(); sigBarEl = null; }
+}
+async function sigWordAudio(v, figId, text) {
+  const source = localStorage.getItem('companion_ttsSource') || 'browser';
+  if (!(source === 'elevenlabs' && v.elevenVoice && apiKeyFor('companion_elevenKey'))) return null;
+  const key = 'sigw:' + (figId || v.name) + ':' + v.elevenVoice + ':' + text;
+  let blob = await dbGet(STORE_AUDIO, key).catch(() => null);
+  if (!blob) { blob = await elevenIntroAudio(text, v); try { await dbPut(STORE_AUDIO, key, blob); } catch (e) {} }
+  return blob;
+}
+async function playSigMoment(v, figId, opts) {
+  opts = opts || {}; const steps = parseSigMotion(v.sigMotion); if (!steps) { if (!opts.quiet) showToast('Noch keine gültige Gerätebewegung', true); return false; }
+  stopSigMoment(false); const my = ++sigMoment.token;
+  const words = opts.noWords ? [] : sigWordsOf(v);
+  let blobs = [];
+  if (words.length) { try { blobs = await Promise.all(words.map(w => sigWordAudio(v, figId, w.x).catch(() => null))); } catch (e) {} }
+  if (my !== sigMoment.token) return false;
+  const onDev = device1.isConnected();
+  if (onDev) { device1.runSequence(steps.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Markenzeichen vorgeführt: ${v.name}` }); }
+  else if (!opts.quiet && !playSigMoment.told) { playSigMoment.told = true; showToast('Gerät 1 ist nicht verbunden - du hörst und siehst das Markenzeichen nur'); }
+  sigBar(v.name, steps);
+  words.forEach((w, i) => sigMoment.timers.push(setTimeout(() => {
+    if (my !== sigMoment.token) return;
+    if (blobs[i]) { const a = new Audio(URL.createObjectURL(blobs[i])); sigMoment.audios.push(a); a.play().catch(() => {}); }
+    else speakWithBrowser(w.x, v);
+  }, w.t)));
+  return true;
 }
 // Sichtbar machen, dass (und was) das Gerät gerade vorführt: Leiste mit Ablauf und Fortschritt
 let sigBarEl = null, sigBarTimer = null;
@@ -19571,7 +19661,7 @@ Antworte NUR als JSON: {"notes": "...", "traits": ["..."], "core": "...", "style
 let fullRefresh = null;
 // Generationen: Ändert sich an einem Schritt etwas Grundsätzliches (z. B. wie Markenzeichen-Bewegungen gebaut werden),
 // wird hier die Zahl erhöht - dann fasst „Alle auf aktuellen Stand" nur diesen Teil bei allen Figuren neu an.
-const GEN = { mix: 1, sig: 2, sigMotion: 2 };
+const GEN = { mix: 1, sig: 2, sigMotion: 3 };   // 3: kurze, prägnante Motive (4-10 s) mit gesprochenen Worten
 function genAll() { try { return JSON.parse(localStorage.getItem('companion_gen') || '{}'); } catch (e) { return {}; } }
 function genOf(id) { return genAll()[id] || {}; }
 function genSet(id, patch) { const g = genAll(); g[id] = Object.assign(g[id] || {}, patch); safeSet('companion_gen', JSON.stringify(g)); }
@@ -19579,7 +19669,7 @@ function genMigrate() {
   if (localStorage.getItem('companion_genMigrated')) return;
   // Wer heute schon den großen Durchgang hatte, gilt als aktuell
   figureArchive.forEach(f => { const v = latestVersion(f); if (!v || v.isUser || v.isNarrator) return; const st = parseSigMotion(v.sigMotion), tot = st ? st.reduce((t, x) => t + (x.ms || 0), 0) : 0;
-    genSet(f.id, { mix: GEN.mix, sig: (v.signature || '').length >= 60 ? GEN.sig : 0, sigMotion: tot >= 12000 ? GEN.sigMotion : 0 }); });
+    genSet(f.id, { mix: GEN.mix, sig: (v.signature || '').length >= 60 ? GEN.sig : 0, sigMotion: tot >= 1500 && tot <= 13000 && v.sigWords ? GEN.sigMotion : 0 }); });
   safeSet('companion_genMigrated', '1');
 }
 function missingFieldsOf(v) { const m = []; if (!v.isNarrator && (v.signature || '').trim().length < 40) m.push('Markenzeichen'); if (!(v.styleExamples || '').trim()) m.push('Tonfall'); if (!(v.voiceDescription || '').trim()) m.push('Stimmbeschreibung'); if (!v.isNarrator && !(v.core || '').trim()) m.push('Kern'); return m; }
@@ -19628,9 +19718,9 @@ async function refreshAllFigures(btn) {
     // 3. Markenzeichen (ganz neu) und 4. nur Gerätebewegung
     let sigs = 0, motions = 0; const sigFail = [];
     const SL = sigList();
-    for (let i = 0; i < SL.length && !stopped(); i++) { const f = SL[i].f, n = latestVersion(f).name; step(`Markenzeichen ${i + 1}/${SL.length}: ${n} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion }); genSet(f.id, { sig: GEN.sig, sigMotion: r.motion ? GEN.sigMotion : 0 }); sigs++; } catch (e) { sigFail.push(n + ': ' + e.message); } }
+    for (let i = 0; i < SL.length && !stopped(); i++) { const f = SL[i].f, n = latestVersion(f).name; step(`Markenzeichen ${i + 1}/${SL.length}: ${n} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion, sigWords: r.words || '' }); genSet(f.id, { sig: GEN.sig, sigMotion: r.motion ? GEN.sigMotion : 0 }); sigs++; } catch (e) { sigFail.push(n + ': ' + e.message); } }
     const ML = motionList();
-    for (let i = 0; i < ML.length && !stopped(); i++) { const f = ML[i].f, n = latestVersion(f).name; step(`Bewegung ${i + 1}/${ML.length}: ${n} …`); try { const m = await sigMotionFor(characterFromVersion(f)); upd(f, { sigMotion: m }); genSet(f.id, { sigMotion: GEN.sigMotion }); motions++; } catch (e) { sigFail.push(n + ' (Bewegung): ' + e.message); } }
+    for (let i = 0; i < ML.length && !stopped(); i++) { const f = ML[i].f, n = latestVersion(f).name; step(`Bewegung ${i + 1}/${ML.length}: ${n} …`); try { const m = await sigMotionFor(characterFromVersion(f)); upd(f, { sigMotion: m, sigWords: sigMotionFor.lastWords || '' }); genSet(f.id, { sigMotion: GEN.sigMotion }); motions++; } catch (e) { sigFail.push(n + ' (Bewegung): ' + e.message); } }
     // 5. Beziehungen
     let relTaken = 0, relNew = 0;
     if (!stopped()) {
@@ -20043,12 +20133,19 @@ async function renderSwipe() {
     b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; await makePortfolio(f, b); sw.urls = await swImages(f); showImg(); };
     card.appendChild(b);
   }
+  stopSigMoment(true);
   if (parseSigMotion(v.sigMotion)) {
-    const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'btn-secondary'; sb.textContent = '🎛️ Markenzeichen spüren';
-    sb.style.cssText = 'position:absolute; top:22px; left:14px; width:auto; padding:8px 12px; font-size:13px; z-index:2;';
-    sb.addEventListener('pointerdown', e => e.stopPropagation()); sb.addEventListener('pointerup', e => e.stopPropagation());
-    sb.onclick = (e) => { e.stopPropagation(); playSigMotion(v); };
-    card.appendChild(sb);
+    // Häkchen „Markenzeichen spüren": an = beim Weiterwischen startet es auf jeder Karte von selbst; ▶ spielt es jetzt
+    const auto = () => localStorage.getItem('companion_swipeSigAuto') === '1';
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute; top:22px; left:14px; z-index:2; display:flex; gap:6px; align-items:center;';
+    box.innerHTML = `<label class="btn-secondary" style="display:flex; align-items:center; gap:6px; width:auto; padding:7px 10px; font-size:13px; margin:0; cursor:pointer;"><input type="checkbox" style="width:auto; margin:0;"${auto() ? ' checked' : ''}>🎛️ Markenzeichen spüren</label><button type="button" class="btn-secondary" style="width:auto; padding:7px 11px; font-size:13px;" title="Jetzt abspielen">▶</button>`;
+    ['pointerdown', 'pointerup'].forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    const cb = box.querySelector('input');
+    cb.onchange = (e) => { e.stopPropagation(); safeSet('companion_swipeSigAuto', cb.checked ? '1' : '0'); if (cb.checked) playSigMoment(v, f.id); else stopSigMoment(true); };
+    box.querySelector('button').onclick = (e) => { e.stopPropagation(); playSigMoment(v, f.id); };
+    card.appendChild(box);
+    if (auto()) setTimeout(() => { if (sw.list[sw.i] === f && els.swipeView.style.display !== 'none') playSigMoment(v, f.id, { quiet: true }); }, 450);
   }
   // Gesten
   let x0 = 0, y0 = 0, dx = 0, dy = 0, down = false, moved = false;
@@ -23143,7 +23240,7 @@ document.getElementById('homeSpeedBtn').onclick = () => openSpeedDating();
 document.getElementById('ptRefresh').onclick = () => openPitches(true, 3);
 document.getElementById('ptBack').onclick = () => { els.pitchView.style.display = 'none'; };
 document.getElementById('swipeOpenBtn').onclick = openSwipe;
-document.getElementById('swBack').onclick = () => { els.swipeView.style.display = 'none'; try { renderFigureList(); } catch (e) {} };
+document.getElementById('swBack').onclick = () => { try { stopSigMoment(true); } catch (e) {} els.swipeView.style.display = 'none'; try { renderFigureList(); } catch (e) {} };
 document.getElementById('swNo').onclick = () => swipeAct('no');
 document.getElementById('swYes').onclick = () => swipeAct('yes');
 document.getElementById('swChat').onclick = () => swipeAct('chat');
@@ -24006,7 +24103,7 @@ function renderMeSummary() {
 
 // ---------- Einstellungen: Gruppen mit Suche ----------
 const SETTINGS_GROUPS = [
-  { key: 'conn', icon: '🔌', title: 'Verbindungen', match: /^(Gerät 1|Gerät 2|Pulsgurt)/ },
+  { key: 'conn', icon: '🔌', title: 'Verbindungen', match: /^(Gerät 1|Gerät 2|Pulsgurt|Lovense)/ },
   { key: 'voice', icon: '🎙', title: 'Stimme & Klang', match: /^(Stimme & Sprachausgabe|Klang & Atmosphäre)/ },
   { key: 'ai', icon: '🖼', title: 'KI & Bilder', match: /^(KI-Anbieter|Bilder)/, extra: true },
   { key: 'safe', icon: '🔒', title: 'Schutz & Sicherung', match: /(Sperre \(PIN\)|^Sicherung)/ },
@@ -24017,7 +24114,7 @@ function settingsSections() { return [...document.querySelectorAll('#setupPanel 
 function groupOf(sec) { const t = sec.querySelector('summary').textContent.replace(/[⏳🔒🧩]/g, '').trim(); const g = SETTINGS_GROUPS.find(g => g.match.test(t)); return g ? g.key : 'misc'; }
 function groupSub(key) {
   try {
-    if (key === 'conn') return `Gerät 1 ${devOn(device1) ? '✓' : '–'} · Gerät 2 ${devOn(device2) ? '✓' : '–'} · Gurt ${hr.connected ? '✓' : '–'} · Kopfhörer ${headsetDetected || headphoneMode() ? '✓' : '–'}`;
+    if (key === 'conn') return `Gerät 1 ${devOn(device1) ? '✓' : '–'} · Gerät 2 ${devOn(device2) ? '✓' : '–'} · Gurt ${hr.connected ? '✓' : '–'} · Kopfhörer ${headsetDetected || headphoneMode() ? '✓' : '–'} · Edge ${typeof edgeConnected === 'function' && edgeConnected() ? '✓' : '–'}`;
     if (key === 'voice') { const src = localStorage.getItem('companion_ttsSource') || 'browser'; return `${src === 'elevenlabs' ? 'ElevenLabs' : 'Android-Stimme'} · Raumklang ${spatialEnabled() ? 'an' : 'aus'} · Körpergeräusche ${micSenseEnabled() ? 'an' : 'aus'}`; }
     if (key === 'ai') { const m = localStorage.getItem('companion_model_venice') || localStorage.getItem('companion_veniceModel') || ''; return `${(localStorage.getItem('companion_llmProvider') || 'venice')}${m ? ' · ' + m : ''} · Bilder ${refModel()}`; }
     if (key === 'safe') return `PIN ${pinIsSet() ? 'an' : 'aus'} · Sicherung exportieren und einspielen`;
@@ -24058,10 +24155,12 @@ function renderSettingsView() {
       b.onclick = () => { settingsUi.mode = g.key; renderSettingsView(); window.scrollTo(0, 0); };
       menu.appendChild(b);
     });
+    if (settingsSections().some(sec => groupOf(sec) === 'misc')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'set-row'; b.innerHTML = `<span class="set-ic">⋯</span><span class="set-tx"><b>Weitere</b><s>${esc(settingsSections().filter(sec => groupOf(sec) === 'misc').map(sec => sec.querySelector('summary').textContent.trim()).join(' · ').slice(0, 80))}</s></span><span class="set-chev">›</span>`; b.onclick = () => { settingsUi.mode = 'misc'; renderSettingsView(); window.scrollTo(0, 0); }; menu.appendChild(b); }
     const links = [
       ['🎮', 'Spielregeln', 'stehen jetzt im Einrichtungsblatt vor jedem Gespräch', () => enterLive({ setup: true, focus: document.querySelector('.rules-in-sheet') })],
       ['⏳', 'Gesunder Umgang', 'unter „Ich"', () => showMe()],
       ['🧩', 'Figuren-Konfigurator', 'unter „Figuren"', () => showFigures()],
+      ['🎛️', 'Bewegungsmuster', 'alle Muster ansehen, testen, Lücken finden', () => openMoves()],
     ];
     links.forEach(([ic, t, s, go]) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'set-row set-link';
@@ -24091,6 +24190,180 @@ showSettings = function (group) {
 els.saveSettingsBtn.textContent = 'Speichern';
 els.saveSettingsBtn.addEventListener('click', () => { setTimeout(() => { settingsUi.mode = 'menu'; renderSettingsView(); }, 0); });
 
+// ---------- 🎛️ Bewegungsmuster: Übersicht zum Durchklicken ----------
+// Zeigt alle fertigen Muster (Wortschatz der Figuren), die Markenzeichen der Figuren und die Edge-2-Muster
+// als Kurve, spielt sie als Vorschau oder am Gerät ab und zeigt, welche Kombinationen noch fehlen.
+const EDGE_PATTERN_INFO = {
+  wechsel: 'Kopf und Arm wechseln sich ab (Ping-Pong)', welle: 'weiche Welle zwischen Kopf und Arm', puls: 'beide pulsen gemeinsam',
+  kopf: 'nur der Kopf (innen)', arm: 'nur der Arm (außen, Damm und Eier)', beide: 'beide voll', necken: 'kurze Tupfer, mal Kopf, mal Arm',
+  aufwärts: 'Welle von unten (Arm) nach oben (Kopf)', abwärts: 'Welle von oben (Kopf) nach unten (Arm)', treppe: 'beide steigen Stufe für Stufe',
+  herzschlag: 'Doppelschlag wie ein Herz', kitzeln: 'Kopf leise, Arm kitzelt unregelmäßig', sturm: 'wilde, zufällige Stärken', echo: 'Arm stößt an, Kopf antwortet wie ein Echo',
+};
+const mv = { tab: 'muster', idx: 0, tempo: 'mittel', play: null, raf: 0 };
+// Bewegung nachrechnen (wie das Gerät sie fährt) → Liste von [ms, Position]
+function mvSim(steps, maxMs) {
+  const out = [], dt = 40, fastGap = 60; let t = 0, pos = 500;
+  const push = () => out.push([t, Math.max(0, Math.min(999, pos))]);
+  const lin = (to, ms, ease) => { const from = pos, n = Math.max(1, Math.round(ms / dt)); for (let i = 1; i <= n && t < maxMs; i++) { const f = i / n; pos = from + (to - from) * (ease ? f * f : f); t += dt; push(); } pos = to; };
+  push();
+  for (const st of steps) {
+    if (t >= maxMs) break;
+    if (!st) continue;
+    if (st.type === 'stop') break;
+    if (st.type === 'hold') { const n = Math.round((st.ms || 0) / dt); for (let i = 0; i < n && t < maxMs; i++) { t += dt; push(); } continue; }
+    if (st.type === 'move') { lin(st.to, st.ms || 800, st.ease); continue; }
+    if (st.type !== 'osc') continue;
+    const end = st.ms ? Math.min(maxMs, t + st.ms) : maxMs, tex = st.texture || 'smooth', bpm = Math.max(2, st.bpm || 60);
+    let up = pos < (st.low + st.high) / 2;
+    if (tex === 'zitterhub') { const strokeMs = Math.max(400, Math.min(6000, 60000 / Math.max(6, bpm))); const amp = Math.max(20, Math.min(90, 25 + (st.vib || 120) * 0.25)); let ph = 0, sg = 1; while (t < end) { ph = (ph + fastGap / strokeMs) % 1; const tri = ph < 0.5 ? ph * 2 : 2 - ph * 2; sg = -sg; pos = st.low + (st.high - st.low) * tri + sg * amp / 2; t += fastGap; push(); } continue; }
+    const half = tex === 'tremor' ? Math.round(200 - (bpm / 230) * (200 - fastGap)) : Math.max(130, Math.min(4000, 30000 / bpm));
+    while (t < end) {
+      const to = up ? st.high : st.low; up = !up;
+      if (tex === 'pulse') { lin(to, half * 0.45); const n = Math.round(half * 0.55 / dt); for (let i = 0; i < n && t < end; i++) { t += dt; push(); } }
+      else lin(to, half, tex === 'accel');
+    }
+  }
+  return out;
+}
+function mvTotal(steps) { if (!steps) return 0; let s = 0, open = false; steps.forEach(st => { if (st.type === 'osc' && !st.ms) open = true; s += st.ms || 0; }); return open ? 0 : s; }
+function mvSvg(pts, w, h, maxMs, opts) {
+  opts = opts || {}; if (!pts.length) return '';
+  const X = ms => (ms / maxMs * w).toFixed(1), Y = p => (h - 4 - p / 999 * (h - 8)).toFixed(1);
+  const d = pts.map(([ms, p], i) => (i ? 'L' : 'M') + X(ms) + ' ' + Y(p)).join('');
+  const grid = opts.grid ? [250, 500, 750].map(p => `<line x1="0" x2="${w}" y1="${Y(p)}" y2="${Y(p)}" stroke="rgba(255,255,255,0.08)"/>`).join('') + `<text x="3" y="11" fill="rgba(255,255,255,0.4)" font-size="9">Spitze</text><text x="3" y="${h - 6}" fill="rgba(255,255,255,0.4)" font-size="9">ganz unten</text>` : '';
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="display:block;">${grid}<path d="${d}" fill="none" stroke="${opts.col || 'var(--accent, #ff6b8b)'}" stroke-width="${opts.sw || 1.6}" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${opts.marker ? `<line class="mv-mark" x1="0" x2="0" y1="0" y2="${h}" stroke="var(--gold, #ffcf4d)" stroke-width="1.5" vector-effect="non-scaling-stroke" style="display:none"/>` : ''}</svg>`;
+}
+function mvEdgeSim(kind, maxMs) {   // [ms, Kopf, Arm] aus derselben Rechnung wie am Gerät
+  const saved = { o: edge.override, st: edge.st }; const out = [];
+  try { for (let ms = 0; ms <= maxMs; ms += 60) { edge.override = { kind, until: Infinity, t0: Date.now() - ms }; const [a, b] = edgeFollowLevels(0.06); out.push([ms, a, b]); } }
+  finally { edge.override = saved.o; edge.st = saved.st; }
+  return out;
+}
+function mvEdgeSvg(pts, w, h, maxMs) {
+  const X = ms => (ms / maxMs * w).toFixed(1), Y = (v, top) => ((top ? h / 2 - 3 : h - 3) - v / 20 * (h / 2 - 8)).toFixed(1);
+  const path = (k, top) => pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]) + ' ' + Y(p[k], top)).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="display:block;"><line x1="0" x2="${w}" y1="${h / 2}" y2="${h / 2}" stroke="rgba(255,255,255,0.1)"/>${h > 80 ? `<text x="3" y="10" fill="rgba(255,255,255,0.45)" font-size="9">Kopf</text><text x="3" y="${h / 2 + 10}" fill="rgba(255,255,255,0.45)" font-size="9">Arm</text>` : ''}<path d="${path(1, true)}" fill="none" stroke="#c26bff" stroke-width="1.6" vector-effect="non-scaling-stroke"/><path d="${path(2, false)}" fill="none" stroke="#5fb8ff" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+// Einordnen: wo (Zone) und wie (Art) - für die Lücken-Übersicht
+const MV_ZONES = [['spitze', 'Spitze'], ['mitte', 'Mitte'], ['unten', 'tief unten'], ['ganz', 'ganze Länge']];
+const MV_KINDS = [['gleich', 'gleichmäßig'], ['stoss', 'harte Stöße'], ['zittern', 'Zittern'], ['steigern', 'Aufbau / schneller'], ['pause', 'mit Pausen'], ['wechsel', 'Wechsel / Überraschung']];
+function mvClassify(steps) {
+  const z = new Set(), k = new Set(); const osc = steps.filter(s => s.type === 'osc');
+  osc.forEach(s => { const span = s.high - s.low; const mid = (s.low + s.high) / 2; z.add(span > 650 ? 'ganz' : mid >= 640 ? 'spitze' : mid <= 340 ? 'unten' : 'mitte');
+    if (s.texture === 'pulse') k.add('stoss'); else if (s.texture === 'tremor' || s.texture === 'zitterhub') k.add('zittern'); else if (s.texture === 'accel') k.add('steigern'); else k.add('gleich'); });
+  steps.filter(s => s.type === 'move').forEach(s => z.add(s.to > 800 ? 'spitze' : s.to < 250 ? 'unten' : 'mitte'));
+  if (steps.some(s => s.type === 'hold' && (s.ms || 0) >= 400)) k.add('pause');
+  const b = osc.map(s => s.bpm || 0); if (b.length > 2 && b.slice(1).every((x, i) => x >= b[i]) && b[b.length - 1] > b[0] * 1.4) k.add('steigern');
+  if (new Set(osc.map(s => (s.texture || 'smooth') + Math.round((s.low + s.high) / 300))).size >= 3) k.add('wechsel');
+  return { z: [...z], k: [...k] };
+}
+function mvItems() {
+  if (mv.tab === 'muster') return Object.keys(PATTERN_INFO).filter(n => !/^(markenzeichen|duett)$/.test(n)).map(n => ({ id: n, name: n.replace(/_/g, ' ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü'), info: PATTERN_INFO[n], steps: () => expandPattern(n, mv.tempo), tempo: true }));
+  if (mv.tab === 'sig') return figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && parseSigMotion(v.sigMotion)).sort((a, b) => a.name.localeCompare(b.name)).map(v => ({ id: 'sig:' + v.name, name: v.name, info: (v.signature || '') + (sigWordsOf(v).length ? '  ·  Sie sagt dabei: ' + sigWordsOf(v).map(w => '„' + w.x + '"').join(' … ') : ''), img: v.image, steps: () => parseSigMotion(v.sigMotion) }));
+  if (mv.tab === 'edge') return Object.keys(EDGE_PATTERN_INFO).map(n => ({ id: n, name: n, info: EDGE_PATTERN_INFO[n], edge: true }));
+  return [];
+}
+function mvStopPlay(silent) {
+  if (mv.raf) cancelAnimationFrame(mv.raf); mv.raf = 0;
+  if (mv.play) { const p = mv.play; mv.play = null; clearTimeout(p.timer);
+    if (p.dev) try { p.dev.runSequence([{ type: 'stop' }]); } catch (e) {}
+    if (p.edge) edge.override = { kind: 'fix', a: 0, b: 0, until: Date.now() + 800 }; }
+  document.querySelectorAll('#mvView .mv-mark').forEach(m => m.style.display = 'none');
+  const s = document.querySelector('#mvView .mv-sleeve'); if (s) s.style.bottom = '45%';
+  if (!silent) mvRender();
+}
+function mvStart(item, where) {
+  mvStopPlay(true);
+  const v = document.getElementById('mvView'); if (!v) return;
+  if (item.edge) {
+    if (!edgeConnected()) { showToast('Edge ist nicht verbunden', true); return; }
+    edge.override = { kind: item.id, until: Date.now() + 12000, t0: Date.now() };
+    mv.play = { edge: true, id: item.id, timer: setTimeout(() => mvStopPlay(), 12000) }; mvRender(); return;
+  }
+  const steps = item.steps(); if (!steps) return;
+  const total = mvTotal(steps) || 0, dur = total ? Math.min(45000, total) : 15000;
+  const run = total ? steps : steps.map(s => (s.type === 'osc' && !s.ms) ? Object.assign({}, s, { ms: Math.max(2000, dur - steps.reduce((a, x) => a + (x.ms || 0), 0)) }) : s);
+  const dev = where === 1 ? device1 : where === 2 ? device2 : null;
+  if (dev) { if (!devOn(dev)) { showToast('Gerät ' + where + ' ist nicht verbunden', true); return; } dev.runSequence(run.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Muster vorgeführt (Gerät ${where}): ${item.name}${item.tempo ? ' ' + mv.tempo : ''}` }); }
+  const pts = mvSim(run, dur);
+  mv.play = { id: item.id, dev, t0: performance.now(), dur, pts, timer: setTimeout(() => mvStopPlay(), dur + 300) };
+  mvRender();
+  const tick = () => { if (!mv.play || mv.play.id !== item.id) return; const ms = performance.now() - mv.play.t0;
+    const mark = document.querySelector('#mvView .mv-big .mv-mark'); if (mark) { mark.style.display = ''; const x = (ms / dur * 600).toFixed(1); mark.setAttribute('x1', x); mark.setAttribute('x2', x); }
+    const i = Math.min(pts.length - 1, Math.round(ms / 40)); const s = document.querySelector('#mvView .mv-sleeve'); if (s) s.style.bottom = (pts[i] ? pts[i][1] / 999 * 78 : 40) + '%';
+    mv.raf = requestAnimationFrame(tick); };
+  mv.raf = requestAnimationFrame(tick);
+}
+function mvGapsHtml() {
+  const all = Object.keys(PATTERN_INFO).filter(n => !/^(markenzeichen|duett)$/.test(n)).map(n => ({ n, c: mvClassify(expandPattern(n, 'mittel') || []) }));
+  const sigs = figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && parseSigMotion(v.sigMotion)).map(v => ({ n: v.name, c: mvClassify(parseSigMotion(v.sigMotion)), sig: true }));
+  const cell = (z, k) => all.filter(x => x.c.z.includes(z) && x.c.k.includes(k));
+  const missing = [];
+  const rows = MV_KINDS.map(([k, kl]) => `<tr><th style="text-align:left; padding:4px 6px 4px 0; font-weight:600; font-size:12px; width:72px; line-height:1.25;">${kl}</th>${MV_ZONES.map(([z, zl]) => { const c = cell(z, k); const sc = sigs.filter(x => x.c.z.includes(z) && x.c.k.includes(k)).length; if (!c.length) missing.push(`${kl} – ${zl}${sc ? ` (nur in ${sc} Markenzeichen)` : ''}`);
+    return `<td style="padding:4px; vertical-align:top; border:1px solid rgba(255,255,255,0.08); background:${c.length ? 'rgba(95,184,255,' + Math.min(0.35, 0.08 + c.length * 0.07) + ')' : 'rgba(255,90,110,0.13)'}; font-size:11.5px; line-height:1.35;">${c.length ? c.map(x => `<a href="#" class="mv-jump" data-id="${x.n}" style="color:#fff;">${esc(x.n.replace(/_/g, ' '))}</a>`).join('<br>') : `<span style="color:#ff9aa8;">fehlt${sc ? `<br><span style="opacity:.75">${sc}× Markenz.</span>` : ''}</span>`}</td>`; }).join('')}</tr>`).join('');
+  const texCount = {}; all.forEach(x => x.c.k.forEach(k => texCount[k] = (texCount[k] || 0) + 1));
+  return `<p class="hint" style="margin:0 0 8px;">Welche Art von Bewegung gibt es in welchem Bereich? Rot = dafür gibt es noch kein fertiges Muster (die Figuren können es trotzdem frei beschreiben). Tipp auf einen Namen, um das Muster zu öffnen.</p>
+    <div style="overflow-x:auto;"><table style="border-collapse:collapse; width:100%; min-width:360px; table-layout:fixed;"><tr><th></th>${MV_ZONES.map(([, zl]) => `<th style="font-size:12px; padding:4px; font-weight:600;">${zl}</th>`).join('')}</tr>${rows}</table></div>
+    <h3 style="font-size:15px; margin:14px 0 6px;">Was noch fehlt (${missing.length})</h3>
+    ${missing.length ? `<ul style="margin:0; padding-left:18px; line-height:1.5;">${missing.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '<p class="hint">Alles abgedeckt.</p>'}
+    <h3 style="font-size:15px; margin:14px 0 6px;">Auf einen Blick</h3>
+    <p class="hint" style="margin:0;">${all.length} Muster im Wortschatz, ${sigs.length} Figuren mit eigener Markenzeichen-Bewegung, ${Object.keys(EDGE_PATTERN_INFO).length} Edge-Muster. Arten: ${MV_KINDS.map(([k, kl]) => `${kl} ${texCount[k] || 0}`).join(' · ')}.</p>`;
+}
+function mvRender() {
+  const v = document.getElementById('mvView'); if (!v) return; const keep = v.scrollTop;
+  const items = mvItems(); if (mv.idx >= items.length) mv.idx = 0;
+  const it = items[mv.idx];
+  const tabs = [['muster', '🎛️ Muster'], ['sig', '💋 Figuren'], ['edge', '〰️ Edge'], ['luecken', '🧩 Lücken']].map(([k, l]) => `<button type="button" class="mv-tab" data-k="${k}" style="flex:1; min-width:0; padding:8px 4px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:${mv.tab === k ? 'rgba(255,107,139,0.25)' : 'transparent'}; color:#fff; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${l}</button>`).join('');
+  let body = '';
+  if (mv.tab === 'luecken') body = mvGapsHtml();
+  else if (!it) body = `<p class="hint">${mv.tab === 'sig' ? 'Noch keine Figur hat eine eigene Markenzeichen-Bewegung. Unter „Figuren" → „💋 Markenzeichen erneuern" entstehen sie.' : 'Nichts da.'}</p>`;
+  else {
+    const playing = mv.play && mv.play.id === it.id;
+    let big = '', meta = '', human = '';
+    if (it.edge) { big = mvEdgeSvg(mvEdgeSim(it.id, 6000), 600, 150, 6000); meta = 'Zeigt 6 Sekunden · lila = Kopf (innen), blau = Arm (außen)'; }
+    else { const st = it.steps() || []; const total = mvTotal(st), show = total || 16000; big = mvSvg(mvSim(st, show), 600, 170, show, { grid: true, marker: true, sw: 2 }); const c = mvClassify(st);
+      meta = `${total ? 'Dauer ' + Math.round(total / 1000) + ' s' : 'läuft weiter, bis etwas Neues kommt (gezeigt: 16 s)'} · ${c.z.map(z => MV_ZONES.find(x => x[0] === z)[1]).join(', ')} · ${c.k.map(k => MV_KINDS.find(x => x[0] === k)[1]).join(', ')}`;
+      human = sigMotionHuman(st.map(s => (s.type === 'osc' && !s.ms) ? Object.assign({}, s, { ms: Math.max(2000, show - st.reduce((a, x) => a + (x.ms || 0), 0)) }) : s)); }
+    const devBtns = it.edge ? `<button type="button" class="btn-primary mv-go" data-w="e" style="flex:1;">${playing ? '■ Stopp' : '▶ Am Edge testen'}</button>`
+      : `<button type="button" class="btn-secondary mv-go" data-w="0" style="flex:1;">${playing && !mv.play.dev ? '■ Stopp' : '👁 Vorschau'}</button><button type="button" class="btn-primary mv-go" data-w="1" style="flex:1;"${devOn(device1) ? '' : ' disabled title="Gerät 1 nicht verbunden"'}>${playing && mv.play.dev === device1 ? '■ Stopp' : '▶ Gerät 1'}</button>${devOn(device2) ? `<button type="button" class="btn-primary mv-go" data-w="2" style="flex:1;">${playing && mv.play.dev === device2 ? '■ Stopp' : '▶ Gerät 2'}</button>` : ''}`;
+    body = `<div style="display:flex; align-items:center; gap:8px; margin:4px 0 8px;"><button type="button" class="btn-secondary mv-prev" style="width:44px; height:44px; padding:0;">‹</button>
+        <div style="flex:1; text-align:center; min-width:0;"><div style="font-size:19px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${it.img ? `<span style="display:inline-block; width:26px; height:26px; border-radius:50%; overflow:hidden; vertical-align:middle; margin-right:6px;">${avaHtml(it.name, it.img)}</span>` : ''}${esc(it.name)}</div><div class="hint" style="margin:0;">${mv.idx + 1} von ${items.length}</div></div>
+        <button type="button" class="btn-secondary mv-next" style="width:44px; height:44px; padding:0;">›</button></div>
+      <p style="margin:0 0 8px; line-height:1.45;">${esc(it.info)}</p>
+      <div style="display:flex; gap:10px; align-items:stretch;"><div class="mv-big" style="flex:1; min-width:0; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:6px; background:rgba(255,255,255,0.03);">${big}</div>
+        ${it.edge ? '' : `<div title="Hülse" style="width:34px; position:relative; border-radius:17px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);"><div class="mv-sleeve" style="position:absolute; left:3px; right:3px; height:22%; bottom:45%; border-radius:12px; background:linear-gradient(180deg, var(--accent, #ff6b8b), #b8456a); transition:bottom 40ms linear;"></div></div>`}</div>
+      <p class="hint" style="margin:6px 0 8px;">${esc(meta)}</p>
+      ${it.tempo ? `<div style="display:flex; gap:6px; margin-bottom:8px;">${['langsam', 'mittel', 'schnell'].map(t => `<button type="button" class="mv-tempo" data-t="${t}" style="flex:1; padding:7px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:${mv.tempo === t ? 'rgba(255,207,77,0.22)' : 'transparent'}; color:#fff;">${t}</button>`).join('')}</div>` : ''}
+      <div style="display:flex; gap:8px; margin-bottom:10px;">${devBtns}</div>
+      ${human ? `<details style="margin-bottom:10px;"><summary style="cursor:pointer; font-size:13.5px;">Ablauf in Worten</summary><p class="hint" style="margin:6px 0 0; line-height:1.5;">${esc(human)}</p></details>` : ''}
+      ${it.tempo ? `<p class="hint" style="margin:0 0 10px;">So rufen die Figuren es ab: <code>&lt;&lt;muster ${esc(it.id)} ${mv.tempo}&gt;&gt;</code></p>` : ''}
+      <h3 style="font-size:15px; margin:12px 0 6px;">Alle ${items.length}</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px;">${items.map((x, i) => { let mini = '';
+        try { if (x.edge) mini = mvEdgeSvg(mvEdgeSim(x.id, 4000), 140, 46, 4000); else { const st = x.steps() || []; const tt = mvTotal(st) || 12000; mini = mvSvg(mvSim(st, tt), 140, 46, tt, { sw: 1.3 }); } } catch (e) {}
+        return `<button type="button" class="mv-pick" data-i="${i}" style="text-align:left; padding:6px; border-radius:10px; border:1px solid ${i === mv.idx ? 'var(--gold, #ffcf4d)' : 'rgba(255,255,255,0.12)'}; background:rgba(255,255,255,0.03); color:#fff; min-width:0;"><div style="font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:3px;">${esc(x.name)}</div>${mini}</button>`; }).join('')}</div>`;
+  }
+  v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🎛️ Bewegungsmuster</h2><button type="button" class="btn-secondary mv-x" style="width:44px; height:44px; padding:0;">✕</button></div>
+    <div style="display:flex; gap:6px; margin:12px 0 10px;">${tabs}</div>${body}`;
+  v.scrollTop = keep;
+  v.querySelector('.mv-x').onclick = () => closeMoves();
+  v.querySelectorAll('.mv-tab').forEach(b => b.onclick = () => { mvStopPlay(true); mv.tab = b.dataset.k; mv.idx = 0; mvRender(); v.scrollTop = 0; });
+  const go = d => { mvStopPlay(true); mv.idx = (mv.idx + d + items.length) % items.length; mvRender(); };
+  const p = v.querySelector('.mv-prev'), n = v.querySelector('.mv-next'); if (p) p.onclick = () => go(-1); if (n) n.onclick = () => go(1);
+  v.querySelectorAll('.mv-tempo').forEach(b => b.onclick = () => { mvStopPlay(true); mv.tempo = b.dataset.t; mvRender(); });
+  v.querySelectorAll('.mv-pick').forEach(b => b.onclick = () => { mvStopPlay(true); mv.idx = +b.dataset.i; mvRender(); v.scrollTop = 0; });
+  v.querySelectorAll('.mv-jump').forEach(a => a.onclick = (e) => { e.preventDefault(); mv.tab = 'muster'; mv.idx = Math.max(0, mvItems().findIndex(x => x.id === a.dataset.id)); mvRender(); v.scrollTop = 0; });
+  v.querySelectorAll('.mv-go').forEach(b => b.onclick = () => { const w = b.dataset.w; const playing = mv.play && mv.play.id === it.id && (w === 'e' ? mv.play.edge : w === '0' ? !mv.play.dev : mv.play.dev === (w === '1' ? device1 : device2)); if (playing) { mvStopPlay(); return; } mvStart(it, w === 'e' ? 'e' : +w); });
+  // Wischen zum Durchklicken
+  const big = v.querySelector('.mv-big'); if (big && items.length > 1) { let sx = null; big.ontouchstart = e => { sx = e.touches[0].clientX; }; big.ontouchend = e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); }; }
+}
+function openMoves(tab) {
+  let v = document.getElementById('mvView');
+  if (!v) { v = document.createElement('div'); v.id = 'mvView'; v.style.cssText = 'position:fixed; inset:0; z-index:3001; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 28px; font-size:14px;'; document.body.appendChild(v); }
+  if (tab) { mv.tab = tab; mv.idx = 0; }
+  mvRender();
+}
+function closeMoves() { mvStopPlay(true); const v = document.getElementById('mvView'); if (v) v.remove(); }
+
 // ---------- Zurück-Taste: oberste Ebene schließen statt die App ----------
 // Ein Eintrag je Ebene: [Name, ist offen?, schließen]. Seiten (Spielen,
 // Figuren, Ich, Einstellungen) und die Sitzung gelten auch als Ebene über Start.
@@ -24119,6 +24392,7 @@ const OV_DEFS = [
   ['moreSheet', () => els.moreSheet && els.moreSheet.classList.contains('open'), () => els.moreSheet.classList.remove('open')],
   ['galViewer', () => !!document.getElementById('galViewer'), () => { const b = document.getElementById('galClose'); if (b) b.click(); }],
   ['figPicker', () => !!document.getElementById('figPicker'), () => document.getElementById('figPicker').remove()],
+  ['mvView', () => !!document.getElementById('mvView'), () => closeMoves()],
 ];
 const OV = { stack: [], armed: false, ignorePop: 0 };
 function ovTick() {
@@ -29623,6 +29897,12 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
 
 
 
