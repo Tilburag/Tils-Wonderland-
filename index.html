@@ -3674,8 +3674,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.47';
+const APP_VERSION = '3.48';
 const CHANGELOG = [
+  { v: '3.48', date: '2026-10-24', items: [
+    'Hörspiel mit Handlungsbogen: jede Folge wird zu Beginn geplant - Titel, Ziel, ein Geheimnis, fünf Akte (Ankommen, Komplikation, Annäherung, Zuspitzung, Auflösung mit Ausblick) - damit die Geschichte wirklich irgendwohin führt statt sich zu wiederholen',
+    'Entscheidungen wie in Bloom: zweimal pro Folge darfst du wählen - die Frage und zwei Möglichkeiten erscheinen unten zum Antippen; wählst du nicht, entscheidet eine Figur nach ihrem Charakter',
+    '👥 Gruppe im Hörspiel: drei Figuren, gern mit einem Mann, der mit den Frauen etwas anfängt - Paare, Flirts, Eifersucht - und gemeinsam laden sie dich ein (dafür männliche Figuren unter Figuren anlegen)',
+    'Erzähler wie im großen Hörbuch: erzählt bildhaft, rhythmisch, sinnlich, mit Pausen und Augenzwinkern statt neutral; im Hörspiel-Menü erzeugt „🎙️ Erzählerstimme" eine tiefe, warme, theatralische Stimme bei ElevenLabs (Proben anhören und wählen)',
+    'Fehler behoben: eine alte „lebendige Bewegung" konnte das Gerät im Hörspiel plötzlich anlaufen lassen - jetzt nur noch, wenn das Gerät gerade wirklich läuft',
+    'Funkloch: statt alle zwei Sekunden „Failed to fetch" kommt einmal ein Hinweis, der Selbstlauf wartet und macht von selbst weiter, sobald das Netz wieder da ist',
+  ] },
   { v: '3.47', date: '2026-10-24', items: [
     '📱 Weitersprechen bei ausgeschaltetem Bildschirm (Live, standardmäßig an): Hörspiel, geführter Abend und Selbstlauf laufen weiter wie bei einer Hörbuch-App - ein unhörbar leises Rauschen hält die Seite wach; auf dem Sperrbildschirm stehen Titel und Figuren, mit Pause und Weiter',
     'Der Edge läuft bei ausgeschaltetem Bildschirm weiter, solange die Sitzung läuft (vorher ging er aus Sicherheit sofort aus); Pause auf dem Sperrbildschirm hält Stimmen und Geräte an',
@@ -15711,8 +15719,45 @@ function hsHold() { return hsp.active && !hsp.joined && currentMode === 'live'; 
 function hsBlock() {
   if (!hsp.active || currentMode !== 'live') return '';
   if (hsp.joined) return `\n\nHÖRSPIEL - TIL IST EINGESTIEGEN: Jetzt dreht sich alles um ihn (die normalen Regeln oben gelten wieder, auch die Bewegung), aber ihr bleibt in der Welt der Geschichte (${hsp.world ? hsp.world[1] : 'wie bisher'}) - Ort, Stimmung und das bisher Erlebte bleiben. Ist der Moment vorbei, kann die Geschichte weitergehen.`;
-  return `\n\nHÖRSPIEL (hat Vorrang vor „Wer im Mittelpunkt steht" oben): Ihr erzählt und erlebt gemeinsam eine fortlaufende Geschichte wie in einem Hörspiel - Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}. Til ist mittendrin, als Begleiter in dieser Welt, muss aber nichts sagen: Ihr redet vor allem MITEINANDER, handelt, erkundet, streitet, flirtet, erlebt etwas. Macht die Welt hörbar (Geräusche, Wetter, Orte, Schritte, Stimmen von Nebenfiguren werden beschrieben, sprechen aber nicht selbst). Jede Antwort bringt die Handlung ein Stück weiter, mit Spannung und kleinen Cliffhangern; jede Figur bleibt in ihrem Charakter und bringt die Geschichte in ihre Richtung. Ab und zu wendet sich eine an Til (eine Frage, ein Blick, eine Hand) - er kann antworten oder die Richtung vorgeben, dann folgt die Geschichte ihm. Gelegentlich - nicht ständig - knistert es, und die Handlung wird sinnlich: dann ladet ihr Til ein, einzusteigen, und setzt dafür den Marker <<einladung>>. Bis er einsteigt, keine Gerätebewegung.`;
+  return hsPlotText() + `\n\nHÖRSPIEL (hat Vorrang vor „Wer im Mittelpunkt steht" oben): Ihr erzählt und erlebt gemeinsam eine fortlaufende Geschichte wie in einem Hörspiel - Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}. Til ist mittendrin, als Begleiter in dieser Welt, muss aber nichts sagen: Ihr redet vor allem MITEINANDER, handelt, erkundet, streitet, flirtet, erlebt etwas. Macht die Welt hörbar (Geräusche, Wetter, Orte, Schritte, Stimmen von Nebenfiguren werden beschrieben, sprechen aber nicht selbst). Jede Antwort bringt die Handlung ein Stück weiter, mit Spannung und kleinen Cliffhangern; jede Figur bleibt in ihrem Charakter und bringt die Geschichte in ihre Richtung. Ab und zu wendet sich eine an Til (eine Frage, ein Blick, eine Hand) - er kann antworten oder die Richtung vorgeben, dann folgt die Geschichte ihm. Gelegentlich - nicht ständig - knistert es, und die Handlung wird sinnlich: dann ladet ihr Til ein, einzusteigen, und setzt dafür den Marker <<einladung>>. Bis er einsteigt, keine Gerätebewegung.${hsp.group ? ' GRUPPE: Ihr seid eine Gruppe mit eigener Dynamik - Paare, Flirts, Eifersucht, alte Geschichten untereinander; die Männer der Gruppe flirten mit den Frauen und kommen ihnen näher, und gemeinsam bezieht ihr Til nach und nach ein und ladet ihn ein.' : ''}${aiCharacters().some(c => c.isNarrator) ? ' ERZÄHLER (Zeilen „Erzähler:"): erzählt wie ein großer Hörbuch-Erzähler - bildhaft, rhythmisch und sinnlich, mit Sinn für Pausen und Atmosphäre; konkrete Eindrücke (Licht, Geruch, Haut, Geräusche) statt allgemeiner Worte; lange fließende Sätze wechseln mit ganz kurzen; ein leises Augenzwinkern, nie hölzern oder neutral; er erzählt, die Figuren sprechen - er nimmt ihnen ihre Sätze nicht weg.' : ''}`;
 }
+// Handlungsbogen: zu Beginn einmal geplant - damit die Geschichte irgendwohin führt (Ziel, Geheimnis, Wendungen, Entscheidungen, Ende)
+async function hsPlan() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const cast = aiCharacters().filter(c => !c.isNarrator).map(c => c.name + ' (' + (c.gender === 'maennlich' ? 'Mann, ' : '') + figureGist(c) + ')').join('; ');
+  const sys = `Plane eine erotisch knisternde Hörspiel-Folge für Erwachsene (alle über 21, alles einvernehmlich) - wie eine gute Serie: mit Ziel, Geheimnis, Wendungen und einem befriedigenden Ende.
+Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}
+Figuren: ${cast}. Til ist mittendrin dabei (Hörer und Mitspieler).
+Gib zurück:
+- "titel": Titel der Folge
+- "ziel": worum es geht (1 Satz)
+- "geheimnis": was erst spät herauskommt (1 Satz)
+- "akte": genau 5 Akte, je {"name": "...", "was": "was passiert (1-2 Sätze)"} - 1 Ankommen/Auftrag, 2 Komplikation, 3 Annäherung (hier knistert es zum ersten Mal deutlich), 4 Zuspitzung (Wendung, das Geheimnis), 5 Auflösung (sinnlicher Höhepunkt möglich, dann ein Ausblick auf die nächste Folge)
+- "entscheidungen": 2 Momente, in denen Til wählen darf, je {"akt": 2-4, "frage": "...", "a": "Möglichkeit A (kurz)", "b": "Möglichkeit B (kurz)"}
+Antworte NUR als JSON.`;
+  try {
+    const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(900, taskBudget('draft', 900)), { task: 'draft' }));
+    if (j && Array.isArray(j.akte) && j.akte.length >= 3) { hsp.plot = j; hsp.decided = {}; logEvent('msg', { role: 'system', text: `🎧 Folge: „${j.titel || ''}" - ${j.akte.map(a => a.name).join(' → ')}` }); }
+  } catch (e) {}
+}
+function hsAct() { const n = replyCount() - (hsp.baseN || 0); return Math.min((hsp.plot ? hsp.plot.akte.length : 5) - 1, Math.floor(Math.max(0, n) / (hsp.perAct || 5))); }
+function hsPlotText() {
+  const P = hsp.plot; if (!P || hsp.joined) return '';
+  const k = hsAct(), A = P.akte[k], nxt = P.akte[k + 1], dec = (P.entscheidungen || []).find(d => +d.akt === k + 1 && !hsp.decided[k]);
+  const lastAct = k === P.akte.length - 1, n = replyCount() - (hsp.baseN || 0), inAct = n - k * (hsp.perAct || 5);
+  return `\n\nHANDLUNGSBOGEN dieser Folge „${P.titel || ''}": Ziel: ${P.ziel || ''} Geheimnis (erst in Akt 4 lüften): ${P.geheimnis || ''}\nJETZT Akt ${k + 1}/${P.akte.length} „${A.name}": ${A.was}${nxt ? ` - danach kommt „${nxt.name}", steuert langsam darauf zu.` : ''}${dec && inAct >= 1 ? ` ENTSCHEIDUNG für Til in diesem Akt: ${dec.frage} (A: ${dec.a} / B: ${dec.b}) - stellt ihm die Frage in der Szene und wartet kurz; entscheidet er nicht, wählt eine Figur nach ihrem Charakter.` : ''}${lastAct && inAct >= (hsp.perAct || 5) - 2 ? ' Die Folge geht zu Ende: Auflösung, ein letzter Moment, dann ein Ausblick, wie es nächstes Mal weitergeht.' : ''} Keine Wiederholungen - jede Antwort bringt die Handlung sichtbar voran.`;
+}
+function hsChoiceChips() {
+  let el = document.getElementById('hsChoice'); const P = hsp.plot;
+  const k = P && !hsp.joined ? hsAct() : -1, dec = P && k >= 0 ? (P.entscheidungen || []).find(d => +d.akt === k + 1 && !hsp.decided[k]) : null;
+  const show = hsp.active && inSession() && dec && (replyCount() - (hsp.baseN || 0)) - k * (hsp.perAct || 5) >= 1;
+  if (!show) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'hsChoice'; el.style.cssText = 'position:fixed; left:10px; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 178px); z-index:1600; display:flex; flex-direction:column; gap:6px;'; document.body.appendChild(el); }
+  const key = k + dec.a; if (el.dataset.k === key) return; el.dataset.k = key;
+  el.innerHTML = `<div style="font-size:12px; opacity:0.8; background:rgba(20,12,16,0.9); border-radius:10px; padding:6px 10px;">🔀 ${esc(dec.frage)}</div>` + [dec.a, dec.b].map((o, i) => `<button type="button" class="btn-secondary" data-o="${i}" style="height:auto; padding:9px 12px; text-align:left; background:rgba(20,12,16,0.92);">${i ? 'B' : 'A'} · ${esc(o)}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => { hsp.decided[k] = true; el.remove(); const o = b.dataset.o === '1' ? dec.b : dec.a; logEvent('msg', { role: 'system', text: '🔀 Entscheidung: ' + o }); autoPlaying = false; setAutoStatus(false); hsp.userStopped = false; const said = 'Ich entscheide mich: ' + o; try { addUserMsg(said); } catch (e) {} askActive(said); });
+}
+setInterval(() => { try { hsChoiceChips(); } catch (e) {} }, 800);
 function hsResume() {
   if (!hsp.active || hsp.userStopped || autoPlaying || !inSession() || currentMode !== 'live' || game.running) return;
   clearTimeout(hsp.resumeT); hsp.resumeT = setTimeout(() => { if (!hsp.active || hsp.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 900);
@@ -15735,12 +15780,21 @@ function hsJoin(on) {
   autoPlaying = false; setAutoStatus(false); hsp.userStopped = false;
   askActive(on ? '(Ich steige ein - ich bin jetzt ganz bei euch.)' : '(Erzählt die Geschichte weiter - wo waren wir?)');
 }
-function startHoerspiel(world) {
+function startHoerspiel(world, group) {
   const pool = surprisePool(); if (!pool.length) { showToast('Erst ein paar Figuren anlegen', true); return; }
+  hsp.group = !!group; hsp.plot = null; hsp.decided = {}; hsp.perAct = 5;
   // zwei, die sich reiben oder etwas miteinander haben - aus Beziehungen oder den größten Gegensätzen
   let pair = null; const rl = relList(); if (rl.length && Math.random() < 0.6) { const x = rl[Math.floor(Math.random() * rl.length)]; pair = [x.fa, x.fb]; }
   if (!pair) { try { const D = charMapData().filter(d => d.ai); if (D.length >= 3) { const far = cmSimilarity(D).far; const p = far[Math.floor(Math.random() * far.length)]; pair = [p.a.f, p.b.f]; } } catch (e) {} }
   if (!pair) { const sh = pool.slice().sort(() => Math.random() - 0.5); pair = [sh[0].f, (sh[1] || sh[0]).f]; }
+  if (group) {
+    // Gruppe: zwei Frauen (gern mit Beziehung) und - wenn vorhanden - ein Mann, der mit ihnen etwas anfängt
+    const men = pool.filter(x => x.v.gender === 'maennlich'), women = pool.filter(x => x.v.gender !== 'maennlich');
+    const base = (pair || []).filter(f => (latestVersion(f) || {}).gender !== 'maennlich');
+    const w2 = base.length >= 2 ? base.slice(0, 2) : women.slice().sort(() => Math.random() - 0.5).slice(0, 2).map(x => x.f);
+    pair = w2.concat(men.length ? [men[Math.floor(Math.random() * men.length)].f] : []);
+    if (!men.length) showToast('Noch keine männlichen Figuren - unter Figuren anlegen, dann mischen sie mit');
+  }
   hsp.world = world || HS_WORLDS[Math.floor(Math.random() * HS_WORLDS.length)]; hsp.active = true; hsp.joined = false; hsp.userStopped = false; hsp.invitedAt = 0; hsp.startedAt = Date.now();
   safeSet('companion_guided', '0'); safeSet('companion_conductor', '1');
   const meFig = archiveMeFigure(); switchMode('live'); history = [];
@@ -15749,19 +15803,34 @@ function startHoerspiel(world) {
   try { renderLivePanel(); } catch (e) {}
   logEvent('msg', { role: 'system', text: `🎧 Hörspiel: ${hsp.world[1]} mit ${aiCast().map(c => c.name).join(' & ')}` });
   try { localStorage.setItem('companion_spatial', 'true'); } catch (e) {}
-  try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
+  hsp.baseN = 0;
+  hsPlan().finally(() => { try { els.liveStartBtn.click(); } catch (e) { enterLive({}); } });
+}
+async function hsNarratorVoice(btn) {
+  let id = localStorage.getItem('companion_narratorFigure'); let f = id && getFigure(id);
+  if (!f) { f = figureArchive.find(x => (latestVersion(x) || {}).isNarrator); }
+  if (!f) { showToast('Lege zuerst unter Figuren → Erzähler einen Erzähler an', true); return; }
+  const c = characterFromVersion(f);
+  c.voiceDescription = 'Mature German male audiobook narrator in his forties, deep warm resonant baritone, rich and slightly smoky, theatrical yet intimate storytelling, slow deliberate pacing with meaningful pauses, expressive dynamics from hushed whisper to dramatic emphasis, a hint of wry humour, sensual and atmospheric, like a celebrated fantasy audiobook reader. Speaks German.';
+  if (!c.styleExamples || c.styleExamples.length < 100) c.styleExamples = 'Es war eine Nacht, in der selbst der Regen leiser fiel, als wollte er nicht stören. Und doch - irgendwo zwischen dem Knistern des Feuers und dem Atem der anderen begann etwas, das keiner von ihnen je wieder vergessen sollte.';
+  await designVoiceForFigure(c, btn, (voiceId) => { c.elevenVoice = voiceId; c.emotional = true; storeCharacterVersion(c, true); saveArchive(); safeSet('companion_narratorFigure', f.id); safeSet('companion_narratorEnabled', 'true'); showToast('Neue Erzählerstimme gesetzt'); });
 }
 function openHoerspielPicker() {
   const v = document.createElement('div'); v.id = 'hsPick';
   v.style.cssText = 'position:fixed; inset:0; z-index:3000; background:rgba(8,5,7,0.94); color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 18px) 16px 24px;';
   v.innerHTML = `<div style="display:flex; align-items:center;"><h2 style="flex:1; margin:0; font-size:24px;">🎧 Hörspiel</h2><button type="button" class="btn-secondary hp-x" style="width:44px; height:44px; padding:0;">✕</button></div>
     <p class="hint" style="margin:6px 0 14px;">Du bist mitten in einer Geschichte, die einfach weiterläuft - die Figuren erzählen und erleben sie miteinander, mit Raumklang (Kopfhörer!). Du kannst zuhören, mitreden oder die Richtung vorgeben. Wird es sinnlich, leuchtet „🔥 Einsteigen". Den Bildschirm kannst du ausschalten - es spricht weiter, Pause und Weiter gehen über den Sperrbildschirm.</p>
+    <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0 0 10px;"><input type="checkbox" class="hp-g" style="width:auto;"><span style="font-size:13.5px;">👥 Gruppe (drei, gern mit einem Mann, der mit den Frauen etwas anfängt und dich einlädt)</span></label>
     <button type="button" class="btn-primary hp-r" style="width:100%; margin-bottom:12px;">🎲 Überrasch mich</button>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">${HS_WORLDS.map((w, i) => `<button type="button" class="btn-secondary hp-w" data-i="${i}" style="height:auto; padding:12px; text-align:left;"><div style="font-size:22px;">${w[0]}</div><b>${esc(w[1])}</b><div style="font-size:12px; opacity:0.7; margin-top:2px;">${esc(w[2]).slice(0, 70)}…</div></button>`).join('')}</div>`;
   document.body.appendChild(v);
   v.querySelector('.hp-x').onclick = () => v.remove();
-  v.querySelector('.hp-r').onclick = () => { v.remove(); startHoerspiel(); };
-  v.querySelectorAll('.hp-w').forEach(b => b.onclick = () => { v.remove(); startHoerspiel(HS_WORLDS[+b.dataset.i]); });
+  const grp = () => v.querySelector('.hp-g').checked;
+  v.querySelector('.hp-r').onclick = () => { const g = grp(); v.remove(); startHoerspiel(null, g); };
+  v.querySelectorAll('.hp-w').forEach(b => b.onclick = () => { const g = grp(); v.remove(); startHoerspiel(HS_WORLDS[+b.dataset.i], g); });
+  const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn-secondary'; nb.style.cssText = 'width:100%; margin-top:14px;'; nb.textContent = '🎙️ Erzählerstimme wie im großen Fantasy-Hörbuch erzeugen';
+  nb.onclick = () => hsNarratorVoice(nb); v.appendChild(nb);
+  const nh = document.createElement('p'); nh.className = 'hint'; nh.style.marginTop = '6px'; nh.textContent = 'Entwirft bei ElevenLabs eine tiefe, warme, theatralische Erzählstimme (du hörst Proben und wählst) und setzt sie beim Erzähler ein. Der Erzähler muss in der Live-Einrichtung eingeschaltet sein.'; v.appendChild(nh);
 }
 setInterval(() => { try { if (hsp.active && !inSession() && Date.now() - (hsp.startedAt || 0) > 5000) { hsp.active = false; } hsChips(); } catch (e) {} }, 700);
 // ---------- 📱 Weitersprechen bei ausgeschaltetem Bildschirm (wie eine Hörbuch-App) ----------
@@ -15824,6 +15893,10 @@ setInterval(() => {
   try {
     if (localStorage.getItem('companion_lively') === '0' || !lively.base || currentMode !== 'live') return;
     if ((typeof ar !== 'undefined' && ar.active) || (typeof g3 !== 'undefined' && g3.active) || Date.now() < sigLockUntil || !device1.isConnected()) return;
+    // nur, wenn das Gerät gerade wirklich diese Bewegung fährt - nie nach einem Stopp, im Hörspiel oder beim Warten auf „bereit"
+    // (vorher lebte eine alte Bewegung weiter und das Gerät lief im Hörspiel plötzlich los)
+    const mi = device1.motionInfo ? device1.motionInfo() : null;
+    if (!inSession() || !mi || !mi.running || mi.texture === 'stop' || mi.texture === 'hold' || (typeof hsHold === 'function' && hsHold()) || (typeof readyHoldActive === 'function' && readyHoldActive())) { lively.base = null; return; }
     const now = Date.now(); if (now - lively.at < 18000 || now - lively.lastVary < 8000 + Math.random() * 5000) return;
     const b = lively.base, len = b.high - b.low, f = 1 + (Math.random() * 0.28 - 0.14), lf = 1 + (Math.random() * 0.2 - 0.1), shift = (Math.random() * 2 - 1) * Math.min(60, len * 0.1);
     const nl = Math.max(30, Math.min(990, len * lf)), mid = Math.max(nl / 2, Math.min(999 - nl / 2, (b.low + b.high) / 2 + shift));
@@ -16968,7 +17041,11 @@ function ensureCores() {
     });
   } catch (e) {}
 }
+const netDown = { until: 0, told: 0, resume: false };
+window.addEventListener('online', () => { if (netDown.resume) { netDown.resume = false; netDown.until = 0; logEvent('msg', { role: 'system', text: 'Netz wieder da - es geht weiter.' }); try { hsResume(); guidedResumeAuto(); } catch (e) {} } });
+setInterval(() => { try { if (netDown.resume && Date.now() > netDown.until && navigator.onLine !== false) { netDown.resume = false; hsResume(); guidedResumeAuto(); } } catch (e) {} }, 5000);
 async function askEnsemble(userText, options) {
+  if (Date.now() < netDown.until && options && (options.silent || options.autoStep)) return false;   // kein Dauerfeuer bei Funkloch
   ensureCores();
   // Ohne Figur, die antworten kann, erfand das Modell eine - mit dem Namen aus
   // den Prompt-Beispielen, ohne Stimme und ohne Aussehen.
@@ -17196,6 +17273,7 @@ async function askEnsemble(userText, options) {
     };
 
     if (holdNow) {
+      try { lively.base = null; } catch (e) {}
       // Kennenlernen oder Warten aufs Bereitsein: kein Bewegungsaufruf, das Gerät bleibt stehen.
       device1.setMotion({ texture: 'stop' });
       device2.setMotion({ texture: 'stop' });
@@ -17283,7 +17361,16 @@ async function askEnsemble(userText, options) {
     try { hsResume(); } catch (e) {}
     return true;
   } catch (err) {
-    if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
+    if (!err.aborted) {
+      const net = /failed to fetch|networkerror|network ?error|load failed/i.test(String(err.message || '')) || navigator.onLine === false;
+      if (net) {
+        // Netz weg (z. B. Funkloch unterwegs): einmal melden, Selbstlauf anhalten, bei Rückkehr des Netzes von selbst weiter
+        netDown.until = Date.now() + 20000;
+        if (Date.now() - netDown.told > 60000) { netDown.told = Date.now(); addMsg('system', 'Keine Verbindung zum Internet - ich warte und mache von selbst weiter, sobald das Netz wieder da ist.'); }
+        autoPlaying = false; try { setAutoStatus(false); } catch (e) {}
+        netDown.resume = true;
+      } else addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
+    }
     if (/\b402\b|insufficient .*balance/i.test(String(err.message || ''))) creditsEmptyAt = Date.now();
     return false;
   } finally {
@@ -23292,6 +23379,7 @@ function leaveSession() {
   try { if (currentMode === 'story' && (story.playing || story.paused)) stopStory(); } catch (e) {}
   try { interruptPlayback(); } catch (e) {}
   [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} });
+  try { lively.base = null; hsp.active = false; } catch (e) {}
   try { stopMicSense(); } catch (e) {}
   closeSheet('setupSheet');
   showHome();
@@ -29205,6 +29293,9 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
 
 
 
