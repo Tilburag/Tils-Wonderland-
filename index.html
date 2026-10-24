@@ -15,6 +15,16 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
+  // Geräte-Abgleich: merkt sich je Einstellung, wann sie zuletzt geändert wurde (für das Zusammenführen zwischen Geräten)
+  try { (function () {
+    const P = Storage.prototype, set = P.setItem, rem = P.removeItem, skip = /^companion_(sync|liveView|refreshProg)/;
+    let times = null, dels = null, timer = null;
+    const load = () => { if (!times) { try { times = JSON.parse(localStorage.getItem('syncmeta_times') || '{}'); dels = JSON.parse(localStorage.getItem('syncmeta_dels') || '{}'); } catch (e) { times = {}; dels = {}; } } };
+    const save = () => { clearTimeout(timer); timer = setTimeout(() => { try { if (!times) return; set.call(localStorage, 'syncmeta_times', JSON.stringify(times)); set.call(localStorage, 'syncmeta_dels', JSON.stringify(dels)); } catch (e) {} }, 400); };
+    P.setItem = function (k, v) { set.call(this, k, v); if (this === localStorage && !window.__syncApplying && /^companion_/.test(k) && !skip.test(k)) { load(); times[k] = Date.now(); delete dels[k]; window.__syncDirtyAt = Date.now(); save(); } };
+    P.removeItem = function (k) { rem.call(this, k); if (this === localStorage && !window.__syncApplying && /^companion_/.test(k) && !skip.test(k)) { load(); dels[k] = Date.now(); window.__syncDirtyAt = Date.now(); save(); } };
+    window.__syncReloadTimes = () => { clearTimeout(timer); times = null; dels = null; };
+  })(); } catch (e) {}
   // Sperre vor allem anderen: Ist eine PIN gesetzt, bleibt die Seite verdeckt,
   // bis sie eingegeben wurde - auch nicht kurz aufblitzend.
   try { if (localStorage.getItem('companion_pinHash')) document.documentElement.classList.add('locked'); } catch (e) {}
@@ -1603,6 +1613,24 @@
       </div>
       <p class="hint">Nur solange die Mond-Ansicht offen ist und seit dem letzten Bild etwas passiert ist. Jedes Bild kostet bei Venice wie ein Klick auf „Bild".</p>
 
+    </details>
+    <details class="subsection">
+      <summary>🔄 Geräte-Abgleich (Handy ↔ Tablet)</summary>
+      <p class="hint" style="margin-top:0;">Hält alle Daten auf deinen Geräten von selbst gleich - Figuren, Einstellungen, Beziehungen, Gedächtnis, Geschichten, Werkstattbuch und Bilder. Läuft über ein <b>privates</b> GitHub-Repository; vorher wird alles mit deinem Abgleich-Kennwort verschlüsselt (AES-256), das nie dein Gerät verlässt. Wer das Repository sieht, sieht nur Zufallsbytes. Abgeglichen wird beim Öffnen, beim Zurückkommen, beim Verlassen und jede Minute, wenn sich etwas geändert hat - das Neuere gewinnt.</p>
+      <details style="margin:6px 0 10px;"><summary style="cursor:pointer; font-size:13.5px;">Einrichten (einmal, ca. 3 Minuten)</summary>
+        <ol class="hint" style="padding-left:18px; margin:6px 0;">
+          <li>Auf github.com ein neues Repository anlegen, z. B. <b>notizen-daten</b>, Sichtbarkeit <b>Private</b>.</li>
+          <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token: Repository access „Only select repositories" → notizen-daten; Permissions → Repository → <b>Contents: Read and write</b>. Token kopieren.</li>
+          <li>Hier eintragen: Repository als <b>name/notizen-daten</b>, Token, ein eigenes Abgleich-Kennwort (mindestens 8 Zeichen, nicht dein GitHub-Passwort) - und „Abgleich an".</li>
+          <li>Auf dem zweiten Gerät dasselbe eintragen (gleiches Kennwort). Beim ersten Abgleich holt es sich alles vom ersten Gerät.</li>
+        </ol></details>
+      <label for="syncRepo">Repository</label><input type="text" id="syncRepo" placeholder="dein-name/notizen-daten" autocomplete="off">
+      <label for="syncToken">GitHub-Token</label><input type="password" id="syncToken" placeholder="github_pat_…" autocomplete="off">
+      <label for="syncPass">Abgleich-Kennwort</label><input type="password" id="syncPass" placeholder="mindestens 8 Zeichen - auf beiden Geräten gleich" autocomplete="new-password">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="syncImages" style="width:auto;"><span style="font-size:13.5px;">Bilder mit abgleichen (beim ersten Mal dauert das eine Weile)</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0 0;"><input type="checkbox" id="syncOnBox" style="width:auto;"><span style="font-size:13.5px;"><b>Abgleich an</b></span></label>
+      <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" id="syncNowBtn" type="button">🔄 Jetzt abgleichen</button></div>
+      <p class="hint" id="syncStatus" style="margin-top:6px;"></p>
     </details>
     <details class="subsection">
       <summary>Sicherung</summary>
@@ -3674,8 +3702,30 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.48';
+const APP_VERSION = '3.51';
 const CHANGELOG = [
+  { v: '3.51', date: '2026-10-24', items: [
+    '🔄 Geräte-Abgleich (Einstellungen): Handy und Tablet bleiben von selbst gleich - Figuren, Einstellungen, Beziehungen, Gedächtnis, Geschichten, Werkstattbuch und Bilder; abgeglichen wird beim Öffnen, beim Zurückkommen, beim Verlassen und jede Minute bei Änderungen, je Eintrag gewinnt das Neuere',
+    'Sicher: läuft über dein eigenes privates GitHub-Repository mit einem Token, der nur dieses eine Repository darf; alles wird vorher mit deinem Abgleich-Kennwort verschlüsselt (AES-256-GCM, Schlüssel per PBKDF2) - auf GitHub liegen nur Zufallsbytes, das Kennwort verlässt nie dein Gerät',
+    'Neue Daten vom anderen Gerät werden sofort übernommen (die App lädt kurz neu) - während einer Sitzung erst danach',
+  ] },
+  { v: '3.50', date: '2026-10-24', items: [
+    '🌙 Abendbegleitung als Salon: die Gastgeberin - die Madame des Hauses - empfängt dich erst persönlich mit Smalltalk und Necken; dann stellt sie dir die Damen des Hauses vor, je zwei, die sich deutlich unterscheiden: sie kommen herein, sie stellt sie mit Charme vor, jede sagt selbst etwas und flirtet in ihrer Art, und die Madame fragt dich, ob sie dir gefallen',
+    'Du antwortest einfach: „die gefällt mir", „beide", „Lena", „zeig mir andere", „noch eine dazu" - wer nicht passt, verabschiedet sich mit einem Lächeln, die nächsten kommen; zuerst die, die du länger nicht gesehen hast',
+    'Hast du gewählt, schlägt sie drei Ideen für den Abend vor (ausgedacht für genau diese Besetzung) - du sagst „die zweite" oder „überrasch mich", sie überlässt dich den Damen, und der geführte Abend geht weiter',
+    'Keine kleinen Auswahlkarten mehr unten - alles läuft im Gespräch',
+    'Hörspiel und Abendbegleitung stehen jetzt auch unter Spielen in der neuen Gruppe „Geführt" - klar getrennt vom normalen Gespräch',
+    'Hörspiel-Besetzung abwechslungsreicher: wer zuletzt oft dran war (auch bei den Karten des Abends), kommt seltener; gewählt wird aus Beziehungen, Gegensätzen und Zufallspaaren',
+  ] },
+  { v: '3.49', date: '2026-10-24', items: [
+    'Hörspiel-Geschichten besser: die Folge wird mit Handwerk geplant - was jede Figur will, Orte, die wechseln, Nebenfiguren, Humor zwischen den Spannungsmomenten, und je Akt drei konkrete Ereignisse; in jeder Antwort steht fest, was genau passiert - keine Endlosschleifen mehr aus Dunkelheit, Kälte und Klopfen',
+    'Der Erzähler beschreibt nicht mehr, was du tust oder fühlst - du entscheidest selbst; mit dir bleibt es bei Andeutungen, bis du einsteigst (zwischen den Figuren darf es knistern); wird es mit dir körperlich, leuchtet „🔥 Einsteigen" von selbst',
+    'Im Hörspiel wissen die Figuren erst nach dem Einsteigen vom Gerät (vorher erzählten sie schon von der Hülse)',
+    'Entscheidungen jetzt auf Deutsch und aus deiner Sicht (vorher kam einmal Englisch)',
+    'Weitermachen: über die Startseite oder nach dem Neuöffnen der App geht ein Hörspiel als Hörspiel weiter - mit Welt, Folge und Akt (vorher wurde ein normales Gespräch daraus)',
+    'Erzählerstimme passend zum Erzähler: eine Erzählerin bekommt eine warme, samtige Frauenstimme',
+    'Geräuschkulisse springt nicht mehr hin und her (Kamin ↔ Wald): ein neuer Ort muss zweimal erkannt werden, höchstens alle 90 s; der Wind, der „peitscht", löst keinen Peitschenknall mehr aus',
+  ] },
   { v: '3.48', date: '2026-10-24', items: [
     'Hörspiel mit Handlungsbogen: jede Folge wird zu Beginn geplant - Titel, Ziel, ein Geheimnis, fünf Akte (Ankommen, Komplikation, Annäherung, Zuspitzung, Auflösung mit Ausblick) - damit die Geschichte wirklich irgendwohin führt statt sich zu wiederholen',
     'Entscheidungen wie in Bloom: zweimal pro Folge darfst du wählen - die Frage und zwei Möglichkeiten erscheinen unten zum Antippen; wählst du nicht, entscheidet eine Figur nach ihrem Charakter',
@@ -4581,7 +4631,7 @@ function dbRun(store, mode, action, retried) {
 }
 
 const dbGet = (store, key) => dbRun(store, 'readonly', s => s.get(key));
-const dbPut = (store, key, value) => dbRun(store, 'readwrite', s => s.put(value, key));
+const dbPut = (store, key, value) => { if (store === STORE_IMAGES && !window.__syncApplying) { try { const m = JSON.parse(localStorage.getItem('syncmeta_img') || '{}'); m[key] = Date.now(); localStorage.setItem('syncmeta_img', JSON.stringify(m)); window.__syncDirtyAt = Date.now(); } catch (e) {} } return dbRun(store, 'readwrite', s => s.put(value, key)); };
 const dbDelete = (store, key) => dbRun(store, 'readwrite', s => s.delete(key));
 const dbKeys = (store) => dbRun(store, 'readonly', s => s.getAllKeys());
 const dbAll = (store) => dbRun(store, 'readonly', s => s.getAll());
@@ -4858,6 +4908,128 @@ els.copyLogBtn.onclick = async () => {
 // never have to be typed into the source file: storage is per origin, so
 // switching address or clearing site data is what actually loses them, and a
 // pasted backup fixes that in one step.
+// ======================= 🔄 GERÄTE-ABGLEICH ÜBER GITHUB =======================
+// Alle Daten (Einstellungen, Figuren, Beziehungen, Gedächtnis, Geschichten, Werkstattbuch, Bilder) laufen zwischen
+// deinen Geräten von selbst gleich - über ein privates GitHub-Repository. Vor dem Hochladen wird alles mit deinem
+// Abgleich-Kennwort verschlüsselt (AES-256-GCM, Schlüssel per PBKDF2 aus dem Kennwort): wer das Repository sieht,
+// sieht nur Zufallsbytes. Das Kennwort verlässt das Gerät nie. Zusammengeführt wird je Eintrag - das Neuere gewinnt.
+const SYNC_SKIP_RE = /^companion_(sync|liveView|refreshProg)/;
+const sync = { busy: false, key: null, keyFor: '', lastAt: 0, shas: {}, status: '', pendingReload: false, imgQueue: 0 };
+function syncCfg() { return { repo: (localStorage.getItem('companion_syncRepo') || '').trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, ''), token: (localStorage.getItem('companion_syncToken') || '').trim(), pass: localStorage.getItem('companion_syncPass') || '', images: localStorage.getItem('companion_syncImages') !== '0' }; }
+function syncOn() { const c = syncCfg(); return localStorage.getItem('companion_syncOn') === '1' && /^[\w.-]+\/[\w.-]+$/.test(c.repo) && c.token && c.pass.length >= 8; }
+function syncTimes() { try { return JSON.parse(localStorage.getItem('syncmeta_times') || '{}'); } catch (e) { return {}; } }
+function syncDels() { try { return JSON.parse(localStorage.getItem('syncmeta_dels') || '{}'); } catch (e) { return {}; } }
+function syncImgTimes() { try { return JSON.parse(localStorage.getItem('syncmeta_img') || '{}'); } catch (e) { return {}; } }
+function syncSetStatus(t, bad) { sync.status = t; const el = document.getElementById('syncStatus'); if (el) { el.textContent = t; el.style.color = bad ? 'var(--danger, #ff7a7a)' : ''; } }
+async function ghApi(path, opts) {
+  const c = syncCfg(); opts = opts || {};
+  const res = await fetch(`https://api.github.com/repos/${c.repo}/contents/${path}`, { method: opts.method || 'GET', headers: Object.assign({ Authorization: 'Bearer ' + c.token, Accept: opts.accept || 'application/vnd.github.object', 'X-GitHub-Api-Version': '2022-11-28' }, opts.body ? { 'Content-Type': 'application/json' } : {}), body: opts.body ? JSON.stringify(opts.body) : undefined, cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (res.status === 401 || res.status === 403) throw new Error('GitHub lehnt den Schlüssel ab (' + res.status + ') - Token und Rechte prüfen');
+  if (!res.ok) throw new Error('GitHub ' + res.status + ': ' + (await res.text()).slice(0, 120));
+  return res;
+}
+async function ghGet(path) {   // → ArrayBuffer oder null; merkt sich die sha
+  const meta = await ghApi(path); if (!meta) return null; const j = await meta.json(); sync.shas[path] = j.sha;
+  const raw = await ghApi(path, { accept: 'application/vnd.github.raw' }); return raw ? await raw.arrayBuffer() : null;
+}
+async function ghPut(path, bytes, msg) {
+  const b64 = await blobToBase64(new Blob([bytes]));
+  if (sync.shas[path] === undefined) { try { const m = await ghApi(path); if (m) sync.shas[path] = (await m.json()).sha; } catch (e) {} }
+  const res = await ghApi(path, { method: 'PUT', body: Object.assign({ message: msg || 'Abgleich', content: b64 }, sync.shas[path] ? { sha: sync.shas[path] } : {}) });
+  const j = await res.json(); sync.shas[path] = j.content && j.content.sha;
+}
+async function syncKey() {
+  const c = syncCfg(); if (sync.key && sync.keyFor === c.repo + c.pass) return sync.key;
+  let saltBuf = await ghGet('salt.bin');
+  if (!saltBuf) { const salt = crypto.getRandomValues(new Uint8Array(16)); await ghPut('salt.bin', salt, 'Abgleich eingerichtet'); saltBuf = salt.buffer; }
+  sync.key = await deriveBackupKey(c.pass, new Uint8Array(saltBuf)); sync.keyFor = c.repo + c.pass; return sync.key;
+}
+async function syncEnc(bytes) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await syncKey(), bytes)); const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); return out; }
+async function syncDec(buf) { const b = new Uint8Array(buf); try { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await syncKey(), b.slice(12))); } catch (e) { throw new Error('Entschlüsseln ging nicht - ist das Abgleich-Kennwort auf beiden Geräten gleich?'); } }
+const syncJson = async (path) => { const b = await ghGet(path); return b ? JSON.parse(new TextDecoder().decode(await syncDec(b))) : null; };
+const syncPutJson = async (path, obj, msg) => ghPut(path, await syncEnc(new TextEncoder().encode(JSON.stringify(obj))), msg);
+async function sha256hex(s) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+async function syncNow(reason) {
+  if (!syncOn() || sync.busy) return; if (navigator.onLine === false) { syncSetStatus('Offline - Abgleich, sobald Netz da ist'); return; }
+  sync.busy = true; const t0 = Date.now(); let applied = 0, pushed = 0;
+  try {
+    syncSetStatus('Abgleich läuft …');
+    // 1. Einstellungen und Figuren: je Schlüssel das Neuere
+    const remote = await syncJson('core.bin');
+    const times = syncTimes(), dels = syncDels(), firstHere = !localStorage.getItem('companion_syncDone');
+    const local = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('companion_') && !SYNC_SKIP_RE.test(k)) local[k] = [localStorage.getItem(k), firstHere && !remote ? Date.now() : (times[k] || 0)]; }
+    const merged = { keys: {}, dels: Object.assign({}, remote ? remote.dels || {} : {}) };
+    Object.entries(dels).forEach(([k, t]) => { if (!merged.dels[k] || merged.dels[k] < t) merged.dels[k] = t; });
+    const rk = remote ? remote.keys || {} : {};
+    new Set(Object.keys(local).concat(Object.keys(rk))).forEach(k => {
+      const L = local[k], R = rk[k], D = merged.dels[k] || 0;
+      let win = !R ? L : !L ? R : (R[1] > L[1] ? R : L);
+      if (win && D > win[1]) win = null;   // gelöscht, nachdem es zuletzt geändert wurde
+      if (win) merged.keys[k] = win;
+      if (win && win === R && (!L || L[0] !== R[0])) { window.__syncApplying = true; try { localStorage.setItem(k, R[0]); times[k] = R[1]; applied++; } catch (e) {} window.__syncApplying = false; }
+      if (!win && L) { window.__syncApplying = true; try { localStorage.removeItem(k); } catch (e) {} window.__syncApplying = false; applied++; }
+      if (win && win === L && (!R || R[0] !== L[0] || R[1] !== L[1])) pushed++;
+    });
+    // 2. Geschichten und Werkstattbuch: Vereinigung (nichts geht verloren)
+    let stories = [], ws = [];
+    try { const ks = await dbKeys(STORE_STORIES), vs = await dbAll(STORE_STORIES); stories = ks.map((k, i) => ({ k, v: vs[i] })); } catch (e) {}
+    try { ws = await wbAllSessions(); } catch (e) {}
+    const rStories = remote ? remote.stories || [] : [], rWs = remote ? remote.ws || [] : [];
+    for (const e of rStories) if (!stories.some(x => x.k === e.k)) { try { await dbPut(STORE_STORIES, e.k, e.v); stories.push(e); applied++; } catch (er) {} }
+    for (const r of rWs) if (!ws.some(x => x.id === r.id)) { try { await wbPutSession(r); ws.push(r); } catch (er) {} }
+    if (stories.length > rStories.length || ws.length > rWs.length) pushed++;
+    try { window.__syncReloadTimes && window.__syncReloadTimes(); } catch (e) {}
+    localStorage.setItem('syncmeta_times', JSON.stringify(times));
+    if (pushed || !remote) { await syncPutJson('core.bin', Object.assign(merged, { stories, ws, t: Date.now() }), 'Abgleich ' + new Date().toISOString().slice(0, 16)); }
+    localStorage.setItem('companion_syncDone', '1');
+    // 3. Bilder: jedes einzeln, verschlüsselt, nur was fehlt oder neuer ist (höchstens 30 je Durchgang)
+    let imgUp = 0, imgDown = 0, imgLeft = 0;
+    if (syncCfg().images) {
+      const man = (await syncJson('images.bin')) || {}; const it = syncImgTimes(); let manChanged = false, budget = 30;
+      const keys = await dbKeys(STORE_IMAGES).catch(() => []);
+      const localSet = new Set(keys);
+      for (const [hk, m] of Object.entries(man)) {
+        if (budget <= 0) { imgLeft++; continue; }
+        if (!localSet.has(m.k) || (m.t > (it[m.k] || 0) && m.t > 1)) { const b = await ghGet('img/' + hk + '.bin'); if (b) { const dec = await syncDec(b); window.__syncApplying = true; await dbPut(STORE_IMAGES, m.k, new Blob([dec], { type: m.type || 'image/jpeg' })); window.__syncApplying = false; it[m.k] = m.t; imgDown++; budget--; } }
+      }
+      for (const k of keys) {
+        const hk = await sha256hex(String(k)), m = man[hk], lt = it[k] || 1;
+        if (m && m.t >= lt) continue;
+        if (budget <= 0) { imgLeft++; continue; }
+        const v = await dbGet(STORE_IMAGES, k).catch(() => null), b = await asBlob(v); if (!b) continue;
+        await ghPut('img/' + hk + '.bin', await syncEnc(new Uint8Array(await b.arrayBuffer())), 'Bild');
+        man[hk] = { k, t: lt, type: b.type }; manChanged = true; imgUp++; budget--;
+      }
+      if (manChanged) await syncPutJson('images.bin', man, 'Bilder');
+      localStorage.setItem('syncmeta_img', JSON.stringify(it));
+      if (imgLeft) setTimeout(() => syncNow('Bilder'), 4000);
+    }
+    sync.lastAt = Date.now(); safeSet('companion_syncLastAt', String(sync.lastAt)); sync.dirty = false;
+    syncSetStatus(`Abgeglichen ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}: ${applied ? applied + ' vom anderen Gerät übernommen, ' : ''}${pushed ? 'eigene Änderungen hochgeladen, ' : ''}${imgUp || imgDown ? `Bilder ↑${imgUp} ↓${imgDown}${imgLeft ? ' (weitere folgen)' : ''}, ` : ''}${((Date.now() - t0) / 1000).toFixed(1)} s`.replace(/, ([\d.]+ s)$/, ' · $1'));
+    logEvent('msg', { role: 'system', text: `🔄 Abgleich (${reason || 'auto'}): ${applied} übernommen, ${pushed ? 'hochgeladen' : 'nichts hochzuladen'}, Bilder ↑${imgUp} ↓${imgDown}` });
+    if (applied) { if (!inSession()) { showToast('🔄 Neue Daten vom anderen Gerät - die App lädt kurz neu'); setTimeout(() => location.reload(), 1500); } else { sync.pendingReload = true; showToast('🔄 Neue Daten vom anderen Gerät - werden nach der Sitzung geladen'); } }
+  } catch (e) { syncSetStatus('Abgleich ging nicht: ' + e.message, true); logEvent('msg', { role: 'system', text: '🔄 Abgleich: ' + e.message }); }
+  finally { sync.busy = false; }
+}
+// wann abgleichen: beim Öffnen, beim Zurückkommen, beim Verlassen, und jede Minute, wenn sich etwas geändert hat
+setTimeout(() => { try { syncNow('Start'); } catch (e) {} }, 4000);
+document.addEventListener('visibilitychange', () => { try { if (syncOn()) syncNow(document.hidden ? 'verlassen' : 'zurück'); } catch (e) {} });
+setInterval(() => { try { if (!syncOn()) return; if (sync.pendingReload && !inSession()) { sync.pendingReload = false; location.reload(); return; } if ((window.__syncDirtyAt || 0) > sync.lastAt || Date.now() - sync.lastAt > 300000) syncNow('laufend'); } catch (e) {} }, 60000);
+window.addEventListener('online', () => { try { syncNow('Netz zurück'); } catch (e) {} });
+function syncUiInit() {
+  const g = id => document.getElementById(id); if (!g('syncRepo')) return;
+  const c = syncCfg(); g('syncRepo').value = c.repo; g('syncToken').value = c.token ? '••••••••' + c.token.slice(-4) : ''; g('syncPass').value = c.pass ? '••••••••' : ''; g('syncImages').checked = c.images; g('syncOnBox').checked = localStorage.getItem('companion_syncOn') === '1';
+  const last = +localStorage.getItem('companion_syncLastAt') || 0; syncSetStatus(sync.status || (last ? 'Zuletzt abgeglichen: ' + new Date(last).toLocaleString('de-DE') : 'Noch nicht eingerichtet'));
+  g('syncRepo').onchange = () => safeSet('companion_syncRepo', g('syncRepo').value.trim());
+  g('syncToken').onchange = () => { const v = g('syncToken').value.trim(); if (v && !v.startsWith('••')) safeSet('companion_syncToken', v); };
+  g('syncPass').onchange = () => { const v = g('syncPass').value; if (v && !v.startsWith('••')) { if (v.length < 8) { showToast('Kennwort: mindestens 8 Zeichen', true); return; } safeSet('companion_syncPass', v); sync.key = null; } };
+  g('syncImages').onchange = () => safeSet('companion_syncImages', g('syncImages').checked ? '1' : '0');
+  g('syncOnBox').onchange = () => { safeSet('companion_syncOn', g('syncOnBox').checked ? '1' : '0'); if (g('syncOnBox').checked) syncNow('eingeschaltet'); };
+  g('syncNowBtn').onclick = () => { if (!syncOn()) { showToast('Erst Repository, Token und Kennwort eintragen und „Abgleich an" setzen', true); return; } syncNow('von Hand'); };
+}
+setTimeout(() => { try { syncUiInit(); } catch (e) {} }, 500);
+
 function collectSettings() {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -8242,7 +8414,7 @@ function introPhase(step) {
 const AMBIENCES = {
   bar:    { label: 'Bar',          re: /\b(bar|pub|kneipe|lounge|café|cafe|restaurant|theke|tresen)\b/g, prompt: 'Cozy bar ambience, quiet unintelligible background chatter, soft clinking glasses, distant muffled music' },
   club:   { label: 'Club',         re: /\b(club|disco|tanzfläche)\b/g, prompt: 'Muffled nightclub bass from the next room, low crowd murmur' },
-  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|baum|draußen|im freien|terrasse|vögel|vogelgezwitscher|zwitscher\w*)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
+  park:   { label: 'Park / Wald',  re: /\b(park|wald|garten|wiese|lichtung|bäumen|im freien|terrasse|vögel|vogelgezwitscher|zwitscher\w*)\b/g, prompt: 'Calm outdoor park ambience, gentle breeze in the trees, soft distant birdsong' },
   lake:   { label: 'See / Meer',   re: /\b(see|strand|meer|ufer|wellen|bucht)\b/g, prompt: 'Gentle lake shore ambience, small waves softly lapping, light breeze' },
   rain:   { label: 'Regen',        re: /\b(regen|regnet|gewitter)\b/g, prompt: 'Steady soft rain against a window, occasional distant thunder, cozy' },
   fire:   { label: 'Kaminfeuer',   re: /\b(kamin\w*|lagerfeuer|knister\w*|ofen|feuer (?:an|brennt|prasselt|lodert))\b/g, prompt: 'Softly crackling fireplace, warm quiet room' },
@@ -8366,10 +8538,14 @@ async function setAmbience(key, fresh) {
 function updateAmbience() {
   if (!ambienceEnabled() || isMuted) { if (amb.key) setAmbience(null); return; }
   const key = detectAmbience();
+  // Nicht hin- und herspringen (Kamin → Wald → Kamin, nur weil jemand „draußen" sagte): ein neuer Ort muss
+  // zweimal hintereinander erkannt werden, und gewechselt wird höchstens alle 90 s - außer es lief noch keiner
   if (key && key !== amb.key) {
+    if (amb.key && (amb.pendingKey !== key || Date.now() - (amb.switchAt || 0) < 90000)) { amb.pendingKey = key; return; }
+    amb.pendingKey = null; amb.switchAt = Date.now();
     logEvent('msg', { role: 'system', text: 'Geräuschkulisse: ' + AMBIENCES[key].label });
     setAmbience(key);
-  }
+  } else amb.pendingKey = null;
 }
 // ---------- Musik ----------
 // Drei Stimmungen, gewählt nach der Intensität der Bewegung. Gewechselt wird
@@ -8569,7 +8745,7 @@ setInterval(() => {
 // zur Geräuschkulisse aus lauter Effekten.
 const SFX_EVENTS = [
   { key: 'knock',   label: 'Klopfen',          re: /\b(klopf\w*|pocht\w* an)\b/,                                   prompt: 'Two firm knocks on a wooden door', dur: 2 },
-  { key: 'whip',    label: 'Peitsche',         re: /\b(peitsch\w*|reitgerte|gerte|flogger)\b|knall\w*.{0,25}\b(peitsche|gerte)\b/, prompt: 'A single sharp crack of a leather whip in a quiet room', dur: 1.5, cool: 15000 },
+  { key: 'whip',    label: 'Peitsche',         re: /\b(peitsche[nr]?|peitschenhieb\w*|reitgerte|gerte|flogger)\b(?!\s+(?:der|die|das)\s+(?:wind|regen|sturm|schnee|wellen|böen))|knall\w*.{0,25}\b(peitsche|gerte)\b/, prompt: 'A single sharp crack of a leather whip in a quiet room', dur: 1.5, cool: 15000 },
   { key: 'cuffs',   label: 'Handschellen',     re: /\bhandschelle\w*\b/,                                        prompt: 'Metal handcuffs clicking shut, a short rattle of the chain', dur: 2 },
   { key: 'chain',   label: 'Kette',            re: /\b(kette|ketten)\b.{0,25}\b(rassel\w*|klirr\w*|spann\w*)\b|kettenrasseln/, prompt: 'A heavy metal chain rattling and clinking', dur: 2.5 },
   { key: 'door',    label: 'Tür',              re: /\b(tür|türe)\b.{0,30}\b(öffne\w*|auf|zu|schließ\w*|fällt ins schloss)\b/, prompt: 'A wooden door opening slowly with a soft creak, then closing', dur: 3 },
@@ -8695,6 +8871,7 @@ function tintStyleOf(name) {
   return top && top[1] >= 3 ? top[0] : '';
 }
 function setMotionTint(role, text) {
+  try { if (typeof hsp !== 'undefined' && hsp.active && !hsp.joined && /(hülse|zwischen deinen beinen|in den mund|deinen schwanz|seinen schwanz|umschließt (dich|ihn)|reitet (dich|ihn)|zieht (dich|ihn) aus|nackt)/i.test(String(text || '')) && Date.now() - (hsp.invitedAt || 0) > 90000) hsInvite(); } catch (e) {}
   if (role && role !== 'narrator') { const st = tintStyleOf(role); if (st || motionTint.who !== role) { motionTint.who = role; motionTint.style = st; } }
   const t = String(text || '').toLowerCase(); let best = null;
   TINT_ACTS.forEach(([k, re]) => { const g = new RegExp(re.source, 'g'); let m, last = -1; while ((m = g.exec(t))) last = m.index; if (last >= 0 && (!best || last > best.i)) best = { k, i: last }; });
@@ -9682,6 +9859,7 @@ function logMotionChoice(deviceNum, motion) {
 // Der Schalter im Live-Bereich. Die Steuerung läuft unabhängig davon weiter -
 // er entscheidet nur, ob die Figuren das Gerät kennen und ansprechen dürfen.
 function deviceAware() {
+  if (typeof hsp !== 'undefined' && hsp.active && !hsp.joined) return false;   // im Hörspiel spielt das Gerät erst nach dem Einsteigen eine Rolle
   return (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
 }
 
@@ -15640,7 +15818,7 @@ function guidedEndCard() {
   v.querySelector('.ge-end').onclick = () => { v.remove(); [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} }); try { edgeSend(0, 0, true); } catch (e) {} guided.startAt = 0; leaveSession(); };
 }
 // ---------- 🌙 Abendbegleitung: eine Gastgeberin führt durch den Abend ----------
-const host = { id: null, cards: null, chosen: -1, note: '' };
+const host = { id: null, stage: '', queue: [], current: [], chosen: [], cards: null, chosenCard: -1, note: '', startN: 0, presented: 0 };
 function hostFigure() {
   const pool = surprisePool(); if (!pool.length) return null;
   const id = localStorage.getItem('companion_hostId'); const f = id && pool.find(x => x.f.id === id);
@@ -15651,53 +15829,94 @@ function hostFigure() {
   safeSet('companion_hostId', pick.id); return pick;
 }
 function hostNext() { const pool = surprisePool(); if (!pool.length) return; const id = localStorage.getItem('companion_hostId'); const i = pool.findIndex(x => x.f.id === id); safeSet('companion_hostId', pool[(i + 1) % pool.length].f.id); }
+// Wer vorgestellt wird: selten gesehene zuerst, und je zwei, die sich deutlich unterscheiden
+function hostQueue(hostId) {
+  let seen = {}; try { seen = JSON.parse(localStorage.getItem('companion_pitchCast') || '{}'); } catch (e) {}
+  const pool = surprisePool().filter(x => x.f.id !== hostId && x.v.gender !== 'maennlich').map(x => ({ x, w: (seen[x.v.name] || 0) + Math.random() * 1.5, ax: axesFor(Object.assign({ figureId: x.f.id }, x.v)) })).sort((a, b) => a.w - b.w);
+  const out = [];
+  while (pool.length) { const a = pool.shift(); out.push(a.x.f.id); if (!pool.length) break; let bi = 0, best = -1; pool.forEach((b, k) => { const d = a.ax && b.ax ? cmDist({ d: a.ax.d }, { d: b.ax.d }) : Math.random(); if (d > best) { best = d; bi = k; } }); out.push(pool.splice(bi, 1)[0].x.f.id); }
+  return out;
+}
 async function startHostEvening(hf) {
   const hv = latestVersion(hf); const meFig = archiveMeFigure();
-  safeSet('companion_guided', '1'); safeSet('companion_conductor', '1');
-  Object.assign(host, { id: hf.id, cards: null, chosen: -1, note: '' });
+  safeSet('companion_guided', '1'); safeSet('companion_conductor', '0');   // die Gastgeberin mischt selbst
+  Object.assign(host, { id: hf.id, stage: 'smalltalk', queue: hostQueue(hf.id), current: [], chosen: [], cards: null, chosenCard: -1, note: '', startN: 0, presented: 0 });
   switchMode('live'); history = [];
   characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(hf)].filter(Boolean); saveCharacters();
-  safeSet('companion_sceneDesc', `Til macht es sich für den Abend gemütlich. ${hv.name} ist heute seine Abendbegleitung: sie ist zuerst allein mit ihm, plaudert, hilft ihm beim Ankommen und Vorbereiten und hat ein paar Ideen, wie der Abend verlaufen könnte - mit wem und wo. Sie holt die anderen dazu, wenn es so weit ist.`);
+  safeSet('companion_sceneDesc', `Ein elegantes, diskretes Haus am Abend - gedämpftes Licht, Samt, leise Musik. ${hv.name} ist die Gastgeberin, die Madame des Hauses: sie empfängt Til persönlich, plaudert mit ihm und stellt ihm dann nach und nach die Damen des Hauses vor, bis er findet, mit wem er den Abend verbringen will.`);
   try { renderLivePanel(); } catch (e) {}
-  logEvent('msg', { role: 'system', text: `🌙 Abendbegleitung: ${hv.name}` });
-  // drei Ideen für den Abend im Hintergrund vorbereiten (wie die Karten des Abends)
-  makePitches(3).then(P => { if (P && host.id === hf.id) { host.cards = P.cards.filter(c => c.isNew).slice(0, 3); hostChips(); logEvent('msg', { role: 'system', text: '🌙 Ideen für heute: ' + host.cards.map(c => c.title).join(' · ') }); } }).catch(() => {});
+  logEvent('msg', { role: 'system', text: `🌙 Abendbegleitung: ${hv.name} empfängt dich` }); try { noteRecent('salon'); } catch (e) {}
   try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
 }
-function hostActive() { return !!host.id && characters.some(c => c.figureId === host.id) && currentMode === 'live'; }
-function hostChoose(i, quiet) {
-  const c = host.cards && host.cards[i]; if (!c) return false;
-  host.chosen = i; safeSet('companion_sceneDesc', c.scene);
-  const hv = latestVersion(getFigure(host.id) || {}) || {};
-  host.note = `\nTil hat sich entschieden: „${c.title}". Leite jetzt dorthin über (Ortswechsel erlaubt): ${c.scene}`;
-  c.cast.forEach(n => { const f = figureByName(n); if (f && !characters.some(x => x.figureId === f.id) && aiCast().length - conductor.exits.length < conductorMax()) conductorEnter(f, 'gehört zu „' + c.title + '"'); });
-  hostChips(); logEvent('msg', { role: 'system', text: `🌙 Gewählt: ${c.title}` });
-  if (!quiet) { conductor.__keep = conductor.note; askActive(`Ich nehme „${c.title}".`); }
-  return true;
+function hostActive() { return !!host.id && !!host.stage && host.stage !== 'done' && currentMode === 'live' && characters.some(c => c.figureId === host.id); }
+function hostPresentNext(n) {
+  const ids = []; while (ids.length < (n || 2) && host.queue.length) { const id = host.queue.shift(); if (!characters.some(c => c.figureId === id)) ids.push(id); }
+  if (!ids.length) { host.note += '\nEs sind heute keine weiteren Damen da - sie bietet ihm an, sich doch für eine der Vorgestellten zu entscheiden, oder sie selbst bleibt bei ihm.'; return; }
+  host.current = ids; host.presented += ids.length; host.stage = 'present';
+  ids.forEach(id => { const f = getFigure(id); if (f) { addFigureToCast(id); try { ensureVoiceReady(id); } catch (e) {} } });
+  logEvent('msg', { role: 'system', text: '🌙 Vorgestellt: ' + ids.map(id => latestVersion(getFigure(id)).name).join(' & ') });
+}
+function hostDismiss(ids, why) { ids.forEach(id => { const c = characters.find(x => x.figureId === id); if (c) conductorExit(c, why || 'die Madame schickt sie mit einem Lächeln wieder hinaus'); }); host.current = host.current.filter(id => !ids.includes(id)); }
+// Tils Antwort deuten: wen will er, wen nicht, will er mehr sehen
+function hostBefore(userText) {
+  if (!hostActive()) return;
+  const t = String(userText || '').toLowerCase(), n = replyCount();
+  const yes = /(gefällt|gefallen|nehm|nimm|die (will|möchte)|bleib|behalt|perfekt|genau die|ja\b|gern|beide|alle (beide|zwei|drei)|mit (ihr|ihnen|der))/, no = /(nein|nicht so|nicht mein|eher nicht|weiter|nächste|andere|noch (jemand|mehr|andere)|zeig (mir )?(noch|mehr|andere)|wer (ist )?(noch|sonst))/;
+  if (host.stage === 'smalltalk') { if (n >= 2 || /(zeig|stell|vorstell|wer ist (da|heute)|damen|mädels|wen hast du)/.test(t)) hostPresentNext(2); return; }
+  if (host.stage === 'present' && t) {
+    const cur = host.current.map(id => ({ id, first: latestVersion(getFigure(id)).name.split(' ')[0].toLowerCase() }));
+    const named = cur.filter(c => t.includes(c.first));
+    if (yes.test(t) && !/(nicht|kein)/.test(t.replace(/nicht so/, ''))) {
+      const take = /(beide|alle|beiden)/.test(t) || !named.length ? cur : named;
+      take.forEach(c => { if (!host.chosen.includes(c.id)) host.chosen.push(c.id); });
+      hostDismiss(cur.filter(c => !take.includes(c)).map(c => c.id));
+      if (/(noch (jemand|eine|mehr|andere)|und noch)/.test(t)) { hostPresentNext(2); return; }
+      host.stage = 'scene'; host.current = []; hostIdeas();
+      logEvent('msg', { role: 'system', text: '🌙 Gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ') });
+      return;
+    }
+    if (no.test(t)) { const keep = named.filter(c => yes.test(t)); hostDismiss(cur.filter(c => !keep.includes(c)).map(c => c.id)); hostPresentNext(2); return; }
+    return;
+  }
+  if (host.stage === 'scene' && host.cards && t) {
+    const i = hostMatch(t); if (i >= 0 || /(überrasch|egal|du entscheidest|such du)/.test(t)) hostTakeIdea(i >= 0 ? i : Math.floor(Math.random() * host.cards.length));
+  }
+}
+async function hostIdeas() {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const cast = host.chosen.map(id => latestVersion(getFigure(id))).filter(Boolean);
+  const sys = `Erotische Rollenspiel-App für Erwachsene (alle über 21, einvernehmlich). Til hat sich für den Abend entschieden für: ${cast.map(v => v.name + ' (' + figureGist(v) + ((v.core || '').match(/Vorlieben[^\\n]*/) ? ' | ' + v.core.match(/Vorlieben[^\\n]*/)[0].slice(0, 120) : '') + ')').join('; ')}. Schlage drei deutlich verschiedene Ideen vor, was sie heute miteinander erleben (Ort, Stimmung, Spiel). ALLES AUF DEUTSCH.
+Antworte NUR als JSON: {"ideen": [{"titel": "2-4 Wörter", "teaser": "ein verführerischer Satz", "szene": "3 Sätze Szenenbeschreibung, Til mit du"}]}`;
+  try { const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.95, Math.max(700, taskBudget('draft', 700)), { task: 'draft' }));
+    host.cards = ((j && j.ideen) || []).slice(0, 3).map(x => ({ title: String(x.titel || ''), teaser: String(x.teaser || ''), scene: String(x.szene || ''), cast: cast.map(v => v.name) })).filter(c => c.title && c.scene);
+    if (host.cards.length) logEvent('msg', { role: 'system', text: '🌙 Ideen: ' + host.cards.map(c => c.title).join(' · ') });
+  } catch (e) {}
+}
+function hostTakeIdea(i) {
+  const c = host.cards[i]; if (!c) return; host.chosenCard = i; safeSet('companion_sceneDesc', c.scene);
+  host.note += `\nTil hat sich entschieden: „${c.title}". Die Madame verabschiedet sich jetzt mit einem letzten Satz und überlässt ihn den Damen; leitet in die Szene über (Ortswechsel erlaubt): ${c.scene}`;
+  const hc = characters.find(x => x.figureId === host.id); if (hc && !host.chosen.includes(host.id)) conductorExit(hc, 'überlässt ihn den Damen');
+  host.stage = 'done'; logEvent('msg', { role: 'system', text: `🌙 Abend: „${c.title}"` });
 }
 function hostMatch(text) {
-  if (!host.cards || host.chosen >= 0) return -1; const t = String(text || '').toLowerCase();
+  if (!host.cards || host.chosenCard >= 0) return -1; const t = String(text || '').toLowerCase();
   const ord = [/\b(erste|1\.?|eins|nummer eins)\b/, /\b(zweite|2\.?|zwei|nummer zwei)\b/, /\b(dritte|3\.?|drei|nummer drei)\b/];
-  for (let i = 0; i < host.cards.length; i++) if (ord[i].test(t) && /(nehm|will|lieber|die |das |idee|nummer|^\s*\d)/.test(t)) return i;
+  for (let i = 0; i < host.cards.length; i++) if (ord[i].test(t)) return i;
   for (let i = 0; i < host.cards.length; i++) { const w = host.cards[i].title.toLowerCase().split(/\s+/).filter(x => x.length > 4); if (w.some(x => t.includes(x))) return i; }
   return -1;
 }
 function hostBlock() {
-  if (!hostActive()) return '';
-  const hv = latestVersion(getFigure(host.id)); let t = `\n\nABENDBEGLEITUNG: ${hv.name} ist heute Tils Begleiterin durch den Abend - sie führt, schlägt vor, holt andere dazu, achtet auf die Zeit und darauf, dass es ihm gut geht.`;
-  if (host.chosen < 0 && host.cards && host.cards.length) t += ` Sie hat drei Ideen für heute und stellt sie ihm verführerisch vor (erzählen, nicht als Liste vorlesen; er kann auch auf eine Karte unten tippen): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" mit ${c.cast.join(' & ')} - ${c.teaser}`).join(' ')}. Er wählt - oder wünscht sich etwas anderes, dann geht sie darauf ein.`;
-  else if (host.chosen < 0) t += ' Ihre Ideen für heute sind gleich da - bis dahin plaudert sie.';
+  if (!host.id || !host.stage) return '';
+  const hc = characters.find(x => x.figureId === host.id); if (!hc && host.stage !== 'done') return '';
+  const hv = hc ? hc.name : ''; let t = '';
+  const portrait = id => { const v = latestVersion(getFigure(id)); const core = String(v.core || ''); return `${v.name}: ${figureGist(v)}${(core.match(/Motiv:[^\n]*/) || [''])[0] ? ' | ' + core.match(/Motiv:[^\n]*/)[0].slice(0, 120) : ''}${(core.match(/Vorlieben[^\n]*/) || [''])[0] ? ' | ' + core.match(/Vorlieben[^\n]*/)[0].slice(0, 140) : ''}${v.signature ? ' | Markenzeichen: ' + v.signature.slice(0, 120) : ''}`; };
+  if (host.stage === 'smalltalk') t = `\n\nABENDBEGLEITUNG - EMPFANG: ${hv} ist die Gastgeberin, die Madame dieses Hauses. Sie empfängt Til persönlich: Begrüßung, Smalltalk, ein bisschen Necken und Quatsch, wie war sein Tag, was ihm heute gefallen würde. Noch niemand anderes ist da. Am Ende kündigt sie an, dass sie ihm gleich die Damen des Hauses vorstellt.`;
+  else if (host.stage === 'present') t = `\n\nABENDBEGLEITUNG - VORSTELLUNG: ${hv} stellt Til jetzt vor, wer gerade hereingekommen ist - mit Charme und Witz, wie eine Madame, die ihre Damen präsentiert: wer sie ist, was sie besonders macht, was sie mag, was sie heute mit ihm täte. Jede der Vorgestellten sagt selbst etwas zu Til, zeigt sich, flirtet in ihrer eigenen Art (ihr Markenzeichen darf sie in Worten andeuten). Dann fragt die Madame ihn ausdrücklich, ob sie ihm gefallen - eine, beide, oder ob er andere sehen möchte - und wartet auf seine Antwort.\nGerade vorgestellt: ${host.current.map(portrait).join('\n')}${host.chosen.length ? '\nSchon gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(', ') : ''}`;
+  else if (host.stage === 'scene') t = `\n\nABENDBEGLEITUNG - DER ABEND: Til hat gewählt: ${host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ')}. ${host.cards && host.cards.length ? `${hv} schlägt ihm jetzt verführerisch drei Ideen vor, was sie heute erleben (erzählen, nicht als Liste): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" - ${c.teaser}`).join(' ')}. Er wählt eine - oder sagt „überrasch mich".` : `${hv} lässt die Gewählten mit Til ein wenig plaudern, während sie sich überlegt, was der Abend bringen soll.`}`;
   if (host.note) { t += host.note; host.note = ''; }
   return t;
 }
-function hostChips() {
-  let el = document.getElementById('hostChips');
-  const show = hostActive() && host.cards && host.cards.length && host.chosen < 0 && inSession();
-  if (!show) { if (el) el.remove(); return; }
-  if (!el) { el = document.createElement('div'); el.id = 'hostChips'; el.style.cssText = 'position:fixed; left:10px; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 132px); z-index:1600; display:flex; gap:6px; overflow-x:auto;'; document.body.appendChild(el); }
-  el.innerHTML = host.cards.map((c, i) => `<button type="button" class="btn-secondary" data-i="${i}" style="flex:0 0 auto; max-width:72%; height:auto; padding:8px 12px; font-size:13px; text-align:left; background:rgba(20,12,16,0.92); white-space:normal;"><b>${i + 1}. ${esc(c.title)}</b><br><span style="opacity:0.75;">${esc(c.cast.map(n => n.split(' ')[0]).join(' & '))}</span></button>`).join('');
-  el.querySelectorAll('button').forEach(b => b.onclick = () => hostChoose(+b.dataset.i));
-}
+function hostChips() { const el = document.getElementById('hostChips'); if (el) el.remove(); }   // Auswahl jetzt im Gespräch, nicht mehr als kleine Karten
 // ---------- 🎧 Hörspiel: mitten in einer Geschichte, die einfach weiterläuft ----------
 const HS_WORLDS = [
   ['🏰', 'Schlossintrige', 'Ein Maskenball in einem alten Schloss, Intrigen, Geheimgänge, ein verbotener Brief'],
@@ -15709,7 +15928,7 @@ const HS_WORLDS = [
   ['🎭', 'Theater', 'Hinter den Kulissen einer Premiere - Lampenfieber, Rivalinnen, eine Garderobe mit abschließbarer Tür'],
   ['❄️', 'Hütte', 'Eingeschneit in einer Berghütte, Kaminfeuer, der Strom fällt aus, Geschichten im Dunkeln'],
 ];
-const hsp = { active: false, joined: false, world: null, userStopped: false, invitedAt: 0 };
+const hsp = { active: false, joined: false, world: null, userStopped: false, invitedAt: 0, plot: null, decided: {}, perAct: 5, baseN: 0, group: false };
 const HS_PROMPTS = [
   '(Erzählt die Geschichte weiter - die nächste kleine Szene: etwas passiert, jemand reagiert, die Welt ist hörbar. Kurz halten.)',
   '(Weiter im Hörspiel: bringt die Handlung einen Schritt voran, mit Spannung und einem kleinen Cliffhanger am Ende.)',
@@ -15721,23 +15940,25 @@ function hsBlock() {
   if (hsp.joined) return `\n\nHÖRSPIEL - TIL IST EINGESTIEGEN: Jetzt dreht sich alles um ihn (die normalen Regeln oben gelten wieder, auch die Bewegung), aber ihr bleibt in der Welt der Geschichte (${hsp.world ? hsp.world[1] : 'wie bisher'}) - Ort, Stimmung und das bisher Erlebte bleiben. Ist der Moment vorbei, kann die Geschichte weitergehen.`;
   return hsPlotText() + `\n\nHÖRSPIEL (hat Vorrang vor „Wer im Mittelpunkt steht" oben): Ihr erzählt und erlebt gemeinsam eine fortlaufende Geschichte wie in einem Hörspiel - Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}. Til ist mittendrin, als Begleiter in dieser Welt, muss aber nichts sagen: Ihr redet vor allem MITEINANDER, handelt, erkundet, streitet, flirtet, erlebt etwas. Macht die Welt hörbar (Geräusche, Wetter, Orte, Schritte, Stimmen von Nebenfiguren werden beschrieben, sprechen aber nicht selbst). Jede Antwort bringt die Handlung ein Stück weiter, mit Spannung und kleinen Cliffhangern; jede Figur bleibt in ihrem Charakter und bringt die Geschichte in ihre Richtung. Ab und zu wendet sich eine an Til (eine Frage, ein Blick, eine Hand) - er kann antworten oder die Richtung vorgeben, dann folgt die Geschichte ihm. Gelegentlich - nicht ständig - knistert es, und die Handlung wird sinnlich: dann ladet ihr Til ein, einzusteigen, und setzt dafür den Marker <<einladung>>. Bis er einsteigt, keine Gerätebewegung.${hsp.group ? ' GRUPPE: Ihr seid eine Gruppe mit eigener Dynamik - Paare, Flirts, Eifersucht, alte Geschichten untereinander; die Männer der Gruppe flirten mit den Frauen und kommen ihnen näher, und gemeinsam bezieht ihr Til nach und nach ein und ladet ihn ein.' : ''}${aiCharacters().some(c => c.isNarrator) ? ' ERZÄHLER (Zeilen „Erzähler:"): erzählt wie ein großer Hörbuch-Erzähler - bildhaft, rhythmisch und sinnlich, mit Sinn für Pausen und Atmosphäre; konkrete Eindrücke (Licht, Geruch, Haut, Geräusche) statt allgemeiner Worte; lange fließende Sätze wechseln mit ganz kurzen; ein leises Augenzwinkern, nie hölzern oder neutral; er erzählt, die Figuren sprechen - er nimmt ihnen ihre Sätze nicht weg.' : ''}`;
 }
-// Handlungsbogen: zu Beginn einmal geplant - damit die Geschichte irgendwohin führt (Ziel, Geheimnis, Wendungen, Entscheidungen, Ende)
+// Handlungsbogen: zu Beginn einmal geplant - damit die Geschichte irgendwohin führt
 async function hsPlan() {
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const cast = aiCharacters().filter(c => !c.isNarrator).map(c => c.name + ' (' + (c.gender === 'maennlich' ? 'Mann, ' : '') + figureGist(c) + ')').join('; ');
   const sys = `Plane eine erotisch knisternde Hörspiel-Folge für Erwachsene (alle über 21, alles einvernehmlich) - wie eine gute Serie: mit Ziel, Geheimnis, Wendungen und einem befriedigenden Ende.
 Welt: ${hsp.world ? hsp.world[1] + ' - ' + hsp.world[2] : 'frei'}
 Figuren: ${cast}. Til ist mittendrin dabei (Hörer und Mitspieler).
-Gib zurück:
+Handwerk wie bei einer richtig guten Serie: konkrete Ziele und Einsätze, Figuren mit eigenen Wünschen, die sich reiben, Humor zwischen den Spannungsmomenten, Orte, die wechseln, Nebenfiguren mit Namen und Eigenart, echte Wendungen statt immer derselben Bedrohung. Keine Endlosschleifen aus Dunkelheit und Klopfen an der Tür.
+ALLES AUF DEUTSCH. Gib zurück:
 - "titel": Titel der Folge
-- "ziel": worum es geht (1 Satz)
-- "geheimnis": was erst spät herauskommt (1 Satz)
-- "akte": genau 5 Akte, je {"name": "...", "was": "was passiert (1-2 Sätze)"} - 1 Ankommen/Auftrag, 2 Komplikation, 3 Annäherung (hier knistert es zum ersten Mal deutlich), 4 Zuspitzung (Wendung, das Geheimnis), 5 Auflösung (sinnlicher Höhepunkt möglich, dann ein Ausblick auf die nächste Folge)
-- "entscheidungen": 2 Momente, in denen Til wählen darf, je {"akt": 2-4, "frage": "...", "a": "Möglichkeit A (kurz)", "b": "Möglichkeit B (kurz)"}
+- "ziel": worum es geht und was auf dem Spiel steht (1 Satz)
+- "geheimnis": was erst in Akt 4 herauskommt (1 Satz)
+- "wuensche": je Figur ein Satz, was SIE in dieser Folge will (auch von den anderen oder von Til)
+- "akte": genau 5 Akte, je {"name": "...", "ort": "wo", "was": "was passiert (1-2 Sätze)", "beats": ["drei konkrete Ereignisse in Reihenfolge"]} - 1 Auftakt/Auftrag, 2 Komplikation, 3 Annäherung (erstes deutliches Knistern, auch zwischen den Figuren), 4 Zuspitzung (das Geheimnis, eine Wendung), 5 Auflösung (sinnlicher Höhepunkt, dann ein Ausblick auf die nächste Folge)
+- "entscheidungen": 2 Momente, in denen Til wählt, je {"akt": 2-4, "frage": "Frage an Til in der Du-Form", "a": "Möglichkeit A aus Tils Sicht, kurz, Du-Form oder Ich-Form", "b": "Möglichkeit B, ebenso"}
 Antworte NUR als JSON.`;
   try {
-    const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(900, taskBudget('draft', 900)), { task: 'draft' }));
-    if (j && Array.isArray(j.akte) && j.akte.length >= 3) { hsp.plot = j; hsp.decided = {}; logEvent('msg', { role: 'system', text: `🎧 Folge: „${j.titel || ''}" - ${j.akte.map(a => a.name).join(' → ')}` }); }
+    const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(1100, taskBudget('draft', 1100)), { task: 'draft' }));
+    if (j && Array.isArray(j.akte) && j.akte.length >= 3) { hsp.plot = j; hsp.decided = {}; setTimeout(hsSave, 4000); logEvent('msg', { role: 'system', text: `🎧 Folge: „${j.titel || ''}" - ${j.akte.map(a => a.name).join(' → ')}` }); }
   } catch (e) {}
 }
 function hsAct() { const n = replyCount() - (hsp.baseN || 0); return Math.min((hsp.plot ? hsp.plot.akte.length : 5) - 1, Math.floor(Math.max(0, n) / (hsp.perAct || 5))); }
@@ -15745,7 +15966,10 @@ function hsPlotText() {
   const P = hsp.plot; if (!P || hsp.joined) return '';
   const k = hsAct(), A = P.akte[k], nxt = P.akte[k + 1], dec = (P.entscheidungen || []).find(d => +d.akt === k + 1 && !hsp.decided[k]);
   const lastAct = k === P.akte.length - 1, n = replyCount() - (hsp.baseN || 0), inAct = n - k * (hsp.perAct || 5);
-  return `\n\nHANDLUNGSBOGEN dieser Folge „${P.titel || ''}": Ziel: ${P.ziel || ''} Geheimnis (erst in Akt 4 lüften): ${P.geheimnis || ''}\nJETZT Akt ${k + 1}/${P.akte.length} „${A.name}": ${A.was}${nxt ? ` - danach kommt „${nxt.name}", steuert langsam darauf zu.` : ''}${dec && inAct >= 1 ? ` ENTSCHEIDUNG für Til in diesem Akt: ${dec.frage} (A: ${dec.a} / B: ${dec.b}) - stellt ihm die Frage in der Szene und wartet kurz; entscheidet er nicht, wählt eine Figur nach ihrem Charakter.` : ''}${lastAct && inAct >= (hsp.perAct || 5) - 2 ? ' Die Folge geht zu Ende: Auflösung, ein letzter Moment, dann ein Ausblick, wie es nächstes Mal weitergeht.' : ''} Keine Wiederholungen - jede Antwort bringt die Handlung sichtbar voran.`;
+  const per = hsp.perAct || 5, beats = Array.isArray(A.beats) ? A.beats : [], bi = beats.length ? Math.min(beats.length - 1, Math.floor(inAct * beats.length / per)) : -1;
+  const wishes = P.wuensche ? (typeof P.wuensche === 'object' && !Array.isArray(P.wuensche) ? Object.entries(P.wuensche).map(([k2, v2]) => k2 + ': ' + v2).join('; ') : [].concat(P.wuensche).join('; ')) : '';
+  return `\n\nHANDLUNGSBOGEN dieser Folge „${P.titel || ''}": Ziel: ${P.ziel || ''} Geheimnis (erst in Akt 4 lüften): ${P.geheimnis || ''}${wishes ? '\nWas jede will: ' + wishes : ''}\nJETZT Akt ${k + 1}/${P.akte.length} „${A.name}"${A.ort ? ' (' + A.ort + ')' : ''}: ${A.was}${bi >= 0 ? `\nIN DIESER ANTWORT passiert konkret: ${beats[bi]}${beats[bi + 1] ? ` (danach: ${beats[bi + 1]})` : ''}` : ''}${nxt ? `\nDanach kommt Akt „${nxt.name}" - steuert darauf zu.` : ''}\nREGELN: Jede Antwort bringt ein NEUES konkretes Ereignis - kein Motiv (Dunkelheit, Klopfen, Kälte …) mehr als zweimal. Humor und Wortgefechte zwischen den Spannungsmomenten. Der Erzähler beschreibt nie, was Til tut oder fühlt - Til entscheidet selbst; erzählt wird, was um ihn herum und mit ihm geschieht. Zwischen den Figuren darf es knistern; mit Til selbst bleibt es bei Andeutungen, bis er einsteigt.`
+    + `${dec && inAct >= 1 ? ` ENTSCHEIDUNG für Til in diesem Akt: ${dec.frage} (A: ${dec.a} / B: ${dec.b}) - stellt ihm die Frage in der Szene und wartet kurz; entscheidet er nicht, wählt eine Figur nach ihrem Charakter.` : ''}${lastAct && inAct >= per - 2 ? ' Die Folge geht zu Ende: Auflösung, ein letzter Moment, dann ein Ausblick, wie es nächstes Mal weitergeht.' : ''}`;
 }
 function hsChoiceChips() {
   let el = document.getElementById('hsChoice'); const P = hsp.plot;
@@ -15773,37 +15997,46 @@ function hsChips() {
 }
 function hsInvite() { if (!hsp.active || hsp.joined) return; hsp.invitedAt = Date.now(); logEvent('msg', { role: 'system', text: '🎧 Einladung: die Geschichte wird sinnlich - „🔥 Einsteigen" leuchtet' }); try { navigator.vibrate && navigator.vibrate([40, 60, 40]); } catch (e) {} hsChips(); }
 function hsJoin(on) {
-  hsp.joined = on; hsChips();
+  hsp.joined = on; hsChips(); hsSave();
   logEvent('msg', { role: 'system', text: on ? '🎧 Til steigt ein' : '🎧 zurück zur Geschichte' });
   if (on && device1.isConnected() && typeof readyGate !== 'undefined') readyGate = 'ready';
   if (!on) { [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} }); try { edgeSend(0, 0, true); } catch (e) {} }
   autoPlaying = false; setAutoStatus(false); hsp.userStopped = false;
   askActive(on ? '(Ich steige ein - ich bin jetzt ganz bei euch.)' : '(Erzählt die Geschichte weiter - wo waren wir?)');
 }
+// Besetzung abwechslungsreich: wer zuletzt oft dran war (Karten, Hörspiele), kommt seltener
+function hsPickCast(group) {
+  const pool = surprisePool(); let seen = {}; try { seen = JSON.parse(localStorage.getItem('companion_pitchCast') || '{}'); } catch (e) {}
+  const w = f => (seen[(latestVersion(f) || {}).name] || 0);
+  const cands = [];
+  relList().forEach(x => cands.push([x.fa, x.fb]));
+  try { const D = charMapData().filter(d => d.ai); if (D.length >= 3) cmSimilarity(D).far.forEach(p => cands.push([p.a.f, p.b.f])); } catch (e) {}
+  const women = pool.filter(x => x.v.gender !== 'maennlich').map(x => x.f);
+  for (let k = 0; k < 8 && women.length >= 2; k++) { const sh = women.slice().sort(() => Math.random() - 0.5); cands.push([sh[0], sh[1]]); }
+  let pair = cands.filter(p => p[0] && p[1] && p[0] !== p[1]).map(p => ({ p, sc: w(p[0]) + w(p[1]) + Math.random() * 2 })).sort((a, b) => a.sc - b.sc)[0];
+  pair = pair ? pair.p : pool.slice(0, 2).map(x => x.f);
+  if (group) {
+    const men = pool.filter(x => x.v.gender === 'maennlich').map(x => x.f).sort((a, b) => w(a) - w(b) + Math.random() - 0.5);
+    pair = pair.filter(f => (latestVersion(f) || {}).gender !== 'maennlich').slice(0, 2);
+    if (men.length) pair.push(men[0]); else showToast('Noch keine männlichen Figuren - unter Figuren anlegen, dann mischen sie mit');
+  }
+  Object.keys(seen).forEach(k => seen[k] *= 0.9); pair.forEach(f => { const n = (latestVersion(f) || {}).name; if (n) seen[n] = (seen[n] || 0) + 1; }); safeSet('companion_pitchCast', JSON.stringify(seen));
+  return pair.filter((f, i, a) => f && a.indexOf(f) === i);
+}
 function startHoerspiel(world, group) {
   const pool = surprisePool(); if (!pool.length) { showToast('Erst ein paar Figuren anlegen', true); return; }
-  hsp.group = !!group; hsp.plot = null; hsp.decided = {}; hsp.perAct = 5;
-  // zwei, die sich reiben oder etwas miteinander haben - aus Beziehungen oder den größten Gegensätzen
-  let pair = null; const rl = relList(); if (rl.length && Math.random() < 0.6) { const x = rl[Math.floor(Math.random() * rl.length)]; pair = [x.fa, x.fb]; }
-  if (!pair) { try { const D = charMapData().filter(d => d.ai); if (D.length >= 3) { const far = cmSimilarity(D).far; const p = far[Math.floor(Math.random() * far.length)]; pair = [p.a.f, p.b.f]; } } catch (e) {} }
-  if (!pair) { const sh = pool.slice().sort(() => Math.random() - 0.5); pair = [sh[0].f, (sh[1] || sh[0]).f]; }
-  if (group) {
-    // Gruppe: zwei Frauen (gern mit Beziehung) und - wenn vorhanden - ein Mann, der mit ihnen etwas anfängt
-    const men = pool.filter(x => x.v.gender === 'maennlich'), women = pool.filter(x => x.v.gender !== 'maennlich');
-    const base = (pair || []).filter(f => (latestVersion(f) || {}).gender !== 'maennlich');
-    const w2 = base.length >= 2 ? base.slice(0, 2) : women.slice().sort(() => Math.random() - 0.5).slice(0, 2).map(x => x.f);
-    pair = w2.concat(men.length ? [men[Math.floor(Math.random() * men.length)].f] : []);
-    if (!men.length) showToast('Noch keine männlichen Figuren - unter Figuren anlegen, dann mischen sie mit');
-  }
-  hsp.world = world || HS_WORLDS[Math.floor(Math.random() * HS_WORLDS.length)]; hsp.active = true; hsp.joined = false; hsp.userStopped = false; hsp.invitedAt = 0; hsp.startedAt = Date.now();
+  try { localStorage.removeItem('companion_hsState'); } catch (e) {}
+  const cast = hsPickCast(group);
+  hsp.world = world || HS_WORLDS[Math.floor(Math.random() * HS_WORLDS.length)];
+  Object.assign(hsp, { active: true, joined: false, userStopped: false, invitedAt: 0, startedAt: Date.now(), group: !!group, plot: null, decided: {}, perAct: 5, baseN: 0 });
   safeSet('companion_guided', '0'); safeSet('companion_conductor', '1');
   const meFig = archiveMeFigure(); switchMode('live'); history = [];
-  characters = [meFig ? characterFromVersion(meFig) : null].concat(pair.filter((f, i, a) => a.indexOf(f) === i).map(f => characterFromVersion(f))).filter(Boolean); saveCharacters();
+  characters = [meFig ? characterFromVersion(meFig) : null].concat(cast.map(f => characterFromVersion(f))).filter(Boolean); saveCharacters();
   safeSet('companion_sceneDesc', `${hsp.world[1]}: ${hsp.world[2]}. Til ist mitten in dieser Geschichte dabei.`);
   try { renderLivePanel(); } catch (e) {}
   logEvent('msg', { role: 'system', text: `🎧 Hörspiel: ${hsp.world[1]} mit ${aiCast().map(c => c.name).join(' & ')}` });
   try { localStorage.setItem('companion_spatial', 'true'); } catch (e) {}
-  hsp.baseN = 0;
+  try { noteRecent('hoerspiel'); } catch (e) {}
   hsPlan().finally(() => { try { els.liveStartBtn.click(); } catch (e) { enterLive({}); } });
 }
 async function hsNarratorVoice(btn) {
@@ -15811,7 +16044,10 @@ async function hsNarratorVoice(btn) {
   if (!f) { f = figureArchive.find(x => (latestVersion(x) || {}).isNarrator); }
   if (!f) { showToast('Lege zuerst unter Figuren → Erzähler einen Erzähler an', true); return; }
   const c = characterFromVersion(f);
-  c.voiceDescription = 'Mature German male audiobook narrator in his forties, deep warm resonant baritone, rich and slightly smoky, theatrical yet intimate storytelling, slow deliberate pacing with meaningful pauses, expressive dynamics from hushed whisper to dramatic emphasis, a hint of wry humour, sensual and atmospheric, like a celebrated fantasy audiobook reader. Speaks German.';
+  const female = c.gender === 'weiblich' || /erzählerin/i.test(c.name || '');
+  c.voiceDescription = female
+    ? 'Mature German female audiobook narrator in her forties, warm velvety alto with a slightly smoky timbre, theatrical yet intimate storytelling, slow deliberate pacing with meaningful pauses, expressive dynamics from hushed whisper to dramatic emphasis, a hint of wry humour, sensual and atmospheric, like a celebrated fantasy audiobook reader. Speaks German.'
+    : 'Mature German male audiobook narrator in his forties, deep warm resonant baritone, rich and slightly smoky, theatrical yet intimate storytelling, slow deliberate pacing with meaningful pauses, expressive dynamics from hushed whisper to dramatic emphasis, a hint of wry humour, sensual and atmospheric, like a celebrated fantasy audiobook reader. Speaks German.';
   if (!c.styleExamples || c.styleExamples.length < 100) c.styleExamples = 'Es war eine Nacht, in der selbst der Regen leiser fiel, als wollte er nicht stören. Und doch - irgendwo zwischen dem Knistern des Feuers und dem Atem der anderen begann etwas, das keiner von ihnen je wieder vergessen sollte.';
   await designVoiceForFigure(c, btn, (voiceId) => { c.elevenVoice = voiceId; c.emotional = true; storeCharacterVersion(c, true); saveArchive(); safeSet('companion_narratorFigure', f.id); safeSet('companion_narratorEnabled', 'true'); showToast('Neue Erzählerstimme gesetzt'); });
 }
@@ -15832,11 +16068,20 @@ function openHoerspielPicker() {
   nb.onclick = () => hsNarratorVoice(nb); v.appendChild(nb);
   const nh = document.createElement('p'); nh.className = 'hint'; nh.style.marginTop = '6px'; nh.textContent = 'Entwirft bei ElevenLabs eine tiefe, warme, theatralische Erzählstimme (du hörst Proben und wählst) und setzt sie beim Erzähler ein. Der Erzähler muss in der Live-Einrichtung eingeschaltet sein.'; v.appendChild(nh);
 }
-setInterval(() => { try { if (hsp.active && !inSession() && Date.now() - (hsp.startedAt || 0) > 5000) { hsp.active = false; } hsChips(); } catch (e) {} }, 700);
+// Hörspiel-Zustand merken: beim Weitermachen oder nach dem Neuöffnen der App geht es als Hörspiel weiter
+function hsHistKey() { const m = (typeof history !== 'undefined' ? history : []).find(x => typeof x.content === 'string'); return m ? String(m.content).slice(0, 80) : ''; }
+function hsSave() { try { if (!hsp.world) return; safeSet('companion_hsState', JSON.stringify({ world: hsp.world, plot: hsp.plot, group: hsp.group, joined: hsp.joined, baseN: hsp.baseN || 0, decided: hsp.decided || {}, perAct: hsp.perAct || 5, key: hsHistKey() })); } catch (e) {} }
+function hsRestore() {
+  try { const st = JSON.parse(localStorage.getItem('companion_hsState') || 'null'); if (!st || !st.world || !history.length || st.key !== hsHistKey()) return false;
+    Object.assign(hsp, { active: true, world: st.world, plot: st.plot, group: st.group, joined: !!st.joined, baseN: st.baseN || 0, decided: st.decided || {}, perAct: st.perAct || 5, userStopped: false, startedAt: Date.now() });
+    logEvent('msg', { role: 'system', text: `🎧 Hörspiel fortgesetzt: ${st.world[1]}${st.plot && st.plot.titel ? ' - „' + st.plot.titel + '"' : ''}` }); return true; } catch (e) { return false; }
+}
+setInterval(() => { try {
+  if (hsp.active && !inSession() && Date.now() - (hsp.startedAt || 0) > 5000) { hsSave(); hsp.active = false; }
+  if (!hsp.active && inSession() && currentMode === 'live' && Date.now() - (hsp.triedAt || 0) > 4000) { hsp.triedAt = Date.now(); if (hsRestore()) hsResume(); }
+  if (hsp.active && Date.now() - (hsp.savedAt || 0) > 10000) { hsp.savedAt = Date.now(); hsSave(); }
+  hsChips(); } catch (e) {} }, 700);
 // ---------- 📱 Weitersprechen bei ausgeschaltetem Bildschirm (wie eine Hörbuch-App) ----------
-// Chrome bremst Seiten im Hintergrund stark aus - außer sie spielen hörbar etwas ab. Ein ganz leises Rauschen
-// (unhörbar unter allem anderen) hält die Seite „hörbar", damit Stimmen, Selbstlauf und Gerät weiterlaufen.
-// Dazu Sperrbildschirm-Steuerung (Pause/Weiter) über die Media Session - wie bei einer Hörbuch-App.
 const bgAudio = { el: null, url: null, on: false };
 function bgAudioWanted() { return localStorage.getItem('companion_bgAudio') !== '0'; }
 function bgNoiseUrl() {
@@ -15844,7 +16089,7 @@ function bgNoiseUrl() {
   const sr = 8000, n = sr * 6, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
   const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
   w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
-  let last = 0; for (let i = 0; i < n; i++) { last = last * 0.97 + (Math.random() * 2 - 1) * 0.03; v.setInt16(44 + i * 2, Math.round(last * 40), true); }   // etwa -60 dB, braunes Rauschen
+  let last = 0; for (let i = 0; i < n; i++) { last = last * 0.97 + (Math.random() * 2 - 1) * 0.03; v.setInt16(44 + i * 2, Math.round(last * 40), true); }
   bgAudio.url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })); return bgAudio.url;
 }
 function bgSessionActive() { return inSession() && currentMode === 'live' && ((typeof hsp !== 'undefined' && hsp.active) || guidedOn() || autoPlaying || activeReplies > 0); }
@@ -15856,7 +16101,7 @@ function bgAudioTick() {
   if ('mediaSession' in navigator && want) {
     try {
       const cast = aiCharacters().filter(c => !c.isNarrator).map(c => c.name.split(' ')[0]).join(' & ');
-      const title = typeof hsp !== 'undefined' && hsp.active && hsp.world ? `Hörspiel · ${hsp.world[1]}` : guidedOn() ? `Abend · ${guidedPhase() || ''}` : 'Live-Gespräch';
+      const title = hsp.active && hsp.world ? `Hörspiel · ${hsp.world[1]}` : guidedOn() ? `Abend · ${guidedPhase() || ''}` : 'Live-Gespräch';
       if (!navigator.mediaSession.metadata || navigator.mediaSession.metadata.title !== title || navigator.mediaSession.metadata.artist !== cast) navigator.mediaSession.metadata = new MediaMetadata({ title, artist: cast || 'Notizen', album: 'Notizen' });
       navigator.mediaSession.playbackState = autoPlaying || activeReplies > 0 ? 'playing' : 'paused';
       if (!bgAudio.handlers) {
@@ -21524,9 +21769,9 @@ function conductorExit(c, why) {
 }
 // vor jeder Antwort: Abgänge der letzten Antwort vollziehen, ausdrückliche Wünsche, sonst vorbereitete Entscheidung
 function conductorBefore(userText) {
-  try { const hi = hostMatch(userText); if (hi >= 0) { conductor.note = ''; hostChoose(hi, true); const keep = conductor.note; setTimeout(() => {}, 0); conductor.__keep = keep; } } catch (e) {}
   if (conductor.exits.length) { const gone = conductor.exits.slice(); conductor.exits = []; characters = characters.filter(c => !gone.includes(c.figureId)); saveCharacters(); refreshCastViews(); }
   conductor.note = conductor.__keep || ''; conductor.__keep = '';
+  if (hostActive()) { try { hostBefore(userText); } catch (e) {} return; }   // im Salon mischt die Gastgeberin, nicht der Dirigent
   const t = String(userText || '').toLowerCase(); const pool = surprisePool();
   const firstOf = x => x.v.name.split(' ')[0].toLowerCase(), esc = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // ausdrücklich: auch ohne eingeschalteten Dirigenten
@@ -23464,6 +23709,8 @@ document.querySelectorAll('.drawer-item[data-mode]').forEach(b => { b.style.disp
 }
 const GAME_INFO = {
   live: { icon: '💬', title: 'Live-Gespräch', go: () => enterLive() },
+  hoerspiel: { icon: '🎧', title: 'Hörspiel', go: () => openHoerspielPicker() },
+  salon: { icon: '🌙', title: 'Abendbegleitung', go: () => { const hf = hostFigure(); if (hf) startHostEvening(hf); } },
   roulette: { icon: '📹', title: 'Zufallsbegegnung', go: () => openRoulette() },
   photo: { icon: '📸', title: 'Fotoshooting', go: () => psChoose() },
   speed: { icon: '⏱', title: 'Speed-Dating', go: () => openSpeedDating() },
@@ -23485,6 +23732,8 @@ function gameSub(key) {
     if (key === 'photo') return 'du führst Regie';
     if (key === 'speed') return `${localStorage.getItem('companion_sdCount') || 5} Figuren, je ${localStorage.getItem('companion_sdMinutes') || 3} Min`;
     if (key === 'swipe') return 'Besetzung wählen';
+    if (key === 'hoerspiel') return 'mitten in einer Geschichte';
+    if (key === 'salon') { const hf = hostFigure(); return hf ? latestVersion(hf).name.split(' ')[0] + ' empfängt dich' : 'die Madame stellt vor'; }
     if (key === 'hercall') { const H = herCallLog(); return H.length ? `${H.filter(x => x.verdict === 'allow').length}× erlaubt` : 'sie bestimmt das Ende'; }
     if (key === 'challenge') { const ch = Object.entries(r).filter(([k]) => k.startsWith('challenge_')).sort((a, b) => b[1].ms - a[1].ms)[0]; return ch ? `Rekord ${fmtTime(ch[1].ms)}` : 'wie lange hältst du durch?'; }
     if (key === 'duel') { const d = Object.entries(r.duelWins || {}).sort((a, b) => b[1] - a[1])[0]; return d ? `${d[0].split(' ')[0]} führt (${d[1]})` : 'zwei Figuren, du entscheidest'; }
@@ -23578,6 +23827,7 @@ els.homeStoryBtn.onclick = () => enterStory();
 const PLAY_GROUPS = [
   ['Begegnungen', ['roulette', 'photo', 'speed', 'swipe']],
   ['Mit Gerät', ['hercall', 'challenge', 'duel', 'tournament', 'adventure', 'live']],
+  ['Geführt', ['salon', 'hoerspiel']],
   ['Erzählt', ['story', 'pitches', 'campfire']],
   ['Messen', ['discover']],
 ];
@@ -29293,6 +29543,13 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
 
 
 
