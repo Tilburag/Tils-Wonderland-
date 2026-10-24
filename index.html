@@ -3638,8 +3638,14 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.30';
+const APP_VERSION = '3.31';
 const CHANGELOG = [
+  { v: '3.31', date: '2026-10-24', items: [
+    'Charakter-Karte: die Reiter lassen sich immer antippen (vorher gesperrt, solange die KI-Einschätzung fehlte)',
+    'Einschätzung robuster: kleinere Portionen (6 Figuren je Anfrage), genug Antwortlänge auch bei knapp eingestelltem Budget, ein zweiter Versuch, Figuren mit gleichem Namen werden nicht mehr verwechselt',
+    'Klappt sie nicht, steht der Grund da (z. B. Guthaben, Schlüssel) und ein Link „jetzt von der KI einschätzen lassen"',
+    'Bei vielen Figuren kleinere Kreise, die sich nicht mehr überdecken',
+  ] },
   { v: '3.30', date: '2026-10-24', items: [
     'Charakter-Karte mit fünf Ansichten: Dynamik (zart↔wild, folgt↔führt), Ton & Nähe (ernst↔verspielt, kühl↔gefühlvoll), Spielart (klassisch↔Fetisch, neugierig↔erfahren), Worte & Tempo (leise↔laut & derb, geduldig↔ungeduldig) und Ähnlichkeit',
     'Ähnlichkeit legt alle acht Merkmale zusammen: Grüppchen in Farbe, „Fast Doppelgänger" und „Größte Gegensätze" - Ecken verstärken zieht dort gezielt die Doppelgänger auseinander',
@@ -21615,8 +21621,9 @@ async function rateFigures(list, onStep) {
   // list: [{ f, v }]; in Blöcken zu 10 - alle eines Blocks sieht die KI zusammen, damit sie vergleicht
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic', all = axesAll(); let ok = 0;
   const others = figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator);
-  for (let i = 0; i < list.length; i += 10) {
-    const chunk = list.slice(i, i + 10); if (onStep) onStep(i, list.length);
+  let lastErr = '';
+  for (let i = 0; i < list.length; i += 6) {
+    const chunk = list.slice(i, i + 6); if (onStep) onStep(i, list.length);
     const sys = `Du schätzt Figuren einer privaten, erwachsenen Rollenspiel-App ein: wie verhält sich jede in intimen Szenen mit Til? Lies den GANZEN Text jeder Figur - auch Umschreibungen ("lässt dich zappeln, bis du bettelst" = führend) und Verneinungen ("gar nicht streng" = nicht streng). Häkchen-Eigenschaften zählen, aber der Fließtext wiegt schwerer.
 Acht Merkmale, jeweils -100 bis 100 (0 = ausgewogen oder nicht erkennbar):
 ${Object.entries(CM_DIMS).map(([k, d]) => `- "${k}": -100 = ${d[2]} · 100 = ${d[3]}`).join('\n')}
@@ -21625,14 +21632,19 @@ ${Object.entries(CM_DIMS).map(([k, d]) => `- "${k}": -100 = ${d[2]} · 100 = ${d
 Vergleiche die Figuren untereinander und nutze die Skala ehrlich: wer sich wirklich ähnelt, liegt nah beieinander; wer sich unterscheidet, deutlich auseinander. Nicht alle in die Mitte setzen.
 ${others.length > chunk.length ? 'Zum Vergleich gibt es außerdem: ' + others.filter(o => !chunk.some(x => x.v.name === o.name)).map(o => o.name).join(', ') + '.\n' : ''}
 FIGUREN:
-${chunk.map(x => '### ' + x.v.name + '\n' + (figText(x.v) || '(kaum beschrieben)').slice(0, 1600)).join('\n\n')}
+${chunk.map((x, k) => '### [' + (k + 1) + '] ' + x.v.name + '\n' + (figText(x.v) || '(kaum beschrieben)').slice(0, 1400)).join('\n\n')}
 
-Antworte NUR als JSON: {"figuren": [{"name": "...", ${Object.keys(CM_DIMS).map(k => `"${k}": 0`).join(', ')}, "typ": "...", "warum": "..."}]}`;
-    let j = null;
-    try { j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.3, taskBudget('draft', 300 + 200 * chunk.length), { task: 'draft' })); } catch (e) { logEvent('msg', { role: 'system', text: 'Figuren einschätzen: ' + e.message }); continue; }
+Antworte NUR als JSON, eine Zeile je Figur, "nr" = die Zahl in eckigen Klammern: {"figuren": [{"nr": 1, "name": "...", ${Object.keys(CM_DIMS).map(k => `"${k}": 0`).join(', ')}, "typ": "...", "warum": "..."}]}`;
+    let j = null; const need = 400 + 260 * chunk.length;
+    for (let attempt = 0; attempt < 2 && !(j && Array.isArray(j.figuren) && j.figuren.length); attempt++) {
+      try { const raw = await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.3, Math.max(need, taskBudget('draft', need)), { task: 'draft' }); j = parseJsonLoose(raw); if (!(j && Array.isArray(j.figuren))) lastErr = 'Antwort war kein lesbares JSON (' + String(raw || '').slice(0, 80) + ' …)'; }
+      catch (e) { lastErr = e.message; j = null; }
+    }
+    if (!(j && Array.isArray(j.figuren))) { logEvent('msg', { role: 'system', text: 'Figuren einschätzen: ' + lastErr }); continue; }
     const names = chunk.map(x => x.v.name);
-    ((j && j.figuren) || []).forEach(r => {
-      const nm = matchSpeakerName(r.name, names), x = chunk.find(c => c.v.name === nm); if (!x) return;
+    j.figuren.forEach(r => {
+      let x = Number.isFinite(+r.nr) && chunk[+r.nr - 1] ? chunk[+r.nr - 1] : null;
+      if (!x) { const nm = matchSpeakerName(r.name, names); x = chunk.find(c => c.v.name === nm); } if (!x) return;
       const cl = n => Math.max(-1, Math.min(1, (Number(n) || 0) / 100)), typ = AXIS_TYPE_KEY[String(r.typ || '').toLowerCase()] ? String(r.typ).toLowerCase() : null;
       const d = {}; Object.keys(CM_DIMS).forEach(k => d[k] = cl(r[k]));
       all[x.f.id] = { name: x.v.name, sig: figSig(x.v), d, top: typ || 'unbestimmt', why: String(r.warum || '').slice(0, 200), t: Date.now() }; ok++;
@@ -21640,6 +21652,7 @@ Antworte NUR als JSON: {"figuren": [{"name": "...", ${Object.keys(CM_DIMS).map(k
     safeSet('companion_axes', JSON.stringify(all));
   }
   if (ok) logEvent('msg', { role: 'system', text: `Figuren eingeschätzt (KI): ${ok} - ` + list.map(x => { const e = all[x.f.id]; return e ? `${x.v.name} ${e.top} (` + Object.keys(CM_DIMS).map(k => k + ' ' + Math.round(e.d[k] * 100)).join(', ') + ')' : ''; }).filter(Boolean).join('; ') });
+  rateFigures.lastErr = ok ? '' : lastErr;
   return ok;
 }
 const CM_DIMS = {
@@ -21711,11 +21724,11 @@ function openCharMap(noRate, viewId) {
   const v = document.createElement('div'); v.id = 'charMap';
   v.style.cssText = 'position:fixed; inset:0; z-index:3000; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 24px;';
   const S = Math.min(window.innerWidth - 32, 420);
-  const tab = w => `<button type="button" class="cm-tab" data-v="${w.id}" style="flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; font-size:13px; border:1px solid ${w.id === vid ? 'var(--gold)' : 'rgba(255,255,255,0.18)'}; background:${w.id === vid ? 'rgba(217,178,107,0.18)' : 'transparent'}; color:#fff;${!anyAi && w.id !== 'dyn' ? ' opacity:0.45;' : ''}">${w.name}</button>`;
+  const tab = w => `<button type="button" class="cm-tab" data-v="${w.id}" style="flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; font-size:13px; border:1px solid ${w.id === vid ? 'var(--gold)' : 'rgba(255,255,255,0.18)'}; background:${w.id === vid ? 'rgba(217,178,107,0.18)' : 'transparent'}; color:#fff; cursor:pointer; position:relative; z-index:2; touch-action:manipulation;">${w.name}</button>`;
   v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🗺️ Charakter-Karte</h2><button type="button" class="btn-secondary cm-x" style="width:44px; height:44px; padding:0;">✕</button></div>
     <div style="display:flex; gap:6px; overflow-x:auto; margin:10px -16px 6px; padding:0 16px 4px; scrollbar-width:none;">${CM_VIEWS.map(tab).join('')}</div>
     <p class="hint" style="margin:6px 0 4px;">${D.length} Figuren · ${sim ? 'alle acht Merkmale zusammen - nah = ähnlich' : `Verteilung: <b>${verdict}</b>${empty.length ? ' · leer: ' + empty.join(', ') : ''}`}</p>
-    <p class="hint cm-status" style="margin:0 0 10px;">${D.every(d => d.ai) ? 'Eingeschätzt von der KI aus dem ganzen Text jeder Figur · Figur antippen für Details · <a href="#" class="cm-redo" style="color:var(--gold);">neu einschätzen</a>' : anyAi ? 'Teils von der KI eingeschätzt, teils nur nach Stichwörtern (gestrichelt)' : 'Vorläufig nach Stichwörtern (gestrichelt) - die anderen Ansichten brauchen die KI-Einschätzung'}</p>
+    <p class="hint cm-status" style="margin:0 0 10px;">${D.every(d => d.ai) ? 'Eingeschätzt von der KI aus dem ganzen Text jeder Figur · Figur antippen für Details · <a href="#" class="cm-redo" style="color:var(--gold);">neu einschätzen</a>' : anyAi ? 'Teils von der KI eingeschätzt, teils nur nach Stichwörtern (gestrichelt)' : 'Vorläufig nach Stichwörtern (gestrichelt) - in den anderen Ansichten stehen diese Figuren noch in der Mitte'}${D.every(d => d.ai) ? '' : ' · <a href="#" class="cm-redo" style="color:var(--gold);">jetzt von der KI einschätzen lassen</a>'}</p>
     <div class="cm-plot" style="position:relative; width:${S}px; height:${S}px; margin:0 auto; border:1px solid rgba(255,255,255,0.15); border-radius:14px; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);">
       <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.12);"></div><div style="position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.12);"></div>
       <span style="position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7; white-space:nowrap;">${esc(L.t)}</span><span style="position:absolute; bottom:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:0.7; white-space:nowrap;">${esc(L.b)}</span>
@@ -21725,21 +21738,22 @@ function openCharMap(noRate, viewId) {
     <button type="button" class="btn-primary cm-sharp" style="width:100%; margin-top:12px;">✨ Ecken verstärken${sim ? ' - Doppelgänger auseinanderziehen' : ' - jede Figur deutlicher in ihre Richtung'}</button>
     <p class="hint" style="margin-top:6px;">${sim ? 'Schärft die Figuren, die sich zu sehr ähneln, so dass sie sich deutlich voneinander abheben.' : `Schärft jede Figur in ihre Richtung ${vid === 'dyn' ? '(zärtliche zärtlicher, führende bestimmter …)' : 'in dieser Ansicht (' + esc(L.l + ' / ' + L.r + ', ' + L.b + ' / ' + L.t) + ')'} und hebt sie von den anderen ab.`} Alte Versionen bleiben erhalten.</p>`;
   document.body.appendChild(v); v.scrollTop = keepScroll;
-  v.querySelectorAll('.cm-tab').forEach(b => b.onclick = () => { if (!anyAi && b.dataset.v !== 'dyn') { showToast('Diese Ansicht braucht die KI-Einschätzung - KI-Schlüssel prüfen und „neu einschätzen"'); return; } safeSet('companion_cmView', b.dataset.v); openCharMap(true, b.dataset.v); });
+  v.querySelectorAll('.cm-tab').forEach(b => b.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); safeSet('companion_cmView', b.dataset.v); openCharMap(true, b.dataset.v); }));
   const clusterOf = new Map(); if (sim) sim.clusters.forEach((c, k) => c.members.forEach(d => clusterOf.set(d, k)));
   const CL = ['#ffcf5a', '#7ee0b0', '#ff8fb3', '#8fb8ff', '#d39bff', '#ffa86b'];
-  const plot = v.querySelector('.cm-plot'), used = [];
+  const plot = v.querySelector('.cm-plot'), used = [], BS = D.length > 20 ? 28 : D.length > 12 ? 32 : 36;
   D.forEach((d, i) => {
     let px = (P[i][0] * 0.42 + 0.5) * S, py = (0.5 - P[i][1] * 0.42) * S;
-    for (let k = 0; k < 12 && used.some(([a, b]) => Math.hypot(a - px, b - py) < 30); k++) { px += (k % 2 ? 1 : -1) * 18; py += 10; }
+    for (let k = 0; k < 16 && used.some(([a, b]) => Math.hypot(a - px, b - py) < BS * 0.85); k++) { const ang = k * 2.4, rr = BS * 0.5 * (1 + k * 0.35); px = (P[i][0] * 0.42 + 0.5) * S + Math.cos(ang) * rr; py = (0.5 - P[i][1] * 0.42) * S + Math.sin(ang) * rr; }
+    px = Math.max(BS / 2 + 2, Math.min(S - BS / 2 - 2, px)); py = Math.max(BS / 2 + 14, Math.min(S - BS / 2 - 16, py));
     used.push([px, py]);
     const col = sim ? (clusterOf.has(d) ? CL[clusterOf.get(d) % CL.length] : '#777') : (CM_COLORS[d.top] || '#888');
     const e = document.createElement('div'); e.title = d.v.name + ' - ' + d.top;
     const prof = d.ai ? ' · ' + Object.keys(CM_DIMS).map(k => `${CM_DIMS[k][d.d[k] < 0 ? 0 : 1]} ${Math.abs(Math.round(d.d[k] * 100))}`).filter((_, j) => Math.abs(d.d[Object.keys(CM_DIMS)[j]]) >= 0.35).join(', ') : '';
     e.onclick = () => showToast(d.v.name + ' - ' + d.top + (d.why ? ': ' + d.why : ' (nur nach Stichwörtern)') + prof);
-    e.style.cssText = `cursor:pointer; position:absolute; left:${px - 18}px; top:${py - 18}px; width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px ${d.ai ? 'solid' : 'dashed'} ${col};`;
+    e.style.cssText = `cursor:pointer; position:absolute; left:${px - BS / 2}px; top:${py - BS / 2}px; width:${BS}px; height:${BS}px; border-radius:50%; overflow:hidden; border:2px ${d.ai ? 'solid' : 'dashed'} ${col};`;
     e.innerHTML = avaHtml(d.v.name, d.v.image); plot.appendChild(e);
-    const lb = document.createElement('div'); lb.textContent = d.v.name.split(' ')[0]; lb.style.cssText = `position:absolute; left:${px - 30}px; top:${py + 19}px; width:60px; text-align:center; font-size:10px; opacity:0.85; pointer-events:none;`; plot.appendChild(lb);
+    const lb = document.createElement('div'); lb.textContent = d.v.name.split(' ')[0]; lb.style.cssText = `position:absolute; left:${px - 30}px; top:${py + BS / 2 + 1}px; text-shadow:0 0 3px #000, 0 0 3px #000; width:60px; text-align:center; font-size:10px; opacity:0.85; pointer-events:none;`; plot.appendChild(lb);
   });
   const nm = d => esc(d.v.name.split(' ')[0]);
   let html = '';
@@ -21760,11 +21774,11 @@ function openCharMap(noRate, viewId) {
     const st = v.querySelector('.cm-status'); st.textContent = `KI liest ${list.length} Figur${list.length === 1 ? '' : 'en'} …`;
     const ok = await rateFigures(list, (i, n) => { st.textContent = `KI liest Figuren … ${Math.min(n, i + 10)}/${n}`; });
     if (!document.body.contains(v)) return;
-    if (ok) openCharMap(true, vid); else st.textContent = 'KI nicht erreichbar - Anzeige nach Stichwörtern';
+    if (ok) openCharMap(true, vid); else st.textContent = 'Einschätzung ging nicht: ' + (rateFigures.lastErr || 'keine Antwort') + ' - Anzeige nach Stichwörtern';
   };
-  const redo = v.querySelector('.cm-redo'); if (redo) redo.onclick = (ev) => { ev.preventDefault(); rerate(D.map(d => ({ f: d.f, v: d.v }))); };
+  const redo = v.querySelector('.cm-redo'); if (redo) redo.onclick = (ev) => { ev.preventDefault(); rerate(D.every(d => d.ai) ? D.map(d => ({ f: d.f, v: d.v })) : D.filter(d => !d.ai).map(d => ({ f: d.f, v: d.v }))); };
   const stale = D.filter(d => !d.ai).map(d => ({ f: d.f, v: d.v }));
-  if (stale.length && !noRate) rerate(stale);
+  if (stale.length && !noRate && !openCharMap.tried) { openCharMap.tried = true; rerate(stale); }
   v.querySelector('.cm-sharp').onclick = async (ev) => {
     const DIR = { führend: 'Verstärke ihre führende, bestimmende Seite deutlich - sie gibt den Ton an, hat klare Regeln und eine Vorliebe für Kontrolle', zärtlich: 'Verstärke ihre zärtliche, hingebungsvolle Seite deutlich - langsam, innig, sehr aufmerksam', neckend: 'Verstärke ihre neckende, verspielte Seite deutlich - Spiele, Wetten, Überraschungen, freche Sprüche', wild: 'Verstärke ihre wilde, drängende Seite deutlich - ungeduldig, gierig, laut, sie will mehr', hingebungsvoll: 'Verstärke ihre hingebungsvolle Seite deutlich - sie lässt sich gern führen, genießt es, sich hinzugeben', unbestimmt: 'Gib ihr eine klare, eigene Richtung, die bei den anderen Figuren noch fehlt' + (empty.length ? ' (frei ist z. B.: ' + empty.join(', ') + ')' : '') };
     let todo;
@@ -27954,6 +27968,8 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
 
 
 
