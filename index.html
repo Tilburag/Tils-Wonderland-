@@ -1253,6 +1253,12 @@
         <label for="d1vibe">Vibration am Board</label>
         <select id="d1vibe" onchange="safeSet('companion_d1_vibe', this.value)"><option value="off">aus</option><option value="V0">an Ausgang V0</option><option value="V1">an Ausgang V1</option><option value="V2">an Ausgang V2</option></select>
         <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="d1tint" style="width:auto;" onchange="safeSet('companion_tint', this.checked ? '1' : '0')">Figur und Handlung spürbar machen</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="toyPrefsOn" style="width:auto;" onchange="safeSet('companion_toyPrefs', this.checked ? '1' : '0'); if (this.checked) assignToyPrefs()">Spielzeug-Wünsche der Figuren (manche wollen nur Gerät 1, nur Gerät 2 oder beides - und fordern es ein)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="roomMapOn" style="width:auto;" onchange="safeSet('companion_roomMap', this.checked ? '1' : '0')">Raumkarte in der Sitzung (wo die Figuren sind, wer spricht - gold, wer das Gerät führt - roter Ring)</label>
+        <label for="twistSel" style="margin-top:10px;">Überraschende Wendungen in Szenen</label>
+        <select id="twistSel" onchange="safeSet('companion_twists', this.value)"><option value="aus">aus</option><option value="selten">selten (alle 9-13 Antworten)</option><option value="mittel">ab und zu (alle 5-8)</option><option value="oft">oft (alle 4-6)</option></select>
+        <p class="hint">Ein unsichtbarer Regisseur wirft ab und zu eine Wendung in die Szene - Ortswechsel, Augenbinde, eine Wette, ein Geständnis, ein abrupter Stopp … - passend zu den Figuren, nie zweimal dieselbe. Was es war, steht erst hinterher im Protokoll.</p>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="lively" style="width:auto;" onchange="safeSet('companion_lively', this.checked ? '1' : '0')">Lebendige Bewegung (läuft eine Bewegung lange gleich, atmet sie leicht in Tempo und Länge)</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="d1swsig" style="width:auto;" onchange="safeSet('companion_swipeSig', this.checked ? '1' : '0')">Beim Vorstellen (Durchswipen) Markenzeichen am Gerät vorführen</label>
         <p class="hint">Die Bewegung neigt sich leicht nach der Art der Figur, die gerade spricht (bestimmt, zärtlich, neckend, drängend), und nach dem, was passiert: Mund kürzer an der Spitze, Hand über die ganze Länge, Reiten tief unten, von hinten lang und kräftig, „zum ersten Mal" zart und langsam.</p>
         <p class="hint">Für einen Vibrationsmotor, der über einen kleinen MOSFET an einem Vibe-Pin deines Boards hängt (TCode V0-V2). Er folgt der Bewegung: beim Zittern und Zitterhub stark, bei Stößen im Takt, sonst je nach Tempo.</p>
@@ -1260,6 +1266,19 @@
       <div class="btn-row">
         <button class="btn-secondary" id="connectBtn">Mit Gerät 1 verbinden</button>
       </div>
+    </details>
+
+    <details class="subsection">
+      <summary>Lovense Edge 2 (Bluetooth)</summary>
+      <p class="hint" style="margin-top:0;">Prostata-Vibrator mit zwei getrennt steuerbaren Motoren - direkt per Bluetooth aus dem Browser (Chrome auf Android oder am Rechner; nicht in der Lovense-App gleichzeitig verbunden lassen). Ohne eigene Anweisung folgen die Motoren der Bewegung von Gerät 1: der Kopf (innen) der Intensität, der Arm (außen) pulsiert im Takt jedes Hubs. Die Figuren können ihn auch selbst steuern.</p>
+      <div class="btn-row"><button class="btn-secondary" id="edgeBtn" type="button" onclick="edgeToggle()">Edge verbinden</button><span class="pill off" id="edgeStatus" style="margin-left:8px;">getrennt</span></div>
+      <label for="edgeStrength" style="margin-top:10px;">Stärke</label>
+      <input type="range" id="edgeStrength" min="20" max="100" step="5" oninput="safeSet('companion_edgeStrength', this.value)">
+      <label for="edgeFollow" style="margin-top:10px;">Wenn niemand ihn steuert</label>
+      <select id="edgeFollow" onchange="safeSet('companion_edgeFollow', this.value)"><option value="takt">Im Takt: Kopf nach Intensität, Arm pulsiert mit jedem Hub</option><option value="welle">Welle nach oben: jeder Hub schickt eine Welle von Damm und Eiern hinauf zum Kopf</option><option value="ruhig">Ruhig im Hintergrund: leise begleitend</option></select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="edgeSwap" style="width:auto;" onchange="safeSet('companion_edgeSwap', this.checked ? '1' : '0')">Motoren tauschen (falls Kopf und Arm vertauscht wirken)</label>
+      <div class="btn-row" style="margin-top:8px;"><button class="btn-secondary" type="button" onclick="edgeTest()">▶ Probelauf (Kopf, Arm, Wechsel, Welle)</button></div>
+      <div id="edgeMeter" style="display:flex; gap:10px; margin-top:8px; font-size:12.5px; opacity:0.85;"><span>Kopf <b id="edgeM1">0</b>/20</span><span>Arm <b id="edgeM2">0</b>/20</span></div>
     </details>
 
     <details class="subsection">
@@ -1736,6 +1755,10 @@
         <select id="liveAddFigure" style="flex:1;"></select>
         <button class="btn-secondary" id="liveAddBtn" type="button">Hinzufügen</button>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="conductorOn" style="width:auto;" onchange="safeSet('companion_conductor', this.checked ? '1' : '0')"><span style="font-size:13.5px;">🎼 Dirigent: holt passende Figuren dazu und schickt andere hinaus - je nachdem, was du dir wünschst und wie die Szene läuft</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:10px 0 0;"><input type="checkbox" id="guidedOn" style="width:auto;" onchange="safeSet('companion_guided', this.checked ? '1' : '0')"><span style="font-size:13.5px;">🌙 Abend führen: erst ankommen und reden, während du die Geräte anschließt - die Figuren begleiten dich dabei - dann Vorspiel, Spiel, Finale und Nachglühen</span></label>
+      <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0 26px;"><span class="hint" style="margin:0;">Dauer etwa</span><select id="guidedMin" style="width:auto;" onchange="safeSet('companion_guidedMin', this.value)"><option value="30">30 Minuten</option><option value="45">45 Minuten</option><option value="60">1 Stunde</option><option value="90">1,5 Stunden</option></select></div>
+      <div style="display:flex; align-items:center; gap:8px; margin:6px 0 0 26px;"><span class="hint" style="margin:0;">höchstens</span><select id="conductorMax" style="width:auto;" onchange="safeSet('companion_conductorMax', this.value)"><option value="1">1 Figur</option><option value="2">2 Figuren</option><option value="3">3 Figuren</option><option value="4">4 Figuren</option></select><span class="hint" style="margin:0;">gleichzeitig</span></div>
 
       <label for="liveNarrator">Erzähler</label>
       <select id="liveNarrator"></select>
@@ -2082,6 +2105,7 @@
   <div style="display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 8px;">
     <button type="button" class="btn-secondary" id="swBack" aria-label="Zurück" style="width:44px; height:44px; padding:0; flex:0 0 44px;">‹</button>
     <h1 style="margin:0; font-weight:600; font-size:26px; flex:1;">Durchswipen</h1>
+    <button type="button" class="btn-secondary" id="swPairs" title="Paare" style="width:auto; height:40px; padding:0 10px; font-size:13px; white-space:nowrap; flex:0 0 auto;" onclick="sw.pairMode = !sw.pairMode; openSwipe()">👥 Paare</button>
     <span class="hint" id="swCount" style="margin:0;"></span>
   </div>
   <div id="swStage" style="flex:1; min-height:0; position:relative; margin:4px 14px; touch-action:none;"></div>
@@ -3649,8 +3673,56 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.35';
+const APP_VERSION = '3.44';
 const CHANGELOG = [
+  { v: '3.44', date: '2026-10-24', items: [
+    '🌙 Geführter Abend (Live, unter „Wer spricht mit", Dauer 30 min bis 1,5 h): erst Ankommen - die Figuren plaudern und begleiten dich Schritt für Schritt beim Vorbereiten (Stroker verbinden, Edge, Pulsgurt, hinlegen, Kopfhörer, Licht); sie merken selbst, wenn etwas verbunden wird, und reagieren darauf; erst nach deinem „bereit" geht es los',
+    'Danach Vorspiel → Spiel → Finale, zeitlich so eingeteilt, dass der Abend in der gewählten Dauer bleibt; sagst du, dass du gekommen bist, folgt das Nachglühen (Gerät klingt aus, Zärtlichkeit, Vorfreude aufs nächste Mal) und eine Abschlusskarte „Was heute war"',
+    'Oben links zeigt ein kleines Schild die Phase, beim Ankommen was schon verbunden ist, später die verbleibenden Minuten; Wendungen gibt es nicht beim Ankommen und Nachglühen',
+    '🌙 Abendbegleitung (Startseite): eine Figur führt dich durch den ganzen Abend - erst allein mit dir beim Ankommen, dann stellt sie dir drei Ideen für heute vor (Karten unten antippen oder sagen „die zweite"), holt die passenden Figuren dazu und achtet auf die Zeit; ↻ wählt eine andere Begleitung. Schaltet geführten Abend und Dirigent dafür ein',
+    'Die 3D-Figur startet nicht mehr von selbst - die Wahl gilt nur bis zum nächsten Öffnen der App',
+  ] },
+  { v: '3.43', date: '2026-10-24', items: [
+    'Stimmen im Raum (mit Kopfhörern, „Raumklang" an): echter 3D-Klang statt nur links/rechts - jede Figur hat ihren festen Platz um dich herum, der gespeichert wird und bleibt, auch wenn andere dazukommen oder gehen',
+    'Die Stimme folgt der Handlung: reitet sie, kommt sie von oben; mit dem Mund oder kniend zwischen deinen Beinen von unten; hinter dir, neben dir, am Ohr - erkannt aus ihrer Zeile und aus der Erzählung',
+    'Raumkarte in der Sitzung (oben rechts, antippen blendet aus): wo die Figuren sind, wer gerade spricht (gold), wer das Gerät führt (roter Ring), ⬆/⬇ für oben/unten',
+  ] },
+  { v: '3.42', date: '2026-10-24', items: [
+    'Lovense Edge 2 als Gerät (Einstellungen → „Lovense Edge 2 (Bluetooth)"): direkt per Bluetooth aus dem Browser, beide Motoren getrennt - der Kopf (innen) folgt der Intensität von Gerät 1, der Arm (außen) pulsiert im Takt jedes Hubs; Stärke einstellbar, Motoren tauschbar, Probelauf, Anzeige der Stufen',
+    'Die Figuren können den Edge gezielt einsetzen: <<edge 15/5>>, <<edge wechsel>>, <<edge welle>>, <<edge puls>>, <<edge necken>>, <<edge kopf>>, <<edge arm>>, <<edge aus>> - als Necken, Strafe, Belohnung oder Überraschung; danach folgen die Motoren wieder der Bewegung',
+    'Sicherheit: verlässt du die App (Bildschirm aus, anderer Tab), gehen beide Motoren sofort aus',
+    'Edge: der Arm liegt an Damm und Eiern an - so beschreiben ihn die Figuren jetzt auch; neue Muster aufwärts (Welle von unten hinauf zur Prostata), abwärts, echo, treppe, herzschlag, kitzeln, sturm; Grundverhalten wählbar: im Takt, Welle nach oben mit jedem Hub, ruhig im Hintergrund',
+    'Spielzeug-Wünsche kennen jetzt auch den Edge: „den Edge (Prostata)" und „Stroker + Edge zusammen"',
+  ] },
+  { v: '3.41', date: '2026-10-24', items: [
+    'Wächter gegen Hänger: blieb die Wiedergabe einer Antwort stecken, wartete die nächste bisher für immer („zum Schluss kamen keine Antworten mehr") - jetzt wird nach 40 s ohne Fortschritt die alte abgebrochen und die neue kommt',
+  ] },
+  { v: '3.40', date: '2026-10-24', items: [
+    'Durchswipen: „👥 Paare" zeigt Paare statt Einzelner - aus deinen Beziehungen und den größten Gegensätzen der Charakter-Karte; nach rechts holt beide in die Szene, nach oben startet sofort mit beiden',
+    'Duett: sind zwei Figuren mit Markenzeichen dabei, können sie im gemeinsamen Finale <<duett>> setzen - ihre Markenzeichen-Bewegungen im Wechsel ineinander verflochten (mit Anzeige)',
+  ] },
+  { v: '3.39', date: '2026-10-24', items: [
+    '🎼 Dirigent (Live, unter „Wer spricht mit"): holt passende Figuren in die Sitzung und schickt andere hinaus - nach dem, was du schreibst und wie die Szene läuft (Beziehungen, Kontraste, neue Energie). Neue Figuren treten richtig auf und sprechen mit ihrer eigenen Stimme, wer geht, verabschiedet sich. Höchstzahl gleichzeitig einstellbar',
+    'Ausdrücklich geht immer, auch ohne Dirigent: „hol mal Fenja dazu", „Emma soll gehen", „schick Zita weg", „ich will allein mit Luna" - wirkt ab der nächsten Antwort',
+    'Spielzeug-Wünsche (Gerät 1, anschaltbar): manche Figur will nur mit dem Stroker, manche nur mit Gerät 2, manche mit beidem - sie fordert es ein und reagiert nach ihrem Charakter, wenn es nicht verbunden ist. Beim Einschalten bekommen die Figuren passend zu ihrer Art einen Wunsch, im Editor änderbar',
+  ] },
+  { v: '3.38', date: '2026-10-24', items: [
+    'Überraschungen: ein unsichtbarer Regisseur wirft ab und zu eine Wendung in die Szene - Ortswechsel, Rollentausch, Wette, Augenbinde, Unterbrechung, Requisit, Geständnis, Eifersucht, Tempo-Bruch, Kommando an dich, Zuschauen, Spiegel - passend zu Figuren und Vorlieben, mit eigener Bewegung am Gerät, nie zweimal dieselbe. Einstellbar unter Gerät 1 (aus / selten / ab und zu / oft); was es war, steht hinterher im Protokoll',
+    'Acht neue Bewegungsmuster: Herzschlag (Doppelschlag), Kaskade (jeder Hub tiefer), Spirale (zieht sich zur Spitze zusammen), Ebbe & Flut, Tauchen (ganz tief verharren), Verweigern (kurz vor dem Höhepunkt Stopp), Schaukeln, Wirbel (Stöße und Zittern im Wechsel)',
+    'Wendungen dürfen Ort, Gegenstände und Rollen wirklich verändern (vorher verbot eine feste Regel genau das); was im Verlauf dazukam, bleibt danach erhalten',
+    'Lebendige Bewegung: läuft dieselbe Bewegung länger als 18 s, atmet sie leicht in Tempo, Länge und Lage - nichts klingt mehr wie ein Metronom (abschaltbar unter Gerät 1)',
+  ] },
+  { v: '3.37', date: '2026-10-24', items: [
+    '„⟳ Alle auf aktuellen Stand" fasst nur noch Neues und Geändertes an: es prüft erst und zeigt, was zu tun ist (z. B. „3 Markenzeichen behalten, nur die Gerätebewegung neu"), bevor es losgeht; ist nichts zu tun, sagt es das. Wer schon umgebaut ist, wird nicht nochmal umgebaut; ändere ich etwas an einem Schritt, wird nur dieser Teil bei allen erneuert',
+    'Markenzeichen sichtbar: läuft es am Gerät, zeigt unten eine Leiste den Ablauf in Farben, was gerade passiert („Stillstand", „harte Stöße über die ganze Länge") und die verbleibenden Sekunden - mit ✕ zum Abbrechen',
+    'Durchswipen: Knopf „🎛️ Markenzeichen spüren" auf der Karte, auf der Rückseite der Ablauf in Worten; ist Gerät 1 nicht verbunden, sagt die App das, statt still nichts zu tun',
+    'Die Figuren schreiben die Gerätebewegung ihres Markenzeichens nicht mehr in den Chat (keine Sekunden oder Positionen) - mitgeschriebene Abläufe werden zudem herausgefiltert',
+  ] },
+  { v: '3.36', date: '2026-10-24', items: [
+    'Markenzeichen erst, wenn es körperlich zur Sache geht - nicht schon beim Plaudern am Anfang (bei Luna lief es gleich in der zweiten Antwort)',
+    'Sagst du selbst etwas, darf das laufende Markenzeichen unterbrochen werden - vorher wartete die nächste Bewegung bis zu 37 s',
+    'Charakter-Karte: neue Markenzeichen lösen keine komplette Neueinschätzung aller Figuren mehr aus (spart Zeit und Kosten)',
+  ] },
   { v: '3.35', date: '2026-10-24', items: [
     'Markenzeichen am Gerät: jede Figur hat jetzt zusätzlich ihre eigene Signatur-Bewegung (Feld im Editor, mit „▶ Am Gerät spüren" und „🎛️ Aus Markenzeichen ableiten")',
     'Setzt sie im Gespräch ihr Markenzeichen ein, spielt das Gerät genau diese Bewegung (Marker <<markenzeichen>>) - unverfälscht, damit man sie daran erkennt',
@@ -5806,9 +5878,17 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     setConnStatus(false);
     connect(true);
   }
-  return { setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
+  const motionInfo = () => { const m = state.motion || {}; return { level: vibeLevel(Date.now()), running: !!m.timer, texture: m.texture || 'stop', bpm: (m.current && m.current.bpm) || (m.requested && m.requested.bpm) || 0, req: m.requested || null }; };
+  return { motionInfo, setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
+try { const ef = document.getElementById('edgeFollow'); if (ef) ef.value = localStorage.getItem('companion_edgeFollow') || 'takt'; } catch (e) {}
+try { const es = document.getElementById('edgeStrength'); if (es) es.value = localStorage.getItem('companion_edgeStrength') || '70'; const ew = document.getElementById('edgeSwap'); if (ew) ew.checked = localStorage.getItem('companion_edgeSwap') === '1'; } catch (e) {}
+try { const rm = document.getElementById('roomMapOn'); if (rm) rm.checked = localStorage.getItem('companion_roomMap') !== '0'; } catch (e) {}
+try { const tp = document.getElementById('toyPrefsOn'); if (tp) tp.checked = localStorage.getItem('companion_toyPrefs') === '1'; } catch (e) {}
+try { const go = document.getElementById('guidedOn'); if (go) go.checked = localStorage.getItem('companion_guided') === '1'; const gm = document.getElementById('guidedMin'); if (gm) gm.value = localStorage.getItem('companion_guidedMin') || '60'; } catch (e) {}
+try { const co = document.getElementById('conductorOn'); if (co) co.checked = conductorOn(); const cm = document.getElementById('conductorMax'); if (cm) cm.value = String(conductorMax()); } catch (e) {}
+try { const ts = document.getElementById('twistSel'); if (ts) ts.value = twistSetting(); const lv = document.getElementById('lively'); if (lv) lv.checked = localStorage.getItem('companion_lively') !== '0'; } catch (e) {}
 try { const sw = document.getElementById('d1swsig'); if (sw) sw.checked = localStorage.getItem('companion_swipeSig') !== '0'; } catch (e) {}
 try { const ti = document.getElementById('d1tint'); if (ti) ti.checked = localStorage.getItem('companion_tint') !== '0'; } catch (e) {}
 try { const vs = document.getElementById('d1vibe'); if (vs) vs.value = localStorage.getItem('companion_d1_vibe') || 'off'; } catch (e) {}
@@ -7517,16 +7597,17 @@ function sigLocked(num, isStop, label) {
 function applyCue(num, cue) {
   const dev = num === 2 ? device2 : device1;
   if (!cue) return;
-  const isSig = cue.kind === 'seq' && JSON.stringify(cue.steps || []).includes('sigref');
+  if (cue.kind === 'edge') { if (edgeCommand(cue.inner)) logEvent('msg', { role: 'system', text: 'Edge: ' + cue.inner }); return; }
+  const isSig = cue.kind === 'seq' && /sigref|duettref/.test(JSON.stringify(cue.steps || []));
   if (!isSig && sigLocked(num, cue.kind !== 'seq' && cue.motion && cue.motion.texture === 'stop', cue.label)) return;
   if (cue.kind === 'seq') {
-    dev.runSequence(tintSteps(cue.steps, num)); tintLog(num);
+    dev.runSequence(tintSteps(cue.steps, num)); tintLog(num); livelyNote(num, null);
     logEvent('msg', { role: 'system', text: `Gerät ${num} Folge: ${cue.label}` });
     const sum = cueSummary(cue);
     if (sum) logMotionChoice(num, sum);
   } else {
     const mo = tintMotion(cue.motion, num);
-    dev.setMotion(mo);
+    dev.setMotion(mo); livelyNote(num, mo);
     logMotionChoice(num, mo);
   }
 }
@@ -7752,13 +7833,44 @@ function setRoom(key) {
   spatial.conv.buffer = buf;
   spatial.wetBus.gain.value = r.wet * 2.2;
 }
-// Fester Platz je Figur: erste links, zweite rechts, dritte Mitte-rechts …
-function rolePan(role) {
-  if (!role || role === 'narrator') return 0;
-  const cast = aiCharacters().filter(c => !c.isNarrator);
-  const idx = cast.findIndex(c => c.name === role);
-  if (cast.length <= 1) return 0;
-  return [-0.55, 0.55, 0.2, -0.25][idx] ?? 0;
+// Fester Platz je Figur - einmal vergeben und gespeichert, damit jede Figur IMMER von derselben Seite spricht
+// (vorher hing der Platz an der Reihenfolge der Besetzung und sprang, wenn jemand dazukam oder ging).
+const SEATS = [-65, 65, -25, 25, -100, 100, 0];
+function seatsAll() { try { return JSON.parse(localStorage.getItem('companion_seats') || '{}'); } catch (e) { return {}; } }
+function seatOf(role) {
+  const c = aiCharacters().find(x => x.name === role); const id = (c && c.figureId) || role; if (!id) return 0;
+  const all = seatsAll(); const others = aiCharacters().filter(x => x.name !== role).map(x => all[x.figureId || x.name]).filter(v => v != null);
+  if (all[id] != null && !others.includes(all[id])) return all[id];
+  const free = SEATS.find(a => !others.includes(a)); all[id] = free == null ? 0 : free; safeSet('companion_seats', JSON.stringify(all)); return all[id];
+}
+function rolePan(role) { if (!role || role === 'narrator') return 0; return Math.sin(seatOf(role) * Math.PI / 180); }
+// Wo ist sie gerade? Aus Zeile oder Erzählung: über dir (reitet), unter dir (Mund, kniet), am Ohr, hinter dir …
+const voicePose = {};
+const POSE_RULES = [
+  ['oben', /(reitet|reite dich|auf dir (sitzt|sitzend|liegt)|setzt sich auf (dich|deine)|über dir|beugt sich über dich|sinkt auf dich|rittlings)/],
+  ['unten', /(zwischen deinen (beinen|schenkeln)|kniet (vor|zwischen)|nimmt (dich|ihn) in den mund|leckt|lutscht|bläst|mit (der zunge|den lippen) (an|über) dein|zu deinen füßen|am fußende|von unten)/],
+  ['hinten', /(hinter dir|von hinten an dich|schmiegt sich von hinten|in deinem rücken)/],
+  ['ohr', /(ins ohr|an dein(em)? ohr|haucht|flüster|raunt|wispert)/],
+  ['neben', /(legt sich neben dich|neben dir|an deiner seite|kuschelt sich an dich|schmiegt sich an dich)/],
+];
+function notePose(role, text, narr) {
+  const t = String(text || '').toLowerCase(); let hit = null;
+  for (const [k, re] of POSE_RULES) { const m = t.match(re); if (m && (!hit || m.index > hit.i)) hit = { k, i: m.index }; }
+  if (!hit) return;
+  let who = role;
+  if (narr) { const named = aiCharacters().filter(c => t.includes(String(c.name).split(' ')[0].toLowerCase())); who = named.length === 1 ? named[0].name : (named.length ? null : (window.__lastVoiceRole || null)); }
+  if (!who || who === 'narrator') return;
+  if (hit.k !== 'ohr') voicePose[who] = { k: hit.k, t: Date.now() };
+}
+function posFor(role, prox) {
+  const az0 = seatOf(role), st = voicePose[role] && Date.now() - voicePose[role].t < 180000 ? voicePose[role].k : '';
+  let az = az0, el = 0, d = 1.1;
+  if (st === 'oben') { az = az0 * 0.25; el = 55; d = 0.8; }
+  else if (st === 'unten') { az = az0 * 0.3; el = -50; d = 0.9; }
+  else if (st === 'hinten') { az = az0 >= 0 ? 150 : -150; d = 0.7; }
+  else if (st === 'neben') { az = az0 >= 0 ? 85 : -85; d = 0.6; }
+  if (prox === 'close') { az = az0 >= 0 ? 88 : -88; el = Math.min(el, 10); d = 0.28; }
+  return { az, el, d, st };
 }
 // Geflüstert: die Zeile selbst sagt es, oder der Erzähler direkt davor
 // beschreibt, dass diese Figur flüstert.
@@ -7792,23 +7904,33 @@ function routeAudio(el, kind, role, text) {
   try {
     setRoom(amb.key || 'room');
     const src = ctx.createMediaElementSource(el); el.__avSrc = src;   // die 3D-Ansicht hört für den Mund mit
-    const pan = ctx.createStereoPanner();
+    // 3D-Klang (HRTF): jede Figur hat ihren festen Platz um dich herum, dazu Höhe und Nähe nach dem, was sie gerade tut
+    const prox = kind === 'sfx' ? 'normal' : proximity(text);
+    const voice = kind !== 'sfx' && role && role !== 'narrator';
+    if (voice) window.__lastVoiceRole = role;
+    const P = voice ? posFor(role, prox) : { az: kind === 'sfx' ? Math.random() * 40 - 20 : 0, el: 0, d: role === 'narrator' ? 1.6 : 1.2, st: '' };
+    let pan;
+    if (typeof ctx.createPanner === 'function') {
+      pan = ctx.createPanner(); pan.panningModel = 'HRTF'; pan.distanceModel = 'inverse'; pan.refDistance = 0.6; pan.rolloffFactor = 0.6;
+      const r = Math.PI / 180, x = Math.sin(P.az * r) * Math.cos(P.el * r) * P.d, y = Math.sin(P.el * r) * P.d, z = -Math.cos(P.az * r) * Math.cos(P.el * r) * P.d;
+      if (pan.positionX) { pan.positionX.value = x; pan.positionY.value = y; pan.positionZ.value = z; } else pan.setPosition(x, y, z);
+    } else { pan = ctx.createStereoPanner(); pan.pan.value = Math.max(-1, Math.min(1, Math.sin(P.az * Math.PI / 180))); }
     const dry = ctx.createGain();
     const send = ctx.createGain();
-    let p = kind === 'sfx' ? (Math.random() * 0.4 - 0.2) : rolePan(role);
     let g = 1, wet = 1;
-    const prox = kind === 'sfx' ? 'normal' : proximity(text);
-    if (prox === 'close') { p = p === 0 ? 0.85 : Math.sign(p) * 0.92; g = 1.2; wet = 0.12; }
-    if (prox === 'low') { g = 0.92; wet = 1.4; }
+    if (prox === 'close') { g = 1.15; wet = 0.12; }
+    if (prox === 'low' || P.st === 'unten') { g = 0.95; wet = 1.3; }
+    if (P.st === 'oben') wet = 0.7;
     if (role === 'narrator') { wet = 0.4; }
-    pan.pan.value = Math.max(-1, Math.min(1, p));
     dry.gain.value = g;
     send.gain.value = wet;
     let warm = null;
-    if (prox === 'close') {
-      // Nahbesprechung: wärmerer Bass, als wäre der Mund direkt am Ohr
+    if (prox === 'close' || P.st === 'oben' || P.st === 'unten') {
+      // Nahbesprechung: wärmerer Bass; von oben etwas heller, von unten etwas dumpfer - hilft dem Ohr bei der Höhe
       warm = ctx.createBiquadFilter();
-      warm.type = 'lowshelf'; warm.frequency.value = 220; warm.gain.value = 4;
+      if (prox === 'close') { warm.type = 'lowshelf'; warm.frequency.value = 220; warm.gain.value = 4; }
+      else if (P.st === 'oben') { warm.type = 'highshelf'; warm.frequency.value = 5000; warm.gain.value = 3; }
+      else { warm.type = 'lowpass'; warm.frequency.value = 5200; warm.Q.value = 0.5; }
       src.connect(warm); warm.connect(pan);
     } else {
       src.connect(pan);
@@ -8616,9 +8738,18 @@ function sigStepsFor(name) {
   const c = (typeof characters !== 'undefined' ? characters : []).find(x => x.name === name) || (figureByName(name) ? latestVersion(figureByName(name)) : null);
   return c ? parseSigMotion(c.sigMotion) : null;
 }
+function duettSteps() {
+  const own = characters.filter(c => !c.isUser && !c.isNarrator).map(c => ({ c, st: parseSigMotion(c.sigMotion) })).filter(x => x.st);
+  if (own.length < 2) return null;
+  // in Stücke von etwa 4 s schneiden und reihum verflechten; Pausen werden kürzer, damit es dichter wird
+  const chunks = own.map(x => { const out = []; let cur = [], t = 0; x.st.forEach(st => { const s2 = Object.assign({}, st, st.type === 'hold' ? { ms: Math.min(st.ms, 700) } : {}); cur.push(s2); t += s2.ms || 0; if (t >= 4000) { out.push(cur); cur = []; t = 0; } }); if (cur.length) out.push(cur); return out; });
+  const res = []; for (let k = 0; k < Math.max(...chunks.map(c => c.length)) && res.length < 40; k++) chunks.forEach(c => { if (c[k]) res.push(...c[k]); });
+  return { steps: res, names: own.map(x => x.c.name.split(' ')[0]) };
+}
 function resolveSigSteps(steps) {
   if (!Array.isArray(steps)) return steps;
-  return steps.flatMap(st => { if (!st) return [st]; if (st.type === 'sigref') { const own = sigStepsFor(motionTint.who); if (own) { sigLockUntil = Date.now() + own.reduce((t, x) => t + (x.ms || 0), 0); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät: ${motionTint.who} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return own.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('locken', 'mittel'); } if (st.type === 'pattern') return [Object.assign({}, st, { steps: resolveSigSteps(st.steps) })]; return [st]; });
+  return steps.flatMap(st => { if (!st) return [st];
+    if (st.type === 'duettref') { const d = duettSteps(); if (d) { sigLockUntil = Date.now() + d.steps.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(d.names.join(' & ') + ' (Duett)', d.steps); logEvent('msg', { role: 'system', text: `Duett am Gerät: ${d.names.join(' & ')} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return d.steps.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('wirbel', 'mittel'); } if (st.type === 'sigref') { const own = sigStepsFor(motionTint.who); if (own) { sigLockUntil = Date.now() + own.reduce((t, x) => t + (x.ms || 0), 0); if (device1.isConnected()) sigBar(motionTint.who, own); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät: ${motionTint.who} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return own.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('locken', 'mittel'); } if (st.type === 'pattern') return [Object.assign({}, st, { steps: resolveSigSteps(st.steps) })]; return [st]; });
 }
 function tintSteps(steps, num) {
   steps = resolveSigSteps(steps);
@@ -9374,6 +9505,7 @@ function arousalBlock() {
 let readyGate = 'off';
 let readyJustConfirmed = false;
 function readyCheckEnabled() {
+  if (currentMode === 'live' && localStorage.getItem('companion_guided') === '1') return true;   // geführter Abend: erst ankommen, dann los
   return localStorage.getItem('companion_readyCheck') === 'true';
 }
 function anyDeviceConnected() {
@@ -11634,6 +11766,8 @@ function versionFromCharacter(c, versionNumber) {
     signature: c.signature || '',
     deviceStyle: c.deviceStyle || '',
     sigMotion: c.sigMotion || '',
+    toyPref: c.toyPref || '',
+    toyWish: c.toyWish || '',
     core: c.core || '',
     replyLength: c.replyLength || 'mittel',
     temperature: typeof c.temperature === 'number' ? c.temperature : 0.8,
@@ -11865,6 +11999,23 @@ function userCharacter() { return characters.find(c => c.isUser) || null; }
 // reads. Keeping this in one place means the prompt phrasing stays uniform
 // across every character.
 // Handschrift am Gerät: jede Figur fühlt sich anders an - aus Eigenschaften und Beschreibung abgeleitet (überschreibbar)
+// Spielzeug-Wünsche: manche Figur will nur mit dem Stroker, manche nur mit Gerät 2, manche mit beidem - und fordert es ein
+function assignToyPrefs() {
+  let n = 0;
+  figureArchive.forEach(f => { const v = latestVersion(f); if (!v || v.isUser || v.isNarrator || v.toyPref) return;
+    const ax = axesFor(Object.assign({ figureId: f.id }, v)), d = ax ? ax.d : null, r = Math.random();
+    // führend/kinky eher Gerät 2 oder beides, zärtlich/hingebungsvoll eher Gerät 1, rund ein Drittel bleibt „egal"
+    const pref = r < 0.33 ? '' : d && d.fuehrt > 0.3 && d.kink > 0 ? (r < 0.66 ? 'g2' : 'beide') : d && d.wild < -0.2 ? 'g1' : ['g1', 'g2', 'beide'][Math.floor(Math.random() * 3)];
+    if (pref) { v.toyPref = pref; n++; } });
+  if (n) { saveArchive(); characters = characters.map(c => { const f = c.figureId && figureArchive.find(x => x.id === c.figureId); return f ? Object.assign(c, { toyPref: latestVersion(f).toyPref || '' }) : c; }); showToast(`${n} Figuren haben jetzt einen Spielzeug-Wunsch - im Editor jeder Figur änderbar`); }
+}
+function toyPrefText(c) {
+  const d1 = 'dem Stroker (Gerät 1)', d2 = ((localStorage.getItem('companion_device2Desc') || '').trim().split(/[.,]/)[0] || 'Gerät 2').slice(0, 60);
+  const want = c.toyPref === 'g1' ? `heute NUR mit ${d1}` : c.toyPref === 'g2' ? `heute NUR mit ${d2} (Gerät 2)` : c.toyPref === 'beide' ? `mit beidem gleichzeitig - ${d1} und ${d2}` : c.toyPref === 'edge' ? 'heute vor allem mit dem Prostata-Vibrator (Edge) spielen - sie steuert ihn selbst' : c.toyPref === 'g1edge' ? `mit ${d1} und dem Prostata-Vibrator (Edge) zugleich` : '';
+  const has1 = device1.isConnected(), has2 = typeof device2 !== 'undefined' && device2.isConnected(), hasE = edgeConnected();
+  const missing = (c.toyPref === 'g1' && !has1) || (c.toyPref === 'g2' && !has2) || (c.toyPref === 'beide' && !(has1 && has2)) || (c.toyPref === 'edge' && !hasE) || (c.toyPref === 'g1edge' && !(has1 && hasE));
+  return `SPIELZEUG-WUNSCH: ${c.name} will ${want}${(c.toyWish || '').trim() ? (want ? '; am liebsten ' : 'am liebsten ') + c.toyWish.trim() : ''}. Sie fordert es früh ein und besteht darauf, in ihrer Art (bittend, befehlend, neckend).${missing ? ' Es ist gerade NICHT verbunden - sie bemerkt das und reagiert nach ihrem Charakter (schmollt, wird streng, lockt Til, es anzuschließen), bis es da ist.' : ''}`;
+}
 function deviceStyleScores(c) {
   const tr = c.traits || [], tx = ((c.notes || '') + ' ' + (c.signature || '') + ' ' + (c.core || '')).toLowerCase(), has = (...k) => k.filter(x => tr.includes(x)).length;
   return {
@@ -11913,7 +12064,8 @@ function describeCharacter(c) {
   if (c.isUser && typeof intimatePhrase === 'function' && intimatePhrase(c)) parts.push(`Körperlich (die Figuren kennen ihn so und dürfen beiläufig, passend zu ihrem Charakter, darauf eingehen - Komplimente, Necken, Staunen): ${intimatePhrase(c)}`);
   if (!c.isUser && !c.isNarrator && (c.core || '').trim()) parts.push(`CHARAKTERKERN (so ist sie wirklich - danach handelt, spricht und entscheidet sie; sie treibt die Geschichte aktiv in ihre Richtung, greift ihre Motive immer wieder auf und bringt ihre Vorlieben nach und nach ins Spiel: vorschlagen, Til fragen, behutsam ausprobieren, dann steigern): ${c.core.trim().replace(/\s*\n\s*/g, ' | ')}`);
   if (!c.isUser && !c.isNarrator) parts.push(`HANDSCHRIFT AM GERÄT: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)} - führt SIE das Gerät, bewegt es sich so (Marker und Muster entsprechend wählen); andere Figuren haben ihre eigene Art, man soll am Gerät spüren, wer gerade dran ist`);
-  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt. Nie ankündigen („hier kommt mein Markenzeichen") - es ergibt sich aus der Situation, die sie dafür herbeiführt (ein kurzes Zögern, ein Blick, ein geflüsterter Satz), und ist dann einfach DA. ${parseSigMotion(c.sigMotion) ? `Setzt sie es ein, schreibe genau an den Anfang den Marker <<markenzeichen>> - das Gerät spielt dann ihre Signatur-Folge (${Math.round(parseSigMotion(c.sigMotion).reduce((t, x) => t + (x.ms || 0), 0) / 1000)} s), und andere Marker warten so lange. Ablauf: ${sigMotionHuman(parseSigMotion(c.sigMotion))}. Ihre Worte und Handlungen in diesem Abschnitt folgen genau diesem Ablauf (beim Stillstand das Zögern oder ein Flüstern, bei den harten Stößen das, was sie dazu sagt) - in ihrem eigenen Ton, gern jedes Mal etwas anders kommentiert` : 'beschreibt es eine Bewegung, gehört ein passender Marker dazu'}`);
+  if (!c.isUser && !c.isNarrator && localStorage.getItem('companion_toyPrefs') === '1' && (c.toyPref || (c.toyWish || '').trim())) parts.push(toyPrefText(c));
+  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt - aber erst, wenn es schon körperlich zur Sache geht, nicht beim Plaudern oder in den ersten Antworten. Nie ankündigen („hier kommt mein Markenzeichen") - es ergibt sich aus der Situation, die sie dafür herbeiführt (ein kurzes Zögern, ein Blick, ein geflüsterter Satz), und ist dann einfach DA. ${parseSigMotion(c.sigMotion) ? `Setzt sie es ein, schreibe genau an den Anfang den Marker <<markenzeichen>> - das Gerät spielt dann ihre Signatur-Folge (${Math.round(parseSigMotion(c.sigMotion).reduce((t, x) => t + (x.ms || 0), 0) / 1000)} s), und andere Marker warten so lange. Ablauf: ${sigMotionHuman(parseSigMotion(c.sigMotion))}. Ihre Worte und Handlungen in diesem Abschnitt folgen genau diesem Ablauf (beim Stillstand das Zögern oder ein Flüstern, bei den harten Stößen das, was sie dazu sagt) - in ihrem eigenen Ton, gern jedes Mal etwas anders kommentiert. Den Ablauf selbst NIE hinschreiben oder aufzählen (keine Sekunden, Zahlen, Positionen, Schritte) - das Gerät spielt ihn, sie lebt ihn nur` : 'beschreibt es eine Bewegung, gehört ein passender Marker dazu'}`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
@@ -13919,6 +14071,11 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       const smGen = document.createElement('button'); smGen.type = 'button'; smGen.className = 'btn-secondary'; smGen.style.cssText = 'height:40px; padding:0 14px; width:auto;'; smGen.textContent = '🎛️ Aus Markenzeichen ableiten';
       smGen.onclick = async () => { if (!(c.signature || '').trim()) { showToast('Erst ein Markenzeichen eintragen', true); return; } smGen.disabled = true; smGen.textContent = '🎛️ …'; try { const m = await sigMotionFor(c); c.sigMotion = m; smArea.value = m; smCheck(); } catch (e) { addMsg('system', 'Bewegung ableiten ging nicht: ' + e.message); } smGen.disabled = false; smGen.textContent = '🎛️ Aus Markenzeichen ableiten'; };
       smRow.appendChild(smTest); smRow.appendChild(smGen); card.appendChild(smRow);
+      if (localStorage.getItem('companion_toyPrefs') === '1') {
+        const tyLabel = document.createElement('label'); tyLabel.textContent = 'Spielzeug-Wunsch'; card.appendChild(tyLabel);
+        const tySel = document.createElement('select'); tySel.innerHTML = '<option value="">egal</option><option value="g1">nur Gerät 1 (Stroker)</option><option value="g2">nur Gerät 2</option><option value="beide">beides gleichzeitig</option><option value="edge">den Edge (Prostata)</option><option value="g1edge">Stroker + Edge zusammen</option>'; tySel.value = c.toyPref || ''; tySel.onchange = () => { c.toyPref = tySel.value; }; card.appendChild(tySel);
+        const tyIn = document.createElement('input'); tyIn.type = 'text'; tyIn.placeholder = 'Optional: welches Spielzeug genau (z. B. Prostata-Vibrator, Plug, viel Öl …)'; tyIn.value = c.toyWish || ''; tyIn.style.marginTop = '6px'; tyIn.oninput = () => { c.toyWish = tyIn.value; }; card.appendChild(tyIn);
+      }
       const dsLabel = document.createElement('label');
       dsLabel.textContent = 'Handschrift am Gerät';
       card.appendChild(dsLabel);
@@ -14316,6 +14473,8 @@ function sanitizeDraftCharacters(list) {
     signature: String(c.signature || '').slice(0, 500),
     deviceStyle: String(c.deviceStyle || '').slice(0, 500),
     sigMotion: String(c.sigMotion || '').slice(0, 500),
+    toyPref: ['', 'g1', 'g2', 'beide', 'edge', 'g1edge'].includes(c.toyPref) ? c.toyPref : '',
+    toyWish: String(c.toyWish || '').slice(0, 120),
     core: String(c.core || '').slice(0, 2000),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
     temperature: clamp(c.temperature, 0.1, 1.3, 0.8),
@@ -14430,7 +14589,8 @@ function speakWithBrowser(text, v) {
 // v: die Figurenversion (Name, Stimme, Notizen ...), figureId: wo abgelegt wird.
 // Beim Vorstellen führt sie ihr Markenzeichen auch am Gerät vor (ab etwa der Hälfte, wenn sie es beschreibt)
 function introSigDemo(v, audio) {
-  if (localStorage.getItem('companion_swipeSig') === '0' || !parseSigMotion(v.sigMotion) || !device1.isConnected()) return;
+  if (localStorage.getItem('companion_swipeSig') === '0' || !parseSigMotion(v.sigMotion)) return;
+  if (!device1.isConnected()) { if (!introSigDemo.told) { introSigDemo.told = true; showToast('🎛️ Gerät 1 ist nicht verbunden - das Markenzeichen am Gerät wird beim Vorstellen nur vorgeführt, wenn es verbunden ist'); } return; }
   const go = () => { try { playSigMotion(v, true); } catch (e) {} };
   if (audio) { const at = () => { const d = isFinite(audio.duration) ? audio.duration : 8; setTimeout(() => { if (!audio.paused && previewAudio === audio) go(); }, Math.max(1200, d * 450)); }; if (audio.readyState >= 1) at(); else audio.addEventListener('loadedmetadata', at, { once: true }); audio.addEventListener('pause', () => { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} }, { once: true }); }
   else setTimeout(go, 3500);
@@ -14913,6 +15073,8 @@ function figureFromFields(f) {
     signature: f.signature || '',
     deviceStyle: f.deviceStyle || '',
     sigMotion: f.sigMotion || '',
+    toyPref: f.toyPref || '',
+    toyWish: f.toyWish || '',
     core: f.core || '',
     emotional: f.emotional === undefined ? true : yes(f.emotional),
     replyLength: /sehr/.test(len) ? 'sehrlang' : /lang/.test(len) ? 'lang' : /kurz/.test(len) ? 'kurz' : 'mittel',
@@ -15181,6 +15343,7 @@ function motionVocabOn() {
 
 const PATTERN_INFO = {
   markenzeichen: 'die ganz eigene Signatur-Bewegung der Figur, die gerade spricht',
+  duett: 'die Markenzeichen aller anwesenden Figuren im schnellen Wechsel ineinander verflochten - für ein gemeinsames Finale',
   spitze_necken: 'kurze, schnelle Hübe nur ganz oben, kurz innehalten, weiter',
   tief_langsam: 'lange, langsame Hübe bis ganz unten',
   ganze_laenge: 'gleichmäßige Hübe über die ganze Länge',
@@ -15196,10 +15359,20 @@ const PATTERN_INFO = {
   treppe: 'von der Spitze aus Stufe für Stufe tiefer, mit kurzen Pausen, bis zur ganzen Länge',
   locken: 'necken an der Spitze, dann plötzlich ein paar ganze Hübe, wieder necken',
   atem: 'ganz ruhige lange Hübe im Atemrhythmus',
+  // neu (3.38)
+  herzschlag: 'Doppelschlag oben wie ein Herzschlag - zwei schnelle kurze Stöße, kurze Pause, immer wieder',
+  kaskade: 'beginnt oben an der Spitze, jeder Hub reicht ein Stück tiefer, bis zur ganzen Länge',
+  spirale: 'beginnt lang und langsam, wird immer kürzer, höher und schneller - zieht sich zur Spitze zusammen',
+  ebbe_flut: 'lange langsame Züge wechseln mit kurzen schnellen an der Spitze',
+  tauchen: 'ganz hinunter, dort verharren, tief kreisen, dann langsam auftauchen',
+  verweigern: 'zieht schnell an bis kurz vor dem Höhepunkt - dann abrupter Stopp, Stille, ganz langsam wieder anfangen',
+  schaukeln: 'kurzes, weiches Wiegen in der Mitte',
+  wirbel: 'harte Stöße und Zittern an der Spitze im schnellen Wechsel',
 };
 
 function expandPattern(name, tempo) {
-  if (/^(markenzeichen|signature|signatur)$/i.test(String(name || ''))) return [{ type: 'sigref' }];   // wird beim Abspielen zur Bewegung der sprechenden Figur
+  if (/^(markenzeichen|signature|signatur)$/i.test(String(name || ''))) return [{ type: 'sigref' }];
+  if (/^(duett|finale|zusammen)$/i.test(String(name || ''))) return [{ type: 'duettref' }];   // wird beim Abspielen zur Bewegung der sprechenden Figur
   const t = tempo === 'langsam' ? 0 : tempo === 'schnell' ? 2 : 1;
   const pick = (a, b, c) => [a, b, c][t];
   const osc = (low, high, bpm, texture, ms, vib) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0, vib });
@@ -15220,6 +15393,14 @@ function expandPattern(name, tempo) {
     hochfahren: () => [move(950, pick(4000, 2500, 1500), true), osc(700, 950, b)],
     // neu (3.21)
     zitterhub: () => [osc(60, 960, pick(24, 40, 65), 'zitterhub', 0, pick(120, 170, 220))],
+    herzschlag: () => { const beat = () => [move(950, pick(260, 200, 160)), move(760, pick(220, 170, 140)), move(950, pick(220, 170, 140)), move(760, pick(260, 200, 160)), hold(pick(900, 650, 420))]; return [move(760, 800)].concat(beat(), beat(), beat(), beat(), beat(), beat()); },
+    kaskade: () => [800, 650, 480, 300, 120, 40].map(lo => osc(lo, 960, pick(30, 50, 80), 'smooth', 2200)).concat([osc(40, 960, pick(30, 50, 80))]),
+    spirale: () => [[40, 960, 0.5], [250, 960, 0.75], [450, 960, 1], [620, 965, 1.35], [760, 970, 1.7]].map(([lo, hi, f], i, arr) => osc(lo, hi, Math.round(pick(28, 45, 70) * f), 'smooth', i < arr.length - 1 ? 3000 : 0)),
+    ebbe_flut: () => [osc(40, 960, pick(16, 24, 34), 'smooth', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34), 'smooth', 6000), osc(760, 960, pick(110, 150, 200), 'smooth', 3000), osc(40, 960, pick(16, 24, 34))],
+    tauchen: () => [move(30, 1600), hold(1800), osc(30, 260, pick(30, 45, 65), 'smooth', 4000), move(950, pick(3500, 2500, 1800), true), hold(900), move(30, 1600), hold(1500), osc(30, 260, pick(30, 45, 65))],
+    verweigern: () => [osc(150, 900, pick(60, 90, 120), 'accel', 2500), osc(300, 950, pick(110, 150, 190), 'smooth', 3000), move(500, 400), hold(pick(4500, 3500, 2500)), osc(500, 950, pick(10, 14, 20))],
+    schaukeln: () => [osc(400, 600, pick(36, 55, 85))],
+    wirbel: () => { const r = []; for (let k = 0; k < 4; k++) r.push(osc(150, 900, pick(90, 120, 160), 'pulse', 1500), osc(860, 960, pick(160, 200, 240), 'tremor', 1200)); r.push(osc(150, 900, pick(90, 120, 160), 'pulse')); return r; },
     treppe: () => [osc(650, 950, b, 'smooth', 2500), hold(500), osc(450, 950, b, 'smooth', 2500), hold(500), osc(250, 950, b, 'smooth', 2500), hold(500), osc(50, 950, b)],
     locken: () => [osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70), 'smooth', 1500), osc(820, 960, pick(70, 110, 150), 'smooth', 3000), osc(60, 960, pick(30, 45, 70))],
     atem: () => [osc(150, 850, pick(10, 14, 18), 'smooth')],
@@ -15242,14 +15423,273 @@ function patternLabel(item) {
 }
 
 // Wendet einen Bewegungseintrag an - Zustand oder Muster.
+// ---------- Lovense Edge 2: zwei Motoren per Web Bluetooth ----------
+// Protokoll: ASCII-Befehle an die TX-Charakteristik, z. B. "Vibrate1:12;" (Kopf) und "Vibrate2:5;" (Arm), Stufen 0-20.
+const EDGE_SERVICES = ['5a300001-0023-4bd4-bbd5-a6920e4c5653', '5a300001-0024-4bd4-bbd5-a6920e4c5653', '5a300001-0025-4bd4-bbd5-a6920e4c5653', '50300001-0023-4bd4-bbd5-a6920e4c5653', '50300001-0024-4bd4-bbd5-a6920e4c5653', '53300001-0023-4bd4-bbd5-a6920e4c5653', '53300001-0024-4bd4-bbd5-a6920e4c5653', '55300001-0023-4bd4-bbd5-a6920e4c5653', '57300001-0023-4bd4-bbd5-a6920e4c5653', '45300001-0023-4bd4-bbd5-a6920e4c5653', '6e400001-b5a3-f393-e0a9-e50e24dcca9e'];
+const edge = { dev: null, tx: null, on: false, last: [-1, -1], sentAt: 0, queue: Promise.resolve(), phase: 0, t: 0, override: null, busy: false };
+function edgeConnected() { return !!(edge.dev && edge.dev.gatt && edge.dev.gatt.connected && edge.tx); }
+function edgeUi() {
+  const st = document.getElementById('edgeStatus'), b = document.getElementById('edgeBtn');
+  if (st) { st.textContent = edgeConnected() ? 'verbunden' : 'getrennt'; st.className = 'pill ' + (edgeConnected() ? 'on' : 'off'); }
+  if (b) b.textContent = edgeConnected() ? 'Edge trennen' : 'Edge verbinden';
+}
+async function edgeToggle() {
+  if (edgeConnected()) { await edgeSend(0, 0, true); try { edge.dev.gatt.disconnect(); } catch (e) {} edge.tx = null; edgeUi(); return; }
+  if (!navigator.bluetooth) { showToast('Dieser Browser kann kein Bluetooth - bitte Chrome auf Android oder am Rechner', true); return; }
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'LVS' }], optionalServices: EDGE_SERVICES });
+    edge.dev = dev; dev.addEventListener('gattserverdisconnected', () => { edge.tx = null; edgeUi(); logEvent('msg', { role: 'system', text: 'Edge: Verbindung getrennt' }); });
+    const server = await dev.gatt.connect(); let tx = null;
+    for (const sid of EDGE_SERVICES) { try { const svc = await server.getPrimaryService(sid); const txId = sid.replace(/^(\w{4})0001/, '$10002'); tx = await svc.getCharacteristic(sid.startsWith('6e40') ? '6e400002-b5a3-f393-e0a9-e50e24dcca9e' : txId); if (tx) break; } catch (e) {} }
+    if (!tx) throw new Error('kein passender Lovense-Dienst gefunden');
+    edge.tx = tx; edge.last = [-1, -1]; edgeUi(); logEvent('msg', { role: 'system', text: `Edge verbunden: ${dev.name || 'Lovense'}` }); showToast('Edge verbunden');
+  } catch (e) { if (!/cancel|abgebrochen|chosen/i.test(e.message)) showToast('Edge: ' + e.message, true); edgeUi(); }
+}
+function edgeWrite(cmd) {
+  edge.queue = edge.queue.then(async () => { if (!edgeConnected()) return; try { const data = new TextEncoder().encode(cmd); if (edge.tx.writeValueWithoutResponse) await edge.tx.writeValueWithoutResponse(data); else await edge.tx.writeValue(data); } catch (e) {} await new Promise(r => setTimeout(r, 60)); });
+  return edge.queue;
+}
+function edgeSend(a, b, force) {
+  a = Math.max(0, Math.min(20, Math.round(a))); b = Math.max(0, Math.min(20, Math.round(b)));
+  const m1 = document.getElementById('edgeM1'), m2 = document.getElementById('edgeM2'); if (m1) m1.textContent = a; if (m2) m2.textContent = b;
+  if (!edgeConnected()) return Promise.resolve();
+  const swap = localStorage.getItem('companion_edgeSwap') === '1', ka = swap ? 2 : 1, kb = swap ? 1 : 2; let p = Promise.resolve();
+  if (force || a !== edge.last[0]) { edge.last[0] = a; p = edgeWrite(`Vibrate${ka}:${a};`); }
+  if (force || b !== edge.last[1]) { edge.last[1] = b; p = edgeWrite(`Vibrate${kb}:${b};`); }
+  return p;
+}
+// Anweisung der Figur: feste Stufen, Wechsel oder Welle für eine Weile (dann wieder der Bewegung folgen)
+function edgeCommand(inner) {
+  const t = String(inner || '').toLowerCase().trim(); let m; const dur = (x, d) => Math.max(1, Math.min(60, parseFloat(String(x || d).replace(',', '.')))) * 1000;
+  if (/^edge\s*(aus|stopp|stop|0)$/.test(t)) { edge.override = { kind: 'fix', a: 0, b: 0, until: Date.now() + 8000 }; return true; }
+  if ((m = t.match(/^edge\s*(\d{1,2})\s*[\/,]\s*(\d{1,2})(?:\s+(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) { edge.override = { kind: 'fix', a: +m[1], b: +m[2], until: Date.now() + dur(m[3], 8) }; return true; }
+  if ((m = t.match(/^edge\s*(wechsel|pingpong|welle|puls|kopf|arm|beide|necken|aufwärts|aufwaerts|hoch|abwärts|abwaerts|runter|treppe|herzschlag|kitzeln|sturm|echo)(?:\s+(\d+(?:[.,]\d+)?)\s*s\w*)?$/))) { edge.override = { kind: m[1], until: Date.now() + dur(m[2], 10), t0: Date.now() }; return true; }
+  return false;
+}
+function edgeFollowLevels(dt) {
+  const info = device1.motionInfo ? device1.motionInfo() : null; const k = (+localStorage.getItem('companion_edgeStrength') || 70) / 100;
+  const ov = edge.override && Date.now() < edge.override.until ? edge.override : null;
+  if (ov) { const e = (Date.now() - (ov.t0 || 0)) / 1000;
+    if (ov.kind === 'fix') return [ov.a, ov.b];
+    if (ov.kind === 'wechsel' || ov.kind === 'pingpong') return Math.floor(e / 0.8) % 2 ? [4, 18 * k] : [18 * k, 4];
+    if (ov.kind === 'welle') { const w = 0.5 + 0.5 * Math.sin(e * 1.4); return [20 * k * w, 20 * k * (1 - w)]; }
+    if (ov.kind === 'puls') return [(e % 1) < 0.35 ? 20 * k : 3, (e % 1) < 0.35 ? 20 * k : 3];
+    if (ov.kind === 'kopf') return [20 * k, 0]; if (ov.kind === 'arm') return [0, 20 * k]; if (ov.kind === 'beide') return [20 * k, 20 * k];
+    if (ov.kind === 'necken') return [(e % 3) < 0.4 ? 16 * k : 0, (e % 3) > 1.5 && (e % 3) < 1.8 ? 14 * k : 0];
+    // Welle von unten (Arm: Damm/Eier) nach oben (Kopf: innen, Prostata) - und umgekehrt
+    if (/aufw|hoch/.test(ov.kind)) { const ph = (e / 1.6) % 1; return [20 * k * Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (ph - 0.3) / 0.7)))), 20 * k * Math.max(0, Math.sin(Math.PI * Math.min(1, ph / 0.65)))]; }
+    if (/abw|runter/.test(ov.kind)) { const ph = (e / 1.6) % 1; return [20 * k * Math.max(0, Math.sin(Math.PI * Math.min(1, ph / 0.65))), 20 * k * Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (ph - 0.3) / 0.7))))]; }
+    if (ov.kind === 'treppe') { const st = Math.min(5, Math.floor(e / 1.5)); return [4 * k * st, 4 * k * st]; }
+    if (ov.kind === 'herzschlag') { const x = e % 1.1; const on = x < 0.18 || (x > 0.3 && x < 0.48); return [on ? 18 * k : 2, on ? 14 * k : 1]; }
+    if (ov.kind === 'kitzeln') return [6 * k, (Math.sin(e * 23) + Math.sin(e * 9.3)) > 0.6 ? 12 * k : 2 * k];
+    if (ov.kind === 'sturm') { edge.st = (edge.st && Math.random() > 0.25) ? edge.st : [8 + Math.random() * 12, 8 + Math.random() * 12]; return [edge.st[0] * k, edge.st[1] * k]; }
+    if (ov.kind === 'echo') { const ph = (e / 0.9) % 1; return [ph > 0.45 && ph < 0.75 ? 18 * k : 3, ph < 0.3 ? 18 * k : 3]; } }
+  if (edge.override && Date.now() >= edge.override.until) edge.override = null;
+  if (document.hidden) return [0, 0];
+  if (!info || !info.running || info.texture === 'stop') return [0, 0];
+  const L = Math.max(0, Math.min(1, info.level));
+  edge.phase = (edge.phase + dt * Math.max(0, info.bpm) / 60) % 1;   // Takt der Hübe nachbilden
+  const depth = 0.5 - 0.5 * Math.cos(edge.phase * Math.PI * 2);
+  const fm = localStorage.getItem('companion_edgeFollow') || 'takt';
+  if (info.texture === 'tremor' || info.texture === 'zitterhub') return [20 * k * (0.4 + 0.6 * L), 20 * k * L];
+  if (info.texture === 'hold') return [5 * k, 3 * k];
+  if (fm === 'welle') {
+    // jede Bewegung schickt eine Welle von unten nach oben: unten am Hub (tief) der Arm an Damm und Eiern, auf dem Weg nach oben wandert sie zum Kopf
+    const ph = edge.phase, arm = Math.max(0, Math.cos(ph * Math.PI * 2)), head = Math.max(0, Math.sin((ph - 0.08) * Math.PI * 2));
+    return [20 * k * (0.12 + 0.88 * L * head), 20 * k * (0.12 + 0.88 * L * arm)];
+  }
+  if (fm === 'ruhig') return [20 * k * (0.1 + 0.6 * L), 20 * k * 0.25 * L];
+  const head = 20 * k * (0.15 + 0.85 * L);
+  const arm = 20 * k * L * (0.25 + 0.75 * depth);
+  return [head, arm];
+}
+setInterval(() => { try { if (!edgeConnected() && !document.getElementById('edgeM1')) return; const now = Date.now(), dt = edge.t ? (now - edge.t) / 1000 : 0.15; edge.t = now; const [a, b] = edgeFollowLevels(dt); edgeSend(a, b); } catch (e) {} }, 150);
+document.addEventListener('visibilitychange', () => { if (document.hidden && edgeConnected()) edgeSend(0, 0, true); });
+async function edgeTest() {
+  if (!edgeConnected()) { showToast('Edge ist nicht verbunden', true); return; }
+  const k = (+localStorage.getItem('companion_edgeStrength') || 70) / 100;
+  edge.override = { kind: 'kopf', until: Date.now() + 2500, t0: Date.now() }; showToast('Kopf …');
+  setTimeout(() => { edge.override = { kind: 'arm', until: Date.now() + 2500, t0: Date.now() }; showToast('Arm …'); }, 2600);
+  setTimeout(() => { edge.override = { kind: 'wechsel', until: Date.now() + 3500, t0: Date.now() }; showToast('Wechsel …'); }, 5200);
+  setTimeout(() => { edge.override = { kind: 'aufwärts', until: Date.now() + 5000, t0: Date.now() }; showToast('Welle nach oben …'); }, 8800);
+  setTimeout(() => { edge.override = { kind: 'fix', a: 0, b: 0, until: Date.now() + 1000 }; }, 14000);
+}
+function edgeBlock() {
+  if (!edgeConnected()) return '';
+  return `\n\nPROSTATA-VIBRATOR (Lovense Edge 2) ist verbunden - zwei Motoren, getrennt steuerbar: der KOPF (innen, an der Prostata) und der ARM (außen - liegt an Damm und Eiern an und krault sie fast). Ohne Anweisung folgen sie der Bewegung (Kopf = Intensität, Arm pulsiert im Takt). Eine Figur kann ihn gezielt einsetzen - als Necken, Strafe, Belohnung, Überraschung - mit Markern: <<edge 15/5>> (Kopf 15, Arm 5 von 20, gilt 8 s), <<edge 20/20 4s>>, <<edge wechsel 8s>> (Kopf und Arm im Wechsel), <<edge welle>> (gegeneinander), <<edge aufwärts>> (Wellen von Damm und Eiern hinauf zur Prostata), <<edge abwärts>>, <<edge echo>> (erst unten, dann innen nachhallend), <<edge treppe>> (Stufe für Stufe stärker), <<edge herzschlag>>, <<edge kitzeln>> (der Arm krault die Eier, der Kopf ruhig), <<edge sturm>> (wild durcheinander), <<edge puls>>, <<edge necken>> (kurze Stöße, dann nichts), <<edge kopf>>, <<edge arm>>, <<edge aus>>. Beschreiben, was der Arm an den Eiern tut, ist ausdrücklich erlaubt. Nicht dauernd - gezielt, wenn es zur Handlung passt (eine Figur „drückt den Knopf", flüstert, was sie tut).`;
+}
+// ---------- 🌙 Geführter Abend: Ankommen → Vorspiel → Spiel → Finale → Nachglühen ----------
+const guided = { startAt: 0, readyAt: 0, came: false, afterN: -1, devKey: '', nudgeAt: 0, endShown: false, phaseLogged: '' };
+function guidedOn() { return currentMode === 'live' && localStorage.getItem('companion_guided') === '1'; }
+function guidedMin() { return Math.max(20, +localStorage.getItem('companion_guidedMin') || 60); }
+function guidedReset() { Object.assign(guided, { startAt: Date.now(), readyAt: 0, came: false, afterN: -1, devKey: guidedDevKey(), nudgeAt: 0, endShown: false, phaseLogged: '' }); }
+function guidedDevKey() { return [device1.isConnected() ? 'g1' : '', typeof device2 !== 'undefined' && device2.isConnected() ? 'g2' : '', edgeConnected() ? 'edge' : '', typeof hr !== 'undefined' && hr.connected ? 'puls' : ''].filter(Boolean).join(','); }
+function guidedPhase() {
+  if (!guided.startAt) return '';
+  if (guided.came) return 'nachglühen';
+  if (!guided.readyAt) return 'ankommen';
+  const total = guidedMin() * 60000, play = Math.max(10 * 60000, total - Math.max(0, guided.readyAt - guided.startAt)), f = (Date.now() - guided.readyAt) / play;
+  return f < 0.28 ? 'vorspiel' : f < 0.72 ? 'spiel' : f < 1 ? 'finale' : 'nachglühen';
+}
+function guidedRemainMin() { if (!guided.startAt) return 0; return Math.max(0, Math.round((guided.startAt + guidedMin() * 60000 - Date.now()) / 60000)); }
+function guidedBlock() {
+  if (!guidedOn() || !guided.startAt) return '';
+  const ph = guidedPhase(), rest = guidedRemainMin();
+  const wantsEdge = !!localStorage.getItem('companion_edgeUsed'), wantsHr = !!localStorage.getItem('companion_hrUsed');
+  if (ph === 'ankommen') {
+    const todo = [!device1.isConnected() ? 'den Stroker (Gerät 1) anschließen und verbinden' : '', wantsEdge && !edgeConnected() ? 'den Edge einsetzen und verbinden' : '', wantsHr && !(typeof hr !== 'undefined' && hr.connected) ? 'den Pulsgurt anlegen' : '', 'es sich bequem machen: hinlegen, Kopfhörer auf, Licht gedämpft'].filter(Boolean);
+    return `\n\nGEFÜHRTER ABEND - ANKOMMEN (Til ist noch nicht bereit, noch KEINE Bewegung): Führt ein einleitendes Gespräch, als würde der Abend gerade beginnen - Begrüßung, wie es ihm geht, Vorfreude, ein kleiner Vorgeschmack auf heute. Begleitet ihn dabei Schritt für Schritt beim Vorbereiten - immer nur den nächsten Schritt, mit Charme, nicht als Liste: ${todo.join('; dann ')}. Verbunden ist gerade: ${guidedDevKey().replace('g1', 'Stroker').replace('g2', 'Gerät 2').replace('edge', 'Edge').replace('puls', 'Pulsgurt') || 'noch nichts'}. Was verbunden ist, bemerkt ihr und kommentiert es. Ist alles vorbereitet, fragt ihn, ob er bereit ist - erst nach seinem „bereit" geht es los. Der ganze Abend dauert etwa ${guidedMin()} Minuten.`;
+  }
+  const T = {
+    vorspiel: 'VORSPIEL - langsam beginnen: Berührungen, Necken, Spannung aufbauen; das Gerät zart und mit viel Abwechslung, noch nicht schnell. Vorlieben nur andeuten.',
+    spiel: 'SPIEL - die Hauptzeit: Vorlieben und Markenzeichen ausleben, Wendungen, Wechsel zwischen den Figuren, Spannung rauf und wieder runter (Hinhalten).',
+    finale: 'FINALE - jetzt steuert ihr gemeinsam auf den Höhepunkt zu: steigern, alles geben (Markenzeichen, Duett, alle Geräte), Til zum Kommen bringen. Wenn er kommt, sagt er es.',
+    nachglühen: 'NACHGLÜHEN - der Höhepunkt ist vorbei: Gerät ganz langsam ausklingen lassen und dann anhalten (<<stopp>>), zärtlich, wenige Worte, kuscheln, kurz nachspüren, was heute schön war; eine Figur deutet an, was sie sich für das nächste Mal wünscht. Nach zwei, drei Antworten verabschiedet ihr euch liebevoll.',
+  };
+  return `\n\nGEFÜHRTER ABEND - ${T[ph]}${ph !== 'nachglühen' ? ` (noch etwa ${rest} Minuten - teilt die Zeit so ein, dass das Finale rechtzeitig kommt)` : ''}`;
+}
+// Geräte-Wächter: während des Ankommens reagieren die Figuren von selbst, wenn etwas angeschlossen wird
+setInterval(() => {
+  try {
+    if (edgeConnected()) safeSet('companion_edgeUsed', '1');
+    if (typeof hr !== 'undefined' && hr.connected) safeSet('companion_hrUsed', '1');
+    if (!guidedOn() || !guided.startAt || !inSession()) return;
+    if (!guided.readyAt && typeof readyGate !== 'undefined' && readyGate === 'ready') { guided.readyAt = Date.now(); logEvent('msg', { role: 'system', text: `🌙 Abend: bereit - los geht's (noch ${guidedRemainMin()} min)` }); }
+    const ph = guidedPhase(); if (ph && ph !== guided.phaseLogged) { guided.phaseLogged = ph; logEvent('msg', { role: 'system', text: `🌙 Abend: Phase ${ph}` }); if (ph === 'nachglühen' && guided.afterN < 0) guided.afterN = replyCount(); }
+    const k = guidedDevKey();
+    if (k !== guided.devKey) {
+      const added = k.split(',').filter(x => x && !guided.devKey.split(',').includes(x)); guided.devKey = k;
+      if (ph === 'ankommen' && added.length && activeReplies === 0 && Date.now() - guided.nudgeAt > 12000) {
+        guided.nudgeAt = Date.now(); const what = added.map(x => ({ g1: 'den Stroker verbunden', g2: 'Gerät 2 verbunden', edge: 'den Edge verbunden', puls: 'den Pulsgurt angelegt' })[x]).join(' und ');
+        askActive(`(Til hat gerade ${what}. Reagiert kurz und charmant darauf und sagt ihm, was als Nächstes kommt - oder fragt, ob er bereit ist, wenn alles da ist.)`, { silent: true, autoStep: 1, speak: true });
+      }
+    }
+    if (ph === 'nachglühen' && guided.afterN >= 0 && replyCount() - guided.afterN >= 3 && !guided.endShown && activeReplies === 0) { guided.endShown = true; setTimeout(guidedEndCard, 2500); }
+    guidedChip(ph);
+  } catch (e) {}
+}, 1000);
+function guidedChip(ph) {
+  let el = document.getElementById('guidedChip');
+  if (!guidedOn() || !inSession() || !ph) { if (el) el.style.display = 'none'; return; }
+  if (!el) { el = document.createElement('div'); el.id = 'guidedChip'; el.style.cssText = 'position:fixed; left:10px; top:calc(env(safe-area-inset-top,0px) + 64px); z-index:1500; background:rgba(15,9,12,0.78); border:1px solid rgba(217,178,107,0.35); border-radius:14px; padding:5px 10px; font-size:12px; color:#fff; pointer-events:none;'; document.body.appendChild(el); }
+  el.style.display = '';
+  const name = { ankommen: 'Ankommen', vorspiel: 'Vorspiel', spiel: 'Spiel', finale: 'Finale', 'nachglühen': 'Nachglühen' }[ph];
+  el.textContent = `🌙 ${name}${ph === 'ankommen' ? ' · ' + (guidedDevKey() ? '✓ ' + guidedDevKey().replace('g1', 'Stroker').replace('g2', 'Gerät 2').replace('edge', 'Edge').replace('puls', 'Puls') : 'noch nichts verbunden') : ph !== 'nachglühen' ? ' · noch ' + guidedRemainMin() + ' min' : ''}`;
+}
+function guidedEndCard() {
+  const mins = Math.round((Date.now() - guided.startAt) / 60000), cast = aiCharacters().filter(c => !c.isNarrator).map(c => c.name.split(' ')[0]);
+  const tw = [...(twistState.used || [])].map(id => (TWISTS.find(t => t.id === id) || {}).name).filter(Boolean);
+  const v = document.createElement('div'); v.id = 'guidedEnd';
+  v.style.cssText = 'position:fixed; inset:0; z-index:4000; background:rgba(8,5,7,0.92); color:#fff; display:flex; align-items:center; justify-content:center; padding:24px;';
+  v.innerHTML = `<div style="max-width:360px; width:100%; text-align:center;"><div style="font-size:44px;">🌙</div><h2 style="font-family:var(--font-display); font-size:28px; margin:6px 0 4px;">Was heute war</h2>
+    <p class="hint" style="margin:0 0 14px;">${mins} Minuten mit ${esc(cast.join(', ') || 'deinen Figuren')}</p>
+    <div style="text-align:left; font-size:14px; line-height:1.6; background:rgba(255,255,255,0.05); border-radius:14px; padding:12px 14px;">
+      ${guided.came ? '<div>💫 Höhepunkt erreicht</div>' : ''}${tw.length ? `<div>🎲 Wendungen: ${esc(tw.join(', '))}</div>` : ''}
+      <div>🎬 Die Geschichte geht beim nächsten Mal weiter - auf der Startseite unter „Nächste Folge".</div></div>
+    <div style="display:flex; gap:10px; margin-top:16px;"><button type="button" class="btn-secondary ge-more" style="flex:1;">Noch ein bisschen</button><button type="button" class="btn-primary ge-end" style="flex:1;">Abend beenden</button></div></div>`;
+  document.body.appendChild(v);
+  v.querySelector('.ge-more').onclick = () => { v.remove(); guided.afterN = replyCount(); guided.endShown = false; };
+  v.querySelector('.ge-end').onclick = () => { v.remove(); [device1, device2].forEach(d => { try { d.setMotion({ texture: 'stop' }); } catch (e) {} }); try { edgeSend(0, 0, true); } catch (e) {} guided.startAt = 0; leaveSession(); };
+}
+// ---------- 🌙 Abendbegleitung: eine Gastgeberin führt durch den Abend ----------
+const host = { id: null, cards: null, chosen: -1, note: '' };
+function hostFigure() {
+  const pool = surprisePool(); if (!pool.length) return null;
+  const id = localStorage.getItem('companion_hostId'); const f = id && pool.find(x => x.f.id === id);
+  if (f) return f.f;
+  // gern eine, die führt - sonst irgendeine
+  const lead = pool.filter(x => { const a = axesFor(Object.assign({ figureId: x.f.id }, x.v)); return a && a.d.fuehrt > 0.3; });
+  const pick = (lead.length ? lead : pool)[Math.floor(Math.random() * (lead.length ? lead : pool).length)].f;
+  safeSet('companion_hostId', pick.id); return pick;
+}
+function hostNext() { const pool = surprisePool(); if (!pool.length) return; const id = localStorage.getItem('companion_hostId'); const i = pool.findIndex(x => x.f.id === id); safeSet('companion_hostId', pool[(i + 1) % pool.length].f.id); }
+async function startHostEvening(hf) {
+  const hv = latestVersion(hf); const meFig = archiveMeFigure();
+  safeSet('companion_guided', '1'); safeSet('companion_conductor', '1');
+  Object.assign(host, { id: hf.id, cards: null, chosen: -1, note: '' });
+  switchMode('live'); history = [];
+  characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(hf)].filter(Boolean); saveCharacters();
+  safeSet('companion_sceneDesc', `Til macht es sich für den Abend gemütlich. ${hv.name} ist heute seine Abendbegleitung: sie ist zuerst allein mit ihm, plaudert, hilft ihm beim Ankommen und Vorbereiten und hat ein paar Ideen, wie der Abend verlaufen könnte - mit wem und wo. Sie holt die anderen dazu, wenn es so weit ist.`);
+  try { renderLivePanel(); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `🌙 Abendbegleitung: ${hv.name}` });
+  // drei Ideen für den Abend im Hintergrund vorbereiten (wie die Karten des Abends)
+  makePitches(3).then(P => { if (P && host.id === hf.id) { host.cards = P.cards.filter(c => c.isNew).slice(0, 3); hostChips(); logEvent('msg', { role: 'system', text: '🌙 Ideen für heute: ' + host.cards.map(c => c.title).join(' · ') }); } }).catch(() => {});
+  try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
+}
+function hostActive() { return !!host.id && characters.some(c => c.figureId === host.id) && currentMode === 'live'; }
+function hostChoose(i, quiet) {
+  const c = host.cards && host.cards[i]; if (!c) return false;
+  host.chosen = i; safeSet('companion_sceneDesc', c.scene);
+  const hv = latestVersion(getFigure(host.id) || {}) || {};
+  host.note = `\nTil hat sich entschieden: „${c.title}". Leite jetzt dorthin über (Ortswechsel erlaubt): ${c.scene}`;
+  c.cast.forEach(n => { const f = figureByName(n); if (f && !characters.some(x => x.figureId === f.id) && aiCast().length - conductor.exits.length < conductorMax()) conductorEnter(f, 'gehört zu „' + c.title + '"'); });
+  hostChips(); logEvent('msg', { role: 'system', text: `🌙 Gewählt: ${c.title}` });
+  if (!quiet) { conductor.__keep = conductor.note; askActive(`Ich nehme „${c.title}".`); }
+  return true;
+}
+function hostMatch(text) {
+  if (!host.cards || host.chosen >= 0) return -1; const t = String(text || '').toLowerCase();
+  const ord = [/\b(erste|1\.?|eins|nummer eins)\b/, /\b(zweite|2\.?|zwei|nummer zwei)\b/, /\b(dritte|3\.?|drei|nummer drei)\b/];
+  for (let i = 0; i < host.cards.length; i++) if (ord[i].test(t) && /(nehm|will|lieber|die |das |idee|nummer|^\s*\d)/.test(t)) return i;
+  for (let i = 0; i < host.cards.length; i++) { const w = host.cards[i].title.toLowerCase().split(/\s+/).filter(x => x.length > 4); if (w.some(x => t.includes(x))) return i; }
+  return -1;
+}
+function hostBlock() {
+  if (!hostActive()) return '';
+  const hv = latestVersion(getFigure(host.id)); let t = `\n\nABENDBEGLEITUNG: ${hv.name} ist heute Tils Begleiterin durch den Abend - sie führt, schlägt vor, holt andere dazu, achtet auf die Zeit und darauf, dass es ihm gut geht.`;
+  if (host.chosen < 0 && host.cards && host.cards.length) t += ` Sie hat drei Ideen für heute und stellt sie ihm verführerisch vor (erzählen, nicht als Liste vorlesen; er kann auch auf eine Karte unten tippen): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" mit ${c.cast.join(' & ')} - ${c.teaser}`).join(' ')}. Er wählt - oder wünscht sich etwas anderes, dann geht sie darauf ein.`;
+  else if (host.chosen < 0) t += ' Ihre Ideen für heute sind gleich da - bis dahin plaudert sie.';
+  if (host.note) { t += host.note; host.note = ''; }
+  return t;
+}
+function hostChips() {
+  let el = document.getElementById('hostChips');
+  const show = hostActive() && host.cards && host.cards.length && host.chosen < 0 && inSession();
+  if (!show) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'hostChips'; el.style.cssText = 'position:fixed; left:10px; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 132px); z-index:1600; display:flex; gap:6px; overflow-x:auto;'; document.body.appendChild(el); }
+  el.innerHTML = host.cards.map((c, i) => `<button type="button" class="btn-secondary" data-i="${i}" style="flex:0 0 auto; max-width:72%; height:auto; padding:8px 12px; font-size:13px; text-align:left; background:rgba(20,12,16,0.92); white-space:normal;"><b>${i + 1}. ${esc(c.title)}</b><br><span style="opacity:0.75;">${esc(c.cast.map(n => n.split(' ')[0]).join(' & '))}</span></button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => hostChoose(+b.dataset.i));
+}
+// ---------- Raumkarte: wo sitzt wer, wer spricht, wer führt gerade das Gerät ----------
+function roomMapTick() {
+  let el = document.getElementById('roomMap');
+  const show = inSession() && currentMode === 'live' && spatialEnabled() && localStorage.getItem('companion_roomMap') !== '0' && aiCharacters().filter(c => !c.isNarrator).length >= 1;
+  if (!show) { if (el) el.style.display = 'none'; return; }
+  if (!el) { el = document.createElement('div'); el.id = 'roomMap'; el.title = 'Raumkarte - antippen zum Ausblenden';
+    el.style.cssText = 'position:fixed; right:10px; top:calc(env(safe-area-inset-top,0px) + 64px); width:112px; height:112px; border-radius:50%; background:rgba(15,9,12,0.72); border:1px solid rgba(255,255,255,0.14); z-index:1500; pointer-events:auto;';
+    el.onclick = () => { safeSet('companion_roomMap', '0'); el.style.display = 'none'; showToast('Raumkarte aus - unter Gerät 1 wieder einschaltbar'); };
+    document.body.appendChild(el); }
+  el.style.display = '';
+  const cast = aiCharacters().filter(c => !c.isNarrator), speak = window.__lastVoiceRole, drive = motionTint.who;
+  const dots = cast.map(c => { const P = posFor(c.name, 'normal'), r = Math.PI / 180, R = P.st === 'oben' || P.st === 'unten' ? 22 : 40, az = P.st === 'hinten' || P.st === 'neben' ? P.az : seatOf(c.name);
+    const x = 56 + Math.sin(az * r) * R, y = 56 - Math.cos(az * r) * R, on = c.name === speak, dv = c.name === drive && device1.isConnected && (device1.motionInfo ? device1.motionInfo().running : false);
+    return `<div style="position:absolute; left:${x - 11}px; top:${y - 11}px; width:22px; height:22px; border-radius:50%; background:${on ? '#d9b26b' : '#4a3a42'}; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:${dv ? '0 0 0 3px #ff6a5a' : 'none'}; transition:all .3s;">${esc(String(c.name)[0])}</div>${P.st === 'oben' || P.st === 'unten' ? `<div style="position:absolute; left:${x + 8}px; top:${y - 16}px; font-size:10px;">${P.st === 'oben' ? '⬆' : '⬇'}</div>` : ''}`; }).join('');
+  el.innerHTML = `<div style="position:absolute; left:51px; top:51px; width:10px; height:10px; border-radius:50%; background:#fff; opacity:0.8;"></div><div style="position:absolute; left:0; right:0; top:2px; text-align:center; font-size:9px; opacity:0.55;">vorn</div>${dots}`;
+}
+setInterval(() => { try { roomMapTick(); } catch (e) {} try { if (document.getElementById('hostChips') && (!inSession() || !hostActive() || host.chosen >= 0)) hostChips(); } catch (e) {} }, 500);
+// ---------- Lebendige Bewegung: läuft dieselbe Bewegung lange, atmet sie leicht in Tempo und Länge ----------
+const lively = { base: null, at: 0, lastVary: 0, logged: false };
+function livelyNote(num, req) { if (num !== 1) return; if (!req || req.muster || req.texture === 'stop' || req.texture === 'hold' || !Number.isFinite(req.low)) { lively.base = null; return; } lively.base = Object.assign({}, req); lively.at = Date.now(); lively.lastVary = 0; lively.logged = false; }
+setInterval(() => {
+  try {
+    if (localStorage.getItem('companion_lively') === '0' || !lively.base || currentMode !== 'live') return;
+    if ((typeof ar !== 'undefined' && ar.active) || (typeof g3 !== 'undefined' && g3.active) || Date.now() < sigLockUntil || !device1.isConnected()) return;
+    const now = Date.now(); if (now - lively.at < 18000 || now - lively.lastVary < 8000 + Math.random() * 5000) return;
+    const b = lively.base, len = b.high - b.low, f = 1 + (Math.random() * 0.28 - 0.14), lf = 1 + (Math.random() * 0.2 - 0.1), shift = (Math.random() * 2 - 1) * Math.min(60, len * 0.1);
+    const nl = Math.max(30, Math.min(990, len * lf)), mid = Math.max(nl / 2, Math.min(999 - nl / 2, (b.low + b.high) / 2 + shift));
+    const v = Object.assign({}, b, { bpm: Math.max(8, Math.round((b.bpm || 40) * f)), low: Math.round(mid - nl / 2), high: Math.round(mid + nl / 2) });
+    lively.lastVary = now; device1.setMotion(v);
+    if (!lively.logged) { lively.logged = true; logEvent('msg', { role: 'system', text: 'Lebendige Bewegung: dieselbe Bewegung läuft schon eine Weile - sie atmet jetzt leicht in Tempo und Länge.' }); }
+  } catch (e) {}
+}, 1000);
 function applyMotionItem(num, item) {
   const dev = num === 2 ? device2 : device1;
   if (!item) return;
-  if (!/^(markenzeichen|signature|signatur)$/i.test(item.muster || '') && sigLocked(num, item.texture === 'stop', item.muster ? 'Muster ' + item.muster : '')) return;
+  if (!/^(markenzeichen|signature|signatur|duett|finale|zusammen)$/i.test(item.muster || '') && sigLocked(num, item.texture === 'stop', item.muster ? 'Muster ' + item.muster : '')) return;
   if (item.muster) {
     const steps = expandPattern(item.muster, item.tempo);
     if (steps) {
-      dev.runSequence(tintSteps(steps, num)); tintLog(num);
+      dev.runSequence(tintSteps(steps, num)); tintLog(num); livelyNote(num, null);
       logEvent('msg', { role: 'system', text: `Gerät ${num} ${patternLabel(item)}` });
       return;
     }
@@ -15257,7 +15697,7 @@ function applyMotionItem(num, item) {
     return;
   }
   item = tintMotion(item, num);
-  dev.setMotion(item);
+  dev.setMotion(item); livelyNote(num, item);
   logMotionChoice(num, item);
 }
 
@@ -15337,6 +15777,7 @@ function parseMotionStepLoose(raw) {
 }
 
 function parseMotionCue(content) {
+  if (/^\s*edge\b/i.test(String(content))) return { kind: 'edge', inner: String(content).trim(), label: String(content).trim() };
   const parts = String(content).split(/\s*[|;]\s*/).filter(Boolean).slice(0, SEQ_MAX_STEPS);
   let steps = parts.map(parseMotionStepLoose);
   const failed = parts.filter((p, k) => !steps[k]);
@@ -15357,6 +15798,7 @@ function parseMotionCue(content) {
 function cueSummary(cue) {
   if (!cue) return null;
   if (cue.kind === 'state') return cue.motion;
+  if (!Array.isArray(cue.steps)) return null;
   for (let k = cue.steps.length - 1; k >= 0; k--) {
     const st = cue.steps[k];
     if (st.type === 'osc') return { low: st.low, high: st.high, bpm: st.bpm, texture: st.texture };
@@ -15422,7 +15864,11 @@ function stripMarkerDebris(line) {
   return String(line)
     // Bewegungsschritte, die ohne Klammern im Text gelandet sind:
     // "zu 100 in 1s | halten 2s", "pendeln 300-600@40 smooth 3s", "300-700@15"
-    .replace(/\b(zu \d{1,3} in [\d.,]+ ?s|halten [\d.,]+ ?s|pendeln \d{1,3}-\d{1,3}@\d{1,3}(?: [a-z]+)?(?: [\d.,]+ ?s)?|\d{1,3}-\d{1,3}@\d{1,3}(?: (?:smooth|pulse|tremor|hold|stop|accel|zitterhub))?)\b/gi, ' ')
+    .replace(/\b(zu \d{1,3} in [\d.,]+ ?s|halten [\d.,]+ ?s|(?:pendeln|stoßen|stossen|zittern|rampe) \d{1,3}-\d{1,3}@\d{1,3}(?:-\d{1,3})?(?: [a-z]+)?(?: [\d.,]+ ?s)?|\d{1,3}-\d{1,3}@\d{1,3}(?: (?:smooth|pulse|tremor|hold|stop|accel|zitterhub))?|[a-zäöü]+_[a-zäöü_]+(?: (?:langsam|mittel|schnell))?(?: [\d.,]+ ?s)?)\b/gi, ' ')
+    .replace(/\bedge \d{1,2}\s*\/\s*\d{1,2}(?: [\d.,]+ ?s)?\b/gi, ' ')
+    // ein mitgeschriebener Ablauf: "0-3 s hoch zur Spitze · 3-5 s Stillstand"
+    .replace(/\(?\b\d+(?:,\d)?\s?-\s?\d+(?:,\d)?\s?s\b[^·.\n]{0,60}(?:·\s*\d+(?:,\d)?\s?-\s?\d+(?:,\d)?\s?s\b[^·.\n]{0,60})*\)?/g, ' ')
+    .replace(/\s·\s/g, ' ')
     .replace(/\s\|\s/g, ' ')
     .replace(/<{1,}|>{1,}|\{\{|\}\}/g, ' ').replace(/[ \t]{2,}/g, ' ');
 }
@@ -15692,6 +16138,49 @@ function threadBlock() {
     return `\n\nFORTSETZUNG (Folge ${th.ep + 1} - wie eine Serie)${exact ? '' : ' - nicht alle von damals sind dabei'}: Bisher: ${th.stand}${th.offen && th.offen.length ? ' Offene Fäden: ' + th.offen.join('; ') + '.' : ''}${th.next ? ' Vorgemerkt für dieses Mal: ' + th.next : ''}${early ? '\nJETZT, zu Beginn: Knüpft spürbar daran an (ein offener Faden, ein Versprechen, eine Anspielung) und führt es weiter - nicht nacherzählen, sondern weitermachen, als wäre kaum Zeit vergangen. Passt es nicht zur neuen Szene, genügt eine kurze Anspielung.' : '\nGreift offene Fäden auf, wenn es passt, und löst sie im Lauf der Zeit ein.'}`;
   } catch (e) { return ''; }
 }
+// ---------- Überraschungen: ein unsichtbarer Regisseur wirft ab und zu eine Wendung in die Szene ----------
+// Nicht vorher angekündigt (Til soll überrascht werden), nie zweimal dieselbe in einer Sitzung, passend zur Besetzung.
+const TWISTS = [
+  { id: 'ort', name: 'Ortswechsel', need: () => true, text: 'Eine Figur zieht Til mitten im Moment an einen anderen Ort (Dusche, Balkon, Küchentisch, Auto, Treppenhaus, Sauna … etwas, das zur Szene passt) - die Umgebung verändert alles.', dev: 'beim Wechsel kurz <<halten 3s>>, am neuen Ort neu anfangen (z. B. <<muster kaskade langsam>>)' },
+  { id: 'rollen', name: 'Rollentausch', need: (cs) => cs.length >= 1, text: 'Die Figur, die bisher eher folgt, übernimmt überraschend die Führung - oder die Führende gibt sie demonstrativ ab und lässt sich führen. Spürbarer Machtwechsel.', dev: 'der Wechsel ist am Gerät deutlich: anderes Tempo, andere Art (z. B. <<muster spirale mittel>> oder <<muster tauchen langsam>>)' },
+  { id: 'wette', name: 'Wette', need: (cs) => cs.length >= 2, text: 'Die Figuren schließen eine Wette ab, wer Til zuerst zum Stöhnen / an den Rand bringt - abwechselnd, mit Zeit und Regeln. Sie zählen mit und necken sich.', dev: 'jede hat ihren Zug: Wechsel mit Pause, jede in ihrer Art (<<muster herzschlag mittel>>, <<muster wirbel mittel>> …)' },
+  { id: 'augen', name: 'Augenbinde', need: () => true, text: 'Til bekommt die Augen verbunden (Seidentuch, Hand, Krawatte). Ab jetzt weiß er nicht, wer was tut - die Figuren flüstern, wechseln heimlich, raten lassen.', dev: 'unvorhersehbar: Pausen, plötzliche Wechsel (<<muster locken mittel>>, <<halten 2s>>, <<muster stottern mittel>>)' },
+  { id: 'stoerung', name: 'Unterbrechung', need: () => true, text: 'Etwas stört: das Telefon klingelt, jemand klopft, eine Nachricht kommt - eine Figur macht trotzdem leise weiter oder zwingt Til, still zu bleiben. Heimlichkeit, Nervenkitzel.', dev: 'erst Stillstand <<halten 4s>>, dann ganz leise und langsam weiter (<<muster schaukeln langsam>>)' },
+  { id: 'requisit', name: 'Requisit', need: () => true, text: 'Eine Figur holt etwas Neues dazu, das zu ihren Vorlieben passt (warmes Öl, Eiswürfel, Feder, Seidenband, Handschellen, ein Spielzeug) und setzt es sofort ein.', dev: 'die neue Empfindung zeigt sich am Gerät: zuerst ganz zart, dann deutlich anders als vorher' },
+  { id: 'gestaendnis', name: 'Geständnis', need: () => true, text: 'Eine Figur gesteht mitten im Moment eine Fantasie, die sie Til noch nie erzählt hat - und fragt, ob sie es jetzt mit ihm ausprobieren darf. Bei Ja: behutsam beginnen.', dev: 'beim Geständnis langsamer (<<muster atem langsam>>), beim Ausprobieren <<muster treppe langsam>>' },
+  { id: 'eifersucht', name: 'Eifersucht', need: (cs) => cs.length >= 2, text: 'Eine Figur wird eifersüchtig oder fühlt sich übergangen und fordert Til für sich ein - die andere reagiert nach ihrem Charakter (lacht, kontert, macht mit).', dev: 'Wechsel zur Fordernden, spürbar drängender (<<muster steigern mittel>>)' },
+  { id: 'bruch', name: 'Tempo-Bruch', need: () => true, text: 'Mitten im schnellsten Moment hört die führende Figur abrupt auf - Stille, Blickkontakt, ein Satz - und fängt dann quälend langsam von vorne an.', dev: 'genau so: <<muster verweigern mittel>>' },
+  { id: 'kommando', name: 'Kommando an Til', need: () => true, text: 'Die Figuren geben Til die Kontrolle: Er soll sagen, was als Nächstes passiert, wer was tut und wie schnell - sie fragen ihn direkt und warten auf seine Antwort.', dev: 'beim Fragen <<muster schaukeln langsam>> - bis er antwortet' },
+  { id: 'zuschauen', name: 'Zuschauen', need: (cs) => cs.length >= 2, text: 'Eine Figur lehnt sich zurück und schaut nur zu, während die andere weitermacht - sie kommentiert leise, gibt Anweisungen, spielt dabei an sich selbst.', dev: 'nur noch die Art der Aktiven am Gerät' },
+  { id: 'spiegel', name: 'Spiegel', need: () => true, text: 'Eine Figur zieht Til vor einen Spiegel oder schaltet die Kamera an - sie will, dass er zusieht, wie sie ihn verwöhnt, und beschreibt, was sie sieht.', dev: 'langsam und ausgiebig (<<muster ebbe_flut mittel>>)' },
+];
+const twistState = { lastN: -1, lastText: '', used: new Set(), nextAt: 6 };
+function twistActiveNow() { try { twistBlock(); return !!twistState.lastText; } catch (e) { return false; } }
+function twistSetting() { return localStorage.getItem('companion_twists') || 'mittel'; }
+function twistBlock() {
+  try {
+    const mode = twistSetting(); if (mode === 'aus') return '';
+    if (typeof guidedOn === 'function' && guidedOn() && /ankommen|nachglühen/.test(guidedPhase())) return '';   // beim Ankommen und Nachglühen keine Wendungen
+    const n = (typeof history !== 'undefined' ? history : []).filter(m => m.role === 'assistant').length;
+    if (n < 2) { twistState.used.clear(); twistState.nextAt = mode === 'oft' ? 4 + Math.floor(Math.random() * 2) : mode === 'selten' ? 9 + Math.floor(Math.random() * 4) : 5 + Math.floor(Math.random() * 3); }
+    if (twistState.lastN === n) return twistState.lastText || '';
+    twistState.lastN = n; twistState.lastText = '';
+    if (n < twistState.nextAt) return '';
+    const gap = mode === 'oft' ? [4, 6] : mode === 'selten' ? [9, 13] : [5, 8];
+    twistState.nextAt = n + gap[0] + Math.floor(Math.random() * (gap[1] - gap[0] + 1));
+    const cs = characters.filter(c => !c.isUser && !c.isNarrator);
+    const txt = cs.map(c => (c.core || '') + ' ' + (c.notes || '')).join(' ').toLowerCase();
+    const pool = TWISTS.filter(t => t.need(cs) && !twistState.used.has(t.id));
+    if (!pool.length) return '';
+    // passend gewichten: Fessel/Peitsche-Vorlieben → Requisit/Augenbinde, Beziehungen → Eifersucht/Wette
+    const w = t => 1 + (/fessel|seil|handschell|augenbind|peitsch|öl|eis/.test(txt) && /requisit|augen/.test(t.id) ? 1.5 : 0) + (cs.length >= 2 && relationsBlock() && /eifersucht|wette|zuschauen/.test(t.id) ? 1 : 0) + (/zuschau|spiegel|beobacht/.test(txt) && /spiegel|zuschauen/.test(t.id) ? 1 : 0);
+    const tot = pool.reduce((a, t) => a + w(t), 0); let r = Math.random() * tot, pick = pool[0];
+    for (const t of pool) { r -= w(t); if (r <= 0) { pick = t; break; } }
+    twistState.used.add(pick.id);
+    try { logEvent('msg', { role: 'system', text: `🎲 Wendung (für dich geheim): ${pick.name}` }); } catch (e) {}
+    return (twistState.lastText = `\n\nWENDUNG (nur für diese Antwort, nicht ankündigen, nicht erklären - es passiert einfach, aus der Situation heraus und passend zu den Figuren): ${pick.text} Am Gerät: ${pick.dev}. Danach geht die Szene mit dieser Wendung weiter.`);
+  } catch (e) { return ''; }
+}
 // Erinnerungs-Impuls: zu Beginn einer Sitzung und etwa jede fünfte Antwort greift eine anwesende Figur
 // eine konkrete, länger nicht genutzte Erinnerung auf (vorher kamen Erinnerungen kaum je zur Sprache)
 const memNudge = { used: new Set(), lastN: -1, lastText: '' };
@@ -15885,7 +16374,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${twistBlock()}${conductorBlock()}${edgeBlock()}${guidedBlock()}${hostBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -16130,8 +16619,9 @@ function placeRule() {
   if (introPhase(sceneStep)) {
     return 'Es spielen nur die oben genannten Figuren mit - keine neuen. Ein Ortswechsel ist erlaubt, wenn er sich aus dem Gespräch ergibt; beschreibe dann kurz den neuen Ort. Der Fokus liegt auf dem Gespräch und der wachsenden Spannung zwischen uns, nicht auf Körperlichem.';
   }
-  const moved = pace('live') === 'langsam' ? ' - bzw. an dem Ort, an dem ihr im Verlauf zuletzt wart' : '';
-  return `Bleib strikt in der Szene${moved}: dieselben Figuren, keine neue Rahmenhandlung, keine Gegenstände oder Rollen, die vorher nicht da waren. Der Fokus liegt durchgehend auf dem, was körperlich zwischen uns geschieht - nicht auf Plänen, Vorschlägen oder Ortswechseln. Wenn du nicht weiterweißt, beschreibe genauer, was gerade passiert, statt etwas Neues zu erfinden.`;
+  const moved = ' - bzw. an dem Ort, an dem ihr im Verlauf zuletzt wart';
+  if (twistActiveNow()) return `Dieselben Figuren, keine neuen. Diesmal gilt die WENDUNG unten: sie darf Ort, Gegenstände oder Rollen verändern - danach bleibt ihr dabei. Der Fokus bleibt auf dem, was körperlich zwischen uns geschieht.`;
+  return `Bleib in der Szene${moved}: dieselben Figuren, keine neue Rahmenhandlung; Gegenstände und Rollen, die im Verlauf dazukamen, bleiben, sonst nichts Neues erfinden. Der Fokus liegt durchgehend auf dem, was körperlich zwischen uns geschieht - nicht auf Plänen, Vorschlägen oder Ortswechseln. Wenn du nicht weiterweißt, beschreibe genauer, was gerade passiert, statt etwas Neues zu erfinden.`;
 }
 
 function buildEnsemblePrompt(autoStep, isRetry, photo) {
@@ -16220,7 +16710,7 @@ function addUserMsg(text) {
     label.style.alignSelf = 'flex-end';
     els.transcript.appendChild(label);
   }
-  addMsg('user', text);
+  addMsg('user', text); sigLockUntil = 0;   // wer selbst etwas sagt, darf das Markenzeichen unterbrechen
 }
 
 function addEnsembleMsg(role, text) {
@@ -16310,7 +16800,7 @@ function applyQuickTempo(wish) {
 // Mehrere Figuren: wie bei einem echten Dreier zwischen Erwachsenen - sie haben auch miteinander etwas
 function togetherBlock() {
   const f = characters.filter(c => !c.isUser && !c.isNarrator); if (f.length < 2) return '';
-  return `\n\nMITEINANDER (${f.map(c => c.name.split(' ')[0]).join(', ')}): Ihr seid nicht nur meinetwegen da, ihr habt auch miteinander etwas - jede nach ihrem Charakter: frotzelt und scherzt, macht euch Komplimente, findet einander anziehend und zeigt es (Blicke, ein Kuss, eine Berührung), feuert euch gegenseitig an, sprecht euch ab („du oben, ich unten"), reizt euch mit kleiner Rivalität, spielt an euch selbst, während ihr der anderen zuseht, lacht über einen Patzer. Wechselt ihr euch bei mir ab, sagt es kurz an („Jetzt ich", „Rutsch rüber") - dann gibt es eine kleine Pause, bevor die andere anfängt. Ich bleibe der rote Faden, aber das Miteinander macht es lebendig - etwa jede zweite Antwort ein kleiner Moment zwischen euch.`;
+  return `\n\nMITEINANDER (${f.map(c => c.name.split(' ')[0]).join(', ')}): Ihr seid nicht nur meinetwegen da, ihr habt auch miteinander etwas - jede nach ihrem Charakter: frotzelt und scherzt, macht euch Komplimente, findet einander anziehend und zeigt es (Blicke, ein Kuss, eine Berührung), feuert euch gegenseitig an, sprecht euch ab („du oben, ich unten"), reizt euch mit kleiner Rivalität, spielt an euch selbst, während ihr der anderen zuseht, lacht über einen Patzer. Wechselt ihr euch bei mir ab, sagt es kurz an („Jetzt ich", „Rutsch rüber") - dann gibt es eine kleine Pause, bevor die andere anfängt. Ich bleibe der rote Faden, aber das Miteinander macht es lebendig - etwa jede zweite Antwort ein kleiner Moment zwischen euch.${f.filter(c => parseSigMotion(c.sigMotion)).length >= 2 ? ' Für das gemeinsame Finale (wenn es auf den Höhepunkt zugeht und ihr beide zugleich bei mir seid) gibt es den Marker <<duett>> - eure Markenzeichen verflochten.' : ''}`;
 }
 function isHandover(t) {
   return /(?:^|[^a-zäöüß])(jetzt bin ich dran|ich bin dran|jetzt ich|du bist dran|jetzt du|ich übernehme|übernimm\w*|lass mich (mal |jetzt )?(ran|übernehmen)|rutsch\w* (mal )?(rüber|zur seite)|mach\w* (ihr |mir |dir )?platz|lässt (ihn|dich) los|lässt los|wechsel\w*|tausch\w* (die )?(plätze|platz|rollen)|löst (sie|mich|dich) ab|abwechseln)/i.test(String(t || '').replace(/\[[^\]]*\]/g, ' '));
@@ -16340,6 +16830,8 @@ async function askEnsemble(userText, options) {
   }
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  if (currentMode === 'live') { try { conductorBefore(silent ? '' : userText); } catch (e) {} }
+  if (guidedOn()) { try { if (!guided.startAt || replyCount() === 0) guidedReset(); if (!silent && CAME_RE.test(String(userText || '').trim())) guided.came = true; } catch (e) {} }
 
   // Früher schnitt jede neue Nachricht die laufende Antwort ab. Jetzt spricht
   // die Figur zu Ende; die neue Antwort entsteht währenddessen und folgt direkt.
@@ -16447,7 +16939,11 @@ async function askEnsemble(userText, options) {
     // Warten, bis die vorige Antwort zu Ende gesprochen ist - dann übernehmen.
     if (queueMode) {
       logEvent('msg', { role: 'system', text: 'Nächste Antwort fertig - wartet, bis die Figur ausgesprochen hat.' });
-      await prevPlayback;
+      // Wächter: hängt die vorige Wiedergabe (Ton bleibt stecken), wartete die neue Antwort bisher für immer -
+      // dann kamen „keine Antworten mehr". Nach 40 s ohne jeden Fortschritt wird die alte abgebrochen.
+      let hung = false;
+      await Promise.race([prevPlayback, new Promise(res => { const iv = setInterval(() => { if (Date.now() - (window.__speechTick || 0) > 40000) { clearInterval(iv); hung = true; res(); } }, 1000); prevPlayback.then(() => clearInterval(iv), () => clearInterval(iv)); })]);
+      if (hung) { logEvent('msg', { role: 'system', text: 'Wiedergabe hing über 40 s ohne Fortschritt - abgebrochen, die neue Antwort kommt jetzt.' }); try { clearCueTimers(); speechSynthesis.cancel(); if (currentElevenAudio) { try { currentElevenAudio.pause(); } catch (e) {} if (currentElevenResolve) { currentElevenResolve(); currentElevenResolve = null; } } } catch (e) {} }
       if (chainEpoch !== myEpoch) return false;
       // Selbstlauf-Fortsetzung, während ich inzwischen geschrieben habe: verwerfen - sonst sprach die Figur
       // erst die vorbereitete Fortsetzung und dann die Antwort an mich, oft mit demselben Inhalt (klang doppelt).
@@ -16590,6 +17086,7 @@ async function askEnsemble(userText, options) {
       if (sfxPlan[i]) playSfx(sfxPlan[i], generation);
       noteSpeaker(pieces[i].role);
       try { setMotionTint(pieces[i].role, pieces[i].text); } catch (e) {}
+      try { notePose(pieces[i].role, pieces[i].text, pieces[i].role === 'narrator'); if (pieces[i].role !== 'narrator') window.__lastVoiceRole = pieces[i].role; } catch (e) {}
       try { if (typeof avk2MaybeSwap === 'function') avk2MaybeSwap(pieces[i].role, pieces[i].text); } catch (e) {}
       // Handwechsel: hört eine Figur auf und die andere fängt an, kurz keine Bewegung (einmal je Antwort)
       try { if (!pieces.__hw && isHandover(pieces[i].text)) { pieces.__hw = true; const ms = 1200 + Math.round(Math.random() * 600); device1.pauseFor(ms); } } catch (e) {}
@@ -16597,7 +17094,7 @@ async function askEnsemble(userText, options) {
         try { applyNarrationMotion(pieces[i].text); } catch (e) {}
       }
       if (!autoPlaying && silent && !(options && options.speak)) break;   // Zufallsbegegnung spricht auch ohne Selbstlauf
-      playIndex = i;
+      playIndex = i; window.__speechTick = Date.now();
       const current = prep(i);
       prep(i + 1); prep(i + 2);   // zwei Abschnitte Vorlauf
 
@@ -16611,6 +17108,7 @@ async function askEnsemble(userText, options) {
       let fillWait = 0, ttsT0 = Date.now();
       if (firstOne) { fillWait = await settleFillers(); wishOnReplyStart(); }
       await current.play((timeline) => {
+        window.__speechTick = Date.now();
         if (firstOne) logEvent('msg', { role: 'system', text: `Stimme startet ${((Date.now() - replyShownAt) / 1000).toFixed(1)} s nach dem Text (erster Abschnitt ${piece.text.length} Zeichen, ${pieces.length} Abschnitte; Füll-Laut ${(fillWait / 1000).toFixed(1)} s, Vertonung ${((current.readyAt ? current.readyAt - replyShownAt : Date.now() - ttsT0) / 1000).toFixed(1)} s${current.timed ? ', mit Zeitstempeln' : ''}).` });
         if (inline && piece.cues && piece.cues.length) ctl = scheduleCues(piece.cues, timeline, () => playbackGeneration === generation);
       });
@@ -16623,6 +17121,7 @@ async function askEnsemble(userText, options) {
       }
     }
     await motionReady; // keep a late failure from surfacing as an unhandled rejection
+    try { conductorAfterReply(); } catch (e) {}
     return true;
   } catch (err) {
     if (!err.aborted) addMsg('system', 'Fehler beim Abrufen der Antwort: ' + err.message);
@@ -18408,7 +18907,29 @@ Antworte NUR als JSON: {"geraet": "..."}`;
 function playSigMotion(c, quiet) {
   const steps = parseSigMotion(c.sigMotion); if (!steps) { if (!quiet) showToast('Noch keine gültige Gerätebewegung', true); return false; }
   if (!device1.isConnected()) { if (!quiet) showToast('Gerät 1 ist nicht verbunden', true); return false; }
-  device1.runSequence(steps.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät vorgeführt: ${c.name} - ${c.sigMotion}` }); return true;
+  device1.runSequence(steps.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät vorgeführt: ${c.name} - ${c.sigMotion}` });
+  sigBar(c.name, steps); return true;
+}
+// Sichtbar machen, dass (und was) das Gerät gerade vorführt: Leiste mit Ablauf und Fortschritt
+let sigBarEl = null, sigBarTimer = null;
+function sigBar(name, steps) {
+  try {
+    const total = steps.reduce((t, x) => t + (x.ms || 0), 0); if (!total) return;
+    if (sigBarEl) sigBarEl.remove(); clearInterval(sigBarTimer);
+    const el = document.createElement('div'); sigBarEl = el;
+    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 14px); z-index:5000; background:rgba(20,12,16,0.94); border:1px solid rgba(217,178,107,0.5); border-radius:14px; padding:10px 12px; color:#fff; font-size:13px; box-shadow:0 6px 24px rgba(0,0,0,0.5);';
+    const segs = []; let t = 0; steps.forEach(st => { const a = t; t += st.ms || 0; const col = st.type === 'hold' ? '#555' : st.type === 'move' ? '#8fb8ff' : st.texture === 'pulse' ? '#ff6a5a' : st.texture === 'tremor' || st.texture === 'zitterhub' ? '#d39bff' : st.texture === 'accel' ? '#ffa86b' : '#f2a7c3'; segs.push(`<div style="position:absolute; left:${a / total * 100}%; width:${(st.ms || 0) / total * 100}%; top:0; bottom:0; background:${col}; opacity:0.75;"></div>`); });
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><b style="flex:1;">🎛️ ${esc(name)}${/Duett/.test(name) ? '' : ' - Markenzeichen am Gerät'}</b><span class="sb-t"></span><button type="button" class="sb-x" style="background:none; border:0; color:#fff; font-size:16px; padding:0 4px;">✕</button></div>
+      <div style="position:relative; height:10px; border-radius:5px; overflow:hidden; margin-top:6px; background:#222;">${segs.join('')}<div class="sb-p" style="position:absolute; top:-2px; bottom:-2px; width:2px; background:#fff; left:0;"></div></div>
+      <div class="sb-now" style="margin-top:4px; opacity:0.8; font-size:12px;"></div>`;
+    document.body.appendChild(el);
+    const human = sigMotionHuman(steps).split(' · ');
+    const t0 = Date.now(); const tick = () => { const e = Date.now() - t0; if (e >= total || !document.body.contains(el)) { clearInterval(sigBarTimer); if (document.body.contains(el)) setTimeout(() => el.remove(), 600); return; }
+      el.querySelector('.sb-p').style.left = (e / total * 100) + '%'; el.querySelector('.sb-t').textContent = Math.ceil((total - e) / 1000) + ' s';
+      const cur = human.find(h => { const m = h.match(/^([\d,]+)-([\d,]+) s/); return m && e / 1000 >= parseFloat(m[1].replace(',', '.')) && e / 1000 < parseFloat(m[2].replace(',', '.')); }); el.querySelector('.sb-now').textContent = cur ? cur.replace(/^[\d,]+-[\d,]+ s /, '') : ''; };
+    tick(); sigBarTimer = setInterval(tick, 200);
+    el.querySelector('.sb-x').onclick = () => { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} clearInterval(sigBarTimer); el.remove(); };
+  } catch (e) {}
 }
 function otherSignatures(exceptId) { return figureArchive.filter(f => f.id !== exceptId).map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && (v.signature || '').trim()).map(v => v.name + ': ' + v.signature.trim().slice(0, 160)).slice(0, 30); }
 async function refreshAllSignatures(btn) {
@@ -18479,65 +19000,80 @@ Antworte NUR als JSON: {"notes": "...", "traits": ["..."], "core": "...", "style
   throw new Error(lastErr);
 }
 let fullRefresh = null;
-async function refreshAllFigures(btn) {
-  if (fullRefresh) { if (confirm('Den laufenden Durchgang anhalten? Du kannst später an derselben Stelle weitermachen.')) { fullRefresh.stop = true; btn.textContent = 'Hält nach diesem Schritt an …'; } return; }
-  const figs = () => figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator);
-  const N = figs().length;
-  // Weitermachen, wo ein angehaltener Durchgang stehen blieb (bis 24 h)
-  let prog = null; try { prog = JSON.parse(localStorage.getItem('companion_refreshProg') || 'null'); } catch (e) {}
-  if (prog && Date.now() - prog.t < 86400000 && prog.step > 1) {
-    if (confirm(`Der letzte Durchgang wurde bei Schritt ${prog.step} von 6 angehalten. Dort weitermachen?\n\nOK = weitermachen · Abbrechen = von vorne`)) return refreshAllFigures2(btn, prog);
-  }
-  if (!confirm(`Alle ${N} Figuren auf den aktuellen Stand bringen - in einem Durchgang:\n\n1. KI liest alle Figuren und setzt sie auf die Charakter-Karte\n2. Wo sie sich zu sehr ähneln, bekommen einzelne einen deutlich anderen Charakter (Beschreibung, Eigenschaften, Kern, Tonfall - Name und Aussehen bleiben), bis es ein bunter Mix ist\n3. Fehlende Felder ergänzen\n4. Neue, unverwechselbare Markenzeichen für alle\n5. Beziehungen: Namen aus Beschreibungen übernehmen, ein paar spannende neu\n6. Doppelte Stimmen neu verteilen\n\nDauert je nach Anzahl 10-20 Minuten und kostet etwa ${(N * 0.03 + 0.2).toFixed(2).replace('.', ',')} $. Bildschirm bitte anlassen. Alte Versionen bleiben erhalten; nochmal tippen hält an.`)) return;
-  return refreshAllFigures2(btn, { step: 1, sigDone: [], t: Date.now() });
+// Generationen: Ändert sich an einem Schritt etwas Grundsätzliches (z. B. wie Markenzeichen-Bewegungen gebaut werden),
+// wird hier die Zahl erhöht - dann fasst „Alle auf aktuellen Stand" nur diesen Teil bei allen Figuren neu an.
+const GEN = { mix: 1, sig: 2, sigMotion: 2 };
+function genAll() { try { return JSON.parse(localStorage.getItem('companion_gen') || '{}'); } catch (e) { return {}; } }
+function genOf(id) { return genAll()[id] || {}; }
+function genSet(id, patch) { const g = genAll(); g[id] = Object.assign(g[id] || {}, patch); safeSet('companion_gen', JSON.stringify(g)); }
+function genMigrate() {
+  if (localStorage.getItem('companion_genMigrated')) return;
+  // Wer heute schon den großen Durchgang hatte, gilt als aktuell
+  figureArchive.forEach(f => { const v = latestVersion(f); if (!v || v.isUser || v.isNarrator) return; const st = parseSigMotion(v.sigMotion), tot = st ? st.reduce((t, x) => t + (x.ms || 0), 0) : 0;
+    genSet(f.id, { mix: GEN.mix, sig: (v.signature || '').length >= 60 ? GEN.sig : 0, sigMotion: tot >= 12000 ? GEN.sigMotion : 0 }); });
+  safeSet('companion_genMigrated', '1');
 }
-async function refreshAllFigures2(btn, prog) {
+function missingFieldsOf(v) { const m = []; if (!v.isNarrator && (v.signature || '').trim().length < 40) m.push('Markenzeichen'); if (!(v.styleExamples || '').trim()) m.push('Tonfall'); if (!(v.voiceDescription || '').trim()) m.push('Stimmbeschreibung'); if (!v.isNarrator && !(v.core || '').trim()) m.push('Kern'); return m; }
+async function refreshAllFigures(btn) {
+  if (fullRefresh) { if (confirm('Den laufenden Durchgang anhalten? Beim nächsten Mal geht es mit dem weiter, was noch offen ist.')) { fullRefresh.stop = true; btn.textContent = 'Hält nach diesem Schritt an …'; } return; }
+  genMigrate();
   const figs = () => figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator);
-  const N = figs().length;
-  const saveProg = (st) => { prog.step = st; prog.t = Date.now(); safeSet('companion_refreshProg', JSON.stringify(prog)); };
-  fullRefresh = { stop: false }; const label = btn.dataset.label || btn.textContent; btn.dataset.label = label;
-  const rep = [], step = t => { btn.textContent = t; }, stopped = () => fullRefresh.stop;
+  const label = btn.dataset.label || btn.textContent; btn.dataset.label = label;
+  fullRefresh = { stop: false }; const step = t => { btn.textContent = t; }, stopped = () => fullRefresh.stop;
   const upd = (f, patch) => { const c = characterFromVersion(f); Object.assign(c, patch); storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, patch) : x); };
   try {
-    // 1. einschätzen
+    // Vorab (günstig): einschätzen, was noch nicht eingeschätzt ist - dann steht fest, was wirklich zu tun ist
     const stale = () => charMapData().filter(d => !d.ai).map(d => ({ f: d.f, v: d.v }));
-    if (stale().length) { await rateFigures(stale(), (i, n) => step(`1/6 KI liest Figuren … ${Math.min(n, i + 6)}/${n}`)); }
+    if (stale().length) await rateFigures(stale(), (i, n) => step(`Prüfe … ${Math.min(n, i + 6)}/${n}`));
     let D = charMapData().filter(d => d.ai);
-    if (D.length < 3) throw new Error('Einschätzung ging nicht' + (rateFigures.lastErr ? ': ' + rateFigures.lastErr : ''));
-    if (prog.step < 2) saveProg(2);
-    // 2. bunter Mix
-    if (!stopped() && prog.step <= 2) {
-      const plan = diversityPlan(D); let ok = 0;
-      for (let i = 0; i < plan.length && !stopped(); i++) {
-        const x = plan[i]; step(`2/6 Charakter ${i + 1}/${plan.length}: ${x.d.v.name} …`);
-        try { const r = await reshapeCharacter(characterFromVersion(x.d.f), x.hint); upd(x.d.f, Object.assign(r, { deviceStyle: '' })); ok++; rep.push(`${x.d.v.name}: ${x.dirs.length ? '→ ' + x.dirs.join(', ') : ''}${x.twin ? (x.dirs.length ? ', ' : '') + 'anders als ' + x.twin : ''}`); }
-        catch (e) { rep.push(`${x.d.v.name}: Umbau ging nicht (${e.message})`); }
-      }
-      logEvent('msg', { role: 'system', text: `Bunter Mix: ${ok} von ${plan.length} Figuren umgebaut. ` + rep.join(' · ') });
-      if (ok && !stopped()) await rateFigures(stale(), (i, n) => step(`2/6 Neu einschätzen … ${Math.min(n, i + 6)}/${n}`));
+    const mixPlan = D.length >= 3 ? diversityPlan(D).filter(x => (genOf(x.d.f.id).mix || 0) < GEN.mix) : [];
+    const fieldList = figs().filter(x => missingFieldsOf(x.v).length && !mixPlan.some(m => m.d.f === x.f));
+    const sigList = () => figs().filter(x => (genOf(x.f.id).sig || 0) < GEN.sig);
+    const motionList = () => figs().filter(x => (genOf(x.f.id).sig || 0) >= GEN.sig && ((genOf(x.f.id).sigMotion || 0) < GEN.sigMotion || !parseSigMotion(x.v.sigMotion)));
+    const mentions = relMentions(), wantRel = relList().length < Math.ceil(figs().length / 3) && Date.now() - (+localStorage.getItem('companion_relSuggestAt') || 0) > 7 * 86400000;
+    const byVoice = {}; figs().forEach(x => { const id = x.v.elevenVoice || '-'; (byVoice[id] = byVoice[id] || []).push(x); }); const dupVoices = apiKeyFor('companion_elevenKey') ? Object.entries(byVoice).reduce((n, [id, l]) => n + (id === '-' ? l.length : l.length - 1), 0) : 0;
+    const nm = l => l.slice(0, 6).map(x => (x.v || x.d.v).name.split(' ')[0]).join(', ') + (l.length > 6 ? ' …' : '');
+    const lines = [
+      mixPlan.length ? `• ${mixPlan.length} Charaktere für den bunten Mix umbauen (${mixPlan.slice(0, 6).map(x => x.d.v.name.split(' ')[0] + (x.dirs.length ? ' → ' + x.dirs.join('/') : '')).join(', ')}${mixPlan.length > 6 ? ' …' : ''})` : '',
+      fieldList.length ? `• ${fieldList.length} Figuren: fehlende Felder ergänzen (${nm(fieldList)})` : '',
+      sigList().length || mixPlan.length ? `• ${sigList().length + mixPlan.filter(m => (genOf(m.d.f.id).sig || 0) >= GEN.sig).length} neue Markenzeichen mit Gerätebewegung` : '',
+      motionList().length ? `• ${motionList().length} Markenzeichen behalten, nur die Gerätebewegung neu (${nm(motionList())})` : '',
+      mentions.length ? `• ${mentions.length} Namen aus Beschreibungen in Beziehungen verschieben` : '',
+      wantRel ? '• ein paar neue Beziehungen vorschlagen lassen' : '',
+      dupVoices ? `• ${dupVoices} doppelte/fehlende Stimmen neu verteilen` : '',
+    ].filter(Boolean);
+    if (!lines.length) { alert('Alles ist auf dem aktuellen Stand - nichts zu tun.'); return; }
+    if (!confirm(`Das ist zu tun - nur Neues und Geändertes, alles andere bleibt unberührt:\n\n${lines.join('\n')}\n\nBildschirm bitte anlassen. Alte Versionen bleiben erhalten; nochmal tippen hält an.`)) return;
+    const rep = [];
+    // 1. bunter Mix (nur, wer in dieser Generation noch nicht umgebaut wurde)
+    let ok = 0;
+    for (let i = 0; i < mixPlan.length && !stopped(); i++) {
+      const x = mixPlan[i]; step(`Charakter ${i + 1}/${mixPlan.length}: ${x.d.v.name} …`);
+      try { const r = await reshapeCharacter(characterFromVersion(x.d.f), x.hint); upd(x.d.f, Object.assign(r, { deviceStyle: '' })); genSet(x.d.f.id, { mix: GEN.mix, sig: 0, sigMotion: 0 }); ok++; rep.push(`${x.d.v.name}: ${x.dirs.length ? '→ ' + x.dirs.join(', ') : ''}${x.twin ? (x.dirs.length ? ', ' : '') + 'anders als ' + x.twin : ''}`); }
+      catch (e) { rep.push(`${x.d.v.name}: Umbau ging nicht (${e.message})`); }
     }
-    if (!stopped() && prog.step < 3) saveProg(3);
-    // 3. fehlende Felder
+    if (ok && !stopped()) { logEvent('msg', { role: 'system', text: `Bunter Mix: ${ok} von ${mixPlan.length} umgebaut. ` + rep.join(' · ') }); await rateFigures(stale(), (i, n) => step(`Neu einschätzen … ${Math.min(n, i + 6)}/${n}`)); }
+    // 2. fehlende Felder
     const filled = [];
-    for (let i = 0; i < N && !stopped() && prog.step <= 3; i++) { const f = figs()[i].f; step(`3/6 Felder ${i + 1}/${N} …`); try { const r = await upgradeFigure(f, true); if (r && r.changed.length) filled.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) {} }
-    if (!stopped() && prog.step < 4) saveProg(4);
-    // 4. Markenzeichen (wer in diesem Durchgang schon eins bekam, wird beim Weitermachen übersprungen)
-    let sigs = 0; const sigFail = [];
-    for (let i = 0; i < N && !stopped() && prog.step <= 4; i++) { const f = figs()[i].f, nm = latestVersion(f).name; if ((prog.sigDone || []).includes(f.id)) continue; step(`4/6 Markenzeichen ${i + 1}/${N}: ${nm} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion }); sigs++; (prog.sigDone = prog.sigDone || []).push(f.id); saveProg(4); } catch (e) { sigFail.push(nm + ': ' + e.message); } }
-    if (!stopped() && prog.step < 5) saveProg(5);
+    for (let i = 0; i < fieldList.length && !stopped(); i++) { step(`Felder ${i + 1}/${fieldList.length} …`); try { const r = await upgradeFigure(fieldList[i].f, true); if (r && r.changed.length) filled.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) {} }
+    // 3. Markenzeichen (ganz neu) und 4. nur Gerätebewegung
+    let sigs = 0, motions = 0; const sigFail = [];
+    const SL = sigList();
+    for (let i = 0; i < SL.length && !stopped(); i++) { const f = SL[i].f, n = latestVersion(f).name; step(`Markenzeichen ${i + 1}/${SL.length}: ${n} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion }); genSet(f.id, { sig: GEN.sig, sigMotion: r.motion ? GEN.sigMotion : 0 }); sigs++; } catch (e) { sigFail.push(n + ': ' + e.message); } }
+    const ML = motionList();
+    for (let i = 0; i < ML.length && !stopped(); i++) { const f = ML[i].f, n = latestVersion(f).name; step(`Bewegung ${i + 1}/${ML.length}: ${n} …`); try { const m = await sigMotionFor(characterFromVersion(f)); upd(f, { sigMotion: m }); genSet(f.id, { sigMotion: GEN.sigMotion }); motions++; } catch (e) { sigFail.push(n + ' (Bewegung): ' + e.message); } }
     // 5. Beziehungen
     let relTaken = 0, relNew = 0;
     if (!stopped()) {
-      step('5/6 Beziehungen …');
+      step('Beziehungen …');
       relMentions().forEach(m => { const { text, clean } = relExtract(m); if (!text) return; upd(m.f, clean); const old = relGet(m.f, m.g) || {}; relSet(m.f, m.g, { kind: old.kind || '', text: [old.text, text].filter(Boolean).join(' ').slice(0, 600), by: old.by || 'du' }); relTaken++; });
-      if (relList().length < Math.ceil(N / 3)) { try { (await relSuggest()).forEach(x => { if (!relGet(x.fa, x.fb)) { relSet(x.fa, x.fb, { kind: x.kind, text: x.text, by: 'Vorschlag' }); relNew++; } }); } catch (e) {} }
+      if (wantRel) { safeSet('companion_relSuggestAt', String(Date.now())); try { (await relSuggest()).forEach(x => { if (!relGet(x.fa, x.fb)) { relSet(x.fa, x.fb, { kind: x.kind, text: x.text, by: 'Vorschlag' }); relNew++; } }); } catch (e) {} }
     }
     // 6. Stimmen
-    let voices = 0; if (!stopped()) { step('6/6 Stimmen …'); try { voices = await spreadVoices(null, true) || 0; } catch (e) {} }
-    if (!stopped()) localStorage.removeItem('companion_refreshProg');
+    let voices = 0; if (!stopped() && dupVoices) { step('Stimmen …'); try { voices = await spreadVoices(null, true) || 0; } catch (e) {} }
     try { renderFigureList(); } catch (e) {}
     const Dn = charMapData().filter(d => d.ai), sim = Dn.length > 2 ? cmSimilarity(Dn) : null;
-    const msg = `${stopped() ? 'Angehalten bei Schritt ' + prog.step + ' - beim nächsten Tippen kannst du dort weitermachen. ' : 'Fertig. '}Charaktere umgebaut: ${rep.filter(r => !/ging nicht/.test(r)).length}\n${rep.join('\n')}\n\nFelder ergänzt: ${filled.length}${filled.length ? '\n' + filled.join('\n') : ''}\nMarkenzeichen neu: ${sigs}${sigFail.length ? ' (nicht geklappt: ' + sigFail.join('; ') + ')' : ''}\nBeziehungen: ${relTaken} aus Beschreibungen übernommen, ${relNew} neu\nStimmen neu verteilt: ${voices}${sim ? `\n\nKarte jetzt: ${sim.clusters.length} Grüppchen, ${sim.close.length} fast Doppelgänger` : ''}`;
+    const msg = `${stopped() ? 'Angehalten - beim nächsten Tippen geht es mit dem Rest weiter. ' : 'Fertig. '}\n${ok ? `Charaktere umgebaut: ${ok}\n${rep.join('\n')}\n` : ''}${filled.length ? `Felder ergänzt: ${filled.join('; ')}\n` : ''}${sigs ? `Markenzeichen neu: ${sigs}\n` : ''}${motions ? `Gerätebewegungen neu: ${motions}\n` : ''}${sigFail.length ? `Nicht geklappt: ${sigFail.join('; ')}\n` : ''}${relTaken + relNew ? `Beziehungen: ${relTaken} übernommen, ${relNew} neu\n` : ''}${voices ? `Stimmen neu verteilt: ${voices}\n` : ''}${sim ? `\nKarte jetzt: ${sim.clusters.length} Grüppchen, ${sim.close.length} fast Doppelgänger` : ''}`;
     logEvent('msg', { role: 'system', text: 'Alle auf aktuellen Stand: ' + msg.replace(/\n+/g, ' · ') });
     alert(msg);
   } catch (e) { alert('Abgebrochen: ' + e.message); }
@@ -18884,7 +19420,15 @@ function portfolioImages(figure) { return galleryFor(figure.id).filter(g => g.ty
 
 // ======================= DURCHSWIPEN =======================
 const sw = { list: [], i: 0, img: 0, urls: [] };
+function swipePairs() {
+  const out = [], seen = new Set(), key = (a, b) => [a.id, b.id].sort().join('|');
+  relList().forEach(x => { const k = key(x.fa, x.fb); if (seen.has(k)) return; seen.add(k); out.push({ pair: true, fa: x.fa, fb: x.fb, kind: x.r.kind || 'Beziehung', text: x.r.text || '' }); });
+  try { const D = charMapData().filter(d => d.ai); if (D.length >= 3) cmSimilarity(D).far.slice(0, 3).concat(cmSimilarity(D).far.slice(3, 6) || []).forEach(p => { const k = key(p.a.f, p.b.f); if (seen.has(k)) return; seen.add(k); out.push({ pair: true, fa: p.a.f, fb: p.b.f, kind: 'Gegensätze', text: `Laut Charakter-Karte liegen die beiden besonders weit auseinander - ${p.a.top} trifft ${p.b.top}.` }); }); } catch (e) {}
+  return out.sort(() => Math.random() - 0.5);
+}
 async function openSwipe() {
+  const btn = document.getElementById('swPairs'); if (btn) { btn.style.borderColor = sw.pairMode ? 'var(--gold)' : ''; btn.textContent = sw.pairMode ? '👤 Einzeln' : '👥 Paare'; }
+  if (sw.pairMode) { sw.list = swipePairs(); sw.i = 0; els.swipeView.style.display = 'flex'; if (!sw.list.length) { showToast('Noch keine Paare - lege unter „💞 Beziehungen" welche an oder öffne einmal die Charakter-Karte'); sw.pairMode = false; return openSwipe(); } return renderSwipe(); }
   sw.list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser && !v.isNarrator; }).sort(() => Math.random() - 0.5);
   sw.i = 0;
   els.swipeView.style.display = 'flex';
@@ -18899,8 +19443,21 @@ async function swImages(figure) {
   const main = await hiResUrl(v); if (main) urls.push(main);
   return urls;
 }
+async function renderPairCard(stage, P) {
+  const va = latestVersion(P.fa), vb = latestVersion(P.fb);
+  const card = document.createElement('div'); card.className = 'sw-card';
+  const [ua, ub] = await Promise.all([hiResUrl(va).catch(() => va.image), hiResUrl(vb).catch(() => vb.image)]);
+  card.innerHTML = `<div style="position:absolute; inset:0; display:flex;"><img alt="" src="${ua || va.image || ''}" style="width:50%; height:100%; object-fit:cover; object-position:50% 20%;"><img alt="" src="${ub || vb.image || ''}" style="width:50%; height:100%; object-fit:cover; object-position:50% 20%; border-left:2px solid var(--bg);"></div>
+    <div class="sw-info"><div style="font-family:var(--font-display); font-size:28px; font-weight:600;">${esc(va.name.split(' ')[0])} & ${esc(vb.name.split(' ')[0])}</div><div style="font-size:13px; color:var(--gold); margin:2px 0 6px;">${esc(P.kind)}</div><div style="font-size:14px; line-height:1.45;">${esc(P.text).slice(0, 260)}</div><div style="font-size:12px; opacity:0.65; margin-top:8px;">→ beide in die Szene · ↑ jetzt mit beiden · ← weiter</div></div>`;
+  stage.appendChild(card);
+  let x0 = 0, y0 = 0, dx = 0, dy = 0, down = false;
+  card.addEventListener('pointerdown', e => { down = true; x0 = e.clientX; y0 = e.clientY; dx = dy = 0; card.style.transition = 'none'; card.setPointerCapture(e.pointerId); });
+  card.addEventListener('pointermove', e => { if (!down) return; dx = e.clientX - x0; dy = e.clientY - y0; card.style.transform = `translate(${dx}px, ${Math.min(0, dy)}px) rotate(${dx / 20}deg)`; });
+  card.addEventListener('pointerup', () => { down = false; card.style.transition = ''; if (dx > 110) return swipeAct('yes'); if (dx < -110) return swipeAct('no'); if (dy < -120) return swipeAct('chat'); card.style.transform = ''; });
+}
 async function renderSwipe() {
   const stage = els.swStage; stage.innerHTML = '';
+  if (sw.list[sw.i] && sw.list[sw.i].pair) { els.swCount.textContent = `${sw.i + 1}/${sw.list.length}`; return renderPairCard(stage, sw.list[sw.i]); }
   if (sw.i >= sw.list.length) { stage.innerHTML = '<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;"><div style="font-size:40px;">✨</div><div>Alle durch.</div><button type="button" class="btn-secondary" id="swAgain" style="width:auto;">Nochmal von vorn</button></div>'; document.getElementById('swAgain').onclick = openSwipe; els.swCount.textContent = ''; return; }
   const f = sw.list[sw.i], v = latestVersion(f), st = figureStats(f);
   els.swCount.textContent = `${sw.i + 1}/${sw.list.length}`;
@@ -18916,6 +19473,13 @@ async function renderSwipe() {
     b.style.cssText = 'position:absolute; top:22px; right:14px; width:auto; padding:8px 12px; font-size:13px; z-index:2;';
     b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; await makePortfolio(f, b); sw.urls = await swImages(f); showImg(); };
     card.appendChild(b);
+  }
+  if (parseSigMotion(v.sigMotion)) {
+    const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'btn-secondary'; sb.textContent = '🎛️ Markenzeichen spüren';
+    sb.style.cssText = 'position:absolute; top:22px; left:14px; width:auto; padding:8px 12px; font-size:13px; z-index:2;';
+    sb.addEventListener('pointerdown', e => e.stopPropagation()); sb.addEventListener('pointerup', e => e.stopPropagation());
+    sb.onclick = (e) => { e.stopPropagation(); playSigMotion(v); };
+    card.appendChild(sb);
   }
   // Gesten
   let x0 = 0, y0 = 0, dx = 0, dy = 0, down = false, moved = false;
@@ -18939,7 +19503,7 @@ function flipSwipe(card, f) {
   const diary = (diaries()[f.id] || []).slice(-1)[0];
   const back = document.createElement('div'); back.className = 'sw-back';
   back.innerHTML = `<div style="font-family:var(--font-display); font-size:28px; font-weight:600;">${esc(v.name)}</div>
-    ${v.signature ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14.5px; line-height:1.5;">${esc(v.signature)}</div></div>` : ''}
+    ${v.signature ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Markenzeichen</div><div style="font-size:14.5px; line-height:1.5;">${esc(v.signature)}</div>${parseSigMotion(v.sigMotion) ? `<div style="font-size:12.5px; line-height:1.45; opacity:0.75; margin-top:4px;">🎛️ ${esc(sigMotionHuman(parseSigMotion(v.sigMotion)))}</div>` : ''}</div>` : ''}
     ${!v.isUser && !v.isNarrator ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Handschrift am Gerät</div><div style="font-size:14.5px; line-height:1.5;">${esc((v.deviceStyle || '').trim() || deviceStyleAuto(v))}</div></div>` : ''}
     ${v.styleExamples ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">So spricht sie</div>${v.styleExamples.split('\n').filter(Boolean).slice(0, 3).map(l => `<div style="font-family:var(--font-display); font-style:italic; font-size:17px; margin:4px 0;">„${esc(l)}"</div>`).join('')}</div>` : ''}
     ${rel.length ? `<div style="margin-top:12px;"><div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold);">Was andere über sie sagen</div>${rel.map(r => `<div style="font-size:14px; margin:4px 0;">${esc(r)}</div>`).join('')}</div>` : ''}
@@ -18955,6 +19519,11 @@ function swipeAct(kind) {
   const card = els.swStage.querySelector('.sw-card');
   if (card) { card.style.transform = kind === 'yes' ? 'translateX(140%) rotate(18deg)' : kind === 'no' ? 'translateX(-140%) rotate(-18deg)' : 'translateY(-140%)'; card.style.opacity = '0'; }
   setTimeout(() => {
+    if (f.pair) {
+      if (kind === 'yes') { [f.fa, f.fb].forEach(x => { if (!characters.some(c => c.figureId === x.id)) addFigureToCast(x.id); }); saveCharacters(); showToast(`${latestVersion(f.fa).name.split(' ')[0]} & ${latestVersion(f.fb).name.split(' ')[0]} sind in der Szene`); }
+      if (kind === 'chat') { const meFig = archiveMeFigure(); switchMode('live'); characters = [meFig ? characterFromVersion(meFig) : null, characterFromVersion(f.fa), characterFromVersion(f.fb)].filter(Boolean); saveCharacters(); renderLivePanel(); els.swipeView.style.display = 'none'; els.liveStartBtn.click(); return; }
+      sw.i++; renderSwipe(); return;
+    }
     if (kind === 'yes') { addFigureToCast(f.id); saveCharacters(); }
     if (kind === 'chat') {
       const meFig = archiveMeFigure();
@@ -20686,6 +21255,78 @@ function offerAbsentFigure(name) {
   node.append(t, b); node.onclick = () => node.remove();
   els.toastHost.appendChild(node); setTimeout(() => node.remove(), 15000);
 }
+// ---------- 🎼 Dirigent: mischt die Besetzung während der Sitzung ----------
+// Holt passende Figuren dazu, schickt andere hinaus - nach Tils Wünschen und dem Verlauf. Ausdrückliche Wünsche
+// („hol Fenja dazu", „ohne Emma", „allein mit Zita") gelten sofort; sonst entscheidet er im Hintergrund nach einer
+// Antwort, und die Änderung gilt ab der nächsten. Neue Figuren sprechen mit ihrer eigenen Stimme.
+const conductor = { lastChangeN: -99, pending: null, exits: [], note: '', noteN: -1, busy: false };
+function conductorOn() { return localStorage.getItem('companion_conductor') === '1'; }
+function conductorMax() { return Math.max(1, Math.min(4, parseInt(localStorage.getItem('companion_conductorMax') || '3', 10) || 3)); }
+function aiCast() { return characters.filter(c => !c.isUser && !c.isNarrator); }
+function replyCount() { return (typeof history !== 'undefined' ? history : []).filter(m => m.role === 'assistant').length; }
+function conductorPool() { const inIds = new Set(characters.map(c => c.figureId)); return surprisePool().filter(x => !inIds.has(x.f.id)); }
+function conductorEnter(f, why) {
+  const v = latestVersion(f); addFigureToCast(f.id); try { ensureVoiceReady(f.id); } catch (e) {}
+  conductor.note += `\nAUFTRITT: ${v.name} kommt JETZT dazu${why ? ' (' + why + ')' : ''} - sie tritt in dieser Antwort auf, in ihrer Art, mit ihrer eigenen Stimme; die anderen reagieren darauf (überrascht, erfreut, eifersüchtig - je nach Charakter und Beziehung).`;
+  conductor.lastChangeN = replyCount(); logEvent('msg', { role: 'system', text: `🎼 Dirigent: ${v.name} kommt dazu${why ? ' - ' + why : ''}` }); showToast(`🎼 ${v.name.split(' ')[0]} kommt dazu`);
+}
+function conductorExit(c, why) {
+  if (conductor.exits.includes(c.figureId)) return;
+  conductor.exits.push(c.figureId);
+  conductor.note += `\nABGANG: ${c.name} verabschiedet sich in dieser Antwort und geht${why ? ' (' + why + ')' : ''} - ein letzter Satz, eine Geste in ihrer Art; danach ist sie nicht mehr da.`;
+  conductor.lastChangeN = replyCount(); logEvent('msg', { role: 'system', text: `🎼 Dirigent: ${c.name} geht${why ? ' - ' + why : ''}` }); showToast(`🎼 ${c.name.split(' ')[0]} verabschiedet sich`);
+}
+// vor jeder Antwort: Abgänge der letzten Antwort vollziehen, ausdrückliche Wünsche, sonst vorbereitete Entscheidung
+function conductorBefore(userText) {
+  try { const hi = hostMatch(userText); if (hi >= 0) { conductor.note = ''; hostChoose(hi, true); const keep = conductor.note; setTimeout(() => {}, 0); conductor.__keep = keep; } } catch (e) {}
+  if (conductor.exits.length) { const gone = conductor.exits.slice(); conductor.exits = []; characters = characters.filter(c => !gone.includes(c.figureId)); saveCharacters(); refreshCastViews(); }
+  conductor.note = conductor.__keep || ''; conductor.__keep = '';
+  const t = String(userText || '').toLowerCase(); const pool = surprisePool();
+  const firstOf = x => x.v.name.split(' ')[0].toLowerCase(), esc = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // ausdrücklich: auch ohne eingeschalteten Dirigenten
+  let acted = false;
+  pool.forEach(x => {
+    const n = esc(firstOf(x)); if (n.length < 3) return;
+    const inCast = characters.some(c => c.figureId === x.f.id);
+    if (!inCast && new RegExp(`(hol\\w* (?:(?:mal|doch|noch|bitte|jetzt|auch|die|uns) )*${n}|ruf\\w* (?:(?:mal|doch|noch|bitte|jetzt|auch) )*${n}|${n} (soll|darf|kann) (dazu|mitmachen|kommen|rein)|lass ${n} (dazu|rein|mitmachen)|mit ${n} (dazu|zusammen))`).test(t)) { conductorEnter(x.f, 'auf deinen Wunsch'); acted = true; }
+    else if (inCast && new RegExp(`(${n} (soll|kann|darf) (?:(?:jetzt|bitte|mal|wieder) )*(gehen|raus|verschwinden)|schick\\w* (?:(?:mal|doch|bitte|jetzt) )*${n} (weg|raus)|ohne ${n}\\b)`).test(t)) { const c = characters.find(c => c.figureId === x.f.id); if (c) { conductorExit(c, 'auf deinen Wunsch'); acted = true; } }
+  });
+  const alone = t.match(/allein (?:mit|zu zweit mit) ([a-zäöüß]+)/);
+  if (alone) { const x = pool.find(y => firstOf(y) === alone[1]); if (x) { if (!characters.some(c => c.figureId === x.f.id)) conductorEnter(x.f, 'du willst mit ihr allein sein'); aiCast().filter(c => c.figureId !== x.f.id).forEach(c => conductorExit(c, 'du willst mit ' + x.v.name.split(' ')[0] + ' allein sein')); acted = true; } }
+  if (acted) { conductor.pending = null; return; }
+  if (!conductorOn() || !conductor.pending) return;
+  const d = conductor.pending; conductor.pending = null;
+  if (d.remove) { const c = characters.find(c => c.figureId === d.remove); if (c && aiCast().length > 1) conductorExit(c, d.why); }
+  if (d.add) { const f = figureArchive.find(f => f.id === d.add); if (f && !characters.some(c => c.figureId === f.id) && aiCast().length - conductor.exits.length < conductorMax()) conductorEnter(f, d.why); }
+}
+function conductorBlock() { return conductor.note ? '\n\nBESETZUNG ÄNDERT SICH (nur für diese Antwort):' + conductor.note : ''; }
+// nach einer Antwort im Hintergrund überlegen, ob jemand dazukommen oder gehen sollte
+async function conductorAfterReply() {
+  if (!conductorOn() || conductor.busy || currentMode !== 'live') return;
+  const n = replyCount(); if (n < 3 || n - conductor.lastChangeN < 4) return;
+  conductor.busy = true;
+  try {
+    const cast = aiCast(), pool = conductorPool().slice(0, 30), max = conductorMax();
+    if (!pool.length && cast.length <= 1) return;
+    const recentUser = history.filter(m => m.role === 'user').slice(-4).map(m => String(m.content || '').slice(0, 300)).join(' | ');
+    const recentScene = history.filter(m => m.role === 'assistant').slice(-2).map(m => String(m.content || '').slice(0, 600)).join('\n');
+    const rel = (c, v) => { const r = relGet(c, { name: v.name, figureId: (figureByName(v.name) || {}).id }); return r ? `${c.name.split(' ')[0]}: ${relText(r)}` : ''; };
+    const sys = `Du bist der unsichtbare Dirigent eines erotischen Rollenspiels zwischen Erwachsenen. Du mischst die Besetzung: Wer passt jetzt in die Szene, wer sollte gehen? Ziel: Til bekommt, was er sich gerade wünscht oder braucht - auch, was er nur andeutet - und die Szene bleibt lebendig und überraschend. Nicht ständig wechseln: nur, wenn es die Szene wirklich bereichert (Kontrast, Beziehung, Wunsch, neue Energie), sonst "keine".
+Gerade dabei (${cast.length}, höchstens ${max} gleichzeitig): ${cast.map(c => c.name + ' - ' + figureGist(c) + (c.core ? ' | ' + ((c.core.match(/Motiv:[^\n|]*/) || [''])[0]).slice(0, 100) : '')).join('; ')}
+Könnten dazukommen: ${pool.map(x => x.v.name + ' - ' + figureGist(x.v) + ((x.v.core || '').match(/Motiv:[^\n|]*/) ? ' | ' + x.v.core.match(/Motiv:[^\n|]*/)[0].slice(0, 90) : '') + (cast.map(c => rel(c, x.v)).filter(Boolean).join(', ') ? ' | Beziehung: ' + cast.map(c => rel(c, x.v)).filter(Boolean).join(', ') : '')).join('; ')}
+Tils letzte Worte: ${recentUser || '(nichts)'}
+Zuletzt in der Szene: ${recentScene.slice(0, 1000)}
+Antworte NUR als JSON: {"aktion": "keine" | "dazu" | "raus" | "tausch", "dazu": "Name oder leer", "raus": "Name oder leer", "warum": "ein kurzer Satz"}`;
+    const j = parseJsonLoose(await callProvider(localStorage.getItem('companion_llmProvider') || 'anthropic', sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.7, Math.max(300, taskBudget('draft', 300)), { task: 'draft' }));
+    if (!j || !j.aktion || j.aktion === 'keine') { logEvent('msg', { role: 'system', text: '🎼 Dirigent: Besetzung bleibt' + (j && j.warum ? ' - ' + j.warum : '') }); return; }
+    const addX = j.dazu ? pool.find(x => x.v.name === matchSpeakerName(j.dazu, pool.map(y => y.v.name))) : null;
+    const remC = j.raus ? cast.find(c => c.name === matchSpeakerName(j.raus, cast.map(y => y.name))) : null;
+    const d = { add: /dazu|tausch/.test(j.aktion) && addX ? addX.f.id : null, remove: /raus|tausch/.test(j.aktion) && remC ? remC.figureId : null, why: String(j.warum || '').slice(0, 140) };
+    if (d.add && !d.remove && cast.length >= max) { const weakest = cast[0]; d.remove = weakest.figureId; }
+    if (d.add || d.remove) { conductor.pending = d; logEvent('msg', { role: 'system', text: `🎼 Dirigent plant: ${d.add ? latestVersion(addX.f).name + ' dazu' : ''}${d.add && d.remove ? ', ' : ''}${d.remove ? (characters.find(c => c.figureId === d.remove) || {}).name + ' raus' : ''} - ${d.why}` }); }
+  } catch (e) { logEvent('msg', { role: 'system', text: '🎼 Dirigent: ' + e.message }); }
+  finally { conductor.busy = false; }
+}
 function addFigureToCast(figureId) {
   const figure = getFigure(figureId);
   if (!figure) return;
@@ -21949,7 +22590,7 @@ function figText(c) {
   const tr = TRAIT_GROUPS.flatMap(g => g.traits.filter(([id]) => (c.traits || []).includes(id)).map(([, t]) => t)).join(', ');
   return [tr && 'Eigenschaften: ' + tr, c.notes && 'Notizen: ' + c.notes, c.signature && 'Signatur: ' + c.signature, c.core && 'Kern: ' + c.core, c.deviceStyle && 'Am Gerät: ' + c.deviceStyle].filter(Boolean).join('\n').replace(/\s+\n/g, '\n');
 }
-function figSig(c) { const t = (c.name || '') + '|' + figText(c); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function figSig(c) { const t = (c.name || '') + '|' + figText(Object.assign({}, c, { signature: '' })); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
 function axesFor(c) {
   const all = axesAll(), sig = figSig(c);
   const e = (c.figureId && all[c.figureId]) || Object.values(all).find(x => x.name === c.name);
@@ -22649,6 +23290,18 @@ function renderHomeExtras() {
         enterLive({ setup: true });
       };
       cont.appendChild(c2);
+    }
+  } catch (e) {}
+  // 🌙 Abendbegleitung: eine Figur führt dich durch den ganzen Abend
+  try {
+    if (!live) {
+      const hf = hostFigure();
+      if (hf) {
+        const hv = latestVersion(hf), c3 = document.createElement('div'); c3.className = 'home-continue'; c3.style.cssText = 'margin-top:8px; cursor:pointer;';
+        c3.innerHTML = `<span class="hc-ic">🌙</span><span class="hc-tx"><span class="hc-lbl">Abendbegleitung</span><b>${esc(hv.name.split(' ')[0])} führt dich durch den Abend</b><span>schlägt dir Ideen vor, holt andere dazu · etwa ${guidedMin()} min</span></span><button type="button" class="hc-swap" title="Andere Begleitung" style="background:none; border:0; color:inherit; font-size:18px; padding:4px 8px;">↻</button><span class="hc-go">▶</span>`;
+        c3.onclick = (e) => { if (e.target.closest('.hc-swap')) { e.stopPropagation(); hostNext(); renderHomeExtras(); return; } startHostEvening(hf); };
+        cont.appendChild(c3);
+      }
     }
   } catch (e) {}
   const rec = document.getElementById('homeRecent');
@@ -28388,6 +29041,34 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -34983,6 +35664,8 @@ function avHintSafe(t) { try { const v = document.getElementById('dpView'); if (
 // (Mund und Untertitel), ihre Bewegung folgt dem Takt an Gerät 1. Die untere
 // Leiste (Eingabe, Anruf, Kurz davor, Stopp) bleibt darunter bedienbar.
 // Auswahl: Szene & Regeln → „Darstellung (Test)", oder ⋯ → „🧍 3D-Figur".
+// Die 3D-Figur startet nie von selbst: die Wahl gilt nur bis zum nächsten Öffnen der App (Til wählt sie nur zum Testen)
+try { localStorage.removeItem('companion_liveView'); } catch (e) {}
 function live3dWanted() { return localStorage.getItem('companion_liveView') === '3d'; }
 function live3dFit() {
   const v = document.getElementById('av3dView'), bar = document.getElementById('bottomBar');
