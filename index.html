@@ -1253,6 +1253,7 @@
         <label for="d1vibe">Vibration am Board</label>
         <select id="d1vibe" onchange="safeSet('companion_d1_vibe', this.value)"><option value="off">aus</option><option value="V0">an Ausgang V0</option><option value="V1">an Ausgang V1</option><option value="V2">an Ausgang V2</option></select>
         <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="d1tint" style="width:auto;" onchange="safeSet('companion_tint', this.checked ? '1' : '0')">Figur und Handlung spürbar machen</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:normal;margin:8px 0 0;"><input type="checkbox" id="d1swsig" style="width:auto;" onchange="safeSet('companion_swipeSig', this.checked ? '1' : '0')">Beim Vorstellen (Durchswipen) Markenzeichen am Gerät vorführen</label>
         <p class="hint">Die Bewegung neigt sich leicht nach der Art der Figur, die gerade spricht (bestimmt, zärtlich, neckend, drängend), und nach dem, was passiert: Mund kürzer an der Spitze, Hand über die ganze Länge, Reiten tief unten, von hinten lang und kräftig, „zum ersten Mal" zart und langsam.</p>
         <p class="hint">Für einen Vibrationsmotor, der über einen kleinen MOSFET an einem Vibe-Pin deines Boards hängt (TCode V0-V2). Er folgt der Bewegung: beim Zittern und Zitterhub stark, bei Stößen im Takt, sonst je nach Tempo.</p>
       </details>
@@ -1596,7 +1597,7 @@
       <div style="display:flex; flex-direction:column; gap:7px; margin:6px 0 10px 0;">
         <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
           <input type="checkbox" id="bkSettings" checked style="width:auto;">
-          <span style="font-size:13.5px; color:var(--text);">Einstellungen, Figuren und Besetzungen</span>
+          <span style="font-size:13.5px; color:var(--text);">Einstellungen, Figuren, Besetzungen, Beziehungen, Serien und Werkstattbuch</span>
         </label>
         <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
           <input type="checkbox" id="bkImages" checked style="width:auto;">
@@ -1609,6 +1610,10 @@
         <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
           <input type="checkbox" id="bkAudio" style="width:auto;">
           <span style="font-size:13.5px; color:var(--text);">Alle Töne: gesprochene Texte, Füll-Laute, Geräusche, Kulissen und Musik (groß - oft hunderte MB)</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;">
+          <input type="checkbox" id="bkModels" style="width:auto;">
+          <span style="font-size:13.5px; color:var(--text);">Eigene 3D-Modelle (VRM, je oft 10-50 MB)</span>
         </label>
       </div>
 
@@ -2525,6 +2530,7 @@ const els = {
   bkImages: document.getElementById('bkImages'),
   bkStories: document.getElementById('bkStories'),
   bkAudio: document.getElementById('bkAudio'),
+  bkModels: document.getElementById('bkModels'),
   bkPass: document.getElementById('bkPass'),
   bkFile: document.getElementById('bkFile'),
   bkInfo: document.getElementById('bkInfo'),
@@ -3437,6 +3443,7 @@ els.exportSettingsBtn.onclick = async () => {
       images: els.bkImages.checked,
       stories: els.bkStories.checked,
       audio: els.bkAudio.checked,
+      models: !!(els.bkModels && els.bkModels.checked),
     }, (text) => { els.bkInfo.textContent = text; });
 
     // A neutral name with no extension that suggests anything. The date is
@@ -3642,8 +3649,20 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.34';
+const APP_VERSION = '3.35';
 const CHANGELOG = [
+  { v: '3.35', date: '2026-10-24', items: [
+    'Markenzeichen am Gerät: jede Figur hat jetzt zusätzlich ihre eigene Signatur-Bewegung (Feld im Editor, mit „▶ Am Gerät spüren" und „🎛️ Aus Markenzeichen ableiten")',
+    'Setzt sie im Gespräch ihr Markenzeichen ein, spielt das Gerät genau diese Bewegung (Marker <<markenzeichen>>) - unverfälscht, damit man sie daran erkennt',
+    '„💋 Markenzeichen erneuern" und „⟳ Alle auf aktuellen Stand" schreiben Worte und Gerätebewegung zusammen',
+    'Markenzeichen-Folgen sind länger und erzählen eine kleine Szene (15-35 s: Zögern, Aufbau, Wendung, Höhepunkt, Ausklang); solange sie läuft, unterbrechen andere Marker derselben Antwort sie nicht',
+    'Die Figur kündigt ihr Markenzeichen nie an - sie führt die Situation dafür herbei, und ihre Worte folgen dem Ablauf der Bewegung (die KI kennt ihn sekundengenau), jedes Mal etwas anders kommentiert',
+    'Sicherung: enthält jetzt auch die Werkstattbuch-Sitzungen (lagen in einer eigenen Datenbank und fehlten) und auf Wunsch die eigenen 3D-Modelle; alles Neue (Beziehungen, Charakter-Karte, Serien, Markenzeichen am Gerät …) war und ist automatisch dabei',
+    'Durchswipen: ist Gerät 1 verbunden, führt sie ihr Markenzeichen beim Vorstellen auch am Gerät vor (abschaltbar unter Gerät 1)',
+    'Charakter-Umbau: klingt ein neuer Entwurf nicht eindeutig erwachsen, wird er verworfen und mit Hinweis neu geschrieben (bis zu drei Versuche) statt die Figur zu überspringen; „neugierig" heißt jetzt ausdrücklich: eine erwachsene Frau, die Neues mit dir entdeckt',
+    '„Alle auf aktuellen Stand": Anhalten nur noch nach Rückfrage (ein versehentliches zweites Tippen hielt den Durchgang nach dem Umbau an); ein angehaltener Durchgang kann beim nächsten Mal an derselben Stelle weitergehen, schon erneuerte Markenzeichen werden übersprungen',
+    'Markenzeichen: robuster mit Modellen, die kein sauberes JSON liefern (bis zu drei Versuche, Fließtext wird angenommen) - der Fehler „keine brauchbare Antwort" sollte damit weg sein',
+  ] },
   { v: '3.34', date: '2026-10-24', items: [
     '„⟳ Alle auf aktuellen Stand" macht jetzt alles in einem Durchgang: Figuren einschätzen → wo sich zu viele ähneln, bekommen einzelne einen deutlich anderen Charakter (Beschreibung, Eigenschaften, Kern, Tonfall; Name und Aussehen bleiben), bis es ein bunter Mix ist → fehlende Felder → neue Markenzeichen für alle → Beziehungen aus Beschreibungen übernehmen und ein paar neue → doppelte Stimmen verteilen. Nochmal tippen hält an; am Ende ein Bericht',
     'Der Umbau zielt gezielt auf die schwach besetzten Seiten (z. B. „neugierig", „kühl", „geduldig", „lässt sich führen") und zieht Doppelgänger auseinander',
@@ -4801,7 +4820,23 @@ async function deriveBackupKey(password, salt) {
 async function buildEncryptedBackup(password, parts, onProgress) {
   const bundle = { v: 1, at: new Date().toISOString() };
 
-  if (parts.settings) bundle.settings = collectSettings();
+  if (parts.settings) {
+    bundle.settings = collectSettings();
+    // Werkstattbuch-Sitzungen liegen in einer eigenen Datenbank - früher fehlten sie in der Sicherung
+    try { bundle.workshop = await wbAllSessions(); } catch (e) {}
+  }
+  if (parts.models) {
+    onProgress('3D-Modelle...');
+    try {
+      const keys = await avTx('readonly', st => st.getAllKeys());
+      bundle.models = [];
+      for (const k of keys || []) {
+        const v = await avGet(k), b = await asBlob(v);
+        if (b) bundle.models.push({ k, t: b.type, b: await blobToBase64(b), raw: v instanceof Blob ? 'blob' : v && v.blob instanceof Blob ? 'obj' : 'buf', meta: v && !(v instanceof Blob) && typeof v === 'object' && !(v instanceof ArrayBuffer) ? Object.fromEntries(Object.entries(v).filter(([kk, x]) => !(x instanceof Blob) && !(x instanceof ArrayBuffer))) : null });
+        else if (v != null) bundle.models.push({ k, json: v });
+      }
+    } catch (e) { logEvent('msg', { role: 'system', text: 'Sicherung: 3D-Modelle nicht lesbar - ' + e.message }); }
+  }
 
   if (parts.stories) {
     onProgress('Geschichten...');
@@ -4972,6 +5007,17 @@ async function restoreBackup(bundle) {
     }
     keys.forEach(k => safeSet(k, bundle.settings[k]));
     report.push(`${keys.length} Einstellungen`);
+  }
+  if (Array.isArray(bundle.workshop)) {
+    for (const r of bundle.workshop) { try { await wbPutSession(r); } catch (e) {} }
+    report.push(`${bundle.workshop.length} Werkstattbuch-Sitzungen`);
+  }
+  if (Array.isArray(bundle.models)) {
+    let n = 0;
+    for (const e of bundle.models) { try {
+      let v; if (e.json !== undefined) v = e.json; else { const bl = base64ToBlob(e.b, e.t); v = e.raw === 'blob' ? bl : e.raw === 'obj' ? Object.assign({}, e.meta || {}, { blob: bl }) : await bl.arrayBuffer(); }
+      await avPut(e.k, v); n++; } catch (err) {} }
+    report.push(`${n} 3D-Modelle`);
   }
   if (Array.isArray(bundle.stories)) {
     for (const e of bundle.stories) await dbPut(STORE_STORIES, e.k, e.v);
@@ -5763,6 +5809,7 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   return { setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
+try { const sw = document.getElementById('d1swsig'); if (sw) sw.checked = localStorage.getItem('companion_swipeSig') !== '0'; } catch (e) {}
 try { const ti = document.getElementById('d1tint'); if (ti) ti.checked = localStorage.getItem('companion_tint') !== '0'; } catch (e) {}
 try { const vs = document.getElementById('d1vibe'); if (vs) vs.value = localStorage.getItem('companion_d1_vibe') || 'off'; } catch (e) {}
 const device1 = createDevice(els.connectBtn, els.bleStatus, els.motionStatus, els.motionTrackFill, 'Gerät 1', 'd1');
@@ -7463,9 +7510,15 @@ function clearCueTimers() {
   cueTimers = [];
 }
 
+function sigLocked(num, isStop, label) {
+  if (num !== 1 || isStop || Date.now() >= sigLockUntil) return false;
+  logEvent('msg', { role: 'system', text: `Gerät 1: ${label || 'Bewegung'} übersprungen - ihr Markenzeichen läuft noch ${Math.ceil((sigLockUntil - Date.now()) / 1000)} s` }); return true;
+}
 function applyCue(num, cue) {
   const dev = num === 2 ? device2 : device1;
   if (!cue) return;
+  const isSig = cue.kind === 'seq' && JSON.stringify(cue.steps || []).includes('sigref');
+  if (!isSig && sigLocked(num, cue.kind !== 'seq' && cue.motion && cue.motion.texture === 'stop', cue.label)) return;
   if (cue.kind === 'seq') {
     dev.runSequence(tintSteps(cue.steps, num)); tintLog(num);
     logEvent('msg', { role: 'system', text: `Gerät ${num} Folge: ${cue.label}` });
@@ -8533,9 +8586,44 @@ function tintMotion(req, num) {
   if (motionTint.act === 'hinten' && tex === 'smooth' && Math.random() < 0.5) out.texture = 'pulse';
   return out;
 }
+// Markenzeichen am Gerät: eine kurze Folge in der Marker-Sprache, je Figur gespeichert (Feld sigMotion)
+function parseSigMotion(text) {
+  const parts = String(text || '').replace(/^<<|>>$/g, '').split('|').map(x => x.trim()).filter(Boolean);
+  if (parts.length < 2 || parts.length > 14) return null;
+  const steps = parts.map(x => parseMotionStepLoose(x)); if (steps.some(x => !x)) return null;
+  const flat = steps.flatMap(st => st.type === 'pattern' ? st.steps : [st]).filter(st => st.type !== 'sigref');
+  let total = 0; flat.forEach(st => { if (st.type === 'osc' && !st.ms) st.ms = 3000; total += st.ms || 0; });
+  if (total < 1500 || total > 45000) return null;
+  return flat;
+}
+// Lesbarer Ablauf mit Sekunden - damit die Figur genau dazu passend spricht und handelt
+function sigMotionHuman(steps) {
+  if (!steps) return ''; let t = 0; const sec = x => (Math.round(x / 100) / 10).toString().replace('.', ',');
+  const where = (lo, hi) => hi - lo > 600 ? 'über die ganze Länge' : hi > 800 ? 'oben an der Spitze' : lo < 250 ? 'ganz tief' : 'in der Mitte';
+  const L = [];
+  steps.forEach(st => { const a = t; t += st.ms || 0; let lb = '';
+    if (st.type === 'move') lb = st.to > 800 ? 'hoch zur Spitze' : st.to < 250 ? 'ganz hinunter' : 'zur Mitte';
+    else if (st.type === 'hold') lb = 'Stillstand';
+    else if (st.type === 'osc') lb = `${st.texture === 'tremor' ? 'Zittern' : st.texture === 'pulse' ? 'harte Stöße' : st.texture === 'accel' ? 'immer schneller' : st.bpm < 50 ? 'langsame Züge' : st.bpm > 140 ? 'schnelle Hübe' : 'gleichmäßige Hübe'} ${where(st.low, st.high)}`;
+    if (!lb) return; const last = L[L.length - 1];
+    if (last && (last.lb === lb || (lb === 'Stillstand' && t - a < 1000 && last.lb !== 'Stillstand' && L.length && /Hübe|Züge/.test(last.lb) && false))) last.t = t; else L.push({ a, t, lb }); });
+  // kurze Pausen zwischen gleichen Hüben gehören zum Muster („mit kurzen Pausen")
+  const M = []; L.forEach(x => { const p = M[M.length - 1], q = M[M.length - 2]; if (p && q && p.lb === 'Stillstand' && p.t - p.a <= 1000 && q.lb === x.lb) { q.t = x.t; q.pauses = true; M.pop(); } else M.push(Object.assign({}, x)); });
+  return M.map(x => `${sec(x.a)}-${sec(x.t)} s ${x.lb}${x.pauses ? ' (mit kurzen Pausen)' : ''}`).join(' · ');
+}
+let sigLockUntil = 0;   // solange ihr Markenzeichen läuft, unterbrechen andere Marker derselben Antwort es nicht (ein Stopp schon)
+function sigStepsFor(name) {
+  const c = (typeof characters !== 'undefined' ? characters : []).find(x => x.name === name) || (figureByName(name) ? latestVersion(figureByName(name)) : null);
+  return c ? parseSigMotion(c.sigMotion) : null;
+}
+function resolveSigSteps(steps) {
+  if (!Array.isArray(steps)) return steps;
+  return steps.flatMap(st => { if (!st) return [st]; if (st.type === 'sigref') { const own = sigStepsFor(motionTint.who); if (own) { sigLockUntil = Date.now() + own.reduce((t, x) => t + (x.ms || 0), 0); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät: ${motionTint.who} (${Math.round((sigLockUntil - Date.now()) / 1000)} s)` }); return own.map(x => Object.assign({}, x, { noTint: true })); } return expandPattern('locken', 'mittel'); } if (st.type === 'pattern') return [Object.assign({}, st, { steps: resolveSigSteps(st.steps) })]; return [st]; });
+}
 function tintSteps(steps, num) {
+  steps = resolveSigSteps(steps);
   if (!tintOn() || !Array.isArray(steps)) return steps;
-  return steps.map(st => st && st.type === 'osc' && st.texture !== 'tremor' ? Object.assign({}, st, tintRange(st.low, st.high, st.bpm || 60)) : st.type === 'pattern' ? Object.assign({}, st, { steps: tintSteps(st.steps, num) }) : st);
+  return steps.map(st => st && st.type === 'osc' && st.texture !== 'tremor' && !st.noTint ? Object.assign({}, st, tintRange(st.low, st.high, st.bpm || 60)) : st.type === 'pattern' ? Object.assign({}, st, { steps: tintSteps(st.steps, num) }) : st);
 }
 function wishRequest(req, limits) {
   const f = wishFactor();
@@ -11545,6 +11633,7 @@ function versionFromCharacter(c, versionNumber) {
     styleExamples: c.styleExamples || '',
     signature: c.signature || '',
     deviceStyle: c.deviceStyle || '',
+    sigMotion: c.sigMotion || '',
     core: c.core || '',
     replyLength: c.replyLength || 'mittel',
     temperature: typeof c.temperature === 'number' ? c.temperature : 0.8,
@@ -11623,6 +11712,7 @@ function archiveMeFigure() {
 const MIN_AGE = 21;
 const UNDERAGE_WORDS = /\b(minderj[aä]hrig\w*|teen\w*|jugendlich\w*|sch[uü]lerin\w*|schulm[aä]dchen|gymnasiast\w*|pubert\w*|kindlich\w*|underage|minor|schoolgirl|highschool|high school)\b/i;
 const AGE_PATTERNS = [
+  /\b(?:m[aä]dchen|frau|girl)\s+von\s+(\d{1,2})\b(?!\s*(?:uhr|minuten|sekunden|mal|%|euro|€|kilo|kg|cm|metern?))/gi,
   /alter\s*:\s*(?:wirkt\s+(?:wie\s+)?)?(?:etwa\s+|ca\.?\s*|um\s+die\s+)?(\d{1,3})/gi,
   /wirkt\s+wie\s+(\d{1,3})\b/gi,
   /(\d{1,3})\s*(?:-\s*)?j[aä]hrig/gi,
@@ -11823,7 +11913,7 @@ function describeCharacter(c) {
   if (c.isUser && typeof intimatePhrase === 'function' && intimatePhrase(c)) parts.push(`Körperlich (die Figuren kennen ihn so und dürfen beiläufig, passend zu ihrem Charakter, darauf eingehen - Komplimente, Necken, Staunen): ${intimatePhrase(c)}`);
   if (!c.isUser && !c.isNarrator && (c.core || '').trim()) parts.push(`CHARAKTERKERN (so ist sie wirklich - danach handelt, spricht und entscheidet sie; sie treibt die Geschichte aktiv in ihre Richtung, greift ihre Motive immer wieder auf und bringt ihre Vorlieben nach und nach ins Spiel: vorschlagen, Til fragen, behutsam ausprobieren, dann steigern): ${c.core.trim().replace(/\s*\n\s*/g, ' | ')}`);
   if (!c.isUser && !c.isNarrator) parts.push(`HANDSCHRIFT AM GERÄT: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)} - führt SIE das Gerät, bewegt es sich so (Marker und Muster entsprechend wählen); andere Figuren haben ihre eigene Art, man soll am Gerät spüren, wer gerade dran ist`);
-  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt; beschreibt es eine Bewegung, gehört ein passender Marker dazu`);
+  if (!c.isUser && (c.signature || '').trim()) parts.push(`MARKENZEICHEN: ${c.signature.trim()} - setze es immer wieder ein (etwa jede zweite oder dritte Antwort, in der sie handelt), damit man sie sofort daran erkennt. Nie ankündigen („hier kommt mein Markenzeichen") - es ergibt sich aus der Situation, die sie dafür herbeiführt (ein kurzes Zögern, ein Blick, ein geflüsterter Satz), und ist dann einfach DA. ${parseSigMotion(c.sigMotion) ? `Setzt sie es ein, schreibe genau an den Anfang den Marker <<markenzeichen>> - das Gerät spielt dann ihre Signatur-Folge (${Math.round(parseSigMotion(c.sigMotion).reduce((t, x) => t + (x.ms || 0), 0) / 1000)} s), und andere Marker warten so lange. Ablauf: ${sigMotionHuman(parseSigMotion(c.sigMotion))}. Ihre Worte und Handlungen in diesem Abschnitt folgen genau diesem Ablauf (beim Stillstand das Zögern oder ein Flüstern, bei den harten Stößen das, was sie dazu sagt) - in ihrem eigenen Ton, gern jedes Mal etwas anders kommentiert` : 'beschreibt es eine Bewegung, gehört ein passender Marker dazu'}`);
   const clean = parts.map(p => p.replace(/[.\s]+$/, ''));
   return `${c.name}${c.isUser ? ' (das bin ich)' : ''} - ` + (clean.length ? clean.join('. ') + '.' : 'keine nähere Beschreibung.');
 }
@@ -13815,8 +13905,20 @@ Antworte NUR mit JSON: {"appearance": "..."}`,
       sigArea.oninput = () => { c.signature = sigArea.value; };
       card.appendChild(sigArea);
       const sigBtn = document.createElement('button'); sigBtn.type = 'button'; sigBtn.className = 'btn-secondary'; sigBtn.style.cssText = 'margin:6px 0 4px; height:40px; padding:0 14px; width:auto;'; sigBtn.textContent = '💋 Neues Markenzeichen';
-      sigBtn.onclick = async () => { sigBtn.disabled = true; sigBtn.textContent = '💋 Denke mir eins aus …'; try { const sig = await freshSignature(c, otherSignatures(c.figureId)); c.signature = sig; sigArea.value = sig; } catch (e) { addMsg('system', 'Markenzeichen ging nicht: ' + e.message); } sigBtn.disabled = false; sigBtn.textContent = '💋 Neues Markenzeichen'; };
+      const smLabel = document.createElement('label'); smLabel.textContent = 'Markenzeichen am Gerät'; 
+      const smArea = document.createElement('textarea'); smArea.value = c.sigMotion || ''; smArea.style.minHeight = '48px'; smArea.style.fontSize = '13px';
+      smArea.placeholder = 'Ihre Signatur-Bewegung, z. B. „zu 980 in 2s | halten 1,5s | stoßen 100-980@150 2s | pendeln 600-950@40 4s" - oder unten ableiten lassen';
+      const smOk = document.createElement('div'); smOk.className = 'hint'; smOk.style.margin = '2px 0 0';
+      const smCheck = () => { const st = parseSigMotion(smArea.value); smOk.textContent = !smArea.value.trim() ? 'Leer - die KI wählt dann frei passend zum Markenzeichen.' : st ? `✓ gültig · ${st.length} Schritte · ${(st.reduce((t, x) => t + (x.ms || 0), 0) / 1000).toFixed(1)} s` : '✗ so nicht lesbar - Schritte mit | trennen, zusammen 1,5-45 s'; };
+      smArea.oninput = () => { c.sigMotion = smArea.value; smCheck(); }; smCheck();
+      sigBtn.onclick = async () => { sigBtn.disabled = true; sigBtn.textContent = '💋 Denke mir eins aus …'; try { const r = await freshSignature(c, otherSignatures(c.figureId)); c.signature = r.signature; sigArea.value = r.signature; c.sigMotion = r.motion; smArea.value = r.motion; smCheck(); } catch (e) { addMsg('system', 'Markenzeichen ging nicht: ' + e.message); } sigBtn.disabled = false; sigBtn.textContent = '💋 Neues Markenzeichen'; };
       card.appendChild(sigBtn);
+      card.appendChild(smLabel); card.appendChild(smArea); card.appendChild(smOk);
+      const smRow = document.createElement('div'); smRow.style.cssText = 'display:flex; gap:8px; margin:6px 0 4px; flex-wrap:wrap;';
+      const smTest = document.createElement('button'); smTest.type = 'button'; smTest.className = 'btn-secondary'; smTest.style.cssText = 'height:40px; padding:0 14px; width:auto;'; smTest.textContent = '▶ Am Gerät spüren'; smTest.onclick = () => playSigMotion(c);
+      const smGen = document.createElement('button'); smGen.type = 'button'; smGen.className = 'btn-secondary'; smGen.style.cssText = 'height:40px; padding:0 14px; width:auto;'; smGen.textContent = '🎛️ Aus Markenzeichen ableiten';
+      smGen.onclick = async () => { if (!(c.signature || '').trim()) { showToast('Erst ein Markenzeichen eintragen', true); return; } smGen.disabled = true; smGen.textContent = '🎛️ …'; try { const m = await sigMotionFor(c); c.sigMotion = m; smArea.value = m; smCheck(); } catch (e) { addMsg('system', 'Bewegung ableiten ging nicht: ' + e.message); } smGen.disabled = false; smGen.textContent = '🎛️ Aus Markenzeichen ableiten'; };
+      smRow.appendChild(smTest); smRow.appendChild(smGen); card.appendChild(smRow);
       const dsLabel = document.createElement('label');
       dsLabel.textContent = 'Handschrift am Gerät';
       card.appendChild(dsLabel);
@@ -14213,6 +14315,7 @@ function sanitizeDraftCharacters(list) {
     styleExamples: String(c.styleExamples || '').slice(0, 1200),
     signature: String(c.signature || '').slice(0, 500),
     deviceStyle: String(c.deviceStyle || '').slice(0, 500),
+    sigMotion: String(c.sigMotion || '').slice(0, 500),
     core: String(c.core || '').slice(0, 2000),
     replyLength: LENGTH_ORDER.includes(c.replyLength) ? c.replyLength : 'mittel',
     temperature: clamp(c.temperature, 0.1, 1.3, 0.8),
@@ -14325,6 +14428,13 @@ function speakWithBrowser(text, v) {
 }
 
 // v: die Figurenversion (Name, Stimme, Notizen ...), figureId: wo abgelegt wird.
+// Beim Vorstellen führt sie ihr Markenzeichen auch am Gerät vor (ab etwa der Hälfte, wenn sie es beschreibt)
+function introSigDemo(v, audio) {
+  if (localStorage.getItem('companion_swipeSig') === '0' || !parseSigMotion(v.sigMotion) || !device1.isConnected()) return;
+  const go = () => { try { playSigMotion(v, true); } catch (e) {} };
+  if (audio) { const at = () => { const d = isFinite(audio.duration) ? audio.duration : 8; setTimeout(() => { if (!audio.paused && previewAudio === audio) go(); }, Math.max(1200, d * 450)); }; if (audio.readyState >= 1) at(); else audio.addEventListener('loadedmetadata', at, { once: true }); audio.addEventListener('pause', () => { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} }, { once: true }); }
+  else setTimeout(go, 3500);
+}
 async function introduceFigure(v, figureId, button, force) {
   figureId = figureId || v.figureId;
   if (previewAudio) { try { previewAudio.pause(); } catch (e) {} previewAudio = null; }
@@ -14342,11 +14452,11 @@ async function introduceFigure(v, figureId, button, force) {
       const blob = await dbGet(STORE_AUDIO, INTRO_PREFIX + figureId).catch(() => null);
       if (blob) {
         previewAudio = new Audio(URL.createObjectURL(blob));
-        previewAudio.play().catch(() => {});
+        previewAudio.play().catch(() => {}); introSigDemo(v, previewAudio);
         return;
       }
     } else if (stored.text) {
-      return speakWithBrowser(stored.text, v);
+      introSigDemo(v, null); return speakWithBrowser(stored.text, v);
     }
   }
 
@@ -14364,9 +14474,9 @@ async function introduceFigure(v, figureId, button, force) {
       const blob = await elevenIntroAudio(text, v);
       if (figureId) await dbPut(STORE_AUDIO, INTRO_PREFIX + figureId, blob);
       previewAudio = new Audio(URL.createObjectURL(blob));
-      previewAudio.play().catch(() => {});
+      previewAudio.play().catch(() => {}); introSigDemo(v, previewAudio);
     } else {
-      speakWithBrowser(text, v);
+      introSigDemo(v, null); speakWithBrowser(text, v);
     }
     if (figureId) {
       const m = loadIntroMap();
@@ -14767,6 +14877,7 @@ const IMPORT_FIELDS = [
   ['userStyle', /^so sollen die figuren mit mir reden$/],
   ['signature', /^(markenzeichen|signature( move)?|erkennungszeichen)/],
   ['deviceStyle', /^(handschrift( am gerät)?|stil am gerät)/],
+  ['sigMotion', /^(markenzeichen am gerät|signatur-?bewegung|signature motion)/],
   ['core', /^(charakterkern|kern)/],
 ];
 function parseFigureBlocks(text) {
@@ -14801,6 +14912,7 @@ function figureFromFields(f) {
     styleExamples: f.styleExamples || '',
     signature: f.signature || '',
     deviceStyle: f.deviceStyle || '',
+    sigMotion: f.sigMotion || '',
     core: f.core || '',
     emotional: f.emotional === undefined ? true : yes(f.emotional),
     replyLength: /sehr/.test(len) ? 'sehrlang' : /lang/.test(len) ? 'lang' : /kurz/.test(len) ? 'kurz' : 'mittel',
@@ -15068,6 +15180,7 @@ function motionVocabOn() {
 }
 
 const PATTERN_INFO = {
+  markenzeichen: 'die ganz eigene Signatur-Bewegung der Figur, die gerade spricht',
   spitze_necken: 'kurze, schnelle Hübe nur ganz oben, kurz innehalten, weiter',
   tief_langsam: 'lange, langsame Hübe bis ganz unten',
   ganze_laenge: 'gleichmäßige Hübe über die ganze Länge',
@@ -15086,6 +15199,7 @@ const PATTERN_INFO = {
 };
 
 function expandPattern(name, tempo) {
+  if (/^(markenzeichen|signature|signatur)$/i.test(String(name || ''))) return [{ type: 'sigref' }];   // wird beim Abspielen zur Bewegung der sprechenden Figur
   const t = tempo === 'langsam' ? 0 : tempo === 'schnell' ? 2 : 1;
   const pick = (a, b, c) => [a, b, c][t];
   const osc = (low, high, bpm, texture, ms, vib) => ({ type: 'osc', low, high, bpm, texture: texture || 'smooth', ms: ms || 0, vib });
@@ -15131,6 +15245,7 @@ function patternLabel(item) {
 function applyMotionItem(num, item) {
   const dev = num === 2 ? device2 : device1;
   if (!item) return;
+  if (!/^(markenzeichen|signature|signatur)$/i.test(item.muster || '') && sigLocked(num, item.texture === 'stop', item.muster ? 'Muster ' + item.muster : '')) return;
   if (item.muster) {
     const steps = expandPattern(item.muster, item.tempo);
     if (steps) {
@@ -18259,13 +18374,41 @@ So soll es sein:
 - und ein Rhythmus, den man am Gerät spürt (z. B. Pause - Zählen - drei harte Stöße, ganz langsames Herausziehen bis zur Spitze, Zittern oben, Kreisen) - so beschrieben, dass die Bewegung eindeutig ist
 - abgeleitet aus ihrem Charakter, ihrem Motiv und ihren Vorlieben/Fetischen; unverwechselbar und deutlich anders als die Markenzeichen der anderen
 1-2 Sätze, höchstens 320 Zeichen, in der dritten Person ("Sie ...").
+Dazu "geraet": genau diese Bewegung als Folge für das Gerät - eine kleine Szene mit Dramaturgie: Auftakt (Zögern, Necken, Stillhalten), Aufbau, eine Überraschung oder Wendung, Höhepunkt, kurzer Ausklang. 6-12 Schritte durch | getrennt, zusammen 15-35 Sekunden. ${SIG_MOTION_SYNTAX}
 ${describeCharacter(c)}
 ${othersSigs.length ? 'MARKENZEICHEN DER ANDEREN (nichts davon wiederholen, auch nicht ähnlich):\n' + othersSigs.map(x => '- ' + x).join('\n') : ''}
-Antworte NUR als JSON: {"signature": "..."}`;
-  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.95, Math.max(500, taskBudget('draft', 500)), { task: 'draft' }));
-  const sig = j && String(j.signature || '').trim();
-  if (!sig || sig.length < 25) throw new Error('keine brauchbare Antwort');
-  return sig.slice(0, 400);
+Antworte NUR als JSON: {"signature": "...", "geraet": "..."}`;
+  let j = null, sig = '', why = 'keine brauchbare Antwort';
+  for (let k = 0; k < 3 && !sig; k++) {
+    let raw = ''; try { raw = String(await callProvider(provider, sys + (k ? '\nNur das JSON-Objekt, nichts davor oder danach.' : ''), [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.9, Math.max(900, taskBudget('draft', 900)), { task: 'draft' }) || ''); } catch (e) { why = e.message; continue; }
+    j = parseJsonLoose(raw);
+    let cand = j && String(j.signature || j.markenzeichen || '').trim();
+    if (!cand && raw && !/^\s*[{\[]/.test(raw)) cand = raw.replace(/^["'„]+|["'“”]+$/g, '').split(/\n\s*(geraet|gerät)\s*:/i)[0].trim();   // ohne JSON: Fließtext nehmen
+    if (!cand || cand.length < 25) { why = 'Antwort war leer oder kein lesbares JSON (' + raw.slice(0, 60) + ' …)'; continue; }
+    if (ageIssue(Object.assign({}, c, { signature: cand }))) { why = 'Entwurf wirkte nicht erwachsen - verworfen'; continue; }
+    sig = cand;
+  }
+  if (!sig) throw new Error(why);
+  let motion = j && j.geraet && parseSigMotion(j.geraet) ? String(j.geraet).trim() : '';
+  if (!motion) { try { motion = await sigMotionFor(Object.assign({}, c, { signature: sig })); } catch (e) {} }
+  return { signature: sig.slice(0, 400), motion: motion.slice(0, 500) };
+}
+const SIG_MOTION_SYNTAX = `Positionen 0 = ganz tief, 999 = ganz an der Spitze. Schritte: "zu 950 in 1,5s" (fahren), "halten 1s" (stillhalten), "pendeln 100-900@60 3s" (Hübe von-bis @ Takt pro Minute, Dauer), "stoßen 100-900@150 2s" (stoßend), "zittern 880-960@200 2s" (zittern), "rampe 100-950@40-180 4s" (immer schneller), oder ein Muster mit Dauer: ${Object.keys(PATTERN_INFO).filter(k => k !== 'markenzeichen').join(', ')} (z. B. "spitze_necken mittel 3s"). Beispiel: "zu 980 in 3s | halten 2s | spitze_necken langsam 4s | halten 1,5s | stoßen 100-980@150 3s | halten 1s | zittern 900-980@200 2s | rampe 100-950@40-170 6s | pendeln 600-950@30 5s"`;
+async function sigMotionFor(c) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const sys = `Übersetze das Markenzeichen dieser Figur in eine Bewegungsfolge für ein Gerät (Erwachsenen-App). Die Folge soll sich unverwechselbar nach IHR anfühlen - Rhythmus, Pausen, Überraschung genau wie beschrieben.
+Figur: ${c.name}
+Markenzeichen: ${c.signature}
+Art am Gerät: ${(c.deviceStyle || '').trim() || deviceStyleAuto(c)}
+Eine kleine Szene mit Dramaturgie: Auftakt (Zögern, Necken, Stillhalten), Aufbau, eine Überraschung oder Wendung, Höhepunkt, kurzer Ausklang. 6-12 Schritte durch | getrennt, zusammen 15-35 Sekunden. ${SIG_MOTION_SYNTAX}
+Antworte NUR als JSON: {"geraet": "..."}`;
+  for (let k = 0; k < 2; k++) { const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.6, Math.max(400, taskBudget('draft', 400)), { task: 'draft' })); const m = j && String(j.geraet || '').trim(); if (m && parseSigMotion(m)) return m; }
+  throw new Error('keine gültige Bewegungsfolge');
+}
+function playSigMotion(c, quiet) {
+  const steps = parseSigMotion(c.sigMotion); if (!steps) { if (!quiet) showToast('Noch keine gültige Gerätebewegung', true); return false; }
+  if (!device1.isConnected()) { if (!quiet) showToast('Gerät 1 ist nicht verbunden', true); return false; }
+  device1.runSequence(steps.concat([{ type: 'stop' }])); logEvent('msg', { role: 'system', text: `Markenzeichen am Gerät vorgeführt: ${c.name} - ${c.sigMotion}` }); return true;
 }
 function otherSignatures(exceptId) { return figureArchive.filter(f => f.id !== exceptId).map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator && (v.signature || '').trim()).map(v => v.name + ': ' + v.signature.trim().slice(0, 160)).slice(0, 30); }
 async function refreshAllSignatures(btn) {
@@ -18274,7 +18417,7 @@ async function refreshAllSignatures(btn) {
   const label = btn.textContent; btn.disabled = true; let ok = 0; const bad = [];
   for (let i = 0; i < list.length; i++) {
     const f = list[i], name = latestVersion(f).name; btn.textContent = `💋 ${i + 1}/${list.length}: ${name} …`;
-    try { const c = characterFromVersion(f); const sig = await freshSignature(c, otherSignatures(f.id)); c.signature = sig; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, { signature: sig }) : x); ok++; }
+    try { const c = characterFromVersion(f); const r = await freshSignature(c, otherSignatures(f.id)); c.signature = r.signature; c.sigMotion = r.motion; storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, { signature: r.signature, sigMotion: r.motion }) : x); ok++; }
     catch (e) { bad.push(name + ': ' + e.message); }
   }
   btn.disabled = false; btn.textContent = label; try { renderFigureList(); } catch (e) {}
@@ -18310,6 +18453,7 @@ async function reshapeCharacter(c, hint) {
   const T = TRAIT_GROUPS.flatMap(g => g.traits.map(([id, t]) => `${id} (${t})`)).join(', ');
   const sys = `Erotisches Rollenspiel zwischen Erwachsenen (alle über 21, alles einvernehmlich). Til hat viele Figuren, die sich zu sehr ähneln - diese hier soll einen deutlich anderen CHARAKTER bekommen.
 RICHTUNG: ${hint}
+Sie ist und bleibt eine erwachsene Frau (${c.age ? c.age + ' Jahre' : 'deutlich über 21'}) - schreibe sie auch so: erwachsene Wortwahl, keine Wörter oder Vergleiche, die jung, kindlich oder schülerhaft wirken.
 Bleibt gleich: Name, Aussehen, Alter, Herkunft, Beruf und äußere Fakten. Ändert sich: Persönlichkeit, Verhalten im Bett, Sprechweise, Motive, Vorlieben - glaubwürdig, als wäre sie schon immer so gewesen.
 ${describeCharacter(c)}
 
@@ -18319,19 +18463,38 @@ Gib zurück:
 - "core": Zeilen "Motiv: …", "Eigenheiten: …; …; …", "Sprechweise: …", "Was sie von Til will: …", "Vorlieben und Fetische: …", "Wie sie die Geschichte lenkt: …", "Wiederkehrende Motive: …", "Innere Spannung: …" (je 1-2 Sätze, durch Zeilenumbruch getrennt)
 - "styleExamples": 3-4 typische Sätze von ihr in der neuen Sprechweise, je eine Zeile
 Antworte NUR als JSON: {"notes": "...", "traits": ["..."], "core": "...", "styleExamples": "..."}`;
-  const j = parseJsonLoose(await callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.85, Math.max(1800, taskBudget('draft', 1800)), { task: 'draft' }));
-  if (!j || !j.core || !j.notes) throw new Error('keine brauchbare Antwort');
   const ids = new Set(TRAIT_GROUPS.flatMap(g => g.traits.map(([id]) => id)));
   const join = x => Array.isArray(x) ? x.join('\n') : typeof x === 'object' ? Object.entries(x).map(([k, y]) => k + ': ' + y).join('\n') : String(x);
-  const traits = (Array.isArray(j.traits) ? j.traits : []).map(String).filter(t => ids.has(t));
-  return { notes: String(j.notes).slice(0, 3000), core: join(j.core).slice(0, 2000), styleExamples: j.styleExamples ? join(j.styleExamples).slice(0, 1200) : c.styleExamples, traits: traits.length >= 3 ? traits : c.traits };
+  let lastErr = 'keine brauchbare Antwort';
+  for (let k = 0; k < 3; k++) {
+    // Die Altersprüfung bleibt streng: wirkt der neue Text nicht erwachsen, wird neu geschrieben (mit Hinweis), nicht gespeichert
+    const extra = k ? '\nWICHTIG: Der letzte Entwurf klang an einer Stelle nicht erwachsen. Schreib sie eindeutig als erwachsene Frau.' : '';
+    let j = null; try { j = parseJsonLoose(await callProvider(provider, sys + extra, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.85, Math.max(1800, taskBudget('draft', 1800)), { task: 'draft' })); } catch (e) { lastErr = e.message; continue; }
+    if (!j || !j.core || !j.notes) continue;
+    const traits = (Array.isArray(j.traits) ? j.traits : []).map(String).filter(t => ids.has(t));
+    const out = { notes: String(j.notes).slice(0, 3000), core: join(j.core).slice(0, 2000), styleExamples: j.styleExamples ? join(j.styleExamples).slice(0, 1200) : c.styleExamples, traits: traits.length >= 3 ? traits : c.traits };
+    const issue = ageIssue(Object.assign({}, c, out)); if (!issue) return out;
+    lastErr = 'Entwurf wirkte nicht erwachsen (' + issue + ') - verworfen'; logEvent('msg', { role: 'system', text: `Umbau ${c.name}: ${lastErr}, neuer Versuch` });
+  }
+  throw new Error(lastErr);
 }
 let fullRefresh = null;
 async function refreshAllFigures(btn) {
-  if (fullRefresh) { fullRefresh.stop = true; btn.textContent = 'Hält nach diesem Schritt an …'; return; }
+  if (fullRefresh) { if (confirm('Den laufenden Durchgang anhalten? Du kannst später an derselben Stelle weitermachen.')) { fullRefresh.stop = true; btn.textContent = 'Hält nach diesem Schritt an …'; } return; }
   const figs = () => figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator);
   const N = figs().length;
+  // Weitermachen, wo ein angehaltener Durchgang stehen blieb (bis 24 h)
+  let prog = null; try { prog = JSON.parse(localStorage.getItem('companion_refreshProg') || 'null'); } catch (e) {}
+  if (prog && Date.now() - prog.t < 86400000 && prog.step > 1) {
+    if (confirm(`Der letzte Durchgang wurde bei Schritt ${prog.step} von 6 angehalten. Dort weitermachen?\n\nOK = weitermachen · Abbrechen = von vorne`)) return refreshAllFigures2(btn, prog);
+  }
   if (!confirm(`Alle ${N} Figuren auf den aktuellen Stand bringen - in einem Durchgang:\n\n1. KI liest alle Figuren und setzt sie auf die Charakter-Karte\n2. Wo sie sich zu sehr ähneln, bekommen einzelne einen deutlich anderen Charakter (Beschreibung, Eigenschaften, Kern, Tonfall - Name und Aussehen bleiben), bis es ein bunter Mix ist\n3. Fehlende Felder ergänzen\n4. Neue, unverwechselbare Markenzeichen für alle\n5. Beziehungen: Namen aus Beschreibungen übernehmen, ein paar spannende neu\n6. Doppelte Stimmen neu verteilen\n\nDauert je nach Anzahl 10-20 Minuten und kostet etwa ${(N * 0.03 + 0.2).toFixed(2).replace('.', ',')} $. Bildschirm bitte anlassen. Alte Versionen bleiben erhalten; nochmal tippen hält an.`)) return;
+  return refreshAllFigures2(btn, { step: 1, sigDone: [], t: Date.now() });
+}
+async function refreshAllFigures2(btn, prog) {
+  const figs = () => figureArchive.map(f => ({ f, v: latestVersion(f) })).filter(x => x.v && !x.v.isUser && !x.v.isNarrator);
+  const N = figs().length;
+  const saveProg = (st) => { prog.step = st; prog.t = Date.now(); safeSet('companion_refreshProg', JSON.stringify(prog)); };
   fullRefresh = { stop: false }; const label = btn.dataset.label || btn.textContent; btn.dataset.label = label;
   const rep = [], step = t => { btn.textContent = t; }, stopped = () => fullRefresh.stop;
   const upd = (f, patch) => { const c = characterFromVersion(f); Object.assign(c, patch); storeCharacterVersion(c, true); saveArchive(); characters = characters.map(x => x.figureId === f.id ? Object.assign(x, patch) : x); };
@@ -18341,8 +18504,9 @@ async function refreshAllFigures(btn) {
     if (stale().length) { await rateFigures(stale(), (i, n) => step(`1/6 KI liest Figuren … ${Math.min(n, i + 6)}/${n}`)); }
     let D = charMapData().filter(d => d.ai);
     if (D.length < 3) throw new Error('Einschätzung ging nicht' + (rateFigures.lastErr ? ': ' + rateFigures.lastErr : ''));
+    if (prog.step < 2) saveProg(2);
     // 2. bunter Mix
-    if (!stopped()) {
+    if (!stopped() && prog.step <= 2) {
       const plan = diversityPlan(D); let ok = 0;
       for (let i = 0; i < plan.length && !stopped(); i++) {
         const x = plan[i]; step(`2/6 Charakter ${i + 1}/${plan.length}: ${x.d.v.name} …`);
@@ -18352,12 +18516,15 @@ async function refreshAllFigures(btn) {
       logEvent('msg', { role: 'system', text: `Bunter Mix: ${ok} von ${plan.length} Figuren umgebaut. ` + rep.join(' · ') });
       if (ok && !stopped()) await rateFigures(stale(), (i, n) => step(`2/6 Neu einschätzen … ${Math.min(n, i + 6)}/${n}`));
     }
+    if (!stopped() && prog.step < 3) saveProg(3);
     // 3. fehlende Felder
     const filled = [];
-    for (let i = 0; i < N && !stopped(); i++) { const f = figs()[i].f; step(`3/6 Felder ${i + 1}/${N} …`); try { const r = await upgradeFigure(f, true); if (r && r.changed.length) filled.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) {} }
-    // 4. Markenzeichen
-    let sigs = 0;
-    for (let i = 0; i < N && !stopped(); i++) { const f = figs()[i].f, nm = latestVersion(f).name; step(`4/6 Markenzeichen ${i + 1}/${N}: ${nm} …`); try { const sig = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: sig }); sigs++; } catch (e) {} }
+    for (let i = 0; i < N && !stopped() && prog.step <= 3; i++) { const f = figs()[i].f; step(`3/6 Felder ${i + 1}/${N} …`); try { const r = await upgradeFigure(f, true); if (r && r.changed.length) filled.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) {} }
+    if (!stopped() && prog.step < 4) saveProg(4);
+    // 4. Markenzeichen (wer in diesem Durchgang schon eins bekam, wird beim Weitermachen übersprungen)
+    let sigs = 0; const sigFail = [];
+    for (let i = 0; i < N && !stopped() && prog.step <= 4; i++) { const f = figs()[i].f, nm = latestVersion(f).name; if ((prog.sigDone || []).includes(f.id)) continue; step(`4/6 Markenzeichen ${i + 1}/${N}: ${nm} …`); try { const r = await freshSignature(characterFromVersion(f), otherSignatures(f.id)); upd(f, { signature: r.signature, sigMotion: r.motion }); sigs++; (prog.sigDone = prog.sigDone || []).push(f.id); saveProg(4); } catch (e) { sigFail.push(nm + ': ' + e.message); } }
+    if (!stopped() && prog.step < 5) saveProg(5);
     // 5. Beziehungen
     let relTaken = 0, relNew = 0;
     if (!stopped()) {
@@ -18367,9 +18534,10 @@ async function refreshAllFigures(btn) {
     }
     // 6. Stimmen
     let voices = 0; if (!stopped()) { step('6/6 Stimmen …'); try { voices = await spreadVoices(null, true) || 0; } catch (e) {} }
+    if (!stopped()) localStorage.removeItem('companion_refreshProg');
     try { renderFigureList(); } catch (e) {}
     const Dn = charMapData().filter(d => d.ai), sim = Dn.length > 2 ? cmSimilarity(Dn) : null;
-    const msg = `${stopped() ? 'Angehalten. ' : 'Fertig. '}Charaktere umgebaut: ${rep.filter(r => !/ging nicht/.test(r)).length}\n${rep.join('\n')}\n\nFelder ergänzt: ${filled.length}${filled.length ? '\n' + filled.join('\n') : ''}\nMarkenzeichen neu: ${sigs}\nBeziehungen: ${relTaken} aus Beschreibungen übernommen, ${relNew} neu\nStimmen neu verteilt: ${voices}${sim ? `\n\nKarte jetzt: ${sim.clusters.length} Grüppchen, ${sim.close.length} fast Doppelgänger` : ''}`;
+    const msg = `${stopped() ? 'Angehalten bei Schritt ' + prog.step + ' - beim nächsten Tippen kannst du dort weitermachen. ' : 'Fertig. '}Charaktere umgebaut: ${rep.filter(r => !/ging nicht/.test(r)).length}\n${rep.join('\n')}\n\nFelder ergänzt: ${filled.length}${filled.length ? '\n' + filled.join('\n') : ''}\nMarkenzeichen neu: ${sigs}${sigFail.length ? ' (nicht geklappt: ' + sigFail.join('; ') + ')' : ''}\nBeziehungen: ${relTaken} aus Beschreibungen übernommen, ${relNew} neu\nStimmen neu verteilt: ${voices}${sim ? `\n\nKarte jetzt: ${sim.clusters.length} Grüppchen, ${sim.close.length} fast Doppelgänger` : ''}`;
     logEvent('msg', { role: 'system', text: 'Alle auf aktuellen Stand: ' + msg.replace(/\n+/g, ' · ') });
     alert(msg);
   } catch (e) { alert('Abgebrochen: ' + e.message); }
@@ -21830,7 +21998,7 @@ const CM_DIMS = {
   fuehrt: ['lässt sich führen', 'führt', 'lässt sich führen, hingebungsvoll, devot', 'führt, bestimmt, dominant'],
   verspielt: ['ernst', 'verspielt', 'ernst, intensiv, kaum Scherze', 'verspielt, frech, albern, neckt ständig'],
   gefuehl: ['kühl', 'gefühlvoll', 'kühl, distanziert, eher körperlich', 'gefühlvoll, anhänglich, sucht Nähe und Bindung'],
-  erfahren: ['neugierig', 'erfahren', 'unerfahren, neugierig, staunt, probiert zum ersten Mal', 'sehr erfahren, abgebrüht, weiß genau, was sie will'],
+  erfahren: ['neugierig', 'erfahren', 'eine erwachsene Frau, die vieles noch nicht ausprobiert hat und neugierig darauf ist, es mit Til zum ersten Mal zu entdecken', 'sehr erfahren, abgebrüht, weiß genau, was sie will'],
   kink: ['klassisch', 'Fetisch', 'klassisch, ohne besondere Vorlieben', 'ausgeprägte Fetische/Kinks, die die Handlung prägen'],
   laut: ['leise', 'laut & derb', 'leise, flüsternd, wenige Worte', 'laut, redselig, derbe Worte, Dirty Talk'],
   ungeduldig: ['geduldig', 'ungeduldig', 'sehr geduldig, zögert gern hinaus', 'ungeduldig, will sofort mehr'],
@@ -28220,6 +28388,14 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
+
 
 
 
