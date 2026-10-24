@@ -3702,8 +3702,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.53';
+const APP_VERSION = '3.54';
 const CHANGELOG = [
+  { v: '3.54', date: '2026-10-24', items: [
+    '🔄 Abgleich: klarere Meldung bei Dateien aus älteren Versuchen; nach „Neu anlegen" macht die App sofort eine Gegenprobe',
+  ] },
   { v: '3.53', date: '2026-10-24', items: [
     '🔄 Abgleich: Dateien werden jetzt auf dem sicheren Weg von GitHub geholt (der bisherige Weg lieferte offenbar nicht die Datei selbst - daher „Entschlüsseln ging nicht")',
     '🔄 Prüfdatei: sagt sofort und eindeutig, ob das Kennwort zu den Daten passt; kaputte Einzelbilder werden übersprungen statt alles abzubrechen',
@@ -4981,7 +4984,7 @@ async function syncDec(buf, path) {
     if (e.wrongPass) throw e;
     // GitHub liefert direkt nach dem Schreiben manchmal kurz noch einen alten Stand - einmal neu holen
     if (path) { await new Promise(r => setTimeout(r, 2500)); const again = await ghGet(path); if (again) { try { return await syncDecRaw(again); } catch (e2) { if (e2.wrongPass) throw e2; } } else return null; }
-    const er = new Error('Datei „' + (path || '?') + '" ließ sich nicht entschlüsseln (' + new Uint8Array(buf).length + ' Byte)'); er.badFile = path; throw er;
+    const er = new Error('Datei „' + (path || '?') + '" ließ sich nicht entschlüsseln (' + new Uint8Array(buf).length + ' Byte). Das Kennwort selbst passt - die Datei stammt wohl noch aus einem älteren Versuch. Tipp einmal auf „♻️ Neu anlegen".'); er.badFile = path; throw er;
   }
 }
 const syncJson = async (path) => { const b = await ghGet(path); if (!b) return null; const d = await syncDec(b, path); return d ? JSON.parse(new TextDecoder().decode(d)) : null; };
@@ -5080,6 +5083,9 @@ function syncUiInit() {
       localStorage.removeItem('companion_syncDone'); localStorage.removeItem('syncmeta_img');
     } catch (e) { sync.busy = false; syncSetStatus('Neu anlegen ging nicht: ' + e.message, true); return; }
     sync.busy = false; await syncNow('neu angelegt');
+    // Gegenprobe: frisch hochgeladene Datei sofort wieder holen und entschlüsseln
+    try { const back = await ghGet('core.bin'); if (back) { await syncDecRaw(back); syncSetStatus(sync.status + ' · Gegenprobe ok'); logEvent('msg', { role: 'system', text: '🔄 Gegenprobe ok (' + new Uint8Array(back).length + ' Byte)' }); } }
+    catch (e) { const b = new Uint8Array(await ghGet('core.bin').catch(() => new ArrayBuffer(0))); const msg = 'Gegenprobe ging nicht: ' + b.length + ' Byte, Anfang ' + [...b.slice(0, 8)].map(x => x.toString(16).padStart(2, '0')).join(' ') + ' - ' + e.message; syncSetStatus(msg, true); logEvent('msg', { role: 'system', text: '🔄 ' + msg }); }
   };
   g('syncImages').onchange = () => safeSet('companion_syncImages', g('syncImages').checked ? '1' : '0');
   g('syncOnBox').onchange = () => { safeSet('companion_syncOn', g('syncOnBox').checked ? '1' : '0'); if (g('syncOnBox').checked) syncNow('eingeschaltet'); };
@@ -29602,6 +29608,7 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
 
 
 
