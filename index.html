@@ -3206,35 +3206,7 @@ function playAnyPreview(voiceId) {
 // checkbox; this only decides what is worth looking at first.
 let veniceModelCache = [];
 
-function modelSuitability(model) {
-  const id = (model.id || '').toLowerCase();
-  const spec = model.model_spec || {};
-  const traits = (Array.isArray(spec.traits) ? spec.traits : []).join(' ').toLowerCase();
-  const text = id + ' ' + traits + ' ' + (spec.name || '').toLowerCase();
-  let score = 0;
 
-  // Built for exactly this: unrestricted, character-driven prose.
-  if (/uncensored|unfiltered|heretic|abliterated/.test(text)) score += 40;
-  if (/roleplay|rp\b|character|companion/.test(text)) score += 35;
-  if (/creative|writing|story/.test(text)) score += 20;
-
-  // A model the provider itself marks as its default is usually a safe choice.
-  if (/\bdefault\b/.test(traits)) score += 15;
-
-  // Long context keeps a scene coherent over many exchanges.
-  const context = spec.availableContextTokens || spec.contextLength || 0;
-  if (context >= 200000) score += 15;
-  else if (context >= 100000) score += 10;
-  else if (context >= 32000) score += 5;
-
-  // Built for something else entirely.
-  if (/code|coder|devstral|embed|rerank|guard|moderation|vision|ocr|whisper|tts/.test(text)) score -= 60;
-  // Small and fast variants: fine for a quick answer, thin for German prose.
-  if (/lite|mini|nano|tiny|small|1b|3b|4b/.test(text)) score -= 25;
-  if (/flash|turbo/.test(text)) score -= 12;
-
-  return score;
-}
 
 function renderVeniceModels() {
   fillGroupedSelect(els.veniceModelSelect, veniceModelCache, TEXT_RECOMMENDED.chat, 'Empfohlen fürs Gespräch', textModelNote,
@@ -3727,8 +3699,16 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.71';
+const APP_VERSION = '3.73';
 const CHANGELOG = [
+  { v: '3.73', date: '2026-10-24', items: [
+    '🌙 Abendbegleitung wieder in der richtigen Reihenfolge: Empfang und Plaudern → die Madame stellt vor und FRAGT, ob sie dir gefallen → du antwortest → drei Ideen → du wählst → erst dann beginnt der Abend. Bis dahin keine Bewegung, und das Gespräch läuft nicht von selbst weiter, solange sie auf deine Antwort wartet (vorher sprang es nach „bereit" direkt ins Geschehen)',
+  ] },
+  { v: '3.72', date: '2026-10-24', items: [
+    '💾 Erinnerung an die Sicherungsdatei nur noch einmal im Monat (der Geräte-Abgleich hält die Geräte täglich gleich)',
+    '🧹 Aufgeräumt: 17 Funktionen entfernt, die nirgends mehr benutzt wurden (alte Vorstufen, z. B. frühere Intim-Beschreibung, alte Figuren-Aktualisierung)',
+    '🔄 Abgleich als Wiederherstellung: beim allerersten Abgleich auf einem Gerät (z. B. nach dem Löschen der Browserdaten) gewinnt der Stand auf GitHub - die frischen Startwerte des leeren Geräts überschreiben ihn nicht mehr',
+  ] },
   { v: '3.71', date: '2026-10-24', items: [
     '🧪 Testlabor interaktiv: nach jedem Test(schritt) kommt eine Abfrage zum Antippen (smooth / kleiner Ruck / Sprung …), dazu „Nochmal abspielen" und ein Feld für eigene Worte. Neuer Test „Generator und App-Befehle im Wechsel" in sechs Schritten',
     '🧪 Neue Seite „Testlabor" (Menü ☰ und Einstellungen): alle Tests zu neuen Funktionen an einem Ort - starten, zuschauen, mit einem Tipp sagen, wie es war; die Antworten stehen im Protokoll und stellen teils gleich die passende Einstellung ein',
@@ -5131,7 +5111,8 @@ async function syncNow(reason) {
     // 1. Einstellungen und Figuren: je Schlüssel das Neuere
     sync.stage = 'Daten holen'; const remote = await syncJson('core.bin');
     const times = syncTimes(), dels = syncDels(), firstHere = !localStorage.getItem('companion_syncDone');
-    const local = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('companion_') && !SYNC_SKIP_RE.test(k)) local[k] = [localStorage.getItem(k), firstHere && !remote ? Date.now() : (times[k] || 0)]; }
+    // Erster Abgleich auf einem (z. B. frisch geleerten) Gerät: der Stand auf GitHub gewinnt, Startwerte überschreiben ihn nicht
+    const local = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('companion_') && !SYNC_SKIP_RE.test(k)) local[k] = [localStorage.getItem(k), firstHere && !remote ? Date.now() : firstHere && remote ? 0 : (times[k] || 0)]; }
     const merged = { keys: {}, dels: Object.assign({}, remote ? remote.dels || {} : {}) };
     Object.entries(dels).forEach(([k, t]) => { if (!merged.dels[k] || merged.dels[k] < t) merged.dels[k] = t; });
     const rk = remote ? remote.keys || {} : {};
@@ -8301,7 +8282,7 @@ function seatOf(role) {
   if (all[id] != null && !others.includes(all[id])) return all[id];
   const free = SEATS.find(a => !others.includes(a)); all[id] = free == null ? 0 : free; safeSet('companion_seats', JSON.stringify(all)); return all[id];
 }
-function rolePan(role) { if (!role || role === 'narrator') return 0; return Math.sin(seatOf(role) * Math.PI / 180); }
+
 // Wo ist sie gerade? Aus Zeile oder Erzählung: über dir (reitet), unter dir (Mund, kniet), am Ohr, hinter dir …
 const voicePose = {};
 const POSE_RULES = [
@@ -9096,7 +9077,7 @@ function updateAmbienceUI() {
 const motionWish = { active: false, speed: 0.5, stroke: 0.5, since: 0, rampStart: 0 };
 const WISH_BPM_MIN = 15, WISH_BPM_MAX = 180;
 function wishBpm() { return Math.round(WISH_BPM_MIN + motionWish.speed * (WISH_BPM_MAX - WISH_BPM_MIN)); }
-function wishStrokeLen() { return Math.round(150 + motionWish.stroke * 849); }
+
 function wishWords() {
   const sp = motionWish.speed < 0.25 ? 'sehr langsam' : motionWish.speed < 0.5 ? 'langsam' : motionWish.speed < 0.75 ? 'zügig' : 'schnell und heftig';
   const st = motionWish.stroke < 0.33 ? 'kurze Bewegungen' : motionWish.stroke < 0.66 ? 'mittlere Bewegungen' : 'lange, volle Bewegungen';
@@ -9975,9 +9956,7 @@ function readyCheckEnabled() {
   if (currentMode === 'live' && localStorage.getItem('companion_guided') === '1') return true;   // geführter Abend: erst ankommen, dann los
   return localStorage.getItem('companion_readyCheck') === 'true';
 }
-function anyDeviceConnected() {
-  return [device1, device2].some(d => d && d.isConnected && d.isConnected());
-}
+
 function saysReady(text) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
   if (/\b(nicht|noch nicht|warte|wart mal|moment|gleich|sekunde|kurz noch|noch)\b/.test(t)) return false;
@@ -14871,31 +14850,7 @@ function normalizeGender(raw, ...texts) {
 
 // Fehlt einer Eigenschaftsgruppe etwas, wird aus den übrigen Angaben ergänzt,
 // statt die Gruppe leer zu lassen.
-function fillTraitGroups(traits, notes) {
-  const out = traits.slice();
-  const has = ids => ids.some(id => out.includes(id));
-  const text = String(notes || '').toLowerCase();
-  const pick = (candidates, fallback) => {
-    const hit = candidates.find(([re]) => re.test(text));
-    return hit ? hit[1] : fallback;
-  };
-  const added = [];
-  if (!has(['knapp', 'redselig', 'bildhaft', 'deutlich', 'leise', 'humorvoll', 'fragend'])) {
-    const id = pick([[/flüster|leise|hauch/, 'leise'], [/lach|witz|humor/, 'humorvoll'], [/knapp|wenig worte|kurz angebunden/, 'knapp'], [/erzählt|beschreib|bildhaft/, 'bildhaft']],
-      out.includes('direkt') || out.includes('ungeduldig') || out.includes('selbstbewusst') ? 'deutlich' : 'bildhaft');
-    out.push(id); added.push(id);
-  }
-  if (!has(['fuehrt', 'folgt', 'wechselt', 'beobachtet'])) {
-    const id = pick([[/beobacht|zuschau/, 'beobachtet'], [/lässt sich führen|gehorch|unterwirft|devot/, 'folgt']],
-      out.some(t => ['selbstbewusst', 'direkt', 'ungeduldig'].includes(t)) ? 'fuehrt' : 'wechselt');
-    out.push(id); added.push(id);
-  }
-  if (!has(['vertraut', 'neu', 'spannung', 'rivalitaet'])) {
-    const id = pick([[/vertraut|seit jahren|lange/, 'vertraut'], [/rival|eifersüch/, 'rivalitaet'], [/fremd|erste mal|begegn/, 'neu']], 'spannung');
-    out.push(id); added.push(id);
-  }
-  return { traits: out, added };
-}
+
 
 function sanitizeSingleCharacter(draft) {
   const valid = new Set(Object.keys(TRAIT_TEXT));
@@ -15799,19 +15754,7 @@ let currentMode = 'live';  // 'live' | 'story'
 // separate call produces, so everything downstream stays unchanged.
 const MOTION_MARKER = /<<\s*(\d{1,3})\s*-\s*(\d{1,3})\s*@\s*(\d{1,3})\s*([a-z]+)\s*>>/i;
 
-function extractMotionMarker(line) {
-  const match = line.match(MOTION_MARKER);
-  if (!match) return { text: line, motion: null };
-  return {
-    text: line.replace(MOTION_MARKER, '').trim(),
-    motion: {
-      low: parseInt(match[1], 10),
-      high: parseInt(match[2], 10),
-      bpm: parseInt(match[3], 10),
-      texture: match[4].toLowerCase(),
-    },
-  };
-}
+
 
 // ---------- Bewegungswortschatz ----------
 // Fertige, erprobte Abläufe, die die KI beim Namen abrufen kann. Jedes Muster
@@ -16024,6 +15967,7 @@ function guidedReset() { Object.assign(guided, { startAt: Date.now(), readyAt: 0
 function guidedDevKey() { return [device1.isConnected() ? 'g1' : '', typeof device2 !== 'undefined' && device2.isConnected() ? 'g2' : '', edgeConnected() ? 'edge' : '', typeof hr !== 'undefined' && hr.connected ? 'puls' : ''].filter(Boolean).join(','); }
 function guidedPhase() {
   if (!guided.startAt) return '';
+  try { if (hostHold()) return 'ankommen'; } catch (e) {}   // im Salon beginnt der Abend erst, wenn Til gewählt hat
   if (guided.came) return 'nachglühen';
   if (!guided.readyAt) return 'ankommen';
   const total = guidedMin() * 60000, play = Math.max(10 * 60000, total - Math.max(0, guided.readyAt - guided.startAt)), f = (Date.now() - guided.readyAt) / play;
@@ -16069,6 +16013,7 @@ setInterval(() => {
 // Im geführten Abend läuft alles von selbst weiter - auch nach deiner Antwort; nur „Stopp" hält an, bis du wieder etwas sagst
 function guidedResumeAuto() {
   if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying || game.running) return;
+  try { if (hostActive() && (host.stage === 'present' || (host.stage === 'scene' && host.cards && host.cards.length && host.chosenCard < 0))) return; } catch (e) {}   // Madame hat gefragt - auf Tils Antwort warten
   if (guidedPhase() === 'nachglühen' && guided.afterN >= 0 && replyCount() - guided.afterN >= 3) return;   // Abschluss steht an
   clearTimeout(guided.resumeT);
   guided.resumeT = setTimeout(() => { if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 1200);
@@ -16132,6 +16077,8 @@ async function startHostEvening(hf) {
   logEvent('msg', { role: 'system', text: `🌙 Abendbegleitung: ${hv.name} empfängt dich` }); try { noteRecent('salon'); } catch (e) {}
   try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
 }
+// Solange die Madame empfängt, vorstellt oder die Ideen anbietet: nur Gespräch, keine Bewegung, kein Weiterlaufen ohne Tils Antwort
+function hostHold() { return hostActive() && (host.stage === 'smalltalk' || host.stage === 'present' || (host.stage === 'scene' && host.cards && host.cards.length && host.chosenCard < 0)); }
 function hostActive() { return !!host.id && !!host.stage && host.stage !== 'done' && currentMode === 'live' && characters.some(c => c.figureId === host.id); }
 function hostPresentNext(n) {
   const ids = []; while (ids.length < (n || 2) && host.queue.length) { const id = host.queue.shift(); if (!characters.some(c => c.figureId === id)) ids.push(id); }
@@ -16194,9 +16141,9 @@ function hostBlock() {
   const hc = characters.find(x => x.figureId === host.id); if (!hc && host.stage !== 'done') return '';
   const hv = hc ? hc.name : ''; let t = '';
   const portrait = id => { const v = latestVersion(getFigure(id)); const core = String(v.core || ''); return `${v.name}: ${figureGist(v)}${(core.match(/Motiv:[^\n]*/) || [''])[0] ? ' | ' + core.match(/Motiv:[^\n]*/)[0].slice(0, 120) : ''}${(core.match(/Vorlieben[^\n]*/) || [''])[0] ? ' | ' + core.match(/Vorlieben[^\n]*/)[0].slice(0, 140) : ''}${v.signature ? ' | Markenzeichen: ' + v.signature.slice(0, 120) : ''}`; };
-  if (host.stage === 'smalltalk') t = `\n\nABENDBEGLEITUNG - EMPFANG: ${hv} ist die Gastgeberin, die Madame dieses Hauses. Sie empfängt Til persönlich: Begrüßung, Smalltalk, ein bisschen Necken und Quatsch, wie war sein Tag, was ihm heute gefallen würde. Noch niemand anderes ist da. Am Ende kündigt sie an, dass sie ihm gleich die Damen des Hauses vorstellt.`;
-  else if (host.stage === 'present') t = `\n\nABENDBEGLEITUNG - VORSTELLUNG: ${hv} stellt Til jetzt vor, wer gerade hereingekommen ist - mit Charme und Witz, wie eine Madame, die ihre Damen präsentiert: wer sie ist, was sie besonders macht, was sie mag, was sie heute mit ihm täte. Jede der Vorgestellten sagt selbst etwas zu Til, zeigt sich, flirtet in ihrer eigenen Art (ihr Markenzeichen darf sie in Worten andeuten). Dann fragt die Madame ihn ausdrücklich, ob sie ihm gefallen - eine, beide, oder ob er andere sehen möchte - und wartet auf seine Antwort.\nGerade vorgestellt: ${host.current.map(portrait).join('\n')}${host.chosen.length ? '\nSchon gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(', ') : ''}`;
-  else if (host.stage === 'scene') t = `\n\nABENDBEGLEITUNG - DER ABEND: Til hat gewählt: ${host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ')}. ${host.cards && host.cards.length ? `${hv} schlägt ihm jetzt verführerisch drei Ideen vor, was sie heute erleben (erzählen, nicht als Liste): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" - ${c.teaser}`).join(' ')}. Er wählt eine - oder sagt „überrasch mich".` : `${hv} lässt die Gewählten mit Til ein wenig plaudern, während sie sich überlegt, was der Abend bringen soll.`}`;
+  if (host.stage === 'smalltalk') t = `\n\nABENDBEGLEITUNG - EMPFANG: ${hv} ist die Gastgeberin, die Madame dieses Hauses. Sie empfängt Til persönlich: Begrüßung, Smalltalk, ein bisschen Necken und Quatsch, wie war sein Tag, was ihm heute gefallen würde. Noch niemand anderes ist da. Noch KEINE körperlichen Handlungen mit Til und keine Gerätebewegung - nur Gespräch. Am Ende kündigt sie an, dass sie ihm gleich die Damen des Hauses vorstellt.`;
+  else if (host.stage === 'present') t = `\n\nABENDBEGLEITUNG - VORSTELLUNG: ${hv} stellt Til jetzt vor, wer gerade hereingekommen ist - mit Charme und Witz, wie eine Madame, die ihre Damen präsentiert: wer sie ist, was sie besonders macht, was sie mag, was sie heute mit ihm täte. Jede der Vorgestellten sagt selbst etwas zu Til, zeigt sich, flirtet in ihrer eigenen Art (ihr Markenzeichen darf sie in Worten andeuten). Noch KEINE körperlichen Handlungen mit Til und keine Gerätebewegung - sie zeigen sich nur, necken, die Damen dürfen sich auch gegenseitig sticheln. Die Antwort ENDET mit der ausdrücklichen Frage der Madame, ob sie ihm gefallen - eine, beide, oder ob er andere sehen möchte. Dann wartet sie auf seine Antwort und erfindet sie nicht.\nGerade vorgestellt: ${host.current.map(portrait).join('\n')}${host.chosen.length ? '\nSchon gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(', ') : ''}`;
+  else if (host.stage === 'scene') t = `\n\nABENDBEGLEITUNG - DER ABEND: Til hat gewählt: ${host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ')}. ${host.cards && host.cards.length ? `${hv} schlägt ihm jetzt verführerisch drei Ideen vor, was sie heute erleben (erzählen, nicht als Liste): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" - ${c.teaser}`).join(' ')}. Er wählt eine - oder sagt „überrasch mich". Bis er gewählt hat, noch keine körperlichen Handlungen und keine Gerätebewegung; die Antwort endet mit ihrer Frage.` : `${hv} lässt die Gewählten mit Til ein wenig plaudern, während sie sich überlegt, was der Abend bringen soll.`}`;
   if (host.note) { t += host.note; host.note = ''; }
   return t;
 }
@@ -17653,7 +17600,7 @@ async function askEnsemble(userText, options) {
   }
   forceReadyNext = false;
   updateReadyButton();
-  const holdNow = introNow || readyHoldActive() || (typeof hsHold === 'function' && hsHold());
+  const holdNow = introNow || readyHoldActive() || (typeof hsHold === 'function' && hsHold()) || (typeof hostHold === 'function' && hostHold());
   if (userText && !(options && (options.autoStep || options.silent))) applyQuickTempo(quickTempoWish(userText));
 
   // Unter dem Namen meiner Figur, damit das Modell weiß, wer da spricht -
@@ -18615,7 +18562,7 @@ async function deriveFigureFromPortrait(figure) {
   logEvent('msg', { role: 'system', text: `${c.name}: Aussehen aus dem Profilbild abgeleitet. Feste Bildbeschreibung: ${c.lookTag || '(wird neu erzeugt)'}` });
   return c;
 }
-function anchorOf(v) { return v && (v.anchorKey || '') ; }
+
 
 const OBSERVE_KEYS = ['bildart', 'geschlecht', 'art', 'ohren', 'haarfarbe', 'haarlaenge', 'frisur', 'augenfarbe', 'pupillen', 'gesicht', 'haut', 'statur', 'brust', 'huefte', 'kleidung', 'tattoos', 'piercings', 'schmuck', 'besonderheiten', 'wirkt_alter'];
 async function observeImage(img) {
@@ -18750,17 +18697,7 @@ Stimmbeschreibung: (englisch, für ElevenLabs Voice Design: Alter, Akzent, Klang
 }
 
 // ======================= ICH: INTIMES AUSSEHEN =======================
-async function describeIntimateFromPhotos(files, target) {
-  const imgs = [];
-  for (const f of [...files].slice(0, 3)) imgs.push(await readImageFile(f, 900));
-  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  const sys = `Du bekommst ein bis drei private Fotos des Intimbereichs eines erwachsenen Mannes (er hat sie selbst hochgeladen, für Bilder in seinem privaten Rollenspiel). Beschreibe sachlich und neutral, für ein Bildmodell, NUR die sichtbaren anatomischen Merkmale: geschätzte Größe und Proportionen im Verhältnis zum Körper, Dicke, Form und Krümmung, Eichel, beschnitten oder nicht, Hoden, Behaarung, Hautton. Keine Wertung, keine Gesichter, keine anderen Personen. 25 bis 45 Wörter, englisch, kommagetrennt. Antworte NUR mit der Beschreibung.`;
-  const msgs = imgs.map((im, i) => ({ role: 'user', content: i === imgs.length - 1 ? 'Hier die Fotos.' : 'Foto ' + (i + 1), image: im }));
-  // Mehrere Bilder: nacheinander als Teile derselben Nachricht wären je nach Anbieter verschieden - deshalb das schärfste (letzte) plus Hinweis
-  const raw = await callProvider(provider, sys, [msgs[msgs.length - 1]], 0.2, taskBudget('vision', 300), { task: 'vision' });
-  target.value = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '').slice(0, 400);
-  target.dispatchEvent(new Event('input'));
-}
+
 
 // ======================= GESUNDER UMGANG =======================
 // Nutzungszeit je Tag (nur, solange die App sichtbar und entsperrt ist),
@@ -19315,49 +19252,10 @@ function phantomPhrase(fields, defs) {
 // 2.54: Die Intim-Beschreibung ist komplett entfernt - sie kam auf den Bildern
 // nicht zuverlässig heraus. Es wird nichts mehr davon verwendet oder gespeichert.
 function intimatePhrase(c) { return ''; }
-function intimatePhraseOld(c) {
-  const t = (c.intimate || '').trim();
-  if (t && (Array.isArray(c.intimateViews) && c.intimateViews.length || t.split(/\s+/).length > 14)) return t;
-  return phantomPhrase(c.intimateFields, INTIM_FIELDS) || t;
-}
-async function refineIntimate(img, view, c) {
-  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  const prev = (c.intimate || '').trim() || phantomPhrase(c.intimateFields, INTIM_FIELDS);
-  const sys = `Du bekommst eine Ansicht (${view}) des Intimbereichs eines erwachsenen Mannes. Er hat das Foto selbst hochgeladen, damit Bilder in seinem privaten Rollenspiel ihn korrekt zeigen. Sachlich und neutral, ohne Wertung.
-${prev ? 'Bisherige Beschreibung (aus anderen Ansichten): ' + prev + '\nVerbessere sie mit dem, was DIESE Ansicht zeigt; behalte, was sie nicht widerlegt.' : 'Es gibt noch keine Beschreibung.'}
-Beschreibe für ein Bildmodell: Größe und Proportionen im Verhältnis zum Körper (z. B. zur Hand oder zum Oberschenkel), Dicke, Form und Krümmung, Eichel, beschnitten oder nicht, Hoden, Behaarung, Hautton. 30 bis 45 Wörter, englisch, kommagetrennt.
-Danach eine Zeile === FELDER === und ein JSON-Objekt mit diesen Feldern (je eine erlaubte Option wörtlich oder weglassen):
-${optionsList(INTIM_FIELDS)}`;
-  let lastErr = '';
-  for (const model of visionCandidates().slice(0, 3)) {
-    try {
-      const raw = String(await callProvider(provider, sys, [{ role: 'user', content: 'Hier die Ansicht.', image: img }], 0.2, taskBudget('vision', 700), { task: 'vision', model }) || '');
-      const [a, b] = raw.split(/===\s*FELDER\s*===/i);
-      const text = String(a || '').replace(/\*\*/g, '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 420);
-      if (!text || text.split(/\s+/).length < 10 || /sorry|can't|cannot|kann ich nicht|nicht helfen/i.test(text)) { lastErr = model + ': ' + text.slice(0, 60); continue; }
-      const j = parseJsonLoose(b || '') || {};
-      const fields = {}; INTIM_FIELDS.forEach(d => { if (d.opts.some(o => o[0] === j[d.k])) fields[d.k] = j[d.k]; });
-      return { text, fields };
-    } catch (e) { lastErr = model + ': ' + e.message; }
-  }
-  throw new Error('Kein privates Bildmodell konnte die Ansicht beschreiben (' + lastErr + ')');
-}
+
+
 // Eine Auswahl-Tabelle für den Editor
-function phantomEditor(c, defs, key, onChange) {
-  const box = document.createElement('div');
-  const isFemale = c.gender === 'weiblich' || c.gender === 'w' || /frau|weiblich/i.test(c.gender || '');
-  defs.filter(d => !d.female || isFemale).forEach(d => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin:6px 0;';
-    const lab = document.createElement('span'); lab.style.cssText = 'font-size:13.5px; flex:0 0 42%;'; lab.textContent = d.label;
-    const sel = document.createElement('select'); sel.style.flex = '1';
-    sel.innerHTML = '<option value="">- offen -</option>' + d.opts.map(([en, de]) => `<option value="${esc(en)}">${esc(de)}</option>`).join('');
-    sel.value = (c[key] || {})[d.k] || '';
-    sel.onchange = () => { c[key] = Object.assign({}, c[key] || {}); if (sel.value) c[key][d.k] = sel.value; else delete c[key][d.k]; onChange && onChange(); };
-    row.append(lab, sel); box.appendChild(row);
-  });
-  return box;
-}
+
 function phantomPrefs() { try { return JSON.parse(localStorage.getItem('companion_phantomPrefs') || '{}'); } catch (e) { return {}; } }
 function phantomMode() { return localStorage.getItem('companion_phantomMode') || 'prefs'; }
 function renderConfigurator() {
@@ -19419,31 +19317,7 @@ async function autoPhantom(figureId, why) {
   } finally { autoPhantomBusy.delete(figureId); }
 }
 
-function rollPhantom(c, auto) {
-  const P = phantomPrefs(), mode = phantomMode();
-  if (auto && mode === 'off') return;
-  const isFemale = c.gender === 'weiblich' || /frau|weiblich/i.test(c.gender || '');
-  const p = auto ? Object.assign({}, c.phantom || {}) : {};
-  const ap = String(c.appearance || '').toLowerCase();
-  // Beim automatischen Würfeln nur Körpermerkmale, die das Aussehen nicht
-  // ohnehin festlegt - Gesicht, Haare, Haut bleiben so, wie beschrieben.
-  const covered = { body: /statur|schlank|kurvig|sportlich|athlet|muskul|üppig|mollig/, height: /\d{3}\s*cm|groß|klein|zierlich/, breasts: /brüst|brust|oberweite/, breastShape: /brüst|brust/, hips: /hüfte|hüften/, butt: /\bpo\b|hintern|gesäß/,
-    hair: /haare?\s*:|frisur|locken|zopf|bob\b/, hairColor: /haare?\s*:|blond|brünett|schwarzhaar|rothaar|kupfer/, eyeColor: /augen\s*:/, eyes: /augen\s*:/, skin: /haut\s*:|teint/, face: /gesicht\s*:/, nose: /nase/, lips: /lippen/, marks: /sommersprossen|tattoo|piercing|muttermal|brille/ };
-  PHANTOM_FIELDS.forEach(d => {
-    if (d.female && !isFemale) return;
-    if (auto && ((covered[d.k] && covered[d.k].test(ap)) || p[d.k])) return;
-    // frei würfeln automatisch nur beim Körper - Gesicht nur mit Vorliebe
-    if (auto && phantomMode() === 'random' && !['body', 'height', 'breasts', 'breastShape', 'hips', 'butt'].includes(d.k) && !(P[d.k] && P[d.k].length)) return;
-    if (d.k === 'marks' && Math.random() < 0.5) return;
-    // Vorlieben zuerst; ohne Vorliebe: im Modus „Vorlieben" offen lassen, sonst frei
-    const pool = (P[d.k] && P[d.k].length) ? P[d.k] : ((auto && mode === 'prefs') ? null : d.opts.map(o => o[0]));
-    if (!pool) return;
-    p[d.k] = pool[Math.floor(Math.random() * pool.length)];
-  });
-  // stimmig halten: zierlich + sehr große Brust ist selten - etwas glätten
-  if (!(P.breasts && P.breasts.length) && p.height === 'petite' && p.breasts === 'very large breasts' && Math.random() < 0.6) p.breasts = 'medium breasts';
-  c.phantom = p;
-}
+
 // Bildverstehen füllt das Formular statt frei zu formulieren
 async function phantomFromImage(img, defs, kind) {
   const many = await Promise.all((Array.isArray(img) ? img : [img]).map(u => asDataUrl(u, 1024)));
@@ -19903,22 +19777,7 @@ async function refreshAllFigures(btn) {
   } catch (e) { alert('Abgebrochen: ' + e.message); }
   finally { fullRefresh = null; btn.textContent = label; }
 }
-async function upgradeAllFigures(btn) {
-  if (false && rollbackCandidates().length && !localStorage.getItem('companion_rollbackAsked_' + startOfToday())) {
-    safeSet('companion_rollbackAsked_' + startOfToday(), '1');
-    if (confirm(`${rollbackCandidates().length} Figuren wurden heute schon verändert. Sollen die heutigen Versionen verworfen und vom Stand davor (mit dem alten Porträt) neu aufbereitet werden?\n\nOK = vom Stand vor heute ausgehen · Abbrechen = wie gehabt nur ergänzen`)) { await rollbackAndRefresh(btn); return; }
-  }
-  const list = figureArchive.filter(f => { const v = latestVersion(f); return v && !v.isUser; });
-  if (!confirm(`${list.length} Figuren prüfen und fehlende Felder ergänzen? Für jede, bei der etwas fehlt, entsteht eine neue Version - die alte bleibt erhalten.`)) return;
-  const report = [];
-  for (let i = 0; i < list.length; i++) {
-    if (btn) btn.textContent = `Aktualisiere ${i + 1} von ${list.length} …`;
-    try { const r = await upgradeFigure(list[i], true); if (r && r.changed.length) report.push(`${r.name}: ${r.changed.join(', ')}`); } catch (e) { report.push(`${latestVersion(list[i]).name}: Fehler (${e.message})`); }
-  }
-  if (btn) btn.textContent = '⟳ Alle aktualisieren';
-  renderFigureList();
-  alert((report.length ? 'Ergänzt:\n' + report.join('\n') : 'Alle Figuren waren schon auf dem aktuellen Stand.') + '\n\n„Aktualisieren" füllt nur, was fehlt oder zu dünn ist (Markenzeichen, Tonfall-Beispiele, Stimmbeschreibung, Charakterkern, Phantombild). Vorhandenes neu schreiben: „✨ Alle Charaktere schärfen" (Kern) und „💋 Markenzeichen erneuern".');
-}
+
 
 // ======================= FRÜHERE VERSIONEN =======================
 // Das Originalbild einer älteren Version finden: über ihren eigenen Schlüssel
@@ -20022,21 +19881,7 @@ async function rollbackAndRefresh(btn) {
   return n;
 }
 
-async function restoreAllPreviousPortraits(btn) {
-  const cand = figureArchive.filter(f => { const vs = f.versions.slice().sort((a, b) => b.v - a.v); return vs.length > 1 && vs.slice(1).some(x => x.image && x.image !== vs[0].image); });
-  if (!cand.length) { alert('Keine Figur hat in einer früheren Version ein anderes Porträt.'); return; }
-  if (!confirm(`${cand.length} Figuren haben in einer früheren Version ein anderes Porträt. Für alle das jeweils letzte frühere Porträt zurückholen? Das aktuelle bleibt in der Galerie.`)) return;
-  let n = 0;
-  for (const f of cand) {
-    const vs = f.versions.slice().sort((a, b) => b.v - a.v);
-    const prev = vs.slice(1).find(x => x.image && x.image !== vs[0].image);
-    if (btn) btn.textContent = `Hole zurück … ${n + 1}/${cand.length}`;
-    try { if (await restoreImageFrom(f, prev.v)) n++; } catch (e) {}
-  }
-  if (btn) btn.textContent = '🕘 Frühere Porträts zurückholen';
-  renderFigureList();
-  alert(`${n} Porträts zurückgeholt. Wo das Original nicht mehr da war, ist es das (kleinere) Vorschaubild - dann lohnt sich ein Blick in die Galerie der Figur („Als Porträt").`);
-}
+
 function renderVersions(host, figure) {
   const vs = figure.versions.slice().sort((a, b) => b.v - a.v);
   if (vs.length < 2) { host.innerHTML = ''; return; }
@@ -20055,7 +19900,7 @@ function renderVersions(host, figure) {
 }
 
 // ======================= PORTFOLIO =======================
-function seedFor(id) { let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return 1 + (Math.abs(h) % SEED_MAX); }
+
 async function generateImageDirect(prompt, seed, noRetry) {
   const key = apiKeyFor('companion_apiKey_venice');
   if (!key) throw new Error('Kein Venice-Schlüssel.');
@@ -28965,9 +28810,9 @@ function vqWish() {
 setInterval(() => { if (vq.ownWishAt && motionWish.active && motionWish.since === vq.ownWishAt && Date.now() - vq.ownWishAt > 240000) { motionWish.active = false; vq.ownWishAt = 0; } }, 15000);
 
 // =====================================================================
-// ======================= 💾 SICHERUNG JEDE WOCHE =======================
+// ======================= 💾 SICHERUNG JEDEN MONAT =======================
 // =====================================================================
-// Einmal pro Woche (nicht mitten in einer Sitzung) fragt die App nach einer
+// Einmal im Monat (nicht mitten in einer Sitzung) fragt die App nach einer
 // Sicherung. Das Kennwort kann auf Wunsch auf dem Gerät gemerkt werden.
 function bkLast() { return parseInt(localStorage.getItem('companion_lastBackup') || '0', 10); }
 {
@@ -29019,7 +28864,7 @@ function bkOpen(reason) {
 setTimeout(function bkCheck() {
   const busy = (typeof inSession === 'function' && inSession()) || (typeof g3 !== 'undefined' && g3.active) || (typeof ar !== 'undefined' && ar.active);
   const snooze = parseInt(localStorage.getItem('companion_bkSnooze') || '0', 10);
-  const due = Date.now() - bkLast() > 7 * 86400000 && Date.now() > snooze && figureArchive.length > 0;
+  const due = Date.now() - bkLast() > 30 * 86400000 && Date.now() > snooze && figureArchive.length > 0;   // monatlich - der Geräte-Abgleich hält die Geräte täglich gleich, die Datei ist der Rettungsanker
   if (due && !busy && !document.querySelector('.sheet-wrap[style*="flex"]')) bkOpen('Zeit für die wöchentliche Sicherung.');
   else if (due) setTimeout(bkCheck, 120000);
 }, 40000);
@@ -30015,17 +29860,7 @@ function avReadMeta(buf) {
   } catch (e) { return null; }
 }
 const AV_TEST_URL = 'https://cdn.jsdelivr.net/gh/pixiv/three-vrm@v3.5.5/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm';
-async function avFetchTest(btn) {
-  if (btn) { btn.disabled = true; btn.textContent = '⬇ Lädt … (ca. 10 MB)'; }
-  try {
-    const r = await fetch(AV_TEST_URL); if (!r.ok) throw new Error('HTTP ' + r.status);
-    const buf = await r.arrayBuffer();
-    await avPut('test', { name: 'Testmodell (Seed-san, pixiv)', blob: new Blob([buf]), meta: avReadMeta(buf) || {}, added: Date.now() });
-    if (!avDefault()) safeSet('companion_av3dDefault', 'test');
-    return true;
-  } catch (e) { alert('Testmodell ließ sich nicht laden: ' + e.message); return false; }
-  finally { if (btn) { btn.disabled = false; btn.textContent = '⬇ Testmodell holen'; } }
-}
+
 async function avImport(file) {
   const buf = await file.arrayBuffer();
   const meta = avReadMeta(buf);
@@ -30438,6 +30273,12 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
 
 
 
