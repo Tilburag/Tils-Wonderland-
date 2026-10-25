@@ -3699,8 +3699,23 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.73';
+const APP_VERSION = '3.76';
 const CHANGELOG = [
+  { v: '3.76', date: '2026-10-25', items: [
+    '🌙 Vorstellung wie im Salon: die Madame stellt jede Dame EINZELN und ordentlich vor (wer sie ist, was sie mag, was sie heute mit dir anstellen würde; die anderen dürfen dazwischenrufen), dann die nächste - erst danach fragt sie: mit wem möchtest du gehen, soll noch eine dazukommen, oder gleich alle?',
+    '🌙 Abendbegleitung versteht deine Antwort jetzt per KI statt nur nach Stichwörtern: „singe weiter" schickt niemanden mehr weg; nennst du eine Figur, die gar nicht vorgestellt wurde („Fenja, stell dich hinter mich"), holt die Madame sie dazu. Während Empfang und Vorstellung drängt der geführte Abend nicht mehr mit Geräte-Vorbereitung dazwischen',
+    '📞 Anruf im geführten Abend und im Hörspiel: nach jeder Antwort bleibt jetzt Zeit für dich (ca. 12-14 s, länger, solange du sprichst), bevor es von selbst weitergeht - vorher redeten die Figuren ohne Kopfhörer einfach weiter und das Mikrofon kam kaum zum Zuhören',
+    '🎧 Raumklang bewegt sich: sagt oder tut eine Figur „links von dir", „in dein rechtes Ohr", „direkt vor dir", „hinter dir", „kommt näher", „geht zum Fenster" - ihre Stimme ist dort; wechselt sie den Platz, hörst du sie hinübergehen statt springen; „ich gehe um dich herum" läuft hörbar einmal um dich, während sie spricht',
+  ] },
+  { v: '3.75', date: '2026-10-25', items: [
+    '🗓 Wochen-Rückblick: wird in kurzen Stücken gesprochen und doppelte Sätze werden entfernt (vorher wiederholte die Stimme am Ende Teile); läuft genau einmal, ein zweiter Tipp auf den Knopf stoppt ihn; nochmal anhören spielt dieselbe Nachricht, statt eine neue zu erzeugen',
+    '🗓 Rückblick als frecher Wochen-Klatsch: wer alles bei dir war, wer dich zum Höhepunkt gebracht hat (und ob die Erzählerin das besser gekonnt hätte), wer sich mit wem gestritten oder verbündet hat - aus Höhepunkten, Gedächtnis und Beziehungen der Woche',
+  ] },
+  { v: '3.74', date: '2026-10-25', items: [
+    '👫 Neu unter Spielen → „Zu zweit & Ansprechen": „Zu zweit" - eine Stimme leitet zwei echte Menschen Schritt für Schritt durch den Abend; vorher kreuzt jede Person für sich ja / vielleicht / nein an, vorgeschlagen wird nur, was beide wollen. Zeit je Schritt, Knöpfe und Sprache: Weiter, Pause, Langsamer, Mehr, Nochmal, Ende. Kein Gerät, nichts im Gedächtnis oder Protokoll',
+    '🗣 „Wünsche ansprechen": üben, wie man einen Wunsch anspricht - eine Figur spielt die Partnerin (offen, unsicher oder skeptisch), ein Coach gibt nach jedem Satz einen kurzen Tipp; Knöpfe Tipp, Neu ansetzen, Auswertung',
+    '🎬 „Vorgemacht": zwei Figuren zeigen als Geschichte, wie ein Paar etwas Neues anspricht, Regeln vereinbart und es behutsam ausprobiert - du hörst zu',
+  ] },
   { v: '3.73', date: '2026-10-24', items: [
     '🌙 Abendbegleitung wieder in der richtigen Reihenfolge: Empfang und Plaudern → die Madame stellt vor und FRAGT, ob sie dir gefallen → du antwortest → drei Ideen → du wählst → erst dann beginnt der Abend. Bis dahin keine Bewegung, und das Gespräch läuft nicht von selbst weiter, solange sie auf deine Antwort wartet (vorher sprang es nach „bereit" direkt ins Geschehen)',
   ] },
@@ -4833,6 +4848,7 @@ const sessionStart = Date.now();
 
 let sessionLogTrimmed = false;
 function logEvent(kind, data) {
+  try { if (kind === 'msg' && data && data.role && data.role !== 'system' && typeof cpPrivate === 'function' && cpPrivate()) data = Object.assign({}, data, { text: '(privat)' }); } catch (e) {}
   if (sessionLog.length >= SESSION_LOG_MAX) {
     const i = sessionLog.findIndex(e => e.kind === 'tcode');
     sessionLog.splice(i >= 0 ? i : 0, 1);
@@ -8291,6 +8307,13 @@ const POSE_RULES = [
   ['hinten', /(hinter dir|von hinten an dich|schmiegt sich von hinten|in deinem rücken)/],
   ['ohr', /(ins ohr|an dein(em)? ohr|haucht|flüster|raunt|wispert)/],
   ['neben', /(legt sich neben dich|neben dir|an deiner seite|kuschelt sich an dich|schmiegt sich an dich)/],
+  // neu: Seiten, Wege und Entfernung - die Stimme wandert mit (links/rechts ins Ohr, um dich herum, näher, weiter weg)
+  ['links', /(links (von|neben) dir|an deiner linken|zu deiner linken|auf deiner linken|(in|an) dein(em)? linke[sn]? ohr|linke[sn]? ohr|stehe links|stellt sich links)/],
+  ['rechts', /(rechts (von|neben) dir|an deiner rechten|zu deiner rechten|auf deiner rechten|(in|an) dein(em)? rechte[sn]? ohr|rechte[sn]? ohr|stehe rechts|stellt sich rechts)/],
+  ['vorn', /(direkt vor dir|stellt sich vor dich|stehe (direkt )?vor dir|steht (direkt )?vor dir|vor dich hin)/],
+  ['kreis', /(um dich herum|umkreist dich|umrundet dich|(läuft|geht|schleicht|kreist|tanzt|wandert) (langsam )?um dich|einmal um dich)/],
+  ['nah', /(kommt (ganz )?nah|tritt näher|kommt näher|kommt zu dir|beugt sich (nah )?zu dir)/],
+  ['fern', /(entfernt sich|tritt zurück|geht (zur tür|ans fenster|zum fenster|weg|ein paar schritte)|weiter weg|durch den raum)/],
 ];
 function notePose(role, text, narr) {
   const t = String(text || '').toLowerCase(); let hit = null;
@@ -8299,6 +8322,7 @@ function notePose(role, text, narr) {
   let who = role;
   if (narr) { const named = aiCharacters().filter(c => t.includes(String(c.name).split(' ')[0].toLowerCase())); who = named.length === 1 ? named[0].name : (named.length ? null : (window.__lastVoiceRole || null)); }
   if (!who || who === 'narrator') return;
+  if (hit.k === 'kreis') { voicePose[who] = Object.assign({}, voicePose[who] || { k: '' }, { walk: 'kreis', walkT: Date.now() }); return; }   // einmal herum, danach wieder an ihrem Platz
   if (hit.k !== 'ohr') voicePose[who] = { k: hit.k, t: Date.now() };
 }
 function posFor(role, prox) {
@@ -8308,7 +8332,12 @@ function posFor(role, prox) {
   else if (st === 'unten') { az = az0 * 0.3; el = -50; d = 0.9; }
   else if (st === 'hinten') { az = az0 >= 0 ? 150 : -150; d = 0.7; }
   else if (st === 'neben') { az = az0 >= 0 ? 85 : -85; d = 0.6; }
-  if (prox === 'close') { az = az0 >= 0 ? 88 : -88; el = Math.min(el, 10); d = 0.28; }
+  else if (st === 'links') { az = -80; d = 0.75; }
+  else if (st === 'rechts') { az = 80; d = 0.75; }
+  else if (st === 'vorn') { az = 0; d = 0.9; }
+  else if (st === 'nah') { az = az0 * 0.6; d = 0.45; }
+  else if (st === 'fern') { d = 2.4; }
+  if (prox === 'close') { const side = st === 'links' ? -1 : st === 'rechts' ? 1 : (az0 >= 0 ? 1 : -1); az = 88 * side; el = Math.min(el, 10); d = 0.28; }
   return { az, el, d, st };
 }
 // Geflüstert: die Zeile selbst sagt es, oder der Erzähler direkt davor
@@ -8351,8 +8380,27 @@ function routeAudio(el, kind, role, text) {
     let pan;
     if (typeof ctx.createPanner === 'function') {
       pan = ctx.createPanner(); pan.panningModel = 'HRTF'; pan.distanceModel = 'inverse'; pan.refDistance = 0.6; pan.rolloffFactor = 0.6;
-      const r = Math.PI / 180, x = Math.sin(P.az * r) * Math.cos(P.el * r) * P.d, y = Math.sin(P.el * r) * P.d, z = -Math.cos(P.az * r) * Math.cos(P.el * r) * P.d;
-      if (pan.positionX) { pan.positionX.value = x; pan.positionY.value = y; pan.positionZ.value = z; } else pan.setPosition(x, y, z);
+      const r = Math.PI / 180, xyz = (az, elv, dd) => [Math.sin(az * r) * Math.cos(elv * r) * dd, Math.sin(elv * r) * dd, -Math.cos(az * r) * Math.cos(elv * r) * dd];
+      const [x, y, z] = xyz(P.az, P.el, P.d);
+      spatial.lastPos = spatial.lastPos || {};
+      const prev = voice ? spatial.lastPos[role] : null, vp = voice ? voicePose[role] : null;
+      const circle = voice && vp && vp.walk === 'kreis' && Date.now() - vp.walkT < 20000;
+      if (pan.positionX) {
+        const t0 = ctx.currentTime, set = (k, arr) => { pan.positionX[k](arr[0], t0); pan.positionY[k](arr[1], t0); pan.positionZ[k](arr[2], t0); };
+        if (circle) {
+          // einmal um dich herum, während sie spricht (Dauer grob aus der Textlänge)
+          vp.walk = ''; const D = Math.max(3.5, Math.min(12, String(text || '').length * 0.06)), steps = 24, dir = Math.random() < 0.5 ? 1 : -1;
+          set('setValueAtTime', xyz(P.az, P.el, Math.max(0.6, P.d)));
+          for (let k = 1; k <= steps; k++) { const p2 = xyz(P.az + dir * 360 * k / steps, P.el, Math.max(0.6, P.d)); pan.positionX.linearRampToValueAtTime(p2[0], t0 + D * k / steps); pan.positionY.linearRampToValueAtTime(p2[1], t0 + D * k / steps); pan.positionZ.linearRampToValueAtTime(p2[2], t0 + D * k / steps); }
+          logEvent('msg', { role: 'system', text: `Raumklang: ${role} geht um dich herum (${D.toFixed(1)} s)` });
+        } else if (prev && Math.hypot(prev[0] - x, prev[1] - y, prev[2] - z) > 0.2) {
+          // sie geht hörbar von ihrem letzten Platz zum neuen, statt zu springen
+          set('setValueAtTime', prev);
+          const T = Math.min(2.2, 0.5 + Math.hypot(prev[0] - x, prev[1] - y, prev[2] - z) * 0.9);
+          pan.positionX.linearRampToValueAtTime(x, t0 + T); pan.positionY.linearRampToValueAtTime(y, t0 + T); pan.positionZ.linearRampToValueAtTime(z, t0 + T);
+        } else { pan.positionX.value = x; pan.positionY.value = y; pan.positionZ.value = z; }
+      } else pan.setPosition(x, y, z);
+      if (voice) spatial.lastPos[role] = [x, y, z];
     } else { pan = ctx.createStereoPanner(); pan.pan.value = Math.max(-1, Math.min(1, Math.sin(P.az * Math.PI / 180))); }
     const dry = ctx.createGain();
     const send = ctx.createGain();
@@ -10100,6 +10148,7 @@ function logMotionChoice(deviceNum, motion) {
 // Der Schalter im Live-Bereich. Die Steuerung läuft unabhängig davon weiter -
 // er entscheidet nur, ob die Figuren das Gerät kennen und ansprechen dürfen.
 function deviceAware() {
+  if (typeof couple !== 'undefined' && (couple.active || talk.active)) return false;   // zu zweit / Ansprechen üben: kein Gerät
   if (typeof hsp !== 'undefined' && hsp.active && !hsp.joined) return false;   // im Hörspiel spielt das Gerät erst nach dem Einsteigen eine Rolle
   return (localStorage.getItem('companion_deviceAware') ?? 'true') === 'true';
 }
@@ -12024,7 +12073,9 @@ async function runAutoLoop() {
       if (!autoPlaying || myLoop !== autoLoopToken) break;
     }
     const hsOn = typeof hsp !== 'undefined' && hsp.active && !hsp.joined;
-    const prompt = gameTurnPrompt() || (hsOn ? HS_PROMPTS[Math.floor(Math.random() * HS_PROMPTS.length)] : arriving ? GUIDED_ARRIVE_PROMPTS[Math.floor(Math.random() * GUIDED_ARRIVE_PROMPTS.length)] : AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)]);
+    const hostOn = typeof hostActive === 'function' && hostActive() && host.stage === 'smalltalk';
+    const hostIntro = typeof hostActive === 'function' && hostActive() && host.stage === 'present';
+    const prompt = gameTurnPrompt() || (hostIntro ? '(Weiter mit der Vorstellung, wie oben beschrieben.)' : hostOn ? '(Die Madame plaudert kurz weiter mit Til und kündigt an, dass sie ihm gleich die Damen des Hauses vorstellt.)' : hsOn ? HS_PROMPTS[Math.floor(Math.random() * HS_PROMPTS.length)] : arriving ? GUIDED_ARRIVE_PROMPTS[Math.floor(Math.random() * GUIDED_ARRIVE_PROMPTS.length)] : AUTO_CONTINUE_PROMPTS[Math.floor(Math.random() * AUTO_CONTINUE_PROMPTS.length)]);
     // Die nächste Fortsetzung startet, sobald der letzte Abschnitt der
     // laufenden zu sprechen beginnt - sie entsteht im Hintergrund und folgt
     // ohne lange Pause. Vorher wurde erst nach dem letzten Wort angefragt.
@@ -15978,6 +16029,7 @@ function guidedBlock() {
   if (!guidedOn() || !guided.startAt) return '';
   const ph = guidedPhase(), rest = guidedRemainMin();
   const wantsEdge = !!localStorage.getItem('companion_edgeUsed'), wantsHr = !!localStorage.getItem('companion_hrUsed');
+  if (ph === 'ankommen' && typeof hostHold === 'function' && hostHold()) return '\n\nGEFÜHRTER ABEND: Die Gastgeberin führt gerade durch Empfang und Vorstellung (siehe ABENDBEGLEITUNG) - das hat Vorrang. Noch keine Bewegung; Geräte nur ganz beiläufig, höchstens ein Halbsatz.';
   if (ph === 'ankommen') {
     const todo = [!device1.isConnected() ? 'den Stroker (Gerät 1) anschließen und verbinden' : '', wantsEdge && !edgeConnected() ? 'den Edge einsetzen und verbinden' : '', wantsHr && !(typeof hr !== 'undefined' && hr.connected) ? 'den Pulsgurt anlegen' : '', 'es sich bequem machen: hinlegen, Kopfhörer auf, Licht gedämpft'].filter(Boolean);
     return `\n\nGEFÜHRTER ABEND - ANKOMMEN (Til ist noch nicht bereit, noch KEINE Bewegung): Führt ein einleitendes Gespräch, als würde der Abend gerade beginnen - Begrüßung, wie es ihm geht, Vorfreude, ein kleiner Vorgeschmack auf heute. Begleitet ihn dabei Schritt für Schritt beim Vorbereiten - immer nur den nächsten Schritt, mit Charme, nicht als Liste: ${todo.join('; dann ')}. Verbunden ist gerade: ${guidedDevKey().replace('g1', 'Stroker').replace('g2', 'Gerät 2').replace('edge', 'Edge').replace('puls', 'Pulsgurt') || 'noch nichts'}. Was verbunden ist, bemerkt ihr und kommentiert es. Ist alles vorbereitet, fragt ihn, ob er bereit ist - erst nach seinem „bereit" geht es los. Der ganze Abend dauert etwa ${guidedMin()} Minuten.`;
@@ -16013,10 +16065,12 @@ setInterval(() => {
 // Im geführten Abend läuft alles von selbst weiter - auch nach deiner Antwort; nur „Stopp" hält an, bis du wieder etwas sagst
 function guidedResumeAuto() {
   if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying || game.running) return;
-  try { if (hostActive() && (host.stage === 'present' || (host.stage === 'scene' && host.cards && host.cards.length && host.chosenCard < 0))) return; } catch (e) {}   // Madame hat gefragt - auf Tils Antwort warten
+  try { if (hostActive() && ((host.stage === 'present' && (host.introIdx || 0) >= host.current.length) || (host.stage === 'scene' && host.cards && host.cards.length && host.chosenCard < 0))) return; } catch (e) {}   // Madame hat gefragt - auf Tils Antwort warten
   if (guidedPhase() === 'nachglühen' && guided.afterN >= 0 && replyCount() - guided.afterN >= 3) return;   // Abschluss steht an
   clearTimeout(guided.resumeT);
-  guided.resumeT = setTimeout(() => { if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 1200);
+  // Im Anruf erst Til zu Wort kommen lassen: ohne Kopfhörer ist das Mikrofon nur zu, während sie spricht - lief es gleich weiter, kam er nie dazwischen
+  const callWait = typeof callActive !== 'undefined' && callActive ? 14000 : 1200;
+  guided.resumeT = setTimeout(function go() { if (!guidedOn() || !inSession() || guided.userStopped || autoPlaying) return; if (typeof callActive !== 'undefined' && callActive && (callBusy || (typeof speechBuffer !== 'undefined' && speechBuffer.length) || Date.now() - (window.__lastUserAskAt || 0) < 12000)) { guided.resumeT = setTimeout(go, 4000); return; } autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, callWait);
 }
 const GUIDED_ARRIVE_PROMPTS = [
   '(Til bereitet sich noch vor. Plaudert weiter mit ihm - kurz und unterhaltsam: ein neues Thema, eine kleine Geschichte, ein Kompliment, eine neckische Frage. Erinnert ihn höchstens beiläufig an den nächsten Schritt. Keine Bewegung.)',
@@ -16083,31 +16137,52 @@ function hostActive() { return !!host.id && !!host.stage && host.stage !== 'done
 function hostPresentNext(n) {
   const ids = []; while (ids.length < (n || 2) && host.queue.length) { const id = host.queue.shift(); if (!characters.some(c => c.figureId === id)) ids.push(id); }
   if (!ids.length) { host.note += '\nEs sind heute keine weiteren Damen da - sie bietet ihm an, sich doch für eine der Vorgestellten zu entscheiden, oder sie selbst bleibt bei ihm.'; return; }
-  host.current = ids; host.presented += ids.length; host.stage = 'present';
+  host.current = host.keepCurrent ? host.current.concat(ids) : ids; host.introIdx = host.keepCurrent ? host.current.length - ids.length : 0; host.keepCurrent = false; host.presented += ids.length; host.stage = 'present';
   ids.forEach(id => { const f = getFigure(id); if (f) { addFigureToCast(id); try { ensureVoiceReady(id); } catch (e) {} } });
   logEvent('msg', { role: 'system', text: '🌙 Vorgestellt: ' + ids.map(id => latestVersion(getFigure(id)).name).join(' & ') });
 }
 function hostDismiss(ids, why) { ids.forEach(id => { const c = characters.find(x => x.figureId === id); if (c) conductorExit(c, why || 'die Madame schickt sie mit einem Lächeln wieder hinaus'); }); host.current = host.current.filter(id => !ids.includes(id)); }
 // Tils Antwort deuten: wen will er, wen nicht, will er mehr sehen
-function hostBefore(userText) {
+// Tils Antwort deuten: wen will er, wen nicht, will er mehr sehen - erst kurz die KI fragen (versteht „singe weiter" nicht als „die nächsten"), sonst einfache Regeln
+async function hostClassify(text, cur) {
+  const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
+  const all = figureArchive.map(f => latestVersion(f)).filter(v => v && !v.isUser && !v.isNarrator).map(v => v.name);
+  const sys = `In einem Rollenspiel stellt eine Gastgeberin Til gerade Damen vor: ${cur.map(c => c.name).join(' und ')}. Til hat gesagt: „${String(text).slice(0, 300)}"
+Ordne seine Antwort ein. Nur Namen aus dieser Liste verwenden: ${all.join(', ')}.
+Antworte NUR als JSON: {"waehlt": ["Namen, die er ausdrücklich will"], "beide": true/false (will er die Vorgestellten alle), "lehnt_ab": ["Namen, die er ausdrücklich nicht will"], "mehr_sehen": true/false (will er ANDERE Damen statt dieser sehen), "noch_eine": true/false (will er die Vorgestellten behalten UND noch eine weitere dazu sehen), "zurueck": ["Namen anderer Figuren, die er ausdrücklich anspricht oder haben will, obwohl sie nicht vorgestellt sind"], "unklar": true/false (keine Entscheidung, z. B. nur Smalltalk oder ein anderer Wunsch)}`;
+  const j = parseJsonLoose(await Promise.race([callProvider(provider, sys, [{ role: 'user', content: 'Gib das JSON zurück.' }], 0.1, 300, { task: 'draft' }), new Promise((_, rej) => setTimeout(() => rej(new Error('Zeit')), 9000))]));
+  if (!j || typeof j !== 'object' || !['waehlt', 'beide', 'lehnt_ab', 'mehr_sehen', 'noch_eine', 'zurueck', 'unklar'].some(k => k in j)) throw new Error('keine Einordnung');
+  return j;
+}
+async function hostBefore(userText) {
   if (!hostActive()) return;
   const t = String(userText || '').toLowerCase(), n = replyCount();
-  const yes = /(gefällt|gefallen|nehm|nimm|die (will|möchte)|bleib|behalt|perfekt|genau die|ja\b|gern|beide|alle (beide|zwei|drei)|mit (ihr|ihnen|der))/, no = /(nein|nicht so|nicht mein|eher nicht|weiter|nächste|andere|noch (jemand|mehr|andere)|zeig (mir )?(noch|mehr|andere)|wer (ist )?(noch|sonst))/;
   if (host.stage === 'smalltalk') { if (n >= 2 || /(zeig|stell|vorstell|wer ist (da|heute)|damen|mädels|wen hast du)/.test(t)) hostPresentNext(2); return; }
   if (host.stage === 'present' && t) {
-    const cur = host.current.map(id => ({ id, first: latestVersion(getFigure(id)).name.split(' ')[0].toLowerCase() }));
-    const named = cur.filter(c => t.includes(c.first));
-    if (yes.test(t) && !/(nicht|kein)/.test(t.replace(/nicht so/, ''))) {
-      const take = /(beide|alle|beiden)/.test(t) || !named.length ? cur : named;
-      take.forEach(c => { if (!host.chosen.includes(c.id)) host.chosen.push(c.id); });
-      hostDismiss(cur.filter(c => !take.includes(c)).map(c => c.id));
-      if (/(noch (jemand|eine|mehr|andere)|und noch)/.test(t)) { hostPresentNext(2); return; }
+    const cur = host.current.map(id => ({ id, name: latestVersion(getFigure(id)).name, first: latestVersion(getFigure(id)).name.split(' ')[0].toLowerCase() }));
+    let d = null; try { d = await hostClassify(userText, cur); logEvent('msg', { role: 'system', text: '🌙 Verstanden: ' + JSON.stringify(d).slice(0, 200) }); } catch (e) {}
+    if (!d) {   // Regeln als Notnagel - „weiter" allein heißt NICHT „die nächsten"
+      const named = cur.filter(c => t.includes(c.first));
+      const yes = /(gefällt mir|gefallen mir|nehm|nimm|die (will|möchte)|bleib|behalt|genau die|beide|alle (beide|zwei|drei))/.test(t) || (named.length && /(ja|gern|mag|will)/.test(t));
+      const no = /(nein danke|nicht (so )?mein|eher nicht|lieber (jemand )?andere|zeig (mir )?(noch )?(andere|mehr|weitere)|wer (ist )?(noch|sonst) (da|hier)|die nächsten|noch (jemand|eine|andere))/.test(t);
+      const plus = /(noch (eine|jemand)( dritte| weitere)? dazu|dazu holen|zusätzlich|eine dritte)/.test(t);
+      d = { waehlt: yes ? (named.length ? named.map(c => c.name) : []) : [], beide: yes && (!named.length || /(beide|alle)/.test(t)), lehnt_ab: [], mehr_sehen: no && !plus, noch_eine: plus, zurueck: [], unklar: !yes && !no && !plus };
+    }
+    const nm = x => String(x || '').toLowerCase().split(' ')[0];
+    const pick = cur.filter(c => d.beide || (d.waehlt || []).some(x => nm(x) === c.first));
+    const back = (d.zurueck || []).map(x => figureByName(x) || figureArchive.find(f => nm((latestVersion(f) || {}).name) === nm(x))).filter(f => f && f.id !== host.id && !cur.some(c => c.id === f.id));
+    back.forEach(f => { if (!characters.some(c => c.figureId === f.id)) { addFigureToCast(f.id); try { ensureVoiceReady(f.id); } catch (e) {} } if (!host.chosen.includes(f.id)) host.chosen.push(f.id); logEvent('msg', { role: 'system', text: '🌙 Til will ' + latestVersion(f).name + ' - sie kommt dazu' }); });
+    if (d.noch_eine && !pick.length) { host.keepCurrent = true; hostPresentNext(1); return; }
+    if (pick.length || back.length) {
+      pick.forEach(c => { if (!host.chosen.includes(c.id)) host.chosen.push(c.id); });
+      hostDismiss(cur.filter(c => !pick.includes(c)).map(c => c.id));
+      if (d.mehr_sehen || d.noch_eine) { host.keepCurrent = !!d.noch_eine; hostPresentNext(d.noch_eine ? 1 : 2); return; }
       host.stage = 'scene'; host.current = []; hostIdeas();
       logEvent('msg', { role: 'system', text: '🌙 Gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ') });
       return;
     }
-    if (no.test(t)) { const keep = named.filter(c => yes.test(t)); hostDismiss(cur.filter(c => !keep.includes(c)).map(c => c.id)); hostPresentNext(2); return; }
-    return;
+    if (d.mehr_sehen || (d.lehnt_ab || []).length >= cur.length) { hostDismiss(cur.map(c => c.id)); hostPresentNext(2); return; }
+    return;   // unklar: die Madame fragt in ihrer Antwort einfach noch einmal nach
   }
   if (host.stage === 'scene' && host.cards && t) {
     const i = hostMatch(t); if (i >= 0 || /(überrasch|egal|du entscheidest|such du)/.test(t)) hostTakeIdea(i >= 0 ? i : Math.floor(Math.random() * host.cards.length));
@@ -16142,7 +16217,9 @@ function hostBlock() {
   const hv = hc ? hc.name : ''; let t = '';
   const portrait = id => { const v = latestVersion(getFigure(id)); const core = String(v.core || ''); return `${v.name}: ${figureGist(v)}${(core.match(/Motiv:[^\n]*/) || [''])[0] ? ' | ' + core.match(/Motiv:[^\n]*/)[0].slice(0, 120) : ''}${(core.match(/Vorlieben[^\n]*/) || [''])[0] ? ' | ' + core.match(/Vorlieben[^\n]*/)[0].slice(0, 140) : ''}${v.signature ? ' | Markenzeichen: ' + v.signature.slice(0, 120) : ''}`; };
   if (host.stage === 'smalltalk') t = `\n\nABENDBEGLEITUNG - EMPFANG: ${hv} ist die Gastgeberin, die Madame dieses Hauses. Sie empfängt Til persönlich: Begrüßung, Smalltalk, ein bisschen Necken und Quatsch, wie war sein Tag, was ihm heute gefallen würde. Noch niemand anderes ist da. Noch KEINE körperlichen Handlungen mit Til und keine Gerätebewegung - nur Gespräch. Am Ende kündigt sie an, dass sie ihm gleich die Damen des Hauses vorstellt.`;
-  else if (host.stage === 'present') t = `\n\nABENDBEGLEITUNG - VORSTELLUNG: ${hv} stellt Til jetzt vor, wer gerade hereingekommen ist - mit Charme und Witz, wie eine Madame, die ihre Damen präsentiert: wer sie ist, was sie besonders macht, was sie mag, was sie heute mit ihm täte. Jede der Vorgestellten sagt selbst etwas zu Til, zeigt sich, flirtet in ihrer eigenen Art (ihr Markenzeichen darf sie in Worten andeuten). Noch KEINE körperlichen Handlungen mit Til und keine Gerätebewegung - sie zeigen sich nur, necken, die Damen dürfen sich auch gegenseitig sticheln. Die Antwort ENDET mit der ausdrücklichen Frage der Madame, ob sie ihm gefallen - eine, beide, oder ob er andere sehen möchte. Dann wartet sie auf seine Antwort und erfindet sie nicht.\nGerade vorgestellt: ${host.current.map(portrait).join('\n')}${host.chosen.length ? '\nSchon gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(', ') : ''}`;
+  else if (host.stage === 'present') { const i = host.introIdx || 0, cur = host.current, now = cur[i];
+    t = now ? `\n\nABENDBEGLEITUNG - VORSTELLUNG ${i + 1}/${cur.length}: ${hv} stellt Til jetzt NUR EINE Dame ordentlich vor - ${latestVersion(getFigure(now)).name}: wer sie ist, woher sie kommt, wie sie ist, was sie gern mag und was sie heute Abend hier mit ihm anstellen würde - mit Charme und Witz, wie eine Madame, die ihre Damen präsentiert. ${latestVersion(getFigure(now)).name} sagt selbst ein, zwei Sätze zu Til und zeigt sich in ihrer Art (ihr Markenzeichen darf sie in Worten andeuten).${i > 0 ? ' Die schon Vorgestellte(n) dürfen dazwischenrufen, sticheln, sich messen.' : ''} Noch KEINE Frage, mit wem er gehen will - ${i + 1 < cur.length ? 'gleich kommt die nächste' : 'die Frage kommt in der nächsten Antwort'}. Keine körperlichen Handlungen, keine Gerätebewegung.\nÜber sie: ${portrait(now)}`
+      : `\n\nABENDBEGLEITUNG - DIE FRAGE: Alle sind vorgestellt (${cur.map(id => latestVersion(getFigure(id)).name).join(', ')}). Die Damen werben noch ein letztes Mal kurz um ihn, dann fragt ${hv} ihn ausdrücklich: Mit wem von ihnen möchte er gehen - oder soll sie noch eine weitere hereinholen, oder will er gleich alle? Die Antwort ENDET mit dieser Frage; dann wartet sie und erfindet seine Antwort nicht. Keine körperlichen Handlungen, keine Gerätebewegung.${host.chosen.length ? '\nSchon gewählt: ' + host.chosen.map(id => latestVersion(getFigure(id)).name).join(', ') : ''}`; }
   else if (host.stage === 'scene') t = `\n\nABENDBEGLEITUNG - DER ABEND: Til hat gewählt: ${host.chosen.map(id => latestVersion(getFigure(id)).name).join(' & ')}. ${host.cards && host.cards.length ? `${hv} schlägt ihm jetzt verführerisch drei Ideen vor, was sie heute erleben (erzählen, nicht als Liste): ${host.cards.map((c, i) => `${i + 1}) „${c.title}" - ${c.teaser}`).join(' ')}. Er wählt eine - oder sagt „überrasch mich". Bis er gewählt hat, noch keine körperlichen Handlungen und keine Gerätebewegung; die Antwort endet mit ihrer Frage.` : `${hv} lässt die Gewählten mit Til ein wenig plaudern, während sie sich überlegt, was der Abend bringen soll.`}`;
   if (host.note) { t += host.note; host.note = ''; }
   return t;
@@ -16215,7 +16292,8 @@ function hsChoiceChips() {
 setInterval(() => { try { hsChoiceChips(); } catch (e) {} }, 800);
 function hsResume() {
   if (!hsp.active || hsp.userStopped || autoPlaying || !inSession() || currentMode !== 'live' || game.running) return;
-  clearTimeout(hsp.resumeT); hsp.resumeT = setTimeout(() => { if (!hsp.active || hsp.userStopped || autoPlaying) return; autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, 900);
+  const callWait = typeof callActive !== 'undefined' && callActive ? 12000 : 900;
+  clearTimeout(hsp.resumeT); hsp.resumeT = setTimeout(function go() { if (!hsp.active || hsp.userStopped || autoPlaying) return; if (typeof callActive !== 'undefined' && callActive && (callBusy || (typeof speechBuffer !== 'undefined' && speechBuffer.length))) { hsp.resumeT = setTimeout(go, 4000); return; } autoPlaying = true; autoStepCount = 0; setAutoStatus(true); runAutoLoop(); }, callWait);
 }
 function hsChips() {
   let el = document.getElementById('hsChips');
@@ -16937,6 +17015,7 @@ function memoryText(v) {
 }
 
 async function rememberConversation(opts) {
+  try { if (cpPrivate()) return; } catch (e) {}
   opts = opts || {};
   const quiet = !!opts.quiet, src = opts.snapshot || history;
   const figures = characters.filter(c => !c.isUser && !c.isNarrator && c.figureId);
@@ -17007,6 +17086,7 @@ function memPendingSave() {
   } catch (e) {}
 }
 function memAutoCheck(force) {
+  try { if (cpPrivate()) return; } catch (e) {}   // privat: nichts ins Gedächtnis
   if (localStorage.getItem('companion_autoRemember') === 'false' || memAuto.busy) return;
   const open = memAuto.n - memAuto.done;
   memPendingSave();
@@ -17075,7 +17155,7 @@ Schreibe die Zeilen meiner Figur mit, als kurze Reaktionen von höchstens einem 
 WICHTIG zu meiner Figur: Erfinde für sie kein Zögern, kein Unbehagen, keine Ablehnung und keinen Themenwechsel. Wenn ich etwas davon will, schreibe ich es selbst. Meine Figur geht mit dem mit, was geschieht, und sagt höchstens, was ihr gefällt. Sie ergreift auch nicht die Initiative und schlägt nichts Neues vor.` : ''}
 ${others ? `Die übrigen Figuren (${others}) sprechen eigenständig, auch miteinander und nicht nur zu mir.` : ''}
 
-Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${twistBlock()}${conductorBlock()}${edgeBlock()}${guidedBlock()}${hostBlock()}${hsBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
+Wer im Mittelpunkt steht: Die Szene dreht sich um mich. Die anderen Figuren wenden sich mir zu, berühren mich und reagieren auf mich - das ist der rote Faden. Untereinander dürfen sie reden, sich necken und auch mal kurz miteinander beschäftigt sein, aber nicht über längere Strecken, und nie so, dass ich zum Zuschauer werde. In jedem Ausschnitt soll mindestens eine Handlung vorkommen, die mich unmittelbar betrifft.${togetherBlock()}${absentBlock()}${relationsBlock()}${twistBlock()}${conductorBlock()}${edgeBlock()}${guidedBlock()}${hostBlock()}${spaceBlock()}${hsBlock()}${coupleBlock()}${talkBlock()}${freedomBlock()}${wellBlock()}\n\n${ACCENT_TEXT_RULE}${userStyleBlock()}${memoryBlock()}`;
 }
 
 // Nothing steers register as reliably as the user's own sample lines: words like
@@ -17500,6 +17580,11 @@ function applyQuickTempo(wish) {
 }
 
 // Mehrere Figuren: wie bei einem echten Dreier zwischen Erwachsenen - sie haben auch miteinander etwas
+// Raumklang: Til hört, wo jede steht - sie dürfen das nutzen
+function spaceBlock() {
+  if (!spatialEnabled() || typeof couple !== 'undefined' && (couple.active || talk.active)) return '';
+  return `\n\nRAUM (Til hört mit Kopfhörern genau, wo jede von euch ist): Ihr dürft euch im Raum bewegen und es dabei sagen oder beschreiben - „ich stelle mich links/rechts von dich", „direkt vor dir", „hinter dir", „ich flüstere dir ins linke/rechte Ohr", „ich gehe langsam um dich herum", „ich komme näher", „ich gehe zum Fenster". Die Stimme wandert dann genau dorthin. Nutzt das ab und zu bewusst (Necken aus dem Rücken, ein Flüstern von der anderen Seite, eine, die um ihn herumgeht, während sie spricht) - und bleibt dann, wo ihr seid, bis ihr euch wieder bewegt.`;
+}
 function togetherBlock() {
   const f = characters.filter(c => !c.isUser && !c.isNarrator); if (f.length < 2) return '';
   return `\n\nMITEINANDER (${f.map(c => c.name.split(' ')[0]).join(', ')}): Ihr seid nicht nur meinetwegen da, ihr habt auch miteinander etwas - jede nach ihrem Charakter: frotzelt und scherzt, macht euch Komplimente, findet einander anziehend und zeigt es (Blicke, ein Kuss, eine Berührung), feuert euch gegenseitig an, sprecht euch ab („du oben, ich unten"), reizt euch mit kleiner Rivalität, spielt an euch selbst, während ihr der anderen zuseht, lacht über einen Patzer. Wechselt ihr euch bei mir ab, sagt es kurz an („Jetzt ich", „Rutsch rüber") - dann gibt es eine kleine Pause, bevor die andere anfängt. Ich bleibe der rote Faden, aber das Miteinander macht es lebendig - etwa jede zweite Antwort ein kleiner Moment zwischen euch.${f.filter(c => parseSigMotion(c.sigMotion)).length >= 2 ? ' Für das gemeinsame Finale (wenn es auf den Höhepunkt zugeht und ihr beide zugleich bei mir seid) gibt es den Marker <<duett>> - eure Markenzeichen verflochten.' : ''}`;
@@ -17536,7 +17621,7 @@ async function askEnsemble(userText, options) {
   }
   const silent = options && options.silent;
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
-  if (currentMode === 'live') { try { conductorBefore(silent ? '' : userText); } catch (e) {} }
+  if (currentMode === 'live') { try { await conductorBefore(silent ? '' : userText); } catch (e) {} }
   if (guidedOn()) { try { if (!guided.startAt || replyCount() === 0) guidedReset(); if (!silent && CAME_RE.test(String(userText || '').trim())) guided.came = true; } catch (e) {} }
 
   // Früher schnitt jede neue Nachricht die laufende Antwort ab. Jetzt spricht
@@ -17639,6 +17724,8 @@ async function askEnsemble(userText, options) {
       const tidy = tidyReply(replyText, (options && (options.autoStep || options.image)) ? 0 : liveShape().words);
       if (tidy.cut) logEvent('msg', { role: 'system', text: `Antwort gekürzt (${tidy.cut}): ${replyText.length} → ${tidy.text.length} Zeichen.` });
       replyText = tidy.text;
+      // Zu zweit: <<warte N>> = so lange Zeit für diesen Schritt - wird nicht vorgelesen
+      if (couple.active) { const w = replyText.match(/<<\s*warte\s*(\d+)[^>]*>>/i); couple.wait = w ? +w[1] : 45; replyText = replyText.replace(/<<\s*warte[^>]*>>/gi, '').trim(); }
     }
     history.push(Object.assign({ role: 'assistant', content: replyText }, readyHoldActive() && !introNow ? { readyAsk: true } : {}));
     memAuto.n++; try { setTimeout(() => memAutoCheck(false), 1500); } catch (e) {}
@@ -17837,6 +17924,8 @@ async function askEnsemble(userText, options) {
     try { conductorAfterReply(); } catch (e) {}
     try { guidedResumeAuto(); } catch (e) {}
     try { hsResume(); } catch (e) {}
+    try { coupleAfterReply(); } catch (e) {}
+    try { if (hostActive() && host.stage === 'present' && (host.introIdx || 0) < host.current.length) host.introIdx = (host.introIdx || 0) + 1; } catch (e) {}
     return true;
   } catch (err) {
     if (!err.aborted) {
@@ -19100,6 +19189,7 @@ function restoreCampfireCast() {
 // ======================= TAGEBUCH =======================
 function diaries() { try { return JSON.parse(localStorage.getItem('companion_diary') || '{}'); } catch (e) { return {}; } }
 async function writeDiaries(snapshot, force) {
+  try { if (cpPrivate()) return 0; } catch (e) {}
   const msgs = (snapshot || history).filter(m => typeof m.content === 'string');
   const sig = msgs.length + ':' + (msgs[msgs.length - 1] || {}).content?.slice(0, 40);
   if (!force && (msgs.filter(m => m.role === 'assistant').length < 4 || localStorage.getItem('companion_diarySig') === sig)) return;
@@ -19152,6 +19242,22 @@ function recapDue() {
   const any = (hrLogLoad().sessions || []).some(S => S.start > since) || Object.values(diaries()).some(l => l.some(e => e.t > since)) || JSON.parse(localStorage.getItem('companion_fireLog') || '[]').some(x => x.t > since);
   return any && (now.getDay() === 0 || !last);
 }
+// Wer war dabei, wer hat ihn zum Höhepunkt gebracht, was ist zwischen den Figuren passiert - aus Höhepunkten und Gedächtnis der Woche
+function weekStoryFacts(since) {
+  const out = [];
+  try {
+    const O = orgasmLog().filter(o => o.t > since);
+    if (O.length) out.push('Seine Höhepunkte diese Woche (wer dabei war und wie es dazu kam): ' + O.slice(-5).map(o => `${new Date(o.t).toLocaleDateString('de-DE', { weekday: 'long' })}: mit ${(o.cast || []).join(' & ') || '?'}${o.edges ? ', vorher ' + o.edges + '× kurz davor' : ''}${o.how ? ' - „…' + String(o.how).slice(-160) + '"' : ''}`).join(' | '));
+    const cutoff = new Date(since); const lines = [], seen = {};
+    figureArchive.forEach(f => { const v = latestVersion(f); if (!v || v.isUser || v.isNarrator) return;
+      (figureMemory(f.id) || '').split('\n').forEach(l => { const m = l.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(.*)$/); if (!m) return; const d = new Date(+m[3], +m[2] - 1, +m[1]); if (d >= new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate())) { seen[v.name] = (seen[v.name] || 0) + 1; lines.push(`${v.name}: ${m[4].replace(/^[^\wÄÖÜäöü]+/, '').slice(0, 120)}`); } }); });
+    if (Object.keys(seen).length) out.push('Wer diese Woche mit ihm zusammen war (Anzahl Erinnerungen): ' + Object.entries(seen).sort((a, b) => b[1] - a[1]).map(([n, c]) => n + ' ' + c).join(', '));
+    if (lines.length) out.push('Was die Figuren sich gemerkt haben: ' + lines.slice(-12).join(' | '));
+    const R = relations(); const rl = Object.values(R).filter(x => x && x.t && x.t > since).slice(-6).map(x => `${x.a || ''} & ${x.b || ''}: ${x.text || x.kind || ''}`).filter(x => x.length > 6);
+    if (rl.length) out.push('Zwischen den Figuren: ' + rl.join(' | '));
+  } catch (e) {}
+  return out;
+}
 function weekFacts() {
   const since = Date.now() - 7 * 86400000;
   const S = (hrLogLoad().sessions || []).filter(x => x.start > since);
@@ -19170,36 +19276,55 @@ function weekFacts() {
     Object.keys(r.duelWins || {}).length ? 'Duell-Siege insgesamt: ' + Object.entries(r.duelWins).map(([n, c]) => n.split(' ')[0] + ' ' + c).join(', ') : '',
     fires.length ? 'Lagerfeuer: ' + fires.map(x => (x.summary || []).slice(0, 3).join(' / ')).join(' | ') : '',
     diaryLines.length ? 'Aus den Tagebüchern: ' + diaryLines.join(' | ') : '',
+    ...weekStoryFacts(since),
   ].filter(Boolean).join('\n');
 }
 async function makeRecap() {
   const fid = els.recapFigure.value; const f = figureArchive.find(x => x.id === fid);
   if (!f) return null;
+  // Schon für diese Woche und diese Figur aufgenommen: dieselbe Nachricht noch einmal, statt eine neue zu erzeugen
+  try { const L0 = JSON.parse(localStorage.getItem('companion_recaps') || '[]'); const last = L0[L0.length - 1]; if (last && last.week === weekKey(new Date()) && last.fid === fid) return { c: characterFromVersion(f), text: last.text }; } catch (e) {}
   safeSet('companion_recapFigure', fid);
   const c = characterFromVersion(f);
   const provider = localStorage.getItem('companion_llmProvider') || 'anthropic';
   const sys = `Du bist ${c.name}. ${describeCharacter(c)}
-Erzähl Til in einer kurzen Sprachnachricht (6 bis 9 Sätze, gesprochen, deine Art, dein Akzent), was diese Woche los war - mit Wärme, Sticheleien und Klatsch über die anderen Figuren. Nenne ein, zwei Zahlen, aber mach daraus keine Statistik. Ende mit einer Einladung oder Herausforderung für nächste Woche.
+Erzähl Til in einer kurzen Sprachnachricht (7 bis 10 Sätze, gesprochen, deine Art, dein Akzent), was diese Woche los war - wie ein frecher Wochen-Klatsch: wer alles bei ihm war, wer ihn zum Höhepunkt gebracht hat (und ob du das besser gekonnt hättest), wer sich mit wem gestritten, verbündet oder um ihn gerangelt hat, kleine Spannungen und Eifersüchteleien zwischen den Figuren - mit Wärme und Sticheleien, in deiner eigenen Haltung zu den anderen. Nenne ein, zwei Zahlen, aber keine Statistik. Erfinde nichts, was den Fakten unten widerspricht. Jeden Gedanken nur EINMAL - keine Wiederholungen, kein doppelter Schluss. Ende mit einer Einladung oder Herausforderung für nächste Woche.
 Was diese Woche passiert ist:
 ${weekFacts()}`;
   const text = String(await callProvider(provider, sys, [{ role: 'user', content: 'Deine Sprachnachricht:' }], 0.9, taskBudget('chat', 700), { task: 'chat' })).trim();
-  const L = JSON.parse(localStorage.getItem('companion_recaps') || '[]'); L.push({ t: Date.now(), by: c.name, text }); safeSet('companion_recaps', JSON.stringify(L.slice(-20)));
+  const L = JSON.parse(localStorage.getItem('companion_recaps') || '[]'); L.push({ t: Date.now(), by: c.name, fid, week: weekKey(new Date()), text }); safeSet('companion_recaps', JSON.stringify(L.slice(-20)));
   safeSet('companion_recapWeek', weekKey(new Date()));
   return { c, text };
 }
+// Doppelte Sätze am Ende (das Modell oder die Stimme wiederholte sich) entfernen
+function dedupeSentences(text) {
+  const parts = String(text || '').match(/[^.!?…]+[.!?…]+["“”»«]*\s*|[^.!?…]+$/g) || [String(text || '')]; const seen = new Set(); const out = [];
+  parts.forEach(p => { const k = p.toLowerCase().replace(/[^a-zäöüß0-9]+/g, ' ').trim(); if (k.length > 12 && seen.has(k)) return; seen.add(k); out.push(p); });
+  return out.join('').trim();
+}
+const recap = { token: 0, playing: false };
 async function playRecap(speak) {
+  if (recap.playing) { recap.token++; recap.playing = false; try { interruptPlayback(); } catch (e) {} els.recapPlay.textContent = '▶ Anhören'; return; }   // zweiter Tipp = Stopp
+  const my = ++recap.token;
   els.recapPlay.disabled = els.recapRead.disabled = true;
   els.recapText.style.display = ''; els.recapText.textContent = 'Wird aufgenommen …';
   try {
     const r = await makeRecap();
     if (!r) { els.recapText.textContent = 'Bitte eine Figur wählen.'; return; }
+    r.text = dedupeSentences(r.text);
     els.recapText.textContent = stripAudioTags(r.text);
-    if (speak) {
+    if (speak && my === recap.token) {
+      recap.playing = true; els.recapPlay.disabled = false; els.recapPlay.textContent = '■ Stopp';
+      // in kurzen Stücken sprechen: lange Texte am Stück ließ die Stimme am Ende Teile wiederholen
+      const pieces = splitIntoPieces(r.text, 260).map(x => (typeof x === 'string' ? x : x.text)).filter(Boolean);
       const orig = characters; characters = [r.c];
-      try { await prepareSpeech(r.text, r.c.name, false, { level: 0 }).play(); } finally { characters = orig; }
+      try {
+        const prep = pieces.map(() => null); const get = i => prep[i] || (prep[i] = prepareSpeech(pieces[i], r.c.name, false, { level: 0 }));
+        for (let i = 0; i < pieces.length && my === recap.token; i++) { get(i); if (i + 1 < pieces.length) get(i + 1); await get(i).play(); }
+      } finally { characters = orig; }
     }
   } catch (e) { els.recapText.textContent = 'Das hat nicht geklappt: ' + e.message; }
-  finally { els.recapPlay.disabled = els.recapRead.disabled = false; }
+  finally { if (my === recap.token) { recap.playing = false; els.recapPlay.textContent = '▶ Anhören'; } els.recapPlay.disabled = els.recapRead.disabled = false; }
 }
 function renderRecapCard() {
   const due = recapDue();
@@ -21967,9 +22092,10 @@ function conductorExit(c, why) {
 }
 // vor jeder Antwort: Abgänge der letzten Antwort vollziehen, ausdrückliche Wünsche, sonst vorbereitete Entscheidung
 function conductorBefore(userText) {
+  try { cpBefore(userText); } catch (e) {}
   if (conductor.exits.length) { const gone = conductor.exits.slice(); conductor.exits = []; characters = characters.filter(c => !gone.includes(c.figureId)); saveCharacters(); refreshCastViews(); }
   conductor.note = conductor.__keep || ''; conductor.__keep = '';
-  if (hostActive()) { try { hostBefore(userText); } catch (e) {} return; }   // im Salon mischt die Gastgeberin, nicht der Dirigent
+  if (hostActive()) { return hostBefore(userText).catch(() => {}); }   // im Salon mischt die Gastgeberin, nicht der Dirigent
   const t = String(userText || '').toLowerCase(); const pool = surprisePool();
   const firstOf = x => x.v.name.split(' ')[0].toLowerCase(), esc = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // ausdrücklich: auch ohne eingeschalteten Dirigenten
@@ -23923,6 +24049,9 @@ const GAME_INFO = {
   pitches: { icon: '🃏', title: 'Karten des Abends', go: () => openPitches(false) },
   campfire: { icon: '🔥', title: 'Lagerfeuer', go: () => openCampfire() },
   discover: { icon: '🔬', title: 'Entdecken', go: () => pickGame('discover') },
+  couple: { icon: '👫', title: 'Zu zweit', go: () => openCouple() },
+  talk: { icon: '🗣', title: 'Wünsche ansprechen', go: () => openTalk() },
+  showcase: { icon: '🎬', title: 'Vorgemacht', go: () => openShowcase() },
 };
 function gameSub(key) {
   try {
@@ -23943,6 +24072,9 @@ function gameSub(key) {
     if (key === 'campfire') return 'du hörst heimlich zu';
     if (key === 'discover') return 'Stimmen-Blindtest mit Puls';
     if (key === 'live') return 'freies Gespräch';
+    if (key === 'couple') return 'eine Stimme führt euch beide';
+    if (key === 'talk') return 'üben mit Coach';
+    if (key === 'showcase') return 'zwei zeigen, wie es geht';
   } catch (e) {}
   return '';
 }
@@ -24027,6 +24159,7 @@ const PLAY_GROUPS = [
   ['Begegnungen', ['roulette', 'photo', 'speed', 'swipe']],
   ['Mit Gerät', ['hercall', 'challenge', 'duel', 'tournament', 'adventure', 'live']],
   ['Geführt', ['salon', 'hoerspiel']],
+  ['Zu zweit & Ansprechen', ['couple', 'talk', 'showcase']],
   ['Erzählt', ['story', 'pitches', 'campfire']],
   ['Messen', ['discover']],
 ];
@@ -24597,6 +24730,229 @@ function openLab() {
   renderLab();
 }
 function closeLab() { const v = document.getElementById('labView'); if (v) v.remove(); }
+
+// =====================================================================
+// ======== 👫 ZU ZWEIT · 🗣 WÜNSCHE ANSPRECHEN · 🎬 VORGEMACHT ========
+// =====================================================================
+// Drei Wege rund um echte Nähe: (1) eine Stimme leitet zwei echte Menschen durch einen Abend - nur mit dem, was BEIDE wollen;
+// (2) üben, wie man einen Wunsch anspricht - eine Figur reagiert realistisch, ein Coach gibt kurze Rückmeldung;
+// (3) zwei Figuren zeigen als Geschichte, wie ein Paar etwas Neues anspricht, Regeln vereinbart und es behutsam ausprobiert.
+const CP_ITEMS = [
+  ['kuss', 'Küssen'], ['massage', 'Massage'], ['ausziehen', 'Gegenseitig ausziehen'], ['augen', 'Augenbinde'], ['necken', 'Hinhalten, necken'],
+  ['oel', 'Öl'], ['temp', 'Wärme und Kälte (Eis, warmes Tuch)'], ['hand', 'Mit der Hand verwöhnen'], ['oral', 'Oral'], ['dirty', 'Dirty Talk'],
+  ['fuehren', 'Eine Person führt, die andere folgt'], ['fesseln', 'Fesseln / Festbinden'], ['spielzeug', 'Spielzeug'], ['stellungen', 'Neue Stellungen'],
+  ['anal', 'Anal'], ['rollen', 'Rollenspiel'], ['spiegel', 'Vor dem Spiegel'], ['ort', 'Anderer Ort in der Wohnung'],
+];
+const CP_MOODS = [['zart', 'zärtlich und langsam'], ['spiel', 'verspielt, mit Humor und kleinen Aufgaben'], ['wild', 'leidenschaftlich und fordernd']];
+const couple = { active: false, cfg: null, wait: 45, timer: null, paused: false, pace: 1, startAt: 0, cd: 0 };
+const talk = { active: false, cfg: null };
+function cpLeaderChar(id) {
+  let f = id ? getFigure(id) : null;
+  if (!f) { const nid = localStorage.getItem('companion_narratorFigure'); f = (nid && getFigure(nid)) || figureArchive.find(x => (latestVersion(x) || {}).isNarrator) || null; }
+  if (!f) { const p = surprisePool(); f = p.length ? p[0].f : null; }
+  if (!f) return null;
+  const c = characterFromVersion(f); c.isNarrator = false; return c;
+}
+function cpPrivate() { return (couple.active || talk.active) && currentMode === 'live'; }
+function cpAllowed(cfg) {
+  const ok = [], ask = [], no = [];
+  CP_ITEMS.forEach(([k, l]) => { const a = (cfg.a[k] || 'n'), b = (cfg.b[k] || 'n'); if (a === 'n' || b === 'n') no.push(l); else if (a === 'j' && b === 'j') ok.push(l); else ask.push(l); });
+  return { ok, ask, no };
+}
+function cpPhase() {
+  if (!couple.active) return ''; const f = (Date.now() - couple.startAt) / (couple.cfg.min * 60000);
+  return f < 0.12 ? 'Ankommen: atmen, Blickkontakt, langsame Berührungen durch die Kleidung, sich aufeinander einstimmen'
+    : f < 0.35 ? 'Wärmer werden: Massage, Küssen, ausziehen (wenn erlaubt), Neugier wecken, kleine Aufgaben im Wechsel'
+    : f < 0.7 ? 'Nähe und Spiel: abwechselnd führen und folgen, die erlaubten Wünsche ausprobieren, Stellungen, Necken und Steigern'
+    : f < 0.92 ? 'Finale: gemeinsam steigern, das, was beiden am besten gefällt, bis zum Höhepunkt - ohne Druck, beide dürfen das Tempo bestimmen'
+    : 'Ausklang: langsamer werden, kuscheln, sanfte Worte, kurz miteinander sprechen, was schön war (Aftercare)';
+}
+function coupleBlock() {
+  if (!couple.active || currentMode !== 'live') return '';
+  const c = couple.cfg, al = cpAllowed(c), mood = (CP_MOODS.find(m => m[0] === c.mood) || CP_MOODS[0])[1];
+  const pr = x => x === 'sie' ? 'sie/ihr' : x === 'er' ? 'er/ihm' : 'den Namen statt Pronomen';
+  return `\n\nZU ZWEIT - HAT VORRANG VOR ALLEM OBEN: Du bist die Spielleitung für ZWEI ECHTE ERWACHSENE, ein Paar, das zusammen im selben Raum ist und dich hört: ${c.na} (${pr(c.ga)}) und ${c.nb} (${pr(c.gb)}). Es gibt keine Figuren-Handlung und kein Gerät; du erzählst keine Geschichte über dich selbst - du leitest die beiden an, was SIE miteinander tun. Was als Eingabe kommt, sagt einer von beiden (oder beide).
+Stimmung: ${mood}. Länge: etwa ${c.min} Minuten (seit ${Math.round((Date.now() - couple.startAt) / 60000)} Minuten). JETZT: ${cpPhase()}.
+ERLAUBT (beide haben ja gesagt): ${al.ok.join(', ') || '- (nur Zärtlichkeit, Nähe, Küsse auf Hände, Nacken, Schultern)'}.
+NUR NACH NACHFRAGE (einer hat „vielleicht" gesagt - erst fragen, beide müssen laut zustimmen, sonst weglassen): ${al.ask.join(', ') || '-'}.
+TABU (kommt nie vor, auch nicht angedeutet): ${al.no.join(', ') || '-'}.
+So leitest du an: Jede Antwort ist EIN Schritt - 2 bis 4 kurze, klare Sätze in der Du-Form mit Namen („${c.na}, leg dich …, ${c.nb}, setz dich …"), sinnlich und konkret: wer was wo wie tut, wie langsam, worauf achten. Wechsle ab, wer führt und wer genießt. Gelegentlich eine kleine spielerische Aufgabe oder ein Flüstern, das einer dem anderen sagt. Steigere behutsam passend zur Phase.
+Ende JEDE Antwort mit genau einem Zeit-Marker <<warte N>> - N = Sekunden, die die beiden für diesen Schritt brauchen (20-150, längere Massagen und Spiele eher 90-150). Dann schweigst du, bis die Zeit um ist oder sie „weiter" sagen.
+Einverständnis ist immer wichtiger als der Ablauf: Etwa alle vier Schritte kurz fragen, ob es sich gut anfühlt. Sagt jemand „Pause", „Stopp" oder etwas wie „nicht so"/„zu viel": sofort anhalten, freundlich nachfragen, ohne Druck einen sanfteren Schritt oder eine Pause anbieten. „Weiter" = nächster Schritt; „langsamer" = ruhiger; „mehr" = etwas mutiger (nur im Erlaubten); „nochmal" = den letzten Schritt wiederholen.`;
+}
+function coupleAfterReply() {
+  if (!couple.active || couple.paused || !inSession()) return;
+  clearTimeout(couple.timer); clearInterval(couple.cdT);
+  const ms = Math.round(Math.max(15, Math.min(180, couple.wait || 45)) * 1000 * couple.pace);
+  couple.cd = Date.now() + ms; cpBar();
+  couple.cdT = setInterval(cpBar, 1000);
+  couple.timer = setTimeout(() => { clearInterval(couple.cdT); couple.cd = 0; cpBar(); if (couple.active && !couple.paused && inSession()) askActive('(Die Zeit für diesen Schritt ist um - nächster Schritt.)', { silent: true, speak: true }); }, ms);
+}
+function cpSay(t) { clearTimeout(couple.timer); clearInterval(couple.cdT); couple.cd = 0; addUserMsg(t); askActive(t).catch(() => {}); cpBar(); }
+function cpBar() {
+  let el = document.getElementById('cpBar');
+  if (!(couple.active || talk.active) || !inSession()) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'cpBar'; el.style.cssText = 'position:fixed; left:8px; right:8px; bottom:calc(env(safe-area-inset-bottom,0px) + 132px); z-index:1600; display:flex; flex-wrap:wrap; gap:6px; justify-content:center;'; document.body.appendChild(el); }
+  const b = (cls, t) => `<button type="button" class="btn-secondary ${cls}" style="height:40px; padding:0 12px; font-size:13.5px; background:rgba(20,12,16,0.94);">${t}</button>`;
+  let html;
+  if (couple.active) { const left = couple.cd ? Math.max(0, Math.round((couple.cd - Date.now()) / 1000)) : 0;
+    html = b('cp-next', `⏭ Weiter${left ? ' · ' + left + ' s' : ''}`) + b('cp-pause', couple.paused ? '▶ Fortsetzen' : '⏸ Pause') + b('cp-slow', '🐢 Langsamer') + b('cp-more', '🔥 Mehr') + b('cp-again', '🔁 Nochmal') + b('cp-end', '⏹ Ende'); }
+  else html = b('tk-tip', '💡 Tipp') + b('tk-again', '🔁 Neu ansetzen') + b('tk-eval', '📋 Auswertung') + b('tk-end', '⏹ Ende');
+  if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
+  const on = (c, f) => { const x = el.querySelector('.' + c); if (x) x.onclick = f; };
+  on('cp-next', () => { couple.paused = false; cpSay('Weiter.'); });
+  on('cp-pause', () => { if (couple.paused) { couple.paused = false; cpSay('Wir sind wieder da - weiter.'); } else { couple.paused = true; clearTimeout(couple.timer); clearInterval(couple.cdT); couple.cd = 0; interruptPlayback(); cpBar(); showToast('⏸ Pause - so lange ihr wollt'); } });
+  on('cp-slow', () => { couple.pace = Math.min(2.2, couple.pace * 1.35); cpSay('Bitte langsamer und ruhiger.'); });
+  on('cp-more', () => { couple.pace = Math.max(0.7, couple.pace / 1.15); cpSay('Mehr davon - gern etwas mutiger.'); });
+  on('cp-again', () => cpSay('Den letzten Schritt bitte nochmal.'));
+  on('cp-end', () => cpEnd());
+  on('tk-tip', () => { addUserMsg('(Tipp bitte)'); askActive('(COACH: Gib mir jetzt einen konkreten Tipp und einen Beispielsatz, wie ich weitermachen kann. Die Partnerin wartet so lange.)').catch(() => {}); });
+  on('tk-again', () => { history = []; try { els.transcript.innerHTML = ''; } catch (e) {} askActive('(Neuer Anlauf: Die Situation beginnt noch einmal von vorn, die Partnerin weiß von nichts.)', { silent: true, speak: true }).catch(() => {}); });
+  on('tk-eval', () => { addUserMsg('(Auswertung)'); askActive('(COACH: Werte das ganze Gespräch aus - was gut war, was du anders machen würdest, drei Sätze, die ich mir merken kann. Kurz und ermutigend.)').catch(() => {}); });
+  on('tk-end', () => { talk.active = false; cpBar(); leaveSession(); });
+}
+setInterval(() => { try { if (!inSession() && (couple.active || talk.active)) { couple.active = false; talk.active = false; clearTimeout(couple.timer); cpBar(); } } catch (e) {} }, 2000);
+function cpEnd() {
+  clearTimeout(couple.timer); clearInterval(couple.cdT); couple.cd = 0;
+  askActive('(Wir hören jetzt auf. Sag zum Abschluss etwas Liebevolles, lade zum Kuscheln und kurz zum Austausch ein, was beiden gefallen hat - ohne <<warte>>.)', { silent: true, speak: true }).catch(() => {});
+  couple.active = false; setTimeout(cpBar, 300);
+}
+// Befehle in Tils/euren eigenen Worten
+function cpBefore(userText) {
+  if (!couple.active) return; const t = String(userText || '').toLowerCase().trim();
+  clearTimeout(couple.timer); clearInterval(couple.cdT); couple.cd = 0;
+  if (/^(pause|stopp?|halt|warte mal|moment)\b/.test(t)) { couple.paused = true; }
+  else if (/\b(weiter|fortsetzen|wieder da|los)\b/.test(t)) couple.paused = false;
+  if (/langsamer|ruhiger/.test(t)) couple.pace = Math.min(2.2, couple.pace * 1.35);
+  setTimeout(cpBar, 50);
+}
+function cpSheet(title) {
+  const old = document.getElementById('cpSheet'); if (old) old.remove();
+  const v = document.createElement('div'); v.id = 'cpSheet';
+  v.style.cssText = 'position:fixed; inset:0; z-index:3001; background:#0c080a; color:#fff; overflow:auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 28px; font-size:14px;';
+  v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">${title}</h2><button type="button" class="btn-secondary cp-x" style="width:44px; height:44px; padding:0;">✕</button></div><div class="cp-body"></div>`;
+  document.body.appendChild(v); v.querySelector('.cp-x').onclick = () => v.remove(); return v;
+}
+function cpFigOptions(sel, filter) { return surprisePool().filter(x => !filter || filter(x.v)).map(x => `<option value="${x.f.id}"${x.f.id === sel ? ' selected' : ''}>${esc(x.v.name)}</option>`).join(''); }
+// ---- 👫 Zu zweit ----
+function openCouple() {
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem('companion_coupleCfg') || '{}'); } catch (e) {}
+  const c = Object.assign({ na: '', nb: '', ga: 'er', gb: 'sie', mood: 'zart', min: 45, a: {}, b: {}, lead: '' }, saved);
+  const v = cpSheet('👫 Zu zweit'), body = v.querySelector('.cp-body');
+  const g = (n, val) => `<select class="cp-${n}" style="width:auto;">${[['sie', 'sie'], ['er', 'er'], ['neutral', 'neutral']].map(([k, l]) => `<option value="${k}"${val === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+  const yn = (who, k) => { const val = (c[who] || {})[k] || ''; return `<select class="cp-yn" data-w="${who}" data-k="${k}" style="width:auto; padding:6px;"><option value=""${!val ? ' selected' : ''}>-</option><option value="j"${val === 'j' ? ' selected' : ''}>✓ ja</option><option value="v"${val === 'v' ? ' selected' : ''}>? vielleicht</option><option value="n"${val === 'n' ? ' selected' : ''}>✗ nein</option></select>`; };
+  body.innerHTML = `<p class="hint" style="margin:6px 0 12px;">Eine Stimme leitet euch beide durch den Abend - Schritt für Schritt, mit Zeit für jeden Schritt. Sie schlägt nur vor, was ihr BEIDE wollt. „Pause" oder „Stopp" gilt immer sofort. Kein Gerät nötig. Was ihr sagt und tut, landet nicht im Gedächtnis der Figuren und nicht im Protokoll.</p>
+    <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;"><input class="cp-na" placeholder="Name Person A" value="${esc(c.na)}">${g('ga', c.ga)}<input class="cp-nb" placeholder="Name Person B" value="${esc(c.nb)}">${g('gb', c.gb)}</div>
+    <h3 style="font-size:15px; margin:14px 0 4px;">Was wollt ihr? Jede Person für sich</h3>
+    <p class="hint" style="margin:0 0 6px;">Am besten füllt jede Spalte für sich aus, ohne dass die andere Person zuschaut. Nur was beide mit „ja" markieren, schlägt die Stimme vor; bei „vielleicht" fragt sie erst. Leer zählt wie nein.</p>
+    <div style="display:grid; grid-template-columns:1fr auto auto; gap:6px 8px; align-items:center;"><b></b><b class="cp-ha" style="font-size:12.5px;">${esc(c.na || 'A')}</b><b class="cp-hb" style="font-size:12.5px;">${esc(c.nb || 'B')}</b>
+      ${CP_ITEMS.map(([k, l]) => `<span style="font-size:13.5px;">${esc(l)}</span>${yn('a', k)}${yn('b', k)}`).join('')}</div>
+    <label style="margin-top:14px;">Stimmung</label><select class="cp-mood">${CP_MOODS.map(([k, l]) => `<option value="${k}"${c.mood === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+    <label>Länge</label><select class="cp-min">${[20, 30, 45, 60, 90].map(m => `<option value="${m}"${+c.min === m ? ' selected' : ''}>etwa ${m} Minuten</option>`).join('')}</select>
+    <label>Wer spricht</label><select class="cp-lead"><option value="">Erzähler / Erzählerin (neutral)</option>${cpFigOptions(c.lead)}</select>
+    <label style="display:flex; gap:8px; align-items:center; font-weight:normal; margin-top:10px;"><input type="checkbox" class="cp-keep" style="width:auto;"${saved.na ? ' checked' : ''}><span style="font-size:13.5px;">Namen und Antworten auf diesem Gerät merken</span></label>
+    <button type="button" class="btn-primary cp-go" style="width:100%; margin-top:14px;">▶ Abend beginnen</button>`;
+  const q = s => body.querySelector(s);
+  q('.cp-na').oninput = () => { q('.cp-ha').textContent = q('.cp-na').value || 'A'; }; q('.cp-nb').oninput = () => { q('.cp-hb').textContent = q('.cp-nb').value || 'B'; };
+  q('.cp-go').onclick = () => {
+    const cfg = { na: q('.cp-na').value.trim() || 'A', nb: q('.cp-nb').value.trim() || 'B', ga: q('.cp-ga').value, gb: q('.cp-gb').value, mood: q('.cp-mood').value, min: +q('.cp-min').value, lead: q('.cp-lead').value, a: {}, b: {} };
+    body.querySelectorAll('.cp-yn').forEach(s => { if (s.value) cfg[s.dataset.w][s.dataset.k] = s.value; });
+    if (q('.cp-keep').checked) safeSet('companion_coupleCfg', JSON.stringify(cfg)); else localStorage.removeItem('companion_coupleCfg');
+    v.remove(); startCouple(cfg);
+  };
+}
+function startCouple(cfg) {
+  const lead = cpLeaderChar(cfg.lead); if (!lead) { showToast('Lege zuerst einen Erzähler oder eine Figur an', true); return; }
+  Object.assign(couple, { active: true, cfg, wait: 30, paused: false, pace: 1, startAt: Date.now(), cd: 0 }); talk.active = false;
+  try { hsp.active = false; host.stage = ''; } catch (e) {}
+  safeSet('companion_guided', '0'); safeSet('companion_conductor', '0');
+  switchMode('live'); history = []; characters = [lead]; saveCharacters();
+  safeSet('companion_sceneDesc', `Zu zweit: ${cfg.na} und ${cfg.nb} sind zusammen zu Hause, ${lead.name} leitet sie mit der Stimme durch den Abend.`);
+  try { renderLivePanel(); } catch (e) {} try { noteRecent('couple'); } catch (e) {}
+  logEvent('msg', { role: 'system', text: '👫 Zu zweit gestartet (Inhalte privat, nicht im Protokoll)' });
+  try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
+  setTimeout(() => { cpBar(); if (couple.active && history.length === 0) askActive('(Begrüße die beiden mit Namen, erkläre in zwei Sätzen, wie es läuft - „weiter", „Pause", „langsamer", „mehr" - und beginne mit dem ersten Schritt.)', { silent: true, speak: true }).catch(() => {}); }, 2500);
+}
+// ---- 🗣 Wünsche ansprechen (Training) ----
+const TK_TOPICS = ['Analverkehr ausprobieren', 'Fesseln / Festbinden', 'Spielzeug ins Bett mitnehmen', 'Eine Augenbinde', 'Rollenspiel', 'Mehr Dirty Talk', 'Einer führt, der andere folgt', 'Öfter Sex / mehr Initiative', 'Etwas Neues an einem anderen Ort'];
+const TK_REACT = [['offen', 'offen und neugierig'], ['unsicher', 'unsicher, braucht Zeit und Fragen'], ['skeptisch', 'erst zurückhaltend bis skeptisch'], ['zufall', 'überrasch mich']];
+const TK_PLACE = ['entspannt auf dem Sofa', 'beim Abendessen', 'abends im Bett, bevor etwas passiert', 'mitten im Vorspiel', 'beim Spaziergang', 'per Nachricht'];
+function openTalk() {
+  const v = cpSheet('🗣 Wünsche ansprechen'), body = v.querySelector('.cp-body');
+  const narr = (() => { const nid = localStorage.getItem('companion_narratorFigure'); return (nid && getFigure(nid)) || figureArchive.find(x => (latestVersion(x) || {}).isNarrator); })();
+  body.innerHTML = `<p class="hint" style="margin:6px 0 12px;">Üben, wie du einen Wunsch ansprichst - ohne Druck. Eine Figur spielt deine Partnerin und reagiert so echt wie möglich; ein Coach sagt dir kurz, was gut war und was du ausprobieren könntest. Am besten sprechen (Anruf-Knopf), schreiben geht auch.</p>
+    <label>Worum geht es?</label><select class="tk-topic">${TK_TOPICS.map(t => `<option>${esc(t)}</option>`).join('')}<option value="">Eigenes Thema …</option></select>
+    <input class="tk-own" placeholder="Dein Thema" style="display:none; margin-top:6px;">
+    <label>Wo und wann sprichst du es an?</label><select class="tk-place">${TK_PLACE.map(t => `<option>${esc(t)}</option>`).join('')}</select>
+    <label>Wer spielt deine Partnerin?</label><select class="tk-fig">${cpFigOptions('', x => x.gender !== 'maennlich')}</select>
+    <label>Wie reagiert sie?</label><select class="tk-react">${TK_REACT.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select>
+    <label>Rückmeldung vom Coach</label><select class="tk-coach"><option value="jeder">nach jedem deiner Sätze, ganz kurz</option><option value="ende">nur am Ende (Knopf „Auswertung")</option></select>
+    ${narr ? '' : '<p class="hint">Tipp: Mit einem Erzähler (Figuren → Erzähler) bekommt der Coach eine eigene Stimme.</p>'}
+    <button type="button" class="btn-primary tk-go" style="width:100%; margin-top:14px;">▶ Üben</button>`;
+  const q = s => body.querySelector(s);
+  q('.tk-topic').onchange = () => { q('.tk-own').style.display = q('.tk-topic').value ? 'none' : ''; };
+  q('.tk-go').onclick = () => {
+    let react = q('.tk-react').value; if (react === 'zufall') react = ['offen', 'unsicher', 'skeptisch'][Math.floor(Math.random() * 3)];
+    const cfg = { topic: q('.tk-topic').value || q('.tk-own').value.trim() || 'etwas Neues ausprobieren', place: q('.tk-place').value, fig: q('.tk-fig').value, react, coach: q('.tk-coach').value };
+    v.remove(); startTalk(cfg);
+  };
+}
+function startTalk(cfg) {
+  const f = getFigure(cfg.fig) || (surprisePool()[0] || {}).f; if (!f) { showToast('Erst eine Figur anlegen', true); return; }
+  const partner = characterFromVersion(f); const nid = localStorage.getItem('companion_narratorFigure'); const nf = (nid && getFigure(nid)) || figureArchive.find(x => (latestVersion(x) || {}).isNarrator);
+  const coach = nf && nf.id !== f.id ? Object.assign(characterFromVersion(nf), { isNarrator: false }) : null;
+  Object.assign(talk, { active: true, cfg, coachName: coach ? coach.name : '' }); couple.active = false;
+  try { hsp.active = false; host.stage = ''; } catch (e) {}
+  safeSet('companion_guided', '0'); safeSet('companion_conductor', '0');
+  const meFig = archiveMeFigure(); switchMode('live'); history = [];
+  characters = [meFig ? characterFromVersion(meFig) : null, partner, coach].filter(Boolean); saveCharacters();
+  safeSet('companion_sceneDesc', `Til und ${partner.name} sind seit einer Weile ein Paar. Situation: ${cfg.place}. Til möchte ein Thema ansprechen: ${cfg.topic}.`);
+  try { renderLivePanel(); } catch (e) {} try { noteRecent('talk'); } catch (e) {}
+  logEvent('msg', { role: 'system', text: `🗣 Ansprechen üben: ${cfg.topic} (${cfg.react}) - Inhalte privat` });
+  try { els.liveStartBtn.click(); } catch (e) { enterLive({}); }
+  setTimeout(() => { cpBar(); if (talk.active && history.length === 0) askActive('(Beginnt die Situation: die Partnerin ist einfach da, ahnt nichts, ein, zwei alltägliche Sätze. Der Coach sagt vorher in EINEM Satz, worum es geht und dass Til jetzt anfangen kann.)', { silent: true, speak: true }).catch(() => {}); }, 2500);
+}
+function talkBlock() {
+  if (!talk.active || currentMode !== 'live') return '';
+  const c = talk.cfg, P = aiCast().find(x => x.name !== talk.coachName), co = talk.coachName;
+  const react = { offen: 'offen und neugierig - aber mit echten Fragen, nicht sofort begeistert zu allem', unsicher: 'unsicher - braucht Zeit, Fragen und Sicherheit; zögert, sagt ehrlich, was ihr Sorgen macht; lässt sich mit Einfühlung behutsam darauf ein, nicht mit Druck', skeptisch: 'erst zurückhaltend bis skeptisch - überrascht, vielleicht kurz irritiert; wird nur weicher, wenn Til zuhört, Druck rausnimmt und ihr Raum lässt; ein klares Nein ist erlaubt und wird respektiert' }[c.react] || 'echt und vielschichtig';
+  return `\n\nWÜNSCHE ANSPRECHEN - TRAINING (hat Vorrang vor allem oben; keine Gerätebewegung, keine sexuellen Handlungen in dieser Übung - es geht ums Gespräch darüber, offen und erwachsen):
+${P ? P.name : 'Die Partnerin'} spielt Tils Partnerin (sie sind ein Paar). Situation: ${c.place}. Til will ansprechen: ${c.topic}. Ihre Reaktion: ${react}. Sie reagiert wie ein echter Mensch: eigene Gefühle, eigene Fragen („Wie kommst du darauf?", „Was genau stellst du dir vor?", „Was, wenn es mir nicht gefällt?"), eigene Grenzen und eigene Wünsche; sie macht es Til nicht zu leicht, aber auch nicht unmöglich. Schreibe NIE Tils Zeilen.
+${co ? `${co} ist der COACH (spricht nur als Coach, nie in der Szene):` : 'Ein COACH meldet sich (als Zeile „Coach"):'} ${c.coach === 'jeder' ? 'Nach JEDER Äußerung von Til, nachdem die Partnerin reagiert hat, sagt der Coach ganz kurz (höchstens 2 Sätze): was gut war und EIN konkreter Tipp, gern mit Beispielsatz.' : 'Der Coach schweigt, bis Til um einen Tipp oder die Auswertung bittet.'}
+Gute Gesprächsführung, auf die der Coach achtet: guter Zeitpunkt (entspannt, nicht mittendrin unter Druck), Ich-Botschaften und Neugier statt Forderung, erst Wertschätzung, dann der Wunsch, sie nach IHREN Wünschen fragen, ein Nein ist in Ordnung, klein anfangen, Regeln und ein Stoppwort vereinbaren, Hygiene/Vorbereitung bei Bedarf ansprechen, danach darüber reden. Ehrlich, warm, ohne Belehrung.`;
+}
+// ---- 🎬 Vorgemacht: zwei Figuren zeigen es als Geschichte ----
+function openShowcase() {
+  const v = cpSheet('🎬 Vorgemacht'), body = v.querySelector('.cp-body');
+  const pool = surprisePool(); const rel = relList()[0];
+  const a0 = rel ? rel.fa.id : (pool[0] || {}).f && pool[0].f.id, b0 = rel ? rel.fb.id : (pool[1] || {}).f && pool[1].f.id;
+  body.innerHTML = `<p class="hint" style="margin:6px 0 12px;">Zwei deiner Figuren sind ein Paar und zeigen dir als Geschichte, wie man etwas Neues anspricht, Regeln vereinbart und es behutsam ausprobiert - mit Nachfragen, Zögern, Lachen und dem Gespräch danach. Du hörst zu.</p>
+    <label>Was probieren sie aus?</label><select class="sc-topic">${TK_TOPICS.map(t => `<option>${esc(t)}</option>`).join('')}<option value="">Eigenes Thema …</option></select>
+    <input class="sc-own" placeholder="Dein Thema" style="display:none; margin-top:6px;">
+    <label>Wer spricht es an?</label><select class="sc-a">${cpFigOptions(a0)}</select>
+    <label>Wer ist die andere Person?</label><select class="sc-b">${cpFigOptions(b0)}</select>
+    <label>Wie reagiert die andere Person zuerst?</label><select class="sc-r">${TK_REACT.slice(0, 3).map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select>
+    <label>Länge</label><select class="sc-len"><option value="5">ca. 5 Minuten</option><option value="10" selected>ca. 10 Minuten</option><option value="15">ca. 15 Minuten</option></select>
+    <button type="button" class="btn-primary sc-go" style="width:100%; margin-top:14px;">▶ Geschichte erzeugen</button>`;
+  const q = s => body.querySelector(s);
+  q('.sc-topic').onchange = () => { q('.sc-own').style.display = q('.sc-topic').value ? 'none' : ''; };
+  q('.sc-go').onclick = () => {
+    const A = getFigure(q('.sc-a').value), B = getFigure(q('.sc-b').value); if (!A || !B || A === B) { showToast('Zwei verschiedene Figuren wählen', true); return; }
+    const topic = q('.sc-topic').value || q('.sc-own').value.trim() || 'etwas Neues';
+    const r = (TK_REACT.find(x => x[0] === q('.sc-r').value) || TK_REACT[0])[1], len = q('.sc-len').value;
+    const na = latestVersion(A).name, nb = latestVersion(B).name;
+    v.remove();
+    enterStory(); characters = [characterFromVersion(A), characterFromVersion(B)]; saveCharacters();
+    try { const sl = document.getElementById('storyLength'); if (sl) { sl.value = len; safeSet('companion_storyLength', len); } } catch (e) {}
+    try { els.storyCastMode.value = 'bestehend'; safeSet('companion_storyCastMode', 'bestehend'); renderStoryCast(); } catch (e) {}
+    
+    els.storyIdea.value = `VORGEMACHT - Til kommt in dieser Geschichte nicht vor, er hört nur zu. ${na} und ${nb} sind ein Paar. ${na} möchte etwas Neues ausprobieren: ${topic}. ${nb} reagiert zuerst ${r}.
+Zeige realistisch und warm, wie ein Paar das gut macht: der richtige Moment zum Ansprechen, ehrliche Ich-Botschaften, Fragen nach den Wünschen und Sorgen des anderen, Vereinbarungen (klein anfangen, Stoppwort, was vorbereitet werden muss), dann behutsames Ausprobieren mit ständigem Nachfragen und Einverständnis - auch mal ein Lachen oder ein Abbruch und neuer Anlauf. Zum Schluss liegen beide zusammen und sprechen darüber, wie es war und was sie beim nächsten Mal anders machen.`;
+    try { safeSet('companion_storyIdea', els.storyIdea.value); } catch (e) {}
+    logEvent('msg', { role: 'system', text: `🎬 Vorgemacht: ${na} & ${nb} - ${topic}` });
+    setTimeout(() => { try { els.genStoryBtn.click(); } catch (e) {} }, 400);
+  };
+}
 
 // ---------- Zurück-Taste: oberste Ebene schließen statt die App ----------
 // Ein Eintrag je Ebene: [Name, ist offen?, schließen]. Seiten (Spielen,
@@ -30273,6 +30629,14 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
+
+
+
+
+
+
+
 
 
 
