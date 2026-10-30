@@ -3699,8 +3699,11 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.76';
+const APP_VERSION = '3.77';
 const CHANGELOG = [
+  { v: '3.77', date: '2026-10-27', items: [
+    '🧪 Testlabor: eigene Worte in der Abfrage lassen sich jetzt direkt abschicken (➤ oder Enter) - vorher ging das nur über „Überspringen"; das Abfrageblatt bleibt über der Handytastatur sichtbar',
+  ] },
   { v: '3.76', date: '2026-10-25', items: [
     '🌙 Vorstellung wie im Salon: die Madame stellt jede Dame EINZELN und ordentlich vor (wer sie ist, was sie mag, was sie heute mit dir anstellen würde; die anderen dürfen dazwischenrufen), dann die nächste - erst danach fragt sie: mit wem möchtest du gehen, soll noch eine dazukommen, oder gleich alle?',
     '🌙 Abendbegleitung versteht deine Antwort jetzt per KI statt nur nach Stichwörtern: „singe weiter" schickt niemanden mehr weg; nennst du eine Figur, die gar nicht vorgestellt wurde („Fenja, stell dich hinter mich"), holt die Madame sie dazu. Während Empfang und Vorstellung drängt der geführte Abend nicht mehr mit Geräte-Vorbereitung dazwischen',
@@ -24639,12 +24642,18 @@ function labAsk(title, question, answers) {
     m.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:3100; background:#1a1014; border-top:1px solid rgba(255,207,77,0.5); border-radius:18px 18px 0 0; padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px); color:#fff; box-shadow:0 -10px 40px rgba(0,0,0,0.6);';
     m.innerHTML = `<div class="hint" style="margin:0 0 4px;">${esc(title)}</div><div style="font-size:16px; font-weight:600; line-height:1.4; margin-bottom:10px; white-space:pre-line;">${esc(question)}</div>
       <div style="display:flex; flex-wrap:wrap; gap:8px;">${answers.map(([k, l]) => `<button type="button" class="la-a" data-a="${esc(k)}" style="padding:10px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.06); color:#fff; font-size:14px;">${esc(l)}</button>`).join('')}</div>
-      <input type="text" class="la-note" placeholder="Optional: was genau? (wird mitgeschickt)" style="width:100%; margin-top:10px;">
+      <div style="display:flex; gap:8px; margin-top:10px;"><input type="text" class="la-note" enterkeyhint="send" placeholder="Eigene Worte (optional) - mit ➤ abschicken" style="flex:1; min-width:0;"><button type="button" class="btn-primary la-send" style="width:auto; padding:0 16px;">➤</button></div>
       <div style="display:flex; gap:8px; margin-top:10px;"><button type="button" class="btn-secondary la-rep" style="flex:1;">🔁 Nochmal abspielen</button><button type="button" class="btn-secondary la-skip" style="flex:1;">Überspringen</button></div>`;
     document.body.appendChild(m);
     const done = v => { m.remove(); res(v); };
     m.querySelectorAll('.la-a').forEach(b => b.onclick = () => done({ a: b.dataset.a, label: b.textContent, note: m.querySelector('.la-note').value.trim() }));
     m.querySelector('.la-rep').onclick = () => done('repeat'); m.querySelector('.la-skip').onclick = () => done(null);
+    // Freitext allein abschicken: ➤ oder Enter (vorher ging das nur über „Überspringen", und dann war der Text weg)
+    const sendNote = () => { const note = m.querySelector('.la-note').value.trim(); if (!note) { showToast('Erst etwas schreiben - oder oben eine Antwort antippen'); return; } done({ a: 'notiz', label: '✍️ ' + note.slice(0, 60), note }); };
+    m.querySelector('.la-send').onclick = sendNote;
+    m.querySelector('.la-note').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendNote(); } });
+    // Tastatur auf dem Handy: das Blatt bleibt über der Tastatur sichtbar
+    try { if (window.visualViewport) { const fit = () => { if (!document.body.contains(m)) { visualViewport.removeEventListener('resize', fit); return; } m.style.bottom = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop) + 'px'; }; visualViewport.addEventListener('resize', fit); } } catch (e) {}
   });
 }
 const FEEL = [['smooth', '✓ smooth'], ['ruck', 'kleiner Ruck'], ['sprung', 'deutlicher Sprung / Stoß'], ['nichts', 'nichts passiert']];
@@ -24710,7 +24719,7 @@ function renderLab() {
         if (t.steps) { labNeedDevice(); const all = labResults(); const res = {};
           for (let i = 0; i < t.steps.length; i++) { const st = t.steps[i]; let ans;
             do { say2(`Schritt ${i + 1}/${t.steps.length}: ${st.t}`); fwGen.stop(); device1.setMotion({ texture: 'stop' }); await labWait(900); await st.play(); fwGen.stop(); device1.setMotion({ texture: 'stop' }); ans = await labAsk(`${t.title} · Schritt ${i + 1}/${t.steps.length}`, `${st.t}\n${st.q}`, st.answers); } while (ans === 'repeat');
-            if (ans) { res[i + 1] = ans.a + (ans.note ? ' (' + ans.note + ')' : ''); say2(`→ ${ans.label}${ans.note ? ' - ' + ans.note : ''}`); } else say2('→ übersprungen'); }
+            if (ans) { res[i + 1] = (ans.a === 'notiz' ? 'Notiz' : ans.a) + (ans.note ? ' (' + ans.note + ')' : ''); say2(`→ ${ans.label}${ans.note ? ' - ' + ans.note : ''}`); } else say2('→ übersprungen'); }
           all[t.id] = { a: 'steps', steps: res, at: Date.now(), ver: APP_VERSION }; safeSet('companion_labResults', JSON.stringify(all));
           logEvent('msg', { role: 'system', text: `🧪 Ergebnis „${t.title}": ${Object.entries(res).map(([k, v]) => k + ': ' + v).join(' · ')}` });
         } else {
@@ -30629,6 +30638,7 @@ async function avSheet() {
   leaveSession = function () { if (AV.open) avClose(); return oLeave.apply(this, arguments); };
   HELP_ACTIONS.avatar = ['🧍 3D-Ansicht', () => { helpClose(); avOpen(); }];
 }
+
 
 
 
