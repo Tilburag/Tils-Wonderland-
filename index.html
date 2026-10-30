@@ -3699,8 +3699,12 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.79';
+const APP_VERSION = '3.80';
 const CHANGELOG = [
+  { v: '3.80', date: '2026-10-30', items: [
+    '🧪 Testlabor aufgeräumt: geklärte Tests und alte Antworten entfernt - übrig sind nur, was noch offen ist: Welle oben starten, die fünf Muster, die neue Tempo-Leiter und Übergänge mit der neuen Logik',
+    '⚡ Tempo-Leiter: zeigt, bis zu welchem Tempo der Generator sauber läuft - das Ergebnis wird als schnellster Hub übernommen',
+  ] },
   { v: '3.79', date: '2026-10-30', items: [
     '🔊 Durchswipen: keine zwei Stimmen mehr gleichzeitig - eine Vorstellung, die noch erzeugt wurde, als du schon weitergewischt hast, wird nur aufbewahrt und nicht mehr abgespielt',
     '🔊 Durchswipen mit ElevenLabs: fehlt der Ton einer Vorstellung (nur der Text ist da, z. B. vom anderen Gerät), springt nicht mehr die Android-Stimme ein - beim Wischen bleibt es still, auf 🔊 wird der Text einmal vertont',
@@ -24745,8 +24749,44 @@ LAB_TESTS.push({ id: 'fw-phase', ver: '3.78', title: 'Welle oben starten (weiche
     if (ok(a) && !ok(b)) safeSet('companion_fwStartPhase', '90'); else if (ok(b) && !ok(a)) safeSet('companion_fwStartPhase', '-90'); else if (ok(a) && ok(b)) safeSet('companion_fwStartPhase', '90');
     else localStorage.removeItem('companion_fwStartPhase');
     logEvent('msg', { role: 'system', text: 'Generator-Startphase jetzt: ' + (fwGen.startPhase() ? fwGen.startPhase() + '° (Wellen starten oben)' : '0° (Wellen starten in der Mitte)') }); } });
-// Empfohlene Reihenfolge: erst einrichten und die Sicherheit (Ausschlag, Grenzen), dann Verhalten und Gefühl
-{ const order = ['fw-install', 'fw-amp', 'fw-full', 'fw-ranges', 'fw-each', 'fw-phase', 'fw-trans', 'fw-mix', 'sine', 'sig-calm']; LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
+// 3.80: Testlabor neu sortiert - was geklärt ist, fliegt raus (Ausschlag: Prozent gelten für die ganze Strecke; 0-100 % passt;
+// Grenzen ins Gerät gehen von der Webseite aus nicht; weiche App-Wellen und die Ruhe nach dem Markenzeichen passen; die alten
+// Übergangstests sind durch die neue Übergangslogik überholt). Neu: Tempo-Leiter und Übergänge mit der neuen Logik.
+{ const keep = ['fw-each', 'fw-phase']; for (let i = LAB_TESTS.length - 1; i >= 0; i--) if (!keep.includes(LAB_TESTS[i].id)) LAB_TESTS.splice(i, 1); }
+const LAB_GEN = '3.80';
+try { if (localStorage.getItem('companion_labGen') !== LAB_GEN) { localStorage.removeItem('companion_labResults'); safeSet('companion_labGen', LAB_GEN); } } catch (e) {}
+const FW_LADDER = [600, 400, 300, 220, 160, 120];
+LAB_TESTS.push({ id: 'fw-speed', ver: '3.80', title: 'Tempo-Leiter: wie schnell geht es sauber?', group: 'Bewegungsgenerator',
+  what: 'Der Generator fährt sechs Stufen je 4 s, immer schneller (600 → 400 → 300 → 220 → 160 → 120 ms je ganzem Hub), mittlere Hublänge um die Mitte. Unten steht jeweils, welche Stufe gerade läuft.',
+  watch: 'Ab welcher Stufe wird es unsauber - es ruckelt, rattert, klingt angestrengt oder der Hub wird deutlich kürzer?',
+  answers: [['alle', 'alle 6 sauber'], ['s6', 'erst Stufe 6 (120 ms) unsauber'], ['s5', 'ab Stufe 5 (160 ms)'], ['s4', 'ab Stufe 4 (220 ms)'], ['frueher', 'schon früher']],
+  async run(say) { labNeedDevice(); fwGen.stop(); device1.setMotion({ texture: 'stop' }); await labWait(800);
+    const L = device1.limits(), mid = (L.minPos + L.maxPos) / 2, half = (L.maxPos - L.minPos) * 0.18;
+    for (let k = 0; k < FW_LADDER.length; k++) { const P = FW_LADDER[k];
+      const pr = fwGen.params({ low: mid - half, high: mid + half, period: P }); pr.period = P; pr.update = P < 300 ? 15 : 20; pr.key = 'lab-sp' + P; fwGen.slots[4] = pr; await fwGen.write();
+      say(`Stufe ${k + 1}/6: ${P} ms je Hub`); showToast(`Stufe ${k + 1}/6 · ${P} ms`);
+      device1.bridgeSoft(pr.phase ? mid + half : mid, 500); await labWait(600); device1.sendRaw('#motion-profile-set:5'); fwGen.cur = 4; await labWait(150); device1.sendRaw('#motion-enable'); fwGen.enabled = true;
+      await labWait(4000); fwGen.stop(); await labWait(500); }
+    device1.setMotion({ texture: 'stop' }); say('fertig'); },
+  onAnswer(a) { const m = { alle: 110, s6: 160, s5: 220, s4: 300, frueher: 400 }; if (m[a]) { safeSet('companion_fwMinPeriod', String(m[a])); logEvent('msg', { role: 'system', text: 'Generator: schnellster Hub jetzt ' + m[a] + ' ms' }); } } });
+// Übergänge so, wie sie in der Geschichte passieren: über setMotion, mit der neuen Logik (Umkehrpunkt, weiche Fahrt, Startphase)
+async function labWithGen(fn) { const g = localStorage.getItem('companion_fwGen'), br = localStorage.getItem('companion_fwBridge'); safeSet('companion_fwGen', '1'); safeSet('companion_fwBridge', '1'); fwGen.broken = false;
+  try { await fn(); } finally { if (g !== null) safeSet('companion_fwGen', g); else localStorage.removeItem('companion_fwGen'); if (br !== null) safeSet('companion_fwBridge', br); else localStorage.removeItem('companion_fwBridge'); } }
+const FEEL2 = [['smooth', '✓ fließend'], ['ruck', 'kleiner Ruck'], ['stopp', 'spürbarer Halt'], ['sprung', 'Sprung / Stoß']];
+LAB_TESTS.push({ id: 'fw-trans2', ver: '3.80', title: 'Übergänge (neue Logik)', group: 'Bewegungsgenerator',
+  what: 'Vier kurze Wechsel, so wie sie in einer Geschichte vorkommen. Neu: eine Welle hält am Umkehrpunkt an statt mitten im Hub, App-Hübe fahren erst zu Ende, die Fahrt zur neuen Welle beschleunigt und bremst weich. Am besten NACH „Welle oben starten" machen.',
+  watch: 'Fließt der Wechsel, oder gibt es einen Ruck, Halt oder Sprung?',
+  steps: [
+    { t: 'Welle langsam → Welle schnell (Generator zu Generator)', q: 'Wie war der Wechsel?', answers: FEEL2,
+      async play() { await labWithGen(async () => { device1.setMotion({ low: 120, high: 880, bpm: 20, texture: 'sine' }); await labWait(8000); device1.setMotion({ low: 350, high: 900, bpm: 75, texture: 'sine' }); await labWait(6000); }); } },
+    { t: 'Welle → App-Stöße (Generator zur App)', q: 'Wie war der Wechsel?', answers: FEEL2,
+      async play() { await labWithGen(async () => { device1.setMotion({ low: 150, high: 850, bpm: 30, texture: 'sine' }); await labWait(7000); device1.setMotion({ low: 200, high: 800, bpm: 60, texture: 'pulse' }); await labWait(6000); }); } },
+    { t: 'App-Stöße → Welle (App zum Generator)', q: 'Wie war der Wechsel?', answers: FEEL2,
+      async play() { await labWithGen(async () => { device1.setMotion({ low: 200, high: 800, bpm: 50, texture: 'pulse' }); await labWait(5000); device1.setMotion({ low: 150, high: 850, bpm: 25, texture: 'sine' }); await labWait(8000); }); } },
+    { t: 'Welle → Stopp', q: 'Wie hat sie angehalten?', answers: [['smooth', '✓ weich am Umkehrpunkt'], ['ruck', 'kleiner Ruck'], ['sprung', 'abrupt mitten im Hub']],
+      async play() { await labWithGen(async () => { device1.setMotion({ low: 150, high: 850, bpm: 35, texture: 'sine' }); await labWait(6000); device1.setMotion({ texture: 'stop' }); await labWait(3000); }); } },
+  ] });
+{ const order = ['fw-phase', 'fw-each', 'fw-speed', 'fw-trans2']; LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
 function labResults() { try { return JSON.parse(localStorage.getItem('companion_labResults') || '{}'); } catch (e) { return {}; } }
 const lab = { running: '' };
 function renderLab() {
@@ -24754,10 +24794,6 @@ function renderLab() {
   const groups = [...new Set(LAB_TESTS.map(t => t.group))];   // Reihenfolge der Gruppen folgt der empfohlenen Testreihenfolge
   v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🧪 Testlabor</h2><button type="button" class="btn-secondary lab-x" style="width:44px; height:44px; padding:0;">✕</button></div>
     <p class="hint" style="margin:6px 0 10px;">Tests zu neuen Funktionen - einfach durchspielen und kurz sagen, wie es war. Die Antworten stehen im Protokoll (☰ → Protokoll als Datei). Läuft immer mit deinen echten Einstellungen und Grenzen.</p>
-    <div style="border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px; margin-bottom:12px;">
-      <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;"><input type="checkbox" id="labRanges" style="width:auto;"${fwRangesOn() ? ' checked' : ''}><span style="font-size:13.5px;"><b>Grenzen auch ins Gerät übertragen</b> - bei jeder Änderung von Min/Max (Gerät 1) automatisch</span></label>
-      <p class="hint" style="margin:4px 0 0;">${fwRangeMode() === 'scale' ? 'Getestet: das Gerät staucht - die App schickt dann den vollen Bereich, das Gerät legt ihn in deine Grenzen.' : fwRangeMode() === 'clamp' ? 'Getestet: das Gerät schneidet ab - es dient als zusätzliche Sicherung, die App rechnet weiter selbst.' : 'Noch nicht getestet, ob das Gerät staucht oder abschneidet - erst den Grenzen-Test machen; bis dahin dient es nur als zusätzliche Sicherung.'} ${fwScaleActive() ? '✓ übertragen' : ''}</p>
-    </div>
     <div style="border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px; margin-bottom:12px;">
       <b style="font-size:14px;">Anfahren</b> <span class="hint" style="margin:0;">- langsam (2 s) zu einem Punkt deines Bereichs, Gerät 1 (0 % = Untergrenze, 100 % = Obergrenze)</span>
       <div style="display:flex; gap:6px; margin-top:8px;">${[0, 25, 50, 75, 100].map(v => `<button type="button" class="btn-secondary lab-jog" data-v="${v}" style="flex:1; padding:8px 0;">${v} %</button>`).join('')}</div>
@@ -24777,7 +24813,7 @@ function renderLab() {
   v.querySelectorAll('.lab-jog').forEach(b => b.onclick = () => { if (!device1.isConnected()) { showToast('Gerät 1 ist nicht verbunden', true); return; } if (lab.running) { showToast('Erst den laufenden Test abwarten'); return; }
     fwGen.stop(); device1.setMotion({ texture: 'stop' }); const L = device1.limits(), pos = L.minPos + (L.maxPos - L.minPos) * (+b.dataset.v) / 100;
     setTimeout(() => { device1.bridgeSoft(pos, 2000); logEvent('msg', { role: 'system', text: `🧪 Anfahren: ${b.dataset.v} % (Lage ${Math.round(pos)})` }); }, 700); });
-  const rc = v.querySelector('#labRanges'); rc.onchange = async () => { safeSet('companion_fwRanges', rc.checked ? '1' : '0'); localStorage.removeItem('companion_fwRangeSynced'); if (rc.checked) await fwSyncRanges(false); else { try { const j = await fwChannelsGet(); const ch = j.channelProfile.find(c => c && c.name === 'L0'); if (ch) { ch.rangeLimitEnabled = false; await fwChannelsPost(j); } device1.sendRaw('#channel-ranges-disable'); } catch (e) {} } renderLab(); };
+  const rc = v.querySelector('#labRanges'); if (rc) rc.onchange = async () => { safeSet('companion_fwRanges', rc.checked ? '1' : '0'); localStorage.removeItem('companion_fwRangeSynced'); if (rc.checked) await fwSyncRanges(false); else { try { const j = await fwChannelsGet(); const ch = j.channelProfile.find(c => c && c.name === 'L0'); if (ch) { ch.rangeLimitEnabled = false; await fwChannelsPost(j); } device1.sendRaw('#channel-ranges-disable'); } catch (e) {} } renderLab(); };
   v.querySelectorAll('.lab-card').forEach(card => {
     const t = LAB_TESTS.find(x => x.id === card.dataset.id), out = card.querySelector('.lab-out');
     const say = (s) => { out.textContent = (out.textContent + '\n' + s).trim(); logEvent('msg', { role: 'system', text: `🧪 ${t.title}: ${s}` }); };
@@ -25136,7 +25172,7 @@ const fwGen = {
   on() { return localStorage.getItem('companion_fwGen') === '1' && !this.broken; },
   wants(texture, bpm) { return this.on() && device1.isConnected() && ['sine', 'smooth', 'tremor'].includes(texture) && bpm > 0; },
   // Zittern rechnet das Gerät selbst - es darf schneller sein als über die App (3.78: 120-380 ms statt 170-420 ms)
-  tremorPeriod(tb) { return Math.round(Math.max(120, Math.min(380, 380 - (tb || 150) * 1.13))); },
+  tremorPeriod(tb) { const lo = Math.max(120, +(localStorage.getItem('companion_fwMinPeriod') || 120)); return Math.round(Math.max(lo, Math.min(Math.max(lo, 380), 380 - (tb || 150) * 1.13))); },
   // Startphase der Welle: 0 = startet in der Mitte (Werkseinstellung), ±90 = startet oben am Umkehrpunkt (welches Vorzeichen, klärt der Test)
   startPhase() { const v = +(localStorage.getItem('companion_fwStartPhase') || 0); return v === 90 || v === -90 ? v : 0; },
   run: null,   // laufende Welle: { startedAt, period, phase, low, high } - daraus lassen sich die Umkehrpunkte vorhersagen
@@ -25160,7 +25196,7 @@ const fwGen = {
   params(q) {   // Gerätelage 0-999 → Generator: Mitte in TCode-Einheiten, Ausschlag in Prozent, Takt in ms je ganzem Hub
     const mid = (q.low + q.high) / 2, span = Math.max(q.tremor ? 30 : 60, q.high - q.low);
     const ampDiv = localStorage.getItem('companion_fwAmpMode') === 'full' ? 9.99 : 19.98;   // bis zum Ausschlag-Test vorsichtig: Prozent gelten je Richtung
-    const r = { period: Math.max(110, Math.round(q.period / 10) * 10), amp: Math.max(2, Math.min(100, Math.round(span / ampDiv))), offset: Math.max(0, Math.min(9999, Math.round(mid * 10 / 50) * 50)), update: q.period < 400 ? 20 : q.period < 700 ? 30 : q.period < 1500 ? 60 : 100, phase: this.startPhase() };
+    const r = { period: Math.max(+(localStorage.getItem('companion_fwMinPeriod') || 110), Math.round(q.period / 10) * 10), amp: Math.max(2, Math.min(100, Math.round(span / ampDiv))), offset: Math.max(0, Math.min(9999, Math.round(mid * 10 / 50) * 50)), update: q.period < 400 ? 20 : q.period < 700 ? 30 : q.period < 1500 ? 60 : 100, phase: this.startPhase() };
     r.key = [r.period, r.amp, r.offset].concat(r.phase ? [r.phase] : []).join('/'); return r;
   },
   async write() {   // ganze Profilliste ins Gerät (so speichert es auch seine Weboberfläche)
