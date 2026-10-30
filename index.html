@@ -3699,8 +3699,21 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.77';
+const APP_VERSION = '3.79';
 const CHANGELOG = [
+  { v: '3.79', date: '2026-10-30', items: [
+    '🔊 Durchswipen: keine zwei Stimmen mehr gleichzeitig - eine Vorstellung, die noch erzeugt wurde, als du schon weitergewischt hast, wird nur aufbewahrt und nicht mehr abgespielt',
+    '🔊 Durchswipen mit ElevenLabs: fehlt der Ton einer Vorstellung (nur der Text ist da, z. B. vom anderen Gerät), springt nicht mehr die Android-Stimme ein - beim Wischen bleibt es still, auf 🔊 wird der Text einmal vertont',
+  ] },
+  { v: '3.78', date: '2026-10-30', items: [
+    '〰️ Weichere Übergänge beim Generator: eine laufende Welle hält jetzt am Umkehrpunkt an (nicht mehr mitten im Hub), eine laufende App-Fahrt darf erst zu Ende fahren, und die Fahrt zum Start der neuen Welle beschleunigt und bremst wie eine Sinuskurve',
+    '〰️ Vom Generator zurück zur App: kurze Ruhe am Umkehrpunkt, bevor die App übernimmt - vorher ignorierte das Gerät die ersten Befehle oder stoppte ruckartig',
+    '🧪 Testlabor: neuer Test „Welle oben starten" (Startphase ±90°) - startet die Welle am Umkehrpunkt statt in voller Fahrt in der Mitte; das Ergebnis wird übernommen',
+    '🧪 Testlabor: neuer Test „Voller Ausschlag" und oben auf der Seite Knöpfe zum Anfahren von 0/25/50/75/100 %',
+    '🧪 Fehler behoben: „Profile einzeln" spielte gar nicht die fünf Muster, weil der Generator die Plätze vorher überschrieben hatte - jetzt werden sie vor dem Test frisch geschrieben',
+    '⚡ Generator darf mehr: Zittern bis 120 ms je Hub (vorher 170), Wellen bis 110 ms, feinere Abtastung bei schnellen Wellen',
+    '🧪 Grenzen-Test: klare Erklärung, warum das Lesen der Geräte-Grenzen von der Webseite aus nicht geht',
+  ] },
   { v: '3.77', date: '2026-10-27', items: [
     '🧪 Testlabor: eigene Worte in der Abfrage lassen sich jetzt direkt abschicken (➤ oder Enter) - vorher ging das nur über „Überspringen"; das Abfrageblatt bleibt über der Handytastatur sichtbar',
   ] },
@@ -6002,13 +6015,14 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     if (seq) { clearTimeout(seq.timer); seq = null; }
   }
   // Übernimmt gerade der Bewegungsgenerator der Firmware, wird er beim Wechsel zu etwas anderem abgeschaltet
-  function fwRelease() { if (state.fwActive) { state.fwActive = false; try { fwGen.stop(); } catch (e) {} } }
+  function fwRelease() { if (state.fwActive) { state.fwActive = false; try { return fwGen.stop(true) || 0; } catch (e) {} } return 0; }   // liefert, wie lange der Generator noch bis zum Umkehrpunkt läuft
   function haltLoop() {
-    stopEase(); fwRelease();
+    stopEase(); const w = fwRelease();
     const m = state.motion;
     clearTimeout(m.timer);
     m.timer = null;
     m.current.bpm = 0;
+    return w;
   }
   function runSequence(steps) {
     cancelSequence();
@@ -6052,10 +6066,11 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       const toDevice = (v) => minPos + (Math.max(0, Math.min(999, v)) / 999) * span;
       const later = (ms) => { if (seq && seq.token === token) seq.timer = setTimeout(next, Math.max(0, ms)); };
       if (step.type === 'move') {
-        haltLoop();
+        // Lief der Generator, hält er erst am nächsten Umkehrpunkt an - die Fahrt startet kurz danach (sonst ignoriert das Gerät sie)
+        const gw = haltLoop();
         let actual = step.ms;
-        if (step.ease) easedMove(toDevice(step.to), step.ms, step.ease);
-        else actual = sendMove(toDevice(step.to), step.ms);
+        const goMove = () => { if (step.ease) easedMove(toDevice(step.to), step.ms, step.ease); else actual = sendMove(toDevice(step.to), step.ms); };
+        if (gw > 0) { actual = step.ms + gw + 150; setTimeout(() => { if (seq && seq.token === token) goMove(); }, gw + 150); } else goMove();
         m.texture = 'hold';
         m.requested = { low: step.to, high: step.to, bpm: 0, texture: 'hold' };
         setMotionStatus(true);
@@ -6171,8 +6186,11 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
       fwGen.play({ period, low, high, tremor: texture === 'tremor' }, () => { state.fwActive = false; m.current = { low, high, bpm }; m.lastTickAt = Date.now(); tick(); });
       return;
     }
-    fwRelease();
-    if (!m.timer) {
+    const genWait = fwRelease();
+    if (!m.timer && genWait > 0) {
+      // Vom Generator zur App: erst am Umkehrpunkt anhalten lassen, kurz ruhen, dann übernimmt die App (sonst ignoriert das Gerät die ersten Befehle)
+      m.timer = setTimeout(() => { m.timer = null; m.current = { low: m.target.low, high: m.target.high, bpm: m.target.bpm }; m.lastTickAt = Date.now(); tick(); }, genWait + 150);
+    } else if (!m.timer) {
       // Start from the current target's shape but at a standstill, so the first
       // strokes ease in rather than snapping to full pace.
       // Früher begann die Bewegung hier mit Tempo 0 und regelte sich hoch - der
@@ -6202,19 +6220,20 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
     // fürs Zittern. Deshalb lief es im ersten Test immer gleich schnell, egal
     // was die KI verlangte.
     const ms = Math.max(floorMs || MOTION_LIMITS.minIntervalMs, Math.round(desiredMs), minMsForSpeed);
-    m.lastPos = p;
+    m.lastPos = p; m.moveEndsAt = Date.now() + ms;
     sendTCode(p, ms);
     return ms;
   }
 
   function stopMotion() {
-    const m = state.motion; fwRelease();
+    const m = state.motion; const gw = fwRelease();
     clearTimeout(m.timer);
     m.timer = null;
     state.vibeLast = null;   // nächste Zeile schaltet die Vibration sofort aus
     m.current.bpm = 0;
     const { minPos, maxPos } = getSettings();
-    sendMove(Math.round((minPos + maxPos) / 2), 600);
+    if (gw > 0) setTimeout(() => { if (!m.timer && !state.fwActive && !seq) sendMove(Math.round((minPos + maxPos) / 2), 700); }, gw + 150);
+    else sendMove(Math.round((minPos + maxPos) / 2), 600);
     setMotionStatus(false);
   }
 
@@ -6320,7 +6339,11 @@ function createDevice(connectBtn, bleStatusEl, motionStatusEl, trackFillEl, labe
   function onReply(fn) { state.fwHooks = (state.fwHooks || []).concat([fn]); return () => { state.fwHooks = (state.fwHooks || []).filter(x => x !== fn); }; }
   const limits = () => { const g = getSettings(); return { minPos: g.minPos, maxPos: g.maxPos, speedCap: g.speedCap }; };
   const bridge = (pos, ms) => { try { return sendMove(pos, ms); } catch (e) { return ms; } };   // Übergangsfahrt zwischen zwei Generator-Profilen
-  return { bridge, limits, sendRaw, onReply, motionInfo, setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
+  // Weiche Übergangsfahrt (anfahren und abbremsen wie eine Sinuskurve) - kommt ohne Stoß an und steht am Ziel still
+  const bridgeSoft = (pos, ms) => { try { ms = Math.max(350, Math.round(ms)); const d = Math.abs(clampPos(Math.round(pos)) - state.motion.lastPos); if (d < 15) return bridge(pos, Math.min(ms, 300)); easedMove(pos, ms, 'sine'); return ms; } catch (e) { return ms; } };
+  const moveLeft = () => Math.max(0, (state.motion.moveEndsAt || 0) - Date.now());   // wie lange die zuletzt geschickte Fahrt noch läuft
+  const setPos = (p) => { state.motion.lastPos = clampPos(Math.round(p)); };          // Lage nach dem Generator (Umkehrpunkt) übernehmen
+  return { bridge, bridgeSoft, moveLeft, setPos, limits, sendRaw, onReply, motionInfo, setMotion, runSequence: (steps) => { if (state.pauseUntil && Date.now() < state.pauseUntil) { state.pausedReq = { fn: () => runSequence(steps) }; return; } return runSequence(steps); }, pauseFor, reapply, isConnected: isOpen, connectNow, disconnect, getState: () => state.motion.requested };
 }
 
 try { const ef = document.getElementById('edgeFollow'); if (ef) ef.value = localStorage.getItem('companion_edgeFollow') || 'takt'; } catch (e) {}
@@ -15083,10 +15106,14 @@ function introSigDemo(v, audio) {
   if (audio) { const at = () => { const d = isFinite(audio.duration) ? audio.duration : 8; setTimeout(() => { if (!audio.paused && previewAudio === audio) go(); }, Math.max(1200, d * 450)); }; if (audio.readyState >= 1) at(); else audio.addEventListener('loadedmetadata', at, { once: true }); audio.addEventListener('pause', () => { try { device1.setMotion({ texture: 'stop' }); } catch (e) {} }, { once: true }); }
   else setTimeout(go, 3500);
 }
+// Jede neue Vorstellung (oder ein Weiterwischen) macht ältere ungültig: eine noch laufende Erzeugung wird dann nur noch
+// aufbewahrt, aber nicht mehr abgespielt - sonst sprach sie später über die nächste Figur drüber (zwei Stimmen gleichzeitig)
+let introSeq = 0;
 async function introduceFigure(v, figureId, button, force) {
   figureId = figureId || v.figureId;
   if (previewAudio) { try { previewAudio.pause(); } catch (e) {} previewAudio = null; }
   speechSynthesis.cancel();
+  const myIntro = ++introSeq;
 
   const source = localStorage.getItem('companion_ttsSource') || 'browser';
   const useEleven = source === 'elevenlabs' && v.elevenVoice && apiKeyFor('companion_elevenKey');
@@ -15121,9 +15148,8 @@ async function introduceFigure(v, figureId, button, force) {
     if (useEleven) {
       const blob = await elevenIntroAudio(text, v);
       if (figureId) await dbPut(STORE_AUDIO, INTRO_PREFIX + figureId, blob);
-      previewAudio = new Audio(URL.createObjectURL(blob));
-      previewAudio.play().catch(() => {}); introSigDemo(v, previewAudio);
-    } else {
+      if (myIntro === introSeq) { try { speechSynthesis.cancel(); } catch (e) {} previewAudio = new Audio(URL.createObjectURL(blob)); previewAudio.play().catch(() => {}); introSigDemo(v, previewAudio); }
+    } else if (myIntro === introSeq) {
       introSigDemo(v, null); speakWithBrowser(text, v);
     }
     if (figureId) {
@@ -24538,7 +24564,8 @@ function fwRangeMode() { return localStorage.getItem('companion_fwRangeMode') ||
 function fwRangeKey() { return (localStorage.getItem('companion_d1_minPos') || '50') + '-' + (localStorage.getItem('companion_d1_maxPos') || '950'); }
 function fwScaleActive() { return fwRangesOn() && fwRangeMode() === 'scale' && localStorage.getItem('companion_fwRangeSynced') === fwRangeKey(); }
 async function fwChannelsGet() {
-  const r = await fetch(fwGen.base() + '/channelsProfile', { targetAddressSpace: 'local', cache: 'no-store', signal: AbortSignal.timeout(5000) });
+  let r; try { r = await fetch(fwGen.base() + '/channelsProfile', { targetAddressSpace: 'local', cache: 'no-store', signal: AbortSignal.timeout(5000) }); }
+  catch (e) { throw new Error('der Browser lässt die Webseite (https) die Einstellungen des Geräts (http) nicht lesen - Schreiben geht, Lesen nicht. Die Grenzen einmal direkt auf der Geräteseite ' + fwGen.base() + ' eintragen; die App hält ihre eigenen Grenzen ohnehin ein'); }
   if (!r.ok) throw new Error('Gerät antwortet ' + r.status); const j = await r.json();
   if (!j || !Array.isArray(j.channelProfile)) throw new Error('unbekanntes Format'); return j;
 }
@@ -24613,8 +24640,11 @@ const LAB_TESTS = [
     watch: 'Laufen alle fünf glatt und so, wie der Name sagt? Bleibt alles innerhalb deiner Grenzen?',
     answers: [['ok', 'alle passen'], ['teils', 'manche nicht'], ['fail', 'geht nicht']],
     async run(say) { labNeedDevice(); fwGen.stop(); device1.setMotion({ texture: 'stop' }); await labWait(700);
+      // Die App beschreibt die fünf Plätze sonst selbst (Wellen aus der Geschichte) - vorher waren hier deshalb gar nicht die
+      // fünf Muster drin, sondern überschriebene Plätze (darum war „Zittern" langsam und die letzten kaum verschieden)
+      FW_PROFILES.forEach((pr, k) => { fwGen.slots[k] = { key: 'fix-' + k, ch: pr.ch }; fwGen.used[k] = 0; }); await fwGen.write(); say('fünf Muster ins Gerät geschrieben'); await labWait(300);
       for (let i = 1; i <= 5; i++) { say(`Profil ${i}: ${FW_PROFILES[i - 1].name}`); device1.sendRaw('#motion-profile-set:' + i); if (i === 1) { await labWait(150); device1.sendRaw('#motion-enable'); } await labWait(6000); }
-      device1.sendRaw('#motion-disable'); device1.setMotion({ texture: 'stop' }); say('fertig'); } },
+      device1.sendRaw('#motion-disable'); fwGen.enabled = false; device1.setMotion({ texture: 'stop' }); say('fertig'); } },
   { id: 'fw-trans', ver: '3.70', title: 'Übergänge zwischen Wellen', group: 'Bewegungsgenerator',
     what: 'Langsame Welle → schnelle Welle MIT weichem Übergang → mittlere Welle OHNE Übergang → Stopp (ca. 25 s).',
     watch: 'Welcher Wechsel war glatter, 2 oder 3? Läuft eine neue Welle von der Mitte los oder springt sie erst nach oben/unten?',
@@ -24684,8 +24714,39 @@ async function labGenWave(period, ampPct) {   // Welle direkt über den Generato
   device1.sendRaw('#motion-profile-set:5'); fwGen.cur = 4; if (!fwGen.enabled) { await labWait(150); device1.sendRaw('#motion-enable'); fwGen.enabled = true; }
 }
 async function labAppStrokes() { const L = device1.limits(); device1.setMotion({ low: 150, high: 850, bpm: 50, texture: 'smooth' }); await labWait(4500); device1.runSequence([]); }
+// 3.78: voller Ausschlag prüfen - die App fährt deine Grenzen an, danach läuft der Generator mit 100 % Ausschlag
+async function labFullWave(period, ms) { const L = device1.limits(); fwGen.slots[4] = Object.assign(fwGen.params({ low: L.minPos, high: L.maxPos, period }), { key: 'lab-full' }); await fwGen.write();
+  device1.bridgeSoft((L.minPos + L.maxPos) / 2, 700); await labWait(800); device1.sendRaw('#motion-profile-set:5'); fwGen.cur = 4; await labWait(150); device1.sendRaw('#motion-enable'); fwGen.enabled = true; await labWait(ms); }
+LAB_TESTS.push({ id: 'fw-full', ver: '3.78', title: 'Voller Ausschlag: 0 % und 100 %', group: 'Bewegungsgenerator',
+  what: 'Erst fährt die App langsam auf 0 % und auf 100 % (deine eingestellten Grenzen von Gerät 1) und hält dort je 2 s. Danach läuft der Generator eine langsame Welle mit vollem Ausschlag. Oben auf der Seite kannst du die Punkte auch einzeln anfahren.',
+  watch: 'Erreicht die Generator-Welle dieselben Punkte wie die App - nicht kürzer, nicht darüber hinaus?',
+  steps: [
+    { t: 'App fährt auf 0 % und 100 % (je 3 s hin, 2 s halten)', q: 'Sind das die richtigen Endpunkte? (Merk sie dir für den nächsten Schritt.)', answers: [['ok', 'ja, passt'], ['eng', 'da geht noch mehr'], ['zuweit', 'zu weit / stößt an']],
+      async play() { const L = device1.limits(); device1.bridgeSoft(L.minPos, 3000); await labWait(5000); device1.bridgeSoft(L.maxPos, 3000); await labWait(5000); device1.bridgeSoft((L.minPos + L.maxPos) / 2, 1200); await labWait(1300); } },
+    { t: 'Generator: Welle mit 100 % Ausschlag (6 s je Hub, 13 s lang)', q: 'Und die Welle - dieselben Endpunkte?', answers: [['gleich', 'gleiche Punkte'], ['kuerzer', 'kürzer'], ['weiter', 'weiter / stößt an'], ['anders', 'unsicher']],
+      async play() { await labFullWave(6000, 13000); } },
+  ],
+  onSteps(res) { const v = res[2] || ''; if (/^kuerzer/.test(v)) safeSet('companion_fwAmpMode', 'full'); } });
+// 3.78: Startphase - startet die Welle mit ±90° oben am Umkehrpunkt, gibt es keinen Stoß beim Losfahren und die App kann am Umkehrpunkt übergeben
+async function labPhaseWave(phase) { const L = device1.limits(); const lo = L.minPos + (L.maxPos - L.minPos) * 0.2, hi = L.minPos + (L.maxPos - L.minPos) * 0.8;
+  const keep = localStorage.getItem('companion_fwStartPhase'); safeSet('companion_fwStartPhase', String(phase));
+  try { fwGen.slots[4] = Object.assign(fwGen.params({ low: lo, high: hi, period: 2400 }), { key: 'lab-ph' + phase }); } finally { if (keep !== null) safeSet('companion_fwStartPhase', keep); else localStorage.removeItem('companion_fwStartPhase'); }
+  await fwGen.write(); device1.bridgeSoft(phase ? hi : (lo + hi) / 2, 1200); await labWait(2600);   // steht oben still, dann geht es los
+  device1.sendRaw('#motion-profile-set:5'); fwGen.cur = 4; await labWait(150); device1.sendRaw('#motion-enable'); fwGen.enabled = true; await labWait(7500); }
+LAB_TESTS.push({ id: 'fw-phase', ver: '3.78', title: 'Welle oben starten (weichere Übergänge)', group: 'Bewegungsgenerator',
+  what: 'Bisher startet jede Welle in der Mitte - dort fährt sie aber schon mit voller Geschwindigkeit los, daher der Ruck. Hier fährt die App die Hülse weich nach OBEN, wartet kurz, dann startet die Welle mit einer verschobenen Phase. Drei Durchgänge: Mitte (wie bisher), +90°, -90°.',
+  watch: 'Bei welchem Durchgang läuft die Welle von oben weich los, ohne erst nach unten oder zur Mitte zu springen?',
+  steps: [
+    { t: 'Wie bisher: Start in der Mitte', q: 'Wie ging es los?', answers: [['weich', '✓ weich'], ['ruck', 'Ruck beim Start'], ['sprung', 'springt erst woandershin']], async play() { await labPhaseWave(0); } },
+    { t: 'Start oben mit Phase +90°', q: 'Läuft sie von oben weich los?', answers: [['weich', '✓ weich von oben'], ['ruck', 'kleiner Ruck'], ['sprung', 'springt erst nach unten / zur Mitte']], async play() { await labPhaseWave(90); } },
+    { t: 'Start oben mit Phase -90°', q: 'Läuft sie von oben weich los?', answers: [['weich', '✓ weich von oben'], ['ruck', 'kleiner Ruck'], ['sprung', 'springt erst nach unten / zur Mitte']], async play() { await labPhaseWave(-90); } },
+  ],
+  onSteps(res) { const a = res[2] || '', b = res[3] || ''; const ok = v => /^weich/.test(v);
+    if (ok(a) && !ok(b)) safeSet('companion_fwStartPhase', '90'); else if (ok(b) && !ok(a)) safeSet('companion_fwStartPhase', '-90'); else if (ok(a) && ok(b)) safeSet('companion_fwStartPhase', '90');
+    else localStorage.removeItem('companion_fwStartPhase');
+    logEvent('msg', { role: 'system', text: 'Generator-Startphase jetzt: ' + (fwGen.startPhase() ? fwGen.startPhase() + '° (Wellen starten oben)' : '0° (Wellen starten in der Mitte)') }); } });
 // Empfohlene Reihenfolge: erst einrichten und die Sicherheit (Ausschlag, Grenzen), dann Verhalten und Gefühl
-{ const order = ['fw-install', 'fw-amp', 'fw-ranges', 'fw-each', 'fw-trans', 'fw-mix', 'sine', 'sig-calm']; LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
+{ const order = ['fw-install', 'fw-amp', 'fw-full', 'fw-ranges', 'fw-each', 'fw-phase', 'fw-trans', 'fw-mix', 'sine', 'sig-calm']; LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
 function labResults() { try { return JSON.parse(localStorage.getItem('companion_labResults') || '{}'); } catch (e) { return {}; } }
 const lab = { running: '' };
 function renderLab() {
@@ -24696,6 +24757,10 @@ function renderLab() {
     <div style="border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px; margin-bottom:12px;">
       <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0;"><input type="checkbox" id="labRanges" style="width:auto;"${fwRangesOn() ? ' checked' : ''}><span style="font-size:13.5px;"><b>Grenzen auch ins Gerät übertragen</b> - bei jeder Änderung von Min/Max (Gerät 1) automatisch</span></label>
       <p class="hint" style="margin:4px 0 0;">${fwRangeMode() === 'scale' ? 'Getestet: das Gerät staucht - die App schickt dann den vollen Bereich, das Gerät legt ihn in deine Grenzen.' : fwRangeMode() === 'clamp' ? 'Getestet: das Gerät schneidet ab - es dient als zusätzliche Sicherung, die App rechnet weiter selbst.' : 'Noch nicht getestet, ob das Gerät staucht oder abschneidet - erst den Grenzen-Test machen; bis dahin dient es nur als zusätzliche Sicherung.'} ${fwScaleActive() ? '✓ übertragen' : ''}</p>
+    </div>
+    <div style="border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px; margin-bottom:12px;">
+      <b style="font-size:14px;">Anfahren</b> <span class="hint" style="margin:0;">- langsam (2 s) zu einem Punkt deines Bereichs, Gerät 1 (0 % = Untergrenze, 100 % = Obergrenze)</span>
+      <div style="display:flex; gap:6px; margin-top:8px;">${[0, 25, 50, 75, 100].map(v => `<button type="button" class="btn-secondary lab-jog" data-v="${v}" style="flex:1; padding:8px 0;">${v} %</button>`).join('')}</div>
     </div>
     ${groups.map(g => `<h3 style="font-size:15px; margin:14px 0 6px; color:var(--gold, #ffcf4d);">${esc(g)}</h3>` + LAB_TESTS.filter(t => t.group === g).map(t => { const r = R[t.id];
       return `<div class="lab-card" data-id="${t.id}" style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:10px; margin-bottom:10px; background:rgba(255,255,255,0.03);">
@@ -24709,6 +24774,9 @@ function renderLab() {
       </div>`; }).join('')).join('')}`;
   v.scrollTop = keep;
   v.querySelector('.lab-x').onclick = () => closeLab();
+  v.querySelectorAll('.lab-jog').forEach(b => b.onclick = () => { if (!device1.isConnected()) { showToast('Gerät 1 ist nicht verbunden', true); return; } if (lab.running) { showToast('Erst den laufenden Test abwarten'); return; }
+    fwGen.stop(); device1.setMotion({ texture: 'stop' }); const L = device1.limits(), pos = L.minPos + (L.maxPos - L.minPos) * (+b.dataset.v) / 100;
+    setTimeout(() => { device1.bridgeSoft(pos, 2000); logEvent('msg', { role: 'system', text: `🧪 Anfahren: ${b.dataset.v} % (Lage ${Math.round(pos)})` }); }, 700); });
   const rc = v.querySelector('#labRanges'); rc.onchange = async () => { safeSet('companion_fwRanges', rc.checked ? '1' : '0'); localStorage.removeItem('companion_fwRangeSynced'); if (rc.checked) await fwSyncRanges(false); else { try { const j = await fwChannelsGet(); const ch = j.channelProfile.find(c => c && c.name === 'L0'); if (ch) { ch.rangeLimitEnabled = false; await fwChannelsPost(j); } device1.sendRaw('#channel-ranges-disable'); } catch (e) {} } renderLab(); };
   v.querySelectorAll('.lab-card').forEach(card => {
     const t = LAB_TESTS.find(x => x.id === card.dataset.id), out = card.querySelector('.lab-out');
@@ -24720,7 +24788,7 @@ function renderLab() {
           for (let i = 0; i < t.steps.length; i++) { const st = t.steps[i]; let ans;
             do { say2(`Schritt ${i + 1}/${t.steps.length}: ${st.t}`); fwGen.stop(); device1.setMotion({ texture: 'stop' }); await labWait(900); await st.play(); fwGen.stop(); device1.setMotion({ texture: 'stop' }); ans = await labAsk(`${t.title} · Schritt ${i + 1}/${t.steps.length}`, `${st.t}\n${st.q}`, st.answers); } while (ans === 'repeat');
             if (ans) { res[i + 1] = (ans.a === 'notiz' ? 'Notiz' : ans.a) + (ans.note ? ' (' + ans.note + ')' : ''); say2(`→ ${ans.label}${ans.note ? ' - ' + ans.note : ''}`); } else say2('→ übersprungen'); }
-          all[t.id] = { a: 'steps', steps: res, at: Date.now(), ver: APP_VERSION }; safeSet('companion_labResults', JSON.stringify(all));
+          all[t.id] = { a: 'steps', steps: res, at: Date.now(), ver: APP_VERSION }; safeSet('companion_labResults', JSON.stringify(all)); try { t.onSteps && t.onSteps(res); } catch (e) {}
           logEvent('msg', { role: 'system', text: `🧪 Ergebnis „${t.title}": ${Object.entries(res).map(([k, v]) => k + ': ' + v).join(' · ')}` });
         } else {
           let ans;
@@ -25031,7 +25099,7 @@ const FW_PROFILES = [
   { name: 'NZ Welle langsam', ch: { period: 4000, amp: 80, offset: 5000 } },
   { name: 'NZ Welle mittel', ch: { period: 1800, amp: 70, offset: 5000 } },
   { name: 'NZ Welle schnell', ch: { period: 800, amp: 55, offset: 5000 } },
-  { name: 'NZ Zittern oben', ch: { period: 260, amp: 7, offset: 8900, update: 30 } },
+  { name: 'NZ Zittern oben', ch: { period: 150, amp: 6, offset: 8900, update: 20 } },
   { name: 'NZ Wiegen Zufall', ch: { period: 2500, amp: 60, offset: 5000, periodRan: true, periodMin: 1400, periodMax: 4200, ampRan: true, ampMin: 35, ampMax: 85, offsetRan: true, offsetMin: 3800, offsetMax: 6200, ranMin: 4000, ranMax: 12000 } },
 ];
 function fwChannel(over) { return Object.assign({ name: 'L0', update: 100, period: 2000, amp: 60, offset: 5000, periodRan: false, periodMin: 500, periodMax: 2000, ampRan: false, ampMin: 20, ampMax: 60, offsetRan: false, offsetMin: 3000, offsetMax: 7000, ranMin: 3000, ranMax: 30000, phase: 0, phaseRan: false, phaseMin: 0, phaseMax: 180, reverse: false, edited: true }, over); }
@@ -25067,18 +25135,38 @@ const fwGen = {
   slots: [null, null, null, null, null], used: [0, 0, 0, 0, 0], cur: -1, enabled: false, token: 0, data: null, queue: Promise.resolve(), broken: false, writes: 0,
   on() { return localStorage.getItem('companion_fwGen') === '1' && !this.broken; },
   wants(texture, bpm) { return this.on() && device1.isConnected() && ['sine', 'smooth', 'tremor'].includes(texture) && bpm > 0; },
-  tremorPeriod(tb) { return Math.round(Math.max(170, Math.min(420, 420 - (tb || 150) * 1.1))); },
+  // Zittern rechnet das Gerät selbst - es darf schneller sein als über die App (3.78: 120-380 ms statt 170-420 ms)
+  tremorPeriod(tb) { return Math.round(Math.max(120, Math.min(380, 380 - (tb || 150) * 1.13))); },
+  // Startphase der Welle: 0 = startet in der Mitte (Werkseinstellung), ±90 = startet oben am Umkehrpunkt (welches Vorzeichen, klärt der Test)
+  startPhase() { const v = +(localStorage.getItem('companion_fwStartPhase') || 0); return v === 90 || v === -90 ? v : 0; },
+  run: null,   // laufende Welle: { startedAt, period, phase, low, high } - daraus lassen sich die Umkehrpunkte vorhersagen
+  // Wie lange bis zum nächsten Umkehrpunkt, und wo der liegt (Gerätelage). Startet die Welle oben, liegt oben bei 0, P, 2P …, unten bei P/2 …;
+  // startet sie in der Mitte (aufwärts), liegen die Umkehrpunkte bei P/4, 3P/4 …
+  nextTurn() {
+    const r = this.run; if (!this.enabled || !r || !(r.period > 0)) return null;
+    const P = r.period, half = P / 2, first = r.phase ? 0 : P / 4, el = Date.now() - r.startedAt + 35;   // 35 ms ≈ Laufzeit übers WLAN
+    if (el < first) return { wait: Math.round(first - el), top: true, pos: r.high };
+    const n = Math.floor((el - first) / half) + 1, wait = Math.round(first + n * half - el);
+    const top = n % 2 === 0; return { wait, top, pos: top ? r.high : r.low };
+  },
+  // Generator anhalten - weich: genau am Umkehrpunkt (dort steht die Hülse ohnehin kurz still), höchstens 1,6 s warten
+  haltAtTurn(maxWait) {
+    if (!this.enabled) return 0; const t = this.nextTurn(); const cap = maxWait == null ? 1600 : maxWait;
+    const go = () => { if (!this.enabled) return; try { device1.sendRaw('#motion-disable'); } catch (e) {} this.enabled = false; if (t && t.wait <= cap) { try { device1.setPos(t.pos); } catch (e) {} } this.run = null; };
+    if (!t || t.wait > cap || t.wait < 25) { go(); return t && t.wait < 25 ? 0 : 0; }
+    setTimeout(go, t.wait); return t.wait;
+  },
   base() { const ip = (localStorage.getItem('companion_d1_ip') || '').trim().replace(/^https?:\/\//, '').replace(/\/.*$/, ''); return ip ? 'http://' + ip : ''; },
   params(q) {   // Gerätelage 0-999 → Generator: Mitte in TCode-Einheiten, Ausschlag in Prozent, Takt in ms je ganzem Hub
     const mid = (q.low + q.high) / 2, span = Math.max(q.tremor ? 30 : 60, q.high - q.low);
     const ampDiv = localStorage.getItem('companion_fwAmpMode') === 'full' ? 9.99 : 19.98;   // bis zum Ausschlag-Test vorsichtig: Prozent gelten je Richtung
-    const r = { period: Math.max(150, Math.round(q.period / 20) * 20), amp: Math.max(3, Math.min(100, Math.round(span / ampDiv))), offset: Math.max(0, Math.min(9999, Math.round(mid * 10 / 50) * 50)), update: q.period < 700 ? 30 : q.period < 1500 ? 60 : 100 };
-    r.key = [r.period, r.amp, r.offset].join('/'); return r;
+    const r = { period: Math.max(110, Math.round(q.period / 10) * 10), amp: Math.max(2, Math.min(100, Math.round(span / ampDiv))), offset: Math.max(0, Math.min(9999, Math.round(mid * 10 / 50) * 50)), update: q.period < 400 ? 20 : q.period < 700 ? 30 : q.period < 1500 ? 60 : 100, phase: this.startPhase() };
+    r.key = [r.period, r.amp, r.offset].concat(r.phase ? [r.phase] : []).join('/'); return r;
   },
   async write() {   // ganze Profilliste ins Gerät (so speichert es auch seine Weboberfläche)
     if (!this.data) this.data = { motionDefaultProfileIndex: 0, motionProfiles: [] };
     for (let i = 0; i < 5; i++) { const sl = this.slots[i]; const old = this.data.motionProfiles[i] || {}; const others = (old.channels || []).filter(c => c && c.name !== 'L0');
-      this.data.motionProfiles[i] = Object.assign({}, old, { name: sl ? 'NZ ' + (i + 1) + ' ' + sl.key : (old.name || 'NZ ' + (i + 1)), edited: true, channels: [fwChannel(sl ? { period: sl.period, amp: sl.amp, offset: sl.offset, update: sl.update } : { period: 2000, amp: 50, offset: 5000 })].concat(others) }); }
+      this.data.motionProfiles[i] = Object.assign({}, old, { name: sl ? 'NZ ' + (i + 1) + ' ' + sl.key : (old.name || 'NZ ' + (i + 1)), edited: true, channels: [sl && sl.ch ? fwChannel(sl.ch) : fwChannel(sl ? { period: sl.period, amp: sl.amp, offset: sl.offset, update: sl.update, phase: sl.phase || 0 } : { period: 2000, amp: 50, offset: 5000 })].concat(others) }); }
     const body = JSON.stringify(this.data), url = this.base() + '/motionProfiles';
     try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, targetAddressSpace: 'local', cache: 'no-store', signal: AbortSignal.timeout(6000) }); const t = await r.text(); if (!/done/i.test(t) && !r.ok) throw new Error(t || r.status); }
     catch (e) { await fetch(url, { method: 'POST', mode: 'no-cors', body: new Blob([body], { type: 'text/plain' }), targetAddressSpace: 'local', signal: AbortSignal.timeout(6000) }); }
@@ -25098,24 +25186,29 @@ const fwGen = {
       if (hit && this.enabled && i === this.cur) return;   // läuft schon genau so
       if (!hit) { this.slots[i] = p; try { await this.write(); } catch (e) { this.broken = true; logEvent('msg', { role: 'system', text: 'Generator: Profil schreiben ging nicht (' + e.message + ') - die App übernimmt wieder selbst' }); showToast('Gerät rechnet selbst: Schreiben ins Gerät ging nicht - die App steuert wieder', true); if (my === this.token) fallback(); return; } }
       if (my !== this.token) return;
-      // Weicher Übergang: Generator kurz aus, die App fährt in einem runden Bogen zur Mitte der neuen Welle (von dort, wo die Hülse gerade ist -
-      // TCode fährt immer von der echten Lage aus), dann startet die neue Welle genau dort. Kein Sprung, auch ohne Rückmeldung vom Gerät.
-      let bridged = 0;
+      // Weicher Übergang (3.78): 1) eine laufende Welle hält am Umkehrpunkt an (dort steht die Hülse ohnehin kurz still - kein Stopp mitten im Hub),
+      // 2) eine laufende App-Fahrt darf erst zu Ende fahren, 3) die App fährt mit Anfahren und Abbremsen (Sinus) zum Startpunkt der neuen Welle -
+      // bei getesteter Startphase oben an den Umkehrpunkt, sonst in die Mitte -, 4) dort startet die Welle.
+      let bridged = 0, waited = 0;
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
       if (this.bridgeOn()) {
-        if (this.enabled) { device1.sendRaw('#motion-disable'); this.enabled = false; }
-        const ms = Math.round(Math.max(350, Math.min(900, 300 + Math.abs(p.period) * 0.12)));
-        await new Promise(r => setTimeout(r, 60)); if (my !== this.token) return;
-        bridged = device1.bridge(mid, ms) || ms;
-        await new Promise(r => setTimeout(r, bridged + 40)); if (my !== this.token) return;
+        const wasGen = this.enabled;
+        if (wasGen) { waited = this.haltAtTurn(); await sleep(waited + 60); if (my !== this.token) return; await sleep(90); }
+        else { const left = Math.min(1200, device1.moveLeft()); if (left > 0) { waited = left; await sleep(left); if (my !== this.token) return; } }
+        const target = p.phase ? q.high : mid;
+        const ms = Math.round(Math.max(380, Math.min(1100, 320 + Math.abs(p.period) * 0.15)));
+        bridged = device1.bridgeSoft(target, ms) || ms;
+        await sleep(bridged + 50); if (my !== this.token) return;
       }
       this.used[i] = Date.now(); this.cur = i;
       device1.sendRaw('#motion-profile-set:' + (i + 1));
-      if (!this.enabled) { await new Promise(r => setTimeout(r, 120)); if (my !== this.token) return; device1.sendRaw('#motion-enable'); this.enabled = true; }
-      this.startedAt = Date.now();
-      logEvent('msg', { role: 'system', text: `Generator: Platz ${i + 1} ${hit ? '(schon da)' : '(neu geschrieben)'}${bridged ? ', Übergang ' + bridged + ' ms über die Mitte' : ''} - ${p.period} ms je Hub, Ausschlag ${p.amp} %, Mitte ${p.offset}` });
+      if (!this.enabled) { await sleep(120); if (my !== this.token) return; device1.sendRaw('#motion-enable'); this.enabled = true; }
+      this.startedAt = Date.now(); this.run = { startedAt: this.startedAt, period: p.period, phase: p.phase, low: q.low, high: q.high };
+      logEvent('msg', { role: 'system', text: `Generator: Platz ${i + 1} ${hit ? '(schon da)' : '(neu geschrieben)'}${waited ? ', bis zum Umkehrpunkt ' + waited + ' ms' : ''}${bridged ? ', weicher Übergang ' + bridged + ' ms ' + (p.phase ? 'zum oberen Umkehrpunkt' : 'zur Mitte') : ''} - ${p.period} ms je Hub, Ausschlag ${p.amp} %, Mitte ${p.offset}${p.phase ? ', Phase ' + p.phase + '°' : ''}` });
     });
   },
-  stop() { this.token++; if (this.enabled) { this.enabled = false; try { device1.sendRaw('#motion-disable'); } catch (e) {} } },
+  // soft: am nächsten Umkehrpunkt anhalten (liefert die Wartezeit); sonst sofort
+  stop(soft) { this.token++; if (!this.enabled) return 0; if (soft) return this.haltAtTurn(); this.enabled = false; this.run = null; try { device1.sendRaw('#motion-disable'); } catch (e) {} return 0; },
 };
 // Aus kommenden Abschnitten alle Wellen/Zittern heraussuchen (Marker, Phasen, Folgen) und vorab ins Gerät schreiben
 function fwPrefetchChunks(chunks) {
@@ -29820,8 +29913,9 @@ async function pvSpeak(P, i) {
 // Neues bezahlt.
 const swv = { on: localStorage.getItem('companion_swVoice') !== 'false', audio: null, token: 0 };
 function swvStop() {
-  swv.token++;
+  swv.token++; introSeq++;   // auch eine gerade entstehende Vorstellung nicht mehr abspielen
   if (swv.audio) { try { swv.audio.pause(); } catch (e) {} swv.audio = null; }
+  if (previewAudio) { try { previewAudio.pause(); } catch (e) {} previewAudio = null; }
   try { speechSynthesis.cancel(); } catch (e) {}
   document.querySelectorAll('#swStage .swv-cap').forEach(c => { c.style.opacity = '0'; });
   document.querySelectorAll('#swStage .sw-card.swv-live').forEach(c => c.classList.remove('swv-live'));
@@ -29840,6 +29934,7 @@ async function swvPlay(f, card, manual) {
     // Auf Wunsch neu erzeugen (kostet einmalig), danach abspielen
     if (btn) btn.textContent = '…';
     try { await introduceFigure(v, f.id, null, false); } catch (e) {}
+    if (my !== swv.token) return;
     const s2 = loadIntroMap()[f.id];
     if (s2) show(s2.text);
     if (btn) btn.textContent = '🔊';
@@ -29858,6 +29953,19 @@ async function swvPlay(f, card, manual) {
     a.onerror = done;
     a.play().catch(done);
   } else if (stored.text) {
+    // Text da, Ton fehlt (z. B. vom anderen Gerät abgeglichen): bei ElevenLabs NICHT die Android-Stimme nehmen -
+    // auf Antippen wird der aufbewahrte Text einmal vertont, beim bloßen Wischen bleibt es still
+    const eleven = (localStorage.getItem('companion_ttsSource') || 'browser') === 'elevenlabs';
+    if (eleven) {
+      if (!manual || !v.elevenVoice || !apiKeyFor('companion_elevenKey')) { if (manual) showToast(v.elevenVoice ? 'Erst einen ElevenLabs-Schlüssel eintragen' : `${v.name} hat noch keine ElevenLabs-Stimme`); done(); return; }
+      if (btn) btn.textContent = '…';
+      let b2 = null; try { b2 = await elevenIntroAudio(stored.text, v); await dbPut(STORE_AUDIO, INTRO_PREFIX + f.id, b2); } catch (e) { showToast('Vertonen ging nicht: ' + e.message, true); }
+      if (my !== swv.token || !b2) { done(); return; }
+      const a = new Audio(URL.createObjectURL(b2)); swv.audio = a; if (btn) btn.textContent = '⏹';
+      try { routeAudio(a, 'voice', v.name, stored.text); } catch (e) {}
+      a.onended = () => { URL.revokeObjectURL(a.src); done(); }; a.onerror = done; a.play().catch(done);
+      return;
+    }
     await speakWithBrowser(stored.text, v);
     done();
   } else done();
