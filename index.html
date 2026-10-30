@@ -1265,7 +1265,7 @@
             <button type="button" class="btn-secondary fw-b" data-c="#motion-profile-set:5|#motion-enable" style="width:auto;">▶ 5</button>
             <button type="button" class="btn-primary fw-b" data-c="#motion-disable" style="width:auto;">■ Generator aus</button>
             <button type="button" class="btn-secondary fw-b" data-c="#help" style="width:auto;">❓ Befehle</button>
-            <button type="button" class="btn-primary" id="fwInstallBtn" style="width:auto;">🛠 Profile aus der App einrichten</button>
+            <button type="button" class="btn-primary" id="fwInstallBtn" style="width:auto; display:none;">🛠 Profile aus der App einrichten</button>
             <button type="button" class="btn-secondary fw-b" data-c="#list-settings" style="width:auto;">⚙ Einstellungen</button>
           </div>
           <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:10px 0 0 0;"><input type="checkbox" id="fwGenOn" style="width:auto;"><span style="font-size:13.5px;"><b>Gerät rechnet selbst</b> - weiche Wellen, gleichmäßige Hübe und Zittern erzeugt der Generator im Gerät (glatt, auch bei schwachem WLAN); Stöße, Fahrten und Pausen steuert weiter die App</span></label>
@@ -3699,8 +3699,13 @@ async function fetchWithRetry(url, options, attempts) {
 // Shown in the app because "which build am I actually running?" came up often
 // enough to be worth answering in one glance - especially when a fix is
 // delivered but the old file is still uploaded.
-const APP_VERSION = '3.80';
+const APP_VERSION = '3.81';
 const CHANGELOG = [
+  { v: '3.81', date: '2026-10-30', items: [
+    '🔎 Gefunden: Profile, die die App ins Gerät schreibt, kommen dort nie an (der Browser blockt es) - darum waren alle Stufen der Tempo-Leiter gleich und die Phasen ohne Wirkung',
+    '🛠 Neu: fünf feste Profile, die du einmal auf der Geräteseite einträgst (Tabelle im Testlabor). Die App schaltet nur noch um und wählt für jede Welle das passende Profil - passt keins, fährt die App selbst',
+    '🧪 Testlabor: Phasen- und Tempotest entfernt (ohne Schreiben nicht machbar), „Die fünf Profile im Gerät" und „Übergänge" bleiben',
+  ] },
   { v: '3.80', date: '2026-10-30', items: [
     '🧪 Testlabor aufgeräumt: geklärte Tests und alte Antworten entfernt - übrig sind nur, was noch offen ist: Welle oben starten, die fünf Muster, die neue Tempo-Leiter und Übergänge mit der neuen Logik',
     '⚡ Tempo-Leiter: zeigt, bis zu welchem Tempo der Generator sauber läuft - das Ergebnis wird als schnellster Hub übernommen',
@@ -24646,7 +24651,7 @@ const LAB_TESTS = [
     async run(say) { labNeedDevice(); fwGen.stop(); device1.setMotion({ texture: 'stop' }); await labWait(700);
       // Die App beschreibt die fünf Plätze sonst selbst (Wellen aus der Geschichte) - vorher waren hier deshalb gar nicht die
       // fünf Muster drin, sondern überschriebene Plätze (darum war „Zittern" langsam und die letzten kaum verschieden)
-      FW_PROFILES.forEach((pr, k) => { fwGen.slots[k] = { key: 'fix-' + k, ch: pr.ch }; fwGen.used[k] = 0; }); await fwGen.write(); say('fünf Muster ins Gerät geschrieben'); await labWait(300);
+      say('spielt die fünf Profile, die im Gerät gespeichert sind'); await labWait(300);
       for (let i = 1; i <= 5; i++) { say(`Profil ${i}: ${FW_PROFILES[i - 1].name}`); device1.sendRaw('#motion-profile-set:' + i); if (i === 1) { await labWait(150); device1.sendRaw('#motion-enable'); } await labWait(6000); }
       device1.sendRaw('#motion-disable'); fwGen.enabled = false; device1.setMotion({ texture: 'stop' }); say('fertig'); } },
   { id: 'fw-trans', ver: '3.70', title: 'Übergänge zwischen Wellen', group: 'Bewegungsgenerator',
@@ -24752,8 +24757,8 @@ LAB_TESTS.push({ id: 'fw-phase', ver: '3.78', title: 'Welle oben starten (weiche
 // 3.80: Testlabor neu sortiert - was geklärt ist, fliegt raus (Ausschlag: Prozent gelten für die ganze Strecke; 0-100 % passt;
 // Grenzen ins Gerät gehen von der Webseite aus nicht; weiche App-Wellen und die Ruhe nach dem Markenzeichen passen; die alten
 // Übergangstests sind durch die neue Übergangslogik überholt). Neu: Tempo-Leiter und Übergänge mit der neuen Logik.
-{ const keep = ['fw-each', 'fw-phase']; for (let i = LAB_TESTS.length - 1; i >= 0; i--) if (!keep.includes(LAB_TESTS[i].id)) LAB_TESTS.splice(i, 1); }
-const LAB_GEN = '3.80';
+{ const keep = ['fw-each']; for (let i = LAB_TESTS.length - 1; i >= 0; i--) if (!keep.includes(LAB_TESTS[i].id)) LAB_TESTS.splice(i, 1); }
+const LAB_GEN = '3.81';
 try { if (localStorage.getItem('companion_labGen') !== LAB_GEN) { localStorage.removeItem('companion_labResults'); safeSet('companion_labGen', LAB_GEN); } } catch (e) {}
 const FW_LADDER = [600, 400, 300, 220, 160, 120];
 LAB_TESTS.push({ id: 'fw-speed', ver: '3.80', title: 'Tempo-Leiter: wie schnell geht es sauber?', group: 'Bewegungsgenerator',
@@ -24786,7 +24791,9 @@ LAB_TESTS.push({ id: 'fw-trans2', ver: '3.80', title: 'Übergänge (neue Logik)'
     { t: 'Welle → Stopp', q: 'Wie hat sie angehalten?', answers: [['smooth', '✓ weich am Umkehrpunkt'], ['ruck', 'kleiner Ruck'], ['sprung', 'abrupt mitten im Hub']],
       async play() { await labWithGen(async () => { device1.setMotion({ low: 150, high: 850, bpm: 35, texture: 'sine' }); await labWait(6000); device1.setMotion({ texture: 'stop' }); await labWait(3000); }); } },
   ] });
-{ const order = ['fw-phase', 'fw-each', 'fw-speed', 'fw-trans2']; LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
+{ const order = ['fw-each', 'fw-trans2'];
+  const each = LAB_TESTS.find(t => t.id === 'fw-each'); if (each) { each.ver = '3.81'; each.title = 'Die fünf Profile im Gerät'; each.what = 'Trag zuerst die fünf Profile oben im Kasten auf der Geräteseite ein. Dann spielt dieser Test sie nacheinander je 6 s: Welle langsam, mittel, schnell, Zittern oben, Spitze schnell.'; each.watch = 'Unterscheiden sie sich jetzt deutlich - langsam, mittel, schnell, ein echtes Zittern oben, schnell und kurz im oberen Bereich?'; each.answers = [['ok', 'alle wie beschrieben'], ['teils', 'manche nicht'], ['gleich', 'immer noch alle gleich']]; }
+  { const fs = LAB_TESTS.findIndex(t => t.id === 'fw-speed'); if (fs >= 0) LAB_TESTS.splice(fs, 1); } LAB_TESTS.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); LAB_TESTS.forEach((t, i) => { t.nr = i + 1; }); }
 function labResults() { try { return JSON.parse(localStorage.getItem('companion_labResults') || '{}'); } catch (e) { return {}; } }
 const lab = { running: '' };
 function renderLab() {
@@ -24794,6 +24801,11 @@ function renderLab() {
   const groups = [...new Set(LAB_TESTS.map(t => t.group))];   // Reihenfolge der Gruppen folgt der empfohlenen Testreihenfolge
   v.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><h2 style="margin:0; flex:1; font-size:22px;">🧪 Testlabor</h2><button type="button" class="btn-secondary lab-x" style="width:44px; height:44px; padding:0;">✕</button></div>
     <p class="hint" style="margin:6px 0 10px;">Tests zu neuen Funktionen - einfach durchspielen und kurz sagen, wie es war. Die Antworten stehen im Protokoll (☰ → Protokoll als Datei). Läuft immer mit deinen echten Einstellungen und Grenzen.</p>
+    <div style="border:1px solid rgba(255,207,77,0.45); border-radius:12px; padding:10px; margin-bottom:12px;">
+      <b style="font-size:14px;">🛠 Einmal nötig: fünf Profile auf der Geräteseite eintragen</b>
+      <p class="hint" style="margin:4px 0 0;">Profile aus der App heraus zu schreiben klappt nicht (der Browser blockt es) - deshalb waren in der Tempo-Leiter alle Stufen gleich. Öffne ${fwGen.base() ? `<a href="${esc(fwGen.base())}" target="_blank" rel="noopener" style="color:var(--gold, #ffcf4d);">${esc(fwGen.base())}</a>` : 'die Seite deines Geräts'} → Motion-Generator, und trag dort genau diese fünf Profile ein. Die App schaltet dann nur noch um.</p>
+      ${fwPaletteHtml()}
+    </div>
     <div style="border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px; margin-bottom:12px;">
       <b style="font-size:14px;">Anfahren</b> <span class="hint" style="margin:0;">- langsam (2 s) zu einem Punkt deines Bereichs, Gerät 1 (0 % = Untergrenze, 100 % = Obergrenze)</span>
       <div style="display:flex; gap:6px; margin-top:8px;">${[0, 25, 50, 75, 100].map(v => `<button type="button" class="btn-secondary lab-jog" data-v="${v}" style="flex:1; padding:8px 0;">${v} %</button>`).join('')}</div>
@@ -25132,12 +25144,19 @@ showHome();
 }
 // 🛠 Profile für den Bewegungsgenerator der Firmware aus der App schreiben (wie die Weboberfläche des Geräts: GET/POST /motionProfiles, JSON)
 const FW_PROFILES = [
-  { name: 'NZ Welle langsam', ch: { period: 4000, amp: 80, offset: 5000 } },
-  { name: 'NZ Welle mittel', ch: { period: 1800, amp: 70, offset: 5000 } },
-  { name: 'NZ Welle schnell', ch: { period: 800, amp: 55, offset: 5000 } },
+  { name: 'NZ Welle langsam', ch: { period: 4000, amp: 80, offset: 5000, update: 100 } },
+  { name: 'NZ Welle mittel', ch: { period: 1800, amp: 70, offset: 5000, update: 60 } },
+  { name: 'NZ Welle schnell', ch: { period: 800, amp: 55, offset: 5000, update: 30 } },
   { name: 'NZ Zittern oben', ch: { period: 150, amp: 6, offset: 8900, update: 20 } },
-  { name: 'NZ Wiegen Zufall', ch: { period: 2500, amp: 60, offset: 5000, periodRan: true, periodMin: 1400, periodMax: 4200, ampRan: true, ampMin: 35, ampMax: 85, offsetRan: true, offsetMin: 3800, offsetMax: 6200, ranMin: 4000, ranMax: 12000 } },
+  { name: 'NZ Spitze schnell', ch: { period: 500, amp: 30, offset: 7500, update: 20 } },
 ];
+// 3.81: Die Tempo-Leiter war auf allen Stufen gleich schnell - Profile, die die App schreibt, kommen im Gerät nicht an. Die Geräteseite
+// nimmt nur JSON vom eigenen Ursprung an; von der Webseite (https) aus blockt der Browser das (CORS), der Ausweichweg als Text wird
+// ignoriert. Darum jetzt: die fünf Profile EINMAL auf der Geräteseite eintragen, die App schaltet nur noch um (das geht übers WLAN).
+// Passt keine der fünf Wellen zur gewünschten Bewegung, macht die App sie selbst.
+function fwPaletteHtml() { return '<table style="width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px;"><tr style="color:var(--gold, #ffcf4d);"><td>Nr.</td><td>Name</td><td>Period (ms)</td><td>Amplitude</td><td>Offset</td><td>Update (ms)</td></tr>' +
+  FW_PROFILES.map((p, i) => `<tr style="border-top:1px solid rgba(255,255,255,0.1);"><td>${i + 1}</td><td>${esc(p.name)}</td><td>${p.ch.period}</td><td>${p.ch.amp}</td><td>${p.ch.offset}</td><td>${p.ch.update}</td></tr>`).join('') +
+  '</table><p class="hint" style="margin:6px 0 0;">Nur Kanal L0, Phase 0, alle „Random"-Haken aus. Danach speichern.</p>'; }
 function fwChannel(over) { return Object.assign({ name: 'L0', update: 100, period: 2000, amp: 60, offset: 5000, periodRan: false, periodMin: 500, periodMax: 2000, ampRan: false, ampMin: 20, ampMax: 60, offsetRan: false, offsetMin: 3000, offsetMax: 7000, ranMin: 3000, ranMax: 30000, phase: 0, phaseRan: false, phaseMin: 0, phaseMax: 180, reverse: false, edited: true }, over); }
 async function fwInstallProfiles() {
   const out = document.getElementById('fwOut'); const say = t => { if (out) out.textContent = (out.textContent + '\n' + t).trim().slice(-3000); logEvent('msg', { role: 'system', text: 'Generator-Profile: ' + t }); };
@@ -25209,38 +25228,44 @@ const fwGen = {
     this.writes++;
   },
   pick(key) { let i = this.slots.findIndex(x => x && x.key === key); if (i >= 0) return { i, hit: true }; let best = -1; for (let k = 0; k < 5; k++) { if (k === this.cur) continue; if (best < 0 || !this.slots[k] || (this.slots[best] && this.used[k] < this.used[best])) best = k; } return { i: best, hit: false }; },
-  prefetch(list) {   // Geschichte: kommende Wellen schon einspielen (ohne abzufeuern)
-    if (!this.on()) return; const ps = list.map(q => this.params(q)).filter(p => !this.slots.some(x => x && x.key === p.key)).slice(0, 3); if (!ps.length) return;
-    this.queue = this.queue.then(async () => { ps.forEach(p => { const { i } = this.pick(p.key); if (i >= 0) { this.slots[i] = p; this.used[i] = Date.now() - 1000; } }); try { await this.write(); } catch (e) {} });
-  },
+  prefetch() {},   // 3.81: Schreiben ins Gerät geht nicht - die fünf Profile stehen fest
   bridgeOn() { return localStorage.getItem('companion_fwBridge') !== '0'; },
+  // Welches der fünf festen Profile passt zur gewünschten Welle? (Tempo höchstens Faktor 1,5 daneben, Mitte höchstens 15 %, Hublänge 0,6-1,6-fach)
+  match(q) {
+    const qm = (q.low + q.high) / 2, qs = Math.max(1, q.high - q.low); let best = null;
+    FW_PROFILES.forEach((pr, i) => { const c = pr.ch, cm = c.offset / 10.01, cs = c.amp * 9.99, isTr = c.period < 300;
+      if (!!q.tremor !== isTr && !(isTr && qs < 120 && q.period < 300)) return;
+      const r = q.period / c.period, sr = qs / cs, dc = Math.abs(qm - cm);
+      if (r < 0.67 || r > 1.5 || dc > 150 || (!q.tremor && (sr < 0.6 || sr > 1.6))) return;
+      const sc = Math.abs(Math.log(r)) + dc / 300 + (q.tremor ? 0 : Math.abs(Math.log(sr)));
+      if (!best || sc < best.sc) best = { i, sc, c, mid: cm, low: cm - cs / 2, high: cm + cs / 2 }; });
+    return best;
+  },
   play(q, fallback) {
-    const p = this.params(q), my = ++this.token, mid = (q.low + q.high) / 2;
+    const my = ++this.token, m = this.match(q);
     this.queue = this.queue.then(async () => {
       if (my !== this.token) return;
-      let { i, hit } = this.pick(p.key);
-      if (hit && this.enabled && i === this.cur) return;   // läuft schon genau so
-      if (!hit) { this.slots[i] = p; try { await this.write(); } catch (e) { this.broken = true; logEvent('msg', { role: 'system', text: 'Generator: Profil schreiben ging nicht (' + e.message + ') - die App übernimmt wieder selbst' }); showToast('Gerät rechnet selbst: Schreiben ins Gerät ging nicht - die App steuert wieder', true); if (my === this.token) fallback(); return; } }
-      if (my !== this.token) return;
-      // Weicher Übergang (3.78): 1) eine laufende Welle hält am Umkehrpunkt an (dort steht die Hülse ohnehin kurz still - kein Stopp mitten im Hub),
-      // 2) eine laufende App-Fahrt darf erst zu Ende fahren, 3) die App fährt mit Anfahren und Abbremsen (Sinus) zum Startpunkt der neuen Welle -
-      // bei getesteter Startphase oben an den Umkehrpunkt, sonst in die Mitte -, 4) dort startet die Welle.
-      let bridged = 0, waited = 0;
       const sleep = ms => new Promise(r => setTimeout(r, ms));
+      if (!m) {   // keins passt: die App macht es selbst - eine laufende Welle hält vorher am Umkehrpunkt
+        const w = this.enabled ? this.haltAtTurn() : 0; if (w) await sleep(w + 150); if (my !== this.token) return;
+        logEvent('msg', { role: 'system', text: `Generator: kein Profil passt zu ${Math.round(q.period)} ms / ${Math.round(q.low)}-${Math.round(q.high)} - die App fährt selbst` });
+        fallback(); return;
+      }
+      const i = m.i;
+      if (this.enabled && i === this.cur) return;   // läuft schon genau so
+      let bridged = 0, waited = 0;
       if (this.bridgeOn()) {
-        const wasGen = this.enabled;
-        if (wasGen) { waited = this.haltAtTurn(); await sleep(waited + 60); if (my !== this.token) return; await sleep(90); }
+        if (this.enabled) { waited = this.haltAtTurn(); await sleep(waited + 60); if (my !== this.token) return; await sleep(90); }
         else { const left = Math.min(1200, device1.moveLeft()); if (left > 0) { waited = left; await sleep(left); if (my !== this.token) return; } }
-        const target = p.phase ? q.high : mid;
-        const ms = Math.round(Math.max(380, Math.min(1100, 320 + Math.abs(p.period) * 0.15)));
-        bridged = device1.bridgeSoft(target, ms) || ms;
+        const ms = Math.round(Math.max(380, Math.min(1100, 320 + Math.abs(m.c.period) * 0.15)));
+        bridged = device1.bridgeSoft(m.mid, ms) || ms;   // die Welle startet in ihrer Mitte
         await sleep(bridged + 50); if (my !== this.token) return;
       }
       this.used[i] = Date.now(); this.cur = i;
       device1.sendRaw('#motion-profile-set:' + (i + 1));
       if (!this.enabled) { await sleep(120); if (my !== this.token) return; device1.sendRaw('#motion-enable'); this.enabled = true; }
-      this.startedAt = Date.now(); this.run = { startedAt: this.startedAt, period: p.period, phase: p.phase, low: q.low, high: q.high };
-      logEvent('msg', { role: 'system', text: `Generator: Platz ${i + 1} ${hit ? '(schon da)' : '(neu geschrieben)'}${waited ? ', bis zum Umkehrpunkt ' + waited + ' ms' : ''}${bridged ? ', weicher Übergang ' + bridged + ' ms ' + (p.phase ? 'zum oberen Umkehrpunkt' : 'zur Mitte') : ''} - ${p.period} ms je Hub, Ausschlag ${p.amp} %, Mitte ${p.offset}${p.phase ? ', Phase ' + p.phase + '°' : ''}` });
+      this.startedAt = Date.now(); this.run = { startedAt: this.startedAt, period: m.c.period, phase: 0, low: m.low, high: m.high };
+      logEvent('msg', { role: 'system', text: `Generator: Profil ${i + 1} (${FW_PROFILES[i].name.replace(/^NZ /, '')}) für ${Math.round(q.period)} ms / ${Math.round(q.low)}-${Math.round(q.high)}${waited ? ', bis zum Umkehrpunkt ' + waited + ' ms' : ''}${bridged ? ', weicher Übergang ' + bridged + ' ms' : ''}` });
     });
   },
   // soft: am nächsten Umkehrpunkt anhalten (liefert die Wartezeit); sonst sofort
